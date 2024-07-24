@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT FANS TOKEN</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 20px;
+            font-size: 9px;
+        }
+        h1 {
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .grid-item {
+            background: linear-gradient(135deg, #1a1a1a, #333);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            color: #e0e0e0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
+        .grid-item h2 {
+            font-size: 7px;
+            color: yellow;
+            margin: 0 0 10px;
+            word-break: break-word;
+        }
+        .grid-item p {
+            margin: 5px 0;
+            font-size: 9px;
+        }
+        .cash-out-btn {
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 9px;
+            transition: background-color 0.3s ease;
+        }
+        .cash-out-btn:hover {
+            background-color: #0056b3;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-box {
+            width: 100%;
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #333;
+            background-color: #1f1f1f;
+            color: #e0e0e0;
+            font-size: 9px;
+        }
+        @media (max-width: 767.98px) {
+            .search-box {
+                font-size: 9px;
+            }
+        }
+        .animated-token {
+            transition: color 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        .modal-content {
+            background-color: #1f1f1f;
+            color: #e0e0e0;
+            border: none;
+        }
+        .modal-header, .modal-footer {
+            border: none;
+        }
+        .modal-title {
+            color: #e0e0e0;
+        }
+        .modal-body {
+            font-size: 10px;
+        }
+        .modal-footer .btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .modal-footer .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">NFT FANS TOKEN REWARDS</h1>
+        <div class="search-container">
+            <input type="text" id="search-box" class="search-box" placeholder="Search Wallet Address">
+        </div>
+        <div class="grid-container" id="wallet-data">
+            <!-- Data grid items will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="cashOutModal" tabindex="-1" role="dialog" aria-labelledby="cashOutModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashOutModalLabel">Cash Out Information</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    In order to cash out your tokens, please pay a 1 $MATIC fee to our official wallet address:<br>
+                    <strong>0x1234567890abcdef1234567890abcdef12345678</strong>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.140.0.min.js"></script>
+    <script>
+        AWS.config.update({
+            region: 'eu-north-1', // Replace with your AWS region
+            credentials: new AWS.Credentials('AKIAVRUVVVUM65TIIUHH', 'ZkGMefa8j6JcqV7y3CF/5cNSP9hwKn7FoQrkEm3y')
+        });
+
+        var dynamoDB = new AWS.DynamoDB.DocumentClient();
+        var tableName = 'solfan'; // Replace with your DynamoDB table name
+
+        function formatTokens(tokenAmount) {
+            var kiloTrillion = tokenAmount / 1e12;
+            return kiloTrillion.toFixed(2) + ' KT'; // Format to 2 decimal places
+        }
+
+        function updatePriceInDOM(dateOfPurchase, element) {
+            var now = new Date();
+            var elapsedSeconds = Math.floor((now - new Date(dateOfPurchase)) / 1000);
+            var startingPrice = 1000000000000; // Starting price in tokens
+            var priceIncrementPerSecond = 1000000000000 / (24 * 60 * 60); // Increase per second
+            var currentPrice = startingPrice + (elapsedSeconds * priceIncrementPerSecond);
+            var fullPrice = currentPrice.toLocaleString();
+            var kiloTrillionPrice = formatTokens(currentPrice);
+            element.textContent = `${fullPrice} $nftfan (${kiloTrillionPrice})`;
+        }
+
+        function fetchWalletData() {
+            var params = {
+                TableName: tableName
+            };
+
+            dynamoDB.scan(params, function(err, data) {
+                if (err) {
+                    console.error('Unable to fetch data from DynamoDB:', err);
+                    return;
+                }
+
+                var container = document.getElementById('wallet-data');
+                container.innerHTML = ''; // Clear existing grid items
+
+                data.Items.forEach(function(item) {
+                    if (item.wallet) { // Ensure there is a wallet address
+                        var dateOfPurchase = new Date(item.dateOfPurchase);
+                        var gridItem = document.createElement('div');
+                        gridItem.className = 'grid-item';
+                        
+                        gridItem.innerHTML = `
+                            <h2>${item.wallet}</h2>
+                            <p>Date of Purchase: ${dateOfPurchase.toLocaleDateString()}</p>
+                            <p class="animated-token"></p>
+                            <button class="cash-out-btn" onclick="showCashOutModal('${item.wallet}')">Cash Out</button>
+                        `;
+                        
+                        // Append grid item to container
+                        container.appendChild(gridItem);
+
+                        // Start price animation
+                        (function startPriceAnimation() {
+                            var tokenElement = gridItem.querySelector('.animated-token');
+                            function updatePrice() {
+                                updatePriceInDOM(dateOfPurchase, tokenElement);
+                            }
+                            updatePrice(); // Initial update
+                            setInterval(updatePrice, 1000); // Update every second
+                        })();
+                    }
+                });
+
+                // Initialize search functionality
+                initializeSearch();
+            });
+        }
+
+        function initializeSearch() {
+            var searchBox = document.getElementById('search-box');
+            searchBox.addEventListener('input', function() {
+                var searchTerm = searchBox.value.toLowerCase();
+                var gridItems = document.querySelectorAll('.grid-item');
+
+                gridItems.forEach(function(item) {
+                    var walletAddress = item.querySelector('h2').textContent.toLowerCase();
+                    if (walletAddress.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function showCashOutModal(wallet) {
+            // Instead of showing the modal, we now show an alert message.
+            alert('Cash out is disabled for your wallet. Pay 1.99 $matic to 0x92d550cdBc234211957Bd1B579d962c885A127Ba to enable cash out');
+        }
+
+        window.onload = fetchWalletData;
+    </script>
+</body>
+</html>
