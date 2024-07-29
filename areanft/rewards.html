@@ -47,16 +47,23 @@
         }
         .cash-out-btn {
             cursor: pointer;
-            background-color: #007bff;
-            color: white;
             border: none;
             padding: 5px 10px;
             border-radius: 5px;
             font-size: 9px;
             transition: background-color 0.3s ease;
+            display: inline-block;
+            margin-right: 5px;
+            background-color: #007bff;
+            color: white;
         }
         .cash-out-btn:hover {
             background-color: #0056b3;
+        }
+        .verified-icon {
+            width: 20px; /* Adjust the size as needed */
+            height: 20px; /* Adjust the size as needed */
+            margin-left: 5px;
         }
         .search-container {
             margin-bottom: 20px;
@@ -144,6 +151,14 @@
         var dynamoDB = new AWS.DynamoDB.DocumentClient();
         var tableName = 'solfan'; // Replace with your DynamoDB table name
 
+        // List of verified wallet addresses
+        var verifiedWallets = [
+            '0x92d550cdbc234211957bd1b579d962c885a127ba',
+            '0xBBCcA0fc8adc2C08DDEDBC506872DA16BFB7AB6a',
+            '0x7c60892B6d9A68BD206C29b8c373c6714e19c73e',
+            '0xdae374cea1836f902fff263f2ca9313ec2a62d02'
+        ];
+
         function formatTokens(tokenAmount) {
             var kiloTrillion = tokenAmount / 1e12;
             return kiloTrillion.toFixed(2) + ' KT'; // Format to 2 decimal places
@@ -179,12 +194,20 @@
                         var dateOfPurchase = new Date(item.dateOfPurchase);
                         var gridItem = document.createElement('div');
                         gridItem.className = 'grid-item';
+
+                        var verifiedBadge = '';
+                        if (verifiedWallets.includes(item.wallet.toLowerCase())) {
+                            verifiedBadge = `
+                                <img src="https://pbs.twimg.com/media/GTrQdNGWcAAtxZh?format=png&name=small" class="verified-icon" />
+                            `;
+                        }
                         
                         gridItem.innerHTML = `
                             <h2>${item.wallet}</h2>
                             <p>Date of Purchase: ${dateOfPurchase.toLocaleDateString()}</p>
                             <p class="animated-token"></p>
                             <button class="cash-out-btn" onclick="showCashOutModal('${item.wallet}')">Cash Out</button>
+                            ${verifiedBadge}
                         `;
                         
                         // Append grid item to container
