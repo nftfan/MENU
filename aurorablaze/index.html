@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Aurora Blaze</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #00131a;
+            color: #e0e0e0;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin: 20px 0;
+            font-size: 25px;
+        }
+        .owner-info-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon {
+            width: 30px;
+            height: 30px;
+            background-size: cover;
+            display: inline-block;
+        }
+        .x-icon {
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/X_icon.svg/1024px-X_icon.svg.png');
+        }
+        .opensea-icon {
+            background-image: url('https://storage.googleapis.com/opensea-static/Logomark/Logomark-Blue.png');
+        }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: url('https://pbs.twimg.com/profile_images/1728586309990518785/-gwnuHFa_400x400.jpg') no-repeat center center;
+            background-size: cover;
+            display: inline-block;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            justify-items: center;
+        }
+        .grid-item {
+            width: 150px;
+            height: 290px; /* Adjust height to accommodate image and info */
+            background-color: #4c4c50;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: pointer;
+            position: relative;
+        }
+        .grid-item img {
+            width: 100%;
+            height: 80%; /* Adjust height as needed */
+            object-fit: cover; /* Ensures the image covers the area while preserving aspect ratio */
+        }
+        .title {
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            color: #e0e0e0;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .owner-info {
+            padding: 0 10px 10px;
+            font-size: 10px;
+            color: #9e9e9e;
+            text-align: left;
+        }
+        .owner-info a {
+            color: #1e90ff;
+            text-decoration: none;
+        }
+        .owner-info a:hover {
+            text-decoration: underline;
+        }
+        .grid-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.7);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup {
+            position: relative;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.7);
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .popup img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 10px;
+            object-fit: contain; /* Ensures the full image is visible */
+        }
+        .popup-title {
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #e0e0e0;
+            text-align: left;
+            width: 100%;
+        }
+        .popup-owner {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #9e9e9e;
+            text-align: left;
+            width: 100%;
+        }
+        .popup-owner a {
+            color: #1e90ff;
+            text-decoration: none;
+        }
+        .popup-owner a:hover {
+            text-decoration: underline;
+        }
+        .close-btn, .prev-btn, .next-btn {
+            position: absolute;
+            background: #ffffff;
+            color: #121212;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+        .close-btn {
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            line-height: 40px;
+            text-align: center;
+        }
+        .prev-btn {
+            left: 10px;
+        }
+        .next-btn {
+            right: 10px;
+        }
+        .prev-btn, .next-btn {
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            line-height: 40px;
+            text-align: center;
+        }
+        .buy-section {
+            margin-top: 40px;
+            background: #2c2c2c;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+        .buy-section h2 {
+            margin: 0 0 20px;
+            color: #ffffff;
+            font-size: 20px;
+        }
+        .buy-section img {
+            margin: 5px;
+            width: 50px;
+            height: auto;
+        }
+        .buy-section .paypal-btn {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aurora Blaze</h1>
+        Aurora Blaze is a superhero with the power to harness and control solar energy. Her abilities allow her to generate intense heat and light, manipulate solar flares, and even create blinding flashes to disorient her enemies. Aurora Blaze's costume reflects her solar powers, featuring a radiant, golden suit with dynamic, sunburst patterns that shimmer with every movement. Her eyes glow with a warm, fiery hue when she uses her powers.
+
+        <div class="owner-info-header">
+            Owner's Email: <a href="mailto:nftfanstoken@gmail.com" target="_blank">nftfanstoken@gmail.com</a>
+        </div>
+        <div class="grid-container">
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/5733f38a-cc2e-4260-a9a6-29549f48fa01/0.png?width=828&quality=75&optimizer=image" alt="Aurora Blaze 1">
+                <div class="title">Aurora Blaze 1</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/5733f38a-cc2e-4260-a9a6-29549f48fa01/1.png?width=828&quality=75&optimizer=image" alt="Aurora Blaze 2">
+                <div class="title">Aurora Blaze 2</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/5733f38a-cc2e-4260-a9a6-29549f48fa01/2.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 3</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/5733f38a-cc2e-4260-a9a6-29549f48fa01/3.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 4</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			 <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4bb7be29-9d82-4911-8f7a-6c16b3b671f5/0.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 5</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4bb7be29-9d82-4911-8f7a-6c16b3b671f5/1.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 6</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4bb7be29-9d82-4911-8f7a-6c16b3b671f5/2.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 7</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4bb7be29-9d82-4911-8f7a-6c16b3b671f5/3.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 8</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/41999ccd-1860-47b1-9a2c-fcfe0e2cbd01/2.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 9</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/41999ccd-1860-47b1-9a2c-fcfe0e2cbd01/3.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 10</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/41999ccd-1860-47b1-9a2c-fcfe0e2cbd01/0.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 11</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/41999ccd-1860-47b1-9a2c-fcfe0e2cbd01/1.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 12</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			 <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/37a682d8-fc59-4ea7-8094-f84501e0aec9/0.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 13</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/06d38e1a-c6fc-419f-9294-57ca0cb7e1a6/3.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 14</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/06d38e1a-c6fc-419f-9294-57ca0cb7e1a6/2.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 15</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/06d38e1a-c6fc-419f-9294-57ca0cb7e1a6/1.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 16</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			  <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/06d38e1a-c6fc-419f-9294-57ca0cb7e1a6/0.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 17</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			 <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4d10dd0c-c9e8-422e-8d5a-dcf8bcf02ad3/0.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 18</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4d10dd0c-c9e8-422e-8d5a-dcf8bcf02ad3/2.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 19</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+			<div class="grid-item">
+                <img src="https://cdn.unstability.ai/users/68b61c74-f191-470d-b1ff-85f2dffc99fc/images/4d10dd0c-c9e8-422e-8d5a-dcf8bcf02ad3/3.png?width=828&quality=75&optimizer=image" alt="Hippo">
+                <div class="title">Aurora Blaze 20</div>
+                <div class="owner-info">
+                    <span>Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a></span>
+                </div>
+            </div>
+            <!-- Repeat for other grid items -->
+        </div>
+
+        <div class="buy-section">
+            <h2>Buy Full NFT Collection</h2>
+            <p>Purchase the complete Aurora Blaze collection at once! <br> Email us your polygon matic wallet. <br> We will send all these NFTs to your wallet. <br> Also send proof of PayPal payment. <br> </p>
+            <div id="paypal-container-RT6CFGS6TF2RG" class="paypal-btn"></div>
+            <script src="https://www.paypal.com/sdk/js?client-id=BAA4no69vJReWGVH4pxdduEcLTOw_OMcRd7XTBXWymZbvFN_L4NzuyYOCEMxTIeu5WW6pdRt-f7MFjgKLg&components=hosted-buttons&disable-funding=venmo&currency=USD"></script>
+            <script>
+              paypal.HostedButtons({
+                hostedButtonId: "RT6CFGS6TF2RG",
+              }).render("#paypal-container-RT6CFGS6TF2RG")
+            </script>
+            <div>
+                <img src="https://hibusm.s3.eu-north-1.amazonaws.com/visa.png" alt="Visa">
+                <img src="https://hibusm.s3.eu-north-1.amazonaws.com/card.png" alt="MasterCard">
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="popup">
+            <button class="close-btn" id="closeBtn">&times;</button>
+            <button class="prev-btn" id="prevBtn">&lt;</button>
+            <img src="" alt="Popup Image" id="popupImg">
+            <div class="popup-title" id="popupTitle"></div>
+            <div class="popup-owner" id="popupOwner">
+                Owner: <a href="https://x.com/nftfanstoken" target="_blank" id="popupOwnerLink">@nftfanstoken</a>
+            </div>
+            <button class="next-btn" id="nextBtn">&gt;</button>
+        </div>
+    </div>
+
+    <script>
+        const overlay = document.getElementById('overlay');
+        const popupImg = document.getElementById('popupImg');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupOwner = document.getElementById('popupOwner');
+        const closeBtn = document.getElementById('closeBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const gridItems = document.querySelectorAll('.grid-item');
+        let currentIndex = 0;
+
+        const images = Array.from(gridItems).map(item => item.querySelector('img').src);
+        const titles = Array.from(gridItems).map(item => item.querySelector('.title').textContent);
+
+        function showPopup(index) {
+            popupImg.src = images[index];
+            popupTitle.textContent = titles[index];
+            popupOwner.innerHTML = `Owner: <a href="https://x.com/nftfanstoken" target="_blank">@nftfanstoken</a>`;
+            overlay.style.display = 'flex';
+            currentIndex = index;
+        }
+
+        function hidePopup() {
+            overlay.style.display = 'none';
+        }
+
+        function showNext() {
+            currentIndex = (currentIndex + 1) % images.length;
+            showPopup(currentIndex);
+        }
+
+        function showPrev() {
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            showPopup(currentIndex);
+        }
+
+        gridItems.forEach((item, index) => {
+            item.addEventListener('click', () => showPopup(index));
+        });
+
+        closeBtn.addEventListener('click', hidePopup);
+        nextBtn.addEventListener('click', showNext);
+        prevBtn.addEventListener('click', showPrev);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) hidePopup();
+        });
+    </script>
+</body>
+</html>
