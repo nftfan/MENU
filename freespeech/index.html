@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speak Freely</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrollbars on mobile */
+            filter: invert(1) hue-rotate(180deg); /* Invert colors and correct hue */
+        }
+        #map {
+            height: 100vh; /* Make map take full viewport height */
+            width: 100vw;  /* Make map take full viewport width */
+            position: relative;
+        }
+        .popup-content {
+            max-width: 90vw; /* Adjust max width for small screens */
+            word-wrap: break-word; /* Break long words */
+            color: #ffffff; /* Set text color to white */
+            filter: invert(1) hue-rotate(180deg); /* Invert colors in popup */
+        }
+        .popup-content input {
+            width: calc(100% - 10px); /* Adjust width to fit within popup */
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+        }
+        .popup-content button {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            border-radius: 3px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+        h1 {
+            text-align: center;
+            padding: 10px;
+            font-size: 1.5em; /* Adjust font size for mobile */
+            margin: 0;
+            position: absolute;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Background for better readability */
+            color: #ffffff; /* Text color for inverted mode */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Shadow for better contrast */
+            z-index: 1000; /* Ensure header is above the map */
+        }
+        .leaflet-popup-content {
+            font-size: 1em; /* Adjust popup font size */
+        }
+    </style>
+</head>
+<body>
+    <h1>Speak Freely</h1>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.140.0.min.js"></script>
+    <script>
+        // AWS Configuration
+        AWS.config.update({
+            region: 'eu-north-1', // Replace with your AWS region
+            credentials: new AWS.Credentials('AKIAVRUVVVUM73M5ULGL', '3CaIv7G5VbNfue6j5g7EOZwAKYPuT8c9VL40QZIx')
+        });
+
+        var dynamoDB = new AWS.DynamoDB.DocumentClient();
+        var tableName = 'date01'; // Replace with your DynamoDB table name
+
+        // Initialize the map
+        const map = L.map('map').setView([51.505, -0.09], 13); // Default to London
+
+        // Add a tile layer (map style)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Function to handle map clicks and show the input box
+        function onMapClick(e) {
+            const latlng = e.latlng;
+
+            // Create a popup with the form
+            const popupContent = `
+                <div class="popup-content">
+                    <input type="text" id="tweetInput" placeholder="Enter your tweet" />
+                    <button onclick="postTweet('${latlng.lat}', '${latlng.lng}')">Speak Freely</button>
+                </div>
+            `;
+
+            L.popup()
+                .setLatLng(latlng)
+                .setContent(popupContent)
+                .openOn(map);
+        }
+
+        // Function to post a tweet
+        function postTweet(lat, lng) {
+            const tweetInput = document.getElementById('tweetInput');
+            const tweet = tweetInput.value;
+
+            if (tweet) {
+                // Generate a unique `date01` value
+                const date01 = `${lat}-${lng}-${Date.now()}`;
+
+                // Add a marker with the tweet
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<div class="popup-content"><p>${tweet}</p></div>`)
+                    .openPopup();
+
+                // Save the tweet and location to DynamoDB
+                saveTweet(date01, lat, lng, tweet);
+
+                // Close the popup
+                map.closePopup();
+            } else {
+                alert('Please enter a tweet.');
+            }
+        }
+
+        // Function to save tweets to DynamoDB
+        function saveTweet(date01, lat, lng, tweet) {
+            const params = {
+                TableName: tableName,
+                Item: {
+                    date01: date01, // Partition key attribute
+                    lat: lat,
+                    lng: lng,
+                    tweet: tweet,
+                    timestamp: new Date().toISOString() // Timestamp for sorting or querying
+                }
+            };
+
+            console.log('Saving to DynamoDB:', params);
+
+            dynamoDB.put(params, function(err, data) {
+                if (err) {
+                    console.error('Error saving tweet to DynamoDB:', err);
+                    alert('Error saving tweet to DynamoDB: ' + err.message);
+                } else {
+                    console.log('Successfully saved tweet to DynamoDB:', tweet);
+                }
+            });
+        }
+
+        // Load saved tweets from DynamoDB
+        function loadTweets() {
+            const params = {
+                TableName: tableName
+            };
+
+            dynamoDB.scan(params, function(err, data) {
+                if (err) {
+                    console.error('Unable to fetch tweets from DynamoDB:', err);
+                    return;
+                }
+
+                console.log('Fetched items:', data.Items);
+
+                data.Items.forEach(item => {
+                    L.marker([item.lat, item.lng]).addTo(map)
+                        .bindPopup(`<div class="popup-content"><p>${item.tweet}</p></div>`);
+                });
+            });
+        }
+
+        // Attach the click event handler
+        map.on('click', onMapClick);
+
+        // Load saved tweets on page load
+        loadTweets();
+    </script>
+</body>
+</html>
