@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speak Freely</title>
+    <title>Personal Delivery</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
             overflow: hidden; /* Prevent scrollbars on mobile */
-            
+            background-color: #f0f2f5;
         }
         #map {
             height: 100vh; /* Make map take full viewport height */
@@ -21,24 +21,40 @@
         .popup-content {
             max-width: 90vw; /* Adjust max width for small screens */
             word-wrap: break-word; /* Break long words */
-            color: #ffffff; /* Set text color to white */
-            filter: invert(2) hue-rotate(180deg); /* Invert colors in popup */
+            color: #333;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
         }
-        .popup-content input {
-            width: calc(100% - 10px); /* Adjust width to fit within popup */
-            padding: 5px;
-            border-radius: 3px;
+        .popup-content input, .popup-content textarea {
+            width: 100%; /* Make inputs full width */
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
             border: 1px solid #ddd;
-            margin-bottom: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+            background-color: #f9f9f9;
+        }
+        .popup-content textarea {
+            height: 100px; /* Increased height for the instructions box */
+            resize: none; /* Disable resizing */
         }
         .popup-content button {
             width: 100%;
-            padding: 5px;
+            padding: 12px;
             border: none;
-            border-radius: 3px;
-            background-color: #007bff;
+            border-radius: 5px;
+            background-color: #4CAF50;
             color: #fff;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .popup-content button:hover {
+            background-color: #45a049;
         }
         h1 {
             text-align: center;
@@ -51,11 +67,12 @@
             color: #ffffff; /* Text color for inverted mode */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Shadow for better contrast */
             z-index: 1000; /* Ensure header is above the map */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
     </style>
 </head>
 <body>
-    <h1>Speak Freely</h1>
+    <h1>Personal Delivery Leuven</h1>
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.140.0.min.js"></script>
@@ -111,8 +128,12 @@
             // Create a popup with the form
             const popupContent = `
                 <div class="popup-content">
-                    <input type="text" id="tweetInput" placeholder="Enter your tweet" />
-                    <button onclick="postTweet('${latlng.lat}', '${latlng.lng}')">Speak Freely</button>
+                    <input type="text" id="shopName" placeholder="Shop Name" />
+                    <textarea id="instructions" placeholder="Shopping Instructions"></textarea>
+                    <input type="text" id="yourName" placeholder="Your Name" />
+                    <input type="text" id="mobileNumber" placeholder="Your Mobile Number" />
+                    <input type="text" id="deliveryAddress" placeholder="Your Delivery Address" />
+                    <button onclick="submitDelivery('${latlng.lat}', '${latlng.lng}')">Submit</button>
                 </div>
             `;
 
@@ -122,39 +143,72 @@
                 .openOn(map);
         }
 
-        // Function to post a tweet
-        function postTweet(lat, lng) {
-            const tweetInput = document.getElementById('tweetInput');
-            const tweet = tweetInput.value;
+        // Function to generate a unique 8-character order code
+        function generateOrderCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
 
-            if (tweet) {
+        // Function to submit the delivery information
+        function submitDelivery(lat, lng) {
+            const shopName = document.getElementById('shopName').value;
+            const instructions = document.getElementById('instructions').value;
+            const yourName = document.getElementById('yourName').value;
+            const mobileNumber = document.getElementById('mobileNumber').value;
+            const deliveryAddress = document.getElementById('deliveryAddress').value;
+
+            if (shopName && instructions && yourName && mobileNumber && deliveryAddress) {
+                // Generate a unique 8-character order code
+                const orderCode = generateOrderCode();
+
                 // Generate a unique `date01` value
                 const date01 = `${lat}-${lng}-${Date.now()}`;
 
-                // Add a marker with the tweet
+                // Add a marker with the delivery information
                 L.marker([lat, lng]).addTo(map)
-                    .bindPopup(`<div class="popup-content"><p>${tweet}</p></div>`)
+                    .bindPopup(`
+                        <div class="popup-content">
+                            <p><strong>Order Code:</strong> ${orderCode}</p>
+                            <p><strong>Shop Name:</strong> ${shopName}</p>
+                            <p><strong>Instructions:</strong> ${instructions}</p>
+                            <p><strong>Your Name:</strong> ${yourName}</p>
+                            <p><strong>Mobile Number:</strong> ${mobileNumber}</p>
+                            <p><strong>Delivery Address:</strong> ${deliveryAddress}</p>
+                        </div>
+                    `)
                     .openPopup();
 
-                // Save the tweet and location to DynamoDB
-                saveTweet(date01, lat, lng, tweet);
+                // Save the delivery information to DynamoDB
+                saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode);
+
+                // Display the order code to the user
+                alert(`Your order has been submitted! Your Order Code is: ${orderCode}`);
 
                 // Close the popup
                 map.closePopup();
             } else {
-                alert('Please enter a tweet.');
+                alert('Please fill in all fields.');
             }
         }
 
-        // Function to save tweets to DynamoDB
-        function saveTweet(date01, lat, lng, tweet) {
+        // Function to save delivery information to DynamoDB
+        function saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode) {
             const params = {
                 TableName: tableName,
                 Item: {
                     date01: date01, // Partition key attribute
                     lat: lat,
                     lng: lng,
-                    tweet: tweet,
+                    shopName: shopName,
+                    instructions: instructions,
+                    yourName: yourName,
+                    mobileNumber: mobileNumber,
+                    deliveryAddress: deliveryAddress,
+                    orderCode: orderCode, // Save the unique order code
                     timestamp: new Date().toISOString() // Timestamp for sorting or querying
                 }
             };
@@ -163,23 +217,23 @@
 
             dynamoDB.put(params, function(err, data) {
                 if (err) {
-                    console.error('Error saving tweet to DynamoDB:', err);
-                    alert('Error saving tweet to DynamoDB: ' + err.message);
+                    console.error('Error saving delivery to DynamoDB:', err);
+                    alert('Error saving delivery to DynamoDB: ' + err.message);
                 } else {
-                    console.log('Successfully saved tweet to DynamoDB:', tweet);
+                    console.log('Successfully saved delivery to DynamoDB:', data);
                 }
             });
         }
 
-        // Load saved tweets from DynamoDB
-        function loadTweets() {
+        // Load saved deliveries from DynamoDB
+        function loadDeliveries() {
             const params = {
                 TableName: tableName
             };
 
             dynamoDB.scan(params, function(err, data) {
                 if (err) {
-                    console.error('Unable to fetch tweets from DynamoDB:', err);
+                    console.error('Unable to fetch deliveries from DynamoDB:', err);
                     return;
                 }
 
@@ -187,7 +241,16 @@
 
                 data.Items.forEach(item => {
                     L.marker([item.lat, item.lng]).addTo(map)
-                        .bindPopup(`<div class="popup-content"><p>${item.tweet}</p></div>`);
+                        .bindPopup(`
+                            <div class="popup-content">
+                                <p><strong>Order Code:</strong> ${item.orderCode}</p>
+                                <p><strong>Shop Name:</strong> ${item.shopName}</p>
+                                <p><strong>Instructions:</strong> ${item.instructions}</p>
+                                <p><strong>Your Name:</strong> ${item.yourName}</p>
+                                <p><strong>Mobile Number:</strong> ${item.mobileNumber}</p>
+                                <p><strong>Delivery Address:</strong> ${item.deliveryAddress}</p>
+                            </div>
+                        `);
                 });
             });
         }
@@ -195,8 +258,9 @@
         // Attach the click event handler
         map.on('click', onMapClick);
 
-        // Load saved tweets on page load
-        loadTweets();
+        // Load saved deliveries on page load
+        loadDeliveries();
     </script>
 </body>
 </html>
+
