@@ -52,9 +52,6 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Shadow for better contrast */
             z-index: 1000; /* Ensure header is above the map */
         }
-        .leaflet-popup-content {
-            font-size: 1em; /* Adjust popup font size */
-        }
     </style>
 </head>
 <body>
@@ -87,16 +84,26 @@
 
         // Initialize the map with a view focused on Leuven, Belgium
         const map = L.map('map', {
-            maxBounds: bounds,  // Set max bounds to restrict map to Leuven
-            maxBoundsViscosity: 1.0,  // Prevent panning out of bounds
-            minZoom: 14,  // Set minimum zoom level
-            maxZoom: 22   // Allow maximum zoom in
+            minZoom: 14,
+            maxZoom: 22,
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0,
+            zoomControl: true
         }).fitBounds(bounds);
 
-        // Add a tile layer (map style)
+        // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 22,  // Ensure tile layer supports the maximum zoom level
+            maxZoom: 22,
+            detectRetina: true
         }).addTo(map);
+
+        // Restrict map movement to within bounds
+        map.on('moveend', function() {
+            if (map.getBounds().intersects(bounds)) {
+                return;
+            }
+            map.setView(bounds.getCenter(), map.getZoom());
+        });
 
         // Function to handle map clicks and show the input box
         function onMapClick(e) {
