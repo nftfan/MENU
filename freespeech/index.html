@@ -10,39 +10,39 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Prevent scrollbars on mobile */
+            overflow: hidden;
             background-color: #f0f2f5;
         }
         #map {
-            height: 100vh; /* Make map take full viewport height */
-            width: 100vw;  /* Make map take full viewport width */
+            height: 100vh;
+            width: 100vw;
             position: relative;
         }
         .popup-content {
-            max-width: 80vw; /* Adjust max width for small screens */
-            word-wrap: break-word; /* Break long words */
+            max-width: 90vw;
             color: #333;
             background-color: #ffffff;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 10px;
-            font-size: 10px; /* Smaller font size for sleek design */
+            font-size: 10px;
             overflow-y: auto;
-            max-height: 80vh; /* Prevent popup from going off-screen */
+            max-height: 80vh; /* Prevent overflow */
+            box-sizing: border-box;
         }
         .popup-content input, .popup-content textarea {
-            width: 100%; /* Make inputs full width */
-            padding: 5px; /* Smaller padding for a sleek look */
+            width: calc(100% - 10px);
+            padding: 5px;
             margin-bottom: 10px;
             border-radius: 3px;
             border: 1px solid #ddd;
-            box-sizing: border-box;
-            font-size: 10px; /* Smaller font size */
             background-color: #f9f9f9;
+            box-sizing: border-box;
+            font-size: 10px;
         }
         .popup-content textarea {
-            height: 80px; /* Smaller height for the instructions box */
-            resize: none; /* Disable resizing */
+            height: 80px;
+            resize: none;
         }
         .popup-content button {
             width: 100%;
@@ -51,7 +51,7 @@
             border-radius: 3px;
             background-color: #4CAF50;
             color: #fff;
-            font-size: 10px; /* Smaller button font size */
+            font-size: 10px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
@@ -61,32 +61,31 @@
         h1 {
             text-align: center;
             padding: 10px;
-            font-size: 1.5em; /* Adjust font size for mobile */
+            font-size: 1.5em;
             margin: 0;
             position: absolute;
             width: 100%;
-            background: rgba(0, 0, 0, 0.7); /* Background for better readability */
-            color: #ffffff; /* Text color for inverted mode */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Shadow for better contrast */
-            z-index: 1000; /* Ensure header is above the map */
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* Ensure the popup content is scrollable on smaller screens */
+        /* Mobile styles */
         @media only screen and (max-width: 600px) {
             .popup-content {
                 padding: 8px;
+                font-size: 9px; /* Adjust for smaller screens */
             }
             .popup-content input, .popup-content textarea {
-                padding: 4px;
-                font-size: 10px;
+                font-size: 9px;
             }
             .popup-content button {
+                font-size: 9px;
                 padding: 6px;
-                font-size: 10px;
             }
             h1 {
-                font-size: 1.2em; /* Adjust header font size for mobile */
+                font-size: 1.2em;
                 padding: 8px;
             }
         }
@@ -100,12 +99,12 @@
     <script>
         // AWS Configuration
         AWS.config.update({
-            region: 'eu-north-1', // Replace with your AWS region
+            region: 'eu-north-1',
             credentials: new AWS.Credentials('AKIAVRUVVVUM73M5ULGL', '3CaIv7G5VbNfue6j5g7EOZwAKYPuT8c9VL40QZIx')
         });
 
         var dynamoDB = new AWS.DynamoDB.DocumentClient();
-        var tableName = 'date01'; // Replace with your DynamoDB table name
+        var tableName = 'date01';
 
         // Define the bounds for Leuven, Belgium
         const bounds = L.latLngBounds([
@@ -162,6 +161,26 @@
                 .setLatLng(latlng)
                 .setContent(popupContent)
                 .openOn(map);
+
+            // Adjust popup position to fit within screen bounds
+            adjustPopupPosition();
+        }
+
+        // Function to adjust popup position to stay within screen bounds
+        function adjustPopupPosition() {
+            const popupContainer = document.querySelector('.leaflet-popup-content');
+            if (popupContainer) {
+                const rect = popupContainer.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                if (rect.right > viewportWidth) {
+                    popupContainer.style.left = `${viewportWidth - rect.width - 10}px`;
+                }
+                if (rect.bottom > viewportHeight) {
+                    popupContainer.style.top = `${viewportHeight - rect.height - 10}px`;
+                }
+            }
         }
 
         // Function to generate a unique 8-character order code
@@ -183,10 +202,7 @@
             const deliveryAddress = document.getElementById('deliveryAddress').value;
 
             if (shopName && instructions && yourName && mobileNumber && deliveryAddress) {
-                // Generate a unique 8-character order code
                 const orderCode = generateOrderCode();
-
-                // Generate a unique `date01` value
                 const date01 = `${lat}-${lng}-${Date.now()}`;
 
                 // Add a marker with the delivery information
@@ -203,13 +219,9 @@
                     `)
                     .openPopup();
 
-                // Save the delivery information to DynamoDB
                 saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode);
 
-                // Show the user their unique order code
                 alert(`Your order has been placed! Your order code is: ${orderCode}`);
-
-                // Close the popup
                 map.closePopup();
             } else {
                 alert('Please fill in all the fields.');
@@ -221,7 +233,7 @@
             const params = {
                 TableName: tableName,
                 Item: {
-                    date01: date01, // Partition key attribute
+                    date01: date01,
                     lat: lat,
                     lng: lng,
                     shopName: shopName,
@@ -229,8 +241,8 @@
                     yourName: yourName,
                     mobileNumber: mobileNumber,
                     deliveryAddress: deliveryAddress,
-                    orderCode: orderCode, // Save the unique order code
-                    timestamp: new Date().toISOString() // Timestamp for sorting or querying
+                    orderCode: orderCode,
+                    timestamp: new Date().toISOString()
                 }
             };
 
