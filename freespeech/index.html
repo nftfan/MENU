@@ -21,66 +21,71 @@
             max-width: 300px;
             width: 90vw;
             color: #333;
-            background-color: transparent;
-            border: none;
-            padding: 0px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 0;
             box-sizing: border-box;
-            font-size: 14px;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
         }
         .popup-content input, .popup-content textarea {
             width: calc(100% - 16px);
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 8px;
+            margin-bottom: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
             background-color: #f9f9f9;
             box-sizing: border-box;
-            font-size: 14px;
+            font-size: 12px;
         }
         .popup-content textarea {
-            height: 80px;
+            height: 60px;
             resize: vertical;
         }
         .popup-content button {
             width: calc(100% - 16px);
-            padding: 12px;
+            padding: 8px;
             border: none;
             border-radius: 4px;
             background-color: #4CAF50;
             color: #fff;
-            font-size: 14px;
+            font-size: 12px;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: 12px;
+            margin-top: 8px;
         }
         .popup-content button:hover {
             background-color: #45a049;
         }
+        
+        .icon-button img {
+            width: 30px;
+            height: 30px;
+        }
         .confirmation-message {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         .order-code {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
         }
         .confirmation-button {
             background-color: #25D366;
             border: none;
             border-radius: 4px;
-            color: #fff;
-            font-size: 16px;
+            color: #ffffff;
+            font-size: 14px;
+			font-color: #ffffff;
             cursor: pointer;
-            padding: 12px;
+            padding: 8px;
             text-align: center;
             width: 100%;
             text-decoration: none;
             display: block;
-            margin-top: 12px;
+            margin-top: 8px;
         }
-        .confirmation-button:hover {
-            background-color: #128C7E;
-        }
+        
         h1 {
             text-align: center;
             padding: 10px;
@@ -95,14 +100,14 @@
         }
         @media only screen and (max-width: 600px) {
             .popup-content {
-                font-size: 14px;
+                font-size: 12px;
             }
             .popup-content input, .popup-content textarea {
-                font-size: 14px;
+                font-size: 12px;
             }
             .popup-content button {
-                font-size: 14px;
-                padding: 12px;
+                font-size: 12px;
+                padding: 8px;
             }
             h1 {
                 font-size: 1.2em;
@@ -174,11 +179,11 @@
                         <button onclick="showStep2('${latlng.lat}', '${latlng.lng}')">Next</button>
                     </div>
                     <div id="step2" style="display: none;">
-                        <input type="text" id="yourName" placeholder="Your Name" />
-                        <input type="text" id="mobileNumber" placeholder="Your Mobile Number" />
                         <input type="text" id="deliveryAddress" placeholder="Your Delivery Address" />
                         <div class="button-group">
-                            <button onclick="showStep1()">Previous</button>
+                            <button class="icon-button" onclick="showStep1()">
+                                <img src="https://hibusm.s3.eu-north-1.amazonaws.com/left-arrow+(1).png" alt="Back" />
+                            </button>
                             <button onclick="submitDelivery('${latlng.lat}', '${latlng.lng}')">Submit</button>
                         </div>
                     </div>
@@ -228,11 +233,11 @@
             }
         }
 
-        // Function to generate a unique 8-character order code
+        // Function to generate a random order code
         function generateOrderCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let code = '';
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 6; i++) {
                 code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             return code;
@@ -242,16 +247,14 @@
         function submitDelivery(lat, lng) {
             const shopName = document.getElementById('shopName').value;
             const instructions = document.getElementById('instructions').value;
-            const yourName = document.getElementById('yourName').value;
-            const mobileNumber = document.getElementById('mobileNumber').value;
             const deliveryAddress = document.getElementById('deliveryAddress').value;
 
-            if (shopName && instructions && yourName && mobileNumber && deliveryAddress) {
+            if (shopName && instructions && deliveryAddress) {
                 const orderCode = generateOrderCode();
                 const date01 = `${lat}-${lng}-${Date.now()}`;
 
                 // Save the delivery to DynamoDB
-                saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode);
+                saveDelivery(date01, lat, lng, shopName, instructions, deliveryAddress, orderCode);
 
                 // Update the popup content to show confirmation message
                 const popup = document.querySelector('.leaflet-popup-content');
@@ -271,7 +274,7 @@
         }
 
         // Function to save delivery information to DynamoDB
-        function saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode) {
+        function saveDelivery(date01, lat, lng, shopName, instructions, deliveryAddress, orderCode) {
             const params = {
                 TableName: tableName,
                 Item: {
@@ -280,8 +283,6 @@
                     lng: lng,
                     shopName: shopName,
                     instructions: instructions,
-                    yourName: yourName,
-                    mobileNumber: mobileNumber,
                     deliveryAddress: deliveryAddress,
                     orderCode: orderCode,
                     timestamp: new Date().toISOString()
@@ -321,8 +322,6 @@
                                 <p><strong>Order Code:</strong> ${item.orderCode}</p>
                                 <p><strong>Shop Name:</strong> ${item.shopName}</p>
                                 <p><strong>Instructions:</strong> ${item.instructions}</p>
-                                <p><strong>Your Name:</strong> ${item.yourName}</p>
-                                <p><strong>Mobile Number:</strong> ${item.mobileNumber}</p>
                                 <p><strong>Delivery Address:</strong> ${item.deliveryAddress}</p>
                             </div>
                         `);
@@ -335,6 +334,25 @@
 
         // Load saved deliveries on page load
         loadDeliveries();
+
+        // Function to adjust popup size and position based on zoom level
+        function adjustPopupSize() {
+            const zoomLevel = map.getZoom();
+            const scaleFactor = 1 / zoomLevel; // Adjust this factor as needed
+
+            const popupContainer = document.querySelector('.leaflet-popup-content');
+            if (popupContainer) {
+                popupContainer.style.transform = `scale(${scaleFactor})`;
+                popupContainer.style.transformOrigin = 'top left';
+            }
+        }
+
+        // Update zoom end event to adjust popup size
+        map.on('zoomend', adjustPopupSize);
+
+        // Adjust popup size on initial load
+        adjustPopupSize();
     </script>
 </body>
 </html>
+
