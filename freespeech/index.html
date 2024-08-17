@@ -18,50 +18,68 @@
             width: 100vw;
         }
         .popup-content {
-            width: 100px; /* Fixed width */
+            max-width: 300px;
+            width: 90vw;
             color: #333;
-            background-color: transparent; /* Flat design */
+            background-color: transparent;
             border: none;
             padding: 0px;
             box-sizing: border-box;
-            font-size: 9px; /* Small font size */
+            font-size: 14px;
         }
         .popup-content input, .popup-content textarea {
-            width: 100%; /* Full width */
-            padding: 8px;
-            margin-bottom: 8px;
+            width: calc(100% - 16px);
+            padding: 12px;
+            margin-bottom: 12px;
             border-radius: 4px;
             border: 1px solid #ddd;
             background-color: #f9f9f9;
             box-sizing: border-box;
-            font-size: 9px; /* Match font size */
+            font-size: 14px;
         }
         .popup-content textarea {
-            height: 60px; /* Slightly smaller height */
+            height: 80px;
             resize: vertical;
         }
         .popup-content button {
-            width: 100%;
-            padding: 8px;
+            width: calc(100% - 16px);
+            padding: 12px;
             border: none;
             border-radius: 4px;
             background-color: #4CAF50;
             color: #fff;
-            font-size: 9px; /* Match font size */
+            font-size: 14px;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: 8px;
+            margin-top: 12px;
         }
         .popup-content button:hover {
             background-color: #45a049;
         }
-        .button-group {
-            display: flex;
-            justify-content: space-between;
-            gap: 4px; /* Reduced gap */
+        .confirmation-message {
+            text-align: center;
+            margin-top: 20px;
         }
-        .button-group button {
-            width: 48%; /* Adjusted width for spacing */
+        .order-code {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .confirmation-button {
+            background-color: #25D366;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 12px;
+            text-align: center;
+            width: 100%;
+            text-decoration: none;
+            display: block;
+            margin-top: 12px;
+        }
+        .confirmation-button:hover {
+            background-color: #128C7E;
         }
         h1 {
             text-align: center;
@@ -77,15 +95,14 @@
         }
         @media only screen and (max-width: 600px) {
             .popup-content {
-                width: 90vw; /* Responsive width */
-                font-size: 9px; /* Ensure readability */
+                font-size: 14px;
             }
             .popup-content input, .popup-content textarea {
-                font-size: 9px;
+                font-size: 14px;
             }
             .popup-content button {
-                font-size: 9px;
-                padding: 8px;
+                font-size: 14px;
+                padding: 12px;
             }
             h1 {
                 font-size: 1.2em;
@@ -165,6 +182,11 @@
                             <button onclick="submitDelivery('${latlng.lat}', '${latlng.lng}')">Submit</button>
                         </div>
                     </div>
+                    <div id="confirmation" style="display: none;" class="confirmation-message">
+                        <p>To confirm your order, send this order code via WhatsApp:</p>
+                        <p class="order-code" id="orderCode"></p>
+                        <a href="#" id="whatsappLink" class="confirmation-button" target="_blank">Confirm Order</a>
+                    </div>
                 </div>
             `;
 
@@ -228,24 +250,21 @@
                 const orderCode = generateOrderCode();
                 const date01 = `${lat}-${lng}-${Date.now()}`;
 
-                // Add a marker with the delivery information
-                L.marker([lat, lng]).addTo(map)
-                    .bindPopup(`
-                        <div class="popup-content">
-                            <p><strong>Order Code:</strong> ${orderCode}</p>
-                            <p><strong>Shop Name:</strong> ${shopName}</p>
-                            <p><strong>Instructions:</strong> ${instructions}</p>
-                            <p><strong>Your Name:</strong> ${yourName}</p>
-                            <p><strong>Mobile Number:</strong> ${mobileNumber}</p>
-                            <p><strong>Delivery Address:</strong> ${deliveryAddress}</p>
-                        </div>
-                    `)
-                    .openPopup();
-
+                // Save the delivery to DynamoDB
                 saveDelivery(date01, lat, lng, shopName, instructions, yourName, mobileNumber, deliveryAddress, orderCode);
 
-                alert(`Your order has been placed! Your order code is: ${orderCode}`);
-                map.closePopup();
+                // Update the popup content to show confirmation message
+                const popup = document.querySelector('.leaflet-popup-content');
+                if (popup) {
+                    document.getElementById('step1').style.display = 'none';
+                    document.getElementById('step2').style.display = 'none';
+                    document.getElementById('confirmation').style.display = 'block';
+                    document.getElementById('orderCode').textContent = orderCode;
+                    document.getElementById('whatsappLink').href = `http://wa.me/32467620291?text=Order%20Code:%20${orderCode}`;
+                }
+
+                // Optionally close the popup or keep it open
+                // map.closePopup();
             } else {
                 alert('Please fill in all the fields.');
             }
