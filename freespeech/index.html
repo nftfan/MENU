@@ -16,47 +16,52 @@
         #map {
             height: 100vh;
             width: 100vw;
-            position: relative;
         }
         .popup-content {
-            max-width: 90vw;
+            width: 180px; /* Fixed width */
             color: #333;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: transparent; /* Flat design */
+            border: none;
             padding: 10px;
-            font-size: 10px;
-            overflow-y: auto;
-            max-height: 80vh; /* Prevent overflow */
             box-sizing: border-box;
+            font-size: 9px; /* Small font size */
         }
         .popup-content input, .popup-content textarea {
-            width: calc(100% - 10px);
-            padding: 5px;
-            margin-bottom: 10px;
-            border-radius: 3px;
+            width: 100%; /* Full width */
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
             border: 1px solid #ddd;
             background-color: #f9f9f9;
             box-sizing: border-box;
-            font-size: 10px;
+            font-size: 9px; /* Match font size */
         }
         .popup-content textarea {
-            height: 80px;
-            resize: none;
+            height: 60px; /* Slightly smaller height */
+            resize: vertical;
         }
         .popup-content button {
             width: 100%;
             padding: 8px;
             border: none;
-            border-radius: 3px;
+            border-radius: 4px;
             background-color: #4CAF50;
             color: #fff;
-            font-size: 10px;
+            font-size: 9px; /* Match font size */
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-top: 8px;
         }
         .popup-content button:hover {
             background-color: #45a049;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px; /* Reduced gap */
+        }
+        .button-group button {
+            width: 48%; /* Adjusted width for spacing */
         }
         h1 {
             text-align: center;
@@ -69,20 +74,18 @@
             color: #ffffff;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
             z-index: 1000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Mobile styles */
         @media only screen and (max-width: 600px) {
             .popup-content {
-                padding: 8px;
-                font-size: 9px; /* Adjust for smaller screens */
+                width: 90vw; /* Responsive width */
+                font-size: 9px; /* Ensure readability */
             }
             .popup-content input, .popup-content textarea {
                 font-size: 9px;
             }
             .popup-content button {
                 font-size: 9px;
-                padding: 6px;
+                padding: 8px;
             }
             h1 {
                 font-size: 1.2em;
@@ -148,12 +151,20 @@
             // Create a popup with the form
             const popupContent = `
                 <div class="popup-content">
-                    <input type="text" id="shopName" placeholder="Shop Name" />
-                    <textarea id="instructions" placeholder="Shopping Instructions"></textarea>
-                    <input type="text" id="yourName" placeholder="Your Name" />
-                    <input type="text" id="mobileNumber" placeholder="Your Mobile Number" />
-                    <input type="text" id="deliveryAddress" placeholder="Your Delivery Address" />
-                    <button onclick="submitDelivery('${latlng.lat}', '${latlng.lng}')">Submit</button>
+                    <div id="step1">
+                        <input type="text" id="shopName" placeholder="Shop Name" />
+                        <textarea id="instructions" placeholder="Shopping Instructions"></textarea>
+                        <button onclick="showStep2('${latlng.lat}', '${latlng.lng}')">Next</button>
+                    </div>
+                    <div id="step2" style="display: none;">
+                        <input type="text" id="yourName" placeholder="Your Name" />
+                        <input type="text" id="mobileNumber" placeholder="Your Mobile Number" />
+                        <input type="text" id="deliveryAddress" placeholder="Your Delivery Address" />
+                        <div class="button-group">
+                            <button onclick="showStep1()">Previous</button>
+                            <button onclick="submitDelivery('${latlng.lat}', '${latlng.lng}')">Submit</button>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -164,6 +175,18 @@
 
             // Adjust popup position to fit within screen bounds
             adjustPopupPosition();
+        }
+
+        // Function to show step 2 of the form
+        function showStep2(lat, lng) {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        // Function to show step 1 of the form
+        function showStep1() {
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
         }
 
         // Function to adjust popup position to stay within screen bounds
