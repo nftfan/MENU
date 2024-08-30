@@ -205,85 +205,87 @@ footer {
         <p>&copy; 2024 NFT Fans Token. All rights reserved.</p>
     </footer>
 
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
-    <script type="text/javascript">
-        let provider;
-        let signer;
-        let contract;
+   <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+<script type="text/javascript">
+    let provider;
+    let signer;
+    let contract;
 
-        const contractAddress = "0xFB51789AAdC64a935Eeb2461D304Fd0F88f3A584"; // Your new contract address
-        const contractABI = [
-            "function claimTokens() external",
-            "function lastClaimedTime(address) view returns (uint256)",
-            "function claimInterval() view returns (uint256)"
-        ];
+    const contractAddress = "0xFB51789AAdC64a935Eeb2461D304Fd0F88f3A584"; // Your new contract address
+    const contractABI = [
+        "function claimTokens() external",
+        "function lastClaimedTime(address) view returns (uint256)",
+        "function claimInterval() view returns (uint256)"
+    ];
 
-        document.getElementById("connectWallet").onclick = async () => {
-            await connectWallet();
-        };
+    document.getElementById("connectWallet").onclick = async () => {
+        await connectWallet();
+    };
 
-        document.getElementById("claimTokens").onclick = async () => {
-            await claimTokens();
-        };
+    document.getElementById("claimTokens").onclick = async () => {
+        await claimTokens();
+    };
 
-        function updateMessage(message) {
-            document.getElementById("message").innerText = message;
-        }
+    function updateMessage(message) {
+        document.getElementById("message").innerText = message;
+    }
 
-        async function connectWallet() {
-            const loadingElement = document.getElementById("loading");
-            loadingElement.style.display = "block";
-            updateMessage('');
+    async function connectWallet() {
+        const loadingElement = document.getElementById("loading");
+        loadingElement.style.display = "block";
+        updateMessage('');
+
+        try {
             if (typeof window.ethereum !== "undefined") {
-                try {
-                    if (window.ethereum.isMetaMask) {
-                        await ethereum.request({ method: "eth_requestAccounts" });
-                        provider = new ethers.providers.Web3Provider(window.ethereum);
-                        signer = provider.getSigner();
-                        contract = new ethers.Contract(contractAddress, contractABI, signer);
+                // Check if MetaMask or Bitget Wallet is installed
+                if (window.ethereum.isMetaMask || window.ethereum.isBitgetWallet) {
+                    await ethereum.request({ method: "eth_requestAccounts" });
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                    contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-                        document.getElementById("claimTokens").disabled = false;
-                        updateMessage("Wallet connected.");
-                    } else {
-                        updateMessage("MetaMask is not available. Please install MetaMask or use a compatible browser.");
-                    }
-                } catch (error) {
-                    console.error("User rejected the request or there was an error", error);
-                    updateMessage("Failed to connect wallet. Please check your MetaMask or browser.");
-                } finally {
-                    loadingElement.style.display = "none";
+                    document.getElementById("claimTokens").disabled = false;
+                    updateMessage("Wallet connected.");
+                } else {
+                    updateMessage("Please install MetaMask or Bitget Wallet.");
                 }
             } else {
-                updateMessage("MetaMask is not installed! Please install MetaMask or use a compatible browser.");
-                loadingElement.style.display = "none";
+                updateMessage("MetaMask or Bitget Wallet is not installed! Please install one of these wallets.");
             }
+        } catch (error) {
+            console.error("User rejected the request or there was an error", error);
+            updateMessage("Failed to connect wallet. Please check your wallet or browser.");
+        } finally {
+            loadingElement.style.display = "none";
         }
+    }
 
-        async function claimTokens() {
-            const loadingElement = document.getElementById("loading");
-            loadingElement.style.display = "block";
-            updateMessage('');
-            try {
-                const address = await signer.getAddress();
-                const lastClaimedTime = await contract.lastClaimedTime(address);
-                const claimInterval = await contract.claimInterval();
-                const currentTime = Math.floor(Date.now() / 1000);
+    async function claimTokens() {
+        const loadingElement = document.getElementById("loading");
+        loadingElement.style.display = "block";
+        updateMessage('');
+        try {
+            const address = await signer.getAddress();
+            const lastClaimedTime = await contract.lastClaimedTime(address);
+            const claimInterval = await contract.claimInterval();
+            const currentTime = Math.floor(Date.now() / 1000);
 
-                if (currentTime >= lastClaimedTime.toNumber() + claimInterval.toNumber()) {
-                    const tx = await contract.claimTokens();
-                    await tx.wait();
-                    updateMessage("Tokens claimed successfully!");
-                } else {
-                    const nextClaimTime = new Date((lastClaimedTime.toNumber() + claimInterval.toNumber()) * 1000);
-                    updateMessage(`You can claim tokens again after ${nextClaimTime.toLocaleString()}`);
-                }
-            } catch (error) {
-                console.error("Error claiming tokens", error);
-                updateMessage("Failed to claim tokens. See console for details.");
-            } finally {
-                loadingElement.style.display = "none";
+            if (currentTime >= lastClaimedTime.toNumber() + claimInterval.toNumber()) {
+                const tx = await contract.claimTokens();
+                await tx.wait();
+                updateMessage("Tokens claimed successfully!");
+            } else {
+                const nextClaimTime = new Date((lastClaimedTime.toNumber() + claimInterval.toNumber()) * 1000);
+                updateMessage(`You can claim tokens again after ${nextClaimTime.toLocaleString()}`);
             }
+        } catch (error) {
+            console.error("Error claiming tokens", error);
+            updateMessage("Failed to claim tokens. See console for details.");
+        } finally {
+            loadingElement.style.display = "none";
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
