@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Your Tokens</title>
+
+    <!-- Open Graph metadata -->
+    <meta property="og:title" content="Claim Your Tokens - NFT Fans">
+    <meta property="og:description" content="Claim your tokens now with NFT Fans! Connect your wallet and start claiming your exclusive NFT Fans tokens today. Limited availability!">
+    <meta property="og:image" content="https://raw.githubusercontent.com/nftfan/24h/main/2.5B%20%24NFTFAN.png">
+    <meta property="og:url" content="https://www.nftfanstoken.com/grants/">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Claim Your Tokens - NFT Fans">
+    <meta name="twitter:description" content="Claim your tokens now with NFT Fans! Connect your wallet and start claiming your exclusive NFT Fans tokens today. Limited availability!">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/nftfan/24h/main/2.5B%20%24NFTFAN.png">
+    <meta name="twitter:url" content="https://www.nftfanstoken.com/grants/">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 10px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        footer {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+            left: 0;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            padding: 80px 20px 60px; /* Adjust top and bottom padding to account for header and footer */
+            max-width: 90%;
+            width: 100%;
+            margin: auto;
+            background-color: #fff;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow effect */
+            text-align: center;
+            overflow: hidden; /* Ensure content stays within rounded corners */
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 1.2em;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            max-height: 300px; /* Limit the maximum height */
+            border-radius: 8px; /* Rounded corners for image */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Shadow effect for image */
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px; /* Space between buttons */
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px; /* More rounded corners for buttons */
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow effect for buttons */
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Darker shadow on hover */
+        }
+
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+            box-shadow: none; /* No shadow for disabled button */
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            font-size: 1em;
+            color: #333;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            header, footer {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.2em;
+            }
+
+            h2 {
+                font-size: 1em;
+            }
+
+            button {
+                font-size: 0.9em;
+                padding: 10px 20px;
+            }
+
+            .container {
+                padding: 60px 10px 50px; /* Adjust padding for mobile */
+            }
+
+            img {
+                max-height: 200px; /* Reduce max-height for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>NFT Fans Token</h1>
+    </header>
+
+    <div class="container">
+        <h1>Claim Your Tokens</h1>
+        <h2>2.5B $NFTFAN DAILY GRANTS</h2>
+        <img src="https://raw.githubusercontent.com/nftfan/24h/main/2.5B%20%24NFTFAN.png" alt="2.5B $NFTFAN Daily Grants">
+        <div class="button-container">
+            <button id="connectWallet">Connect Wallet</button>
+            <button id="claimTokens" disabled>Claim Tokens</button>
+        </div>
+        <div id="loading" class="loading">Processing...</div>
+        <div id="message" class="message"></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 NFT Fans Token. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script type="text/javascript">
+        let provider;
+        let signer;
+        let contract;
+
+        const contractAddress = "0xFB51789AAdC64a935Eeb2461D304Fd0F88f3A584"; // Your new contract address
+        const contractABI = [
+            "function claimTokens() external",
+            "function lastClaimedTime(address) view returns (uint256)",
+            "function claimInterval() view returns (uint256)"
+        ];
+
+        document.getElementById("connectWallet").onclick = async () => {
+            await connectWallet();
+        };
+
+        document.getElementById("claimTokens").onclick = async () => {
+            await claimTokens();
+        };
+
+        function updateMessage(message) {
+            document.getElementById("message").innerText = message;
+        }
+
+        async function connectWallet() {
+            const loadingElement = document.getElementById("loading");
+            loadingElement.style.display = "block";
+            updateMessage('');
+            if (typeof window.ethereum !== "undefined") {
+                try {
+                    if (window.ethereum.isMetaMask) {
+                        await ethereum.request({ method: "eth_requestAccounts" });
+                        provider = new ethers.providers.Web3Provider(window.ethereum);
+                        signer = provider.getSigner();
+                        contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                        document.getElementById("claimTokens").disabled = false;
+                        updateMessage("Wallet connected.");
+                    } else {
+                        updateMessage("MetaMask is not available. Please install MetaMask or use a compatible browser.");
+                    }
+                } catch (error) {
+                    console.error("User rejected the request or there was an error", error);
+                    updateMessage("Failed to connect wallet. Please check your MetaMask or browser.");
+                } finally {
+                    loadingElement.style.display = "none";
+                }
+            } else {
+                updateMessage("MetaMask is not installed! Please install MetaMask or use a compatible browser.");
+                loadingElement.style.display = "none";
+            }
+        }
+
+        async function claimTokens() {
+            const loadingElement = document.getElementById("loading");
+            loadingElement.style.display = "block";
+            updateMessage('');
+            try {
+                const address = await signer.getAddress();
+                const lastClaimedTime = await contract.lastClaimedTime(address);
+                const claimInterval = await contract.claimInterval();
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                if (currentTime >= lastClaimedTime.toNumber() + claimInterval.toNumber()) {
+                    const tx = await contract.claimTokens();
+                    await tx.wait();
+                    updateMessage("Tokens claimed successfully!");
+                } else {
+                    const nextClaimTime = new Date((lastClaimedTime.toNumber() + claimInterval.toNumber()) * 1000);
+                    updateMessage(`You can claim tokens again after ${nextClaimTime.toLocaleString()}`);
+                }
+            } catch (error) {
+                console.error("Error claiming tokens", error);
+                updateMessage("Failed to claim tokens. See console for details.");
+            } finally {
+                loadingElement.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
