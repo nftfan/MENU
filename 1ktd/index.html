@@ -261,32 +261,13 @@ h1 {
 
                 </button>
                 <p id="walletAddress">Not connected <br> Switch to Polygon Network in your wallet </p>
-		    <a href="https://metamask.app.link/dapp/https://www.nftfanstoken.com/1kt" target="_blank" class="tab-button">Open in MetaMask</a>
+		    <a href="https://metamask.app.link/dapp/https://www.nftfanstoken.com/1ktd" target="_blank" class="tab-button">Open in MetaMask</a>
 
             </div>
         </div>
 	    
     </header>
-
-	<div class="container" data-token-id="2">
-        <h1>NFTFANS 1KT ART 02 <br> Price: 1 $MATIC </h1>
-        <p class="description">You will get this NFT + 1KT $NFTFAN Tokens! <br> We recommend Metamask wallet. <br> Tokens will show up after 5 min. </p>
-	    
-	    <img id="nftImage" src="https://pbs.twimg.com/media/GWYpwxBXIAAIfer?format=jpg&name=medium" alt="NFT Image">
-        <button id="mintButton" disabled>Mint NFT</button>
-	    
-        <div id="statusIcons">
-            <img id="processingIcon" src="https://raw.githubusercontent.com/nftfan/nftz/main/process.gif" alt="Processing">
-            <img id="completedIcon" src="https://raw.githubusercontent.com/nftfan/nftz/main/confetti.gif" alt="Completed">
-            <img id="errorIcon" src="https://raw.githubusercontent.com/nftfan/nftz/main/no-violence.gif" alt="Error">
-            <p id="statusText"></p>
-        </div>
-        <form id="buyForm">
-            <input type="hidden" id="tokenId" value="2">
-            <input type="hidden" id="amount" value="1">
-        </form>
-    </div>
-    <div class="container" data-token-id="1">
+    <div class="container">
         <h1>NFTFANS 1KT ART 01 <br> Price: 1 $MATIC </h1>
         <p class="description">You will get this NFT + 1KT $NFTFAN Tokens! <br> We recommend Metamask wallet. <br> Tokens will show up after 5 min. </p>
 	    
@@ -304,24 +285,22 @@ h1 {
             <input type="hidden" id="amount" value="1">
         </form>
     </div>
-
-	
     <footer>
         <p>&copy; 2024 NFTFANS. All rights reserved.</p>
     </footer>
 
     <script>
     const contractAddress = '0x3e6E1F0e21A6521eE69baceEBA22e7CeCe42eb1c'; 
-const abi = [
-    "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
-    "function tokenPrice() external view returns (uint256)"
-];
+    const abi = [
+        "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
+        "function tokenPrice() external view returns (uint256)"
+    ];
 
-let provider;
-let contract;
-let signer;
+    let provider;
+    let contract;
+    let signer;
 
-async function connectWallet() {
+    async function connectWallet() {
     if (window.ethereum) {
         try {
             provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -368,66 +347,53 @@ async function connectWallet() {
     }
 }
 
-async function handleMint() {
-    const activeContainer = document.querySelector('.container.active'); // Find the active NFT container
-    if (!activeContainer) {
-        alert('No NFT selected.');
-        return;
+
+
+    async function handleMint() {
+        const tokenId = parseInt(document.getElementById('tokenId').value, 10);
+        const amount = parseInt(document.getElementById('amount').value, 10);
+
+        try {
+            document.getElementById('statusIcons').style.display = 'block'; // Show status icons during transaction
+            document.getElementById('processingIcon').style.display = 'inline'; // Show processing icon
+            document.getElementById('completedIcon').style.display = 'none'; // Hide completed icon
+            document.getElementById('errorIcon').style.display = 'none'; // Hide error icon
+            document.getElementById('statusText').innerText = 'Please wait for 30s';
+
+            const pricePerToken = await contract.tokenPrice();
+            const totalPrice = pricePerToken.mul(amount);
+
+            const tx = await contract.buyNFT(tokenId, amount, { value: totalPrice });
+            await tx.wait();  
+
+            document.getElementById('processingIcon').style.display = 'none'; // Hide processing icon
+            document.getElementById('completedIcon').style.display = 'inline'; // Show completed icon
+            document.getElementById('statusText').innerText = 'Transaction successful!';
+            
+            // Hide status icons after a short delay
+            setTimeout(() => {
+                document.getElementById('statusIcons').style.display = 'none';
+            }, 3000);
+        } catch (error) {
+            console.error('Transaction error:', error);
+            document.getElementById('processingIcon').style.display = 'none'; // Hide processing icon
+            document.getElementById('completedIcon').style.display = 'none'; // Hide completed icon
+            document.getElementById('errorIcon').style.display = 'inline'; // Show error icon
+            document.getElementById('statusText').innerText = 'Transaction failed!';
+            
+            // Hide status icons after a short delay
+            setTimeout(() => {
+                document.getElementById('statusIcons').style.display = 'none';
+            }, 3000);
+        }
     }
 
-    const tokenId = activeContainer.getAttribute('data-token-id');
-    const amount = 1; // Default amount
-
-    try {
-        document.getElementById('statusIcons').style.display = 'block'; // Show status icons during transaction
-        document.getElementById('processingIcon').style.display = 'inline'; // Show processing icon
-        document.getElementById('completedIcon').style.display = 'none'; // Hide completed icon
-        document.getElementById('errorIcon').style.display = 'none'; // Hide error icon
-        document.getElementById('statusText').innerText = 'Please wait for 30s';
-
-        const pricePerToken = await contract.tokenPrice();
-        const totalPrice = pricePerToken.mul(amount);
-
-        const tx = await contract.buyNFT(tokenId, amount, { value: totalPrice });
-        await tx.wait();  
-
-        document.getElementById('processingIcon').style.display = 'none'; // Hide processing icon
-        document.getElementById('completedIcon').style.display = 'inline'; // Show completed icon
-        document.getElementById('statusText').innerText = 'Transaction successful!';
-
-        // Hide status icons after a short delay
-        setTimeout(() => {
-            document.getElementById('statusIcons').style.display = 'none';
-        }, 3000);
-    } catch (error) {
-        console.error('Transaction error:', error);
-        document.getElementById('processingIcon').style.display = 'none'; // Hide processing icon
-        document.getElementById('completedIcon').style.display = 'none'; // Hide completed icon
-        document.getElementById('errorIcon').style.display = 'inline'; // Show error icon
-        document.getElementById('statusText').innerText = 'Transaction failed!';
-
-        // Hide status icons after a short delay
-        setTimeout(() => {
-            document.getElementById('statusIcons').style.display = 'none';
-        }, 3000);
+    function init() {
+        document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
+        document.getElementById('mintButton').addEventListener('click', handleMint);
     }
-}
 
-function init() {
-    document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
-    document.getElementById('mintButton').addEventListener('click', handleMint);
-    
-    // Add click event listeners to NFT containers to set them as active
-    document.querySelectorAll('.container').forEach(container => {
-        container.addEventListener('click', () => {
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active')); // Remove active class from all
-            container.classList.add('active'); // Add active class to the clicked container
-        });
-    });
-}
-
-init();
-
+    init();
 </script>
 
 </body>
