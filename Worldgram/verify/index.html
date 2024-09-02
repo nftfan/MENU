@@ -376,11 +376,12 @@ function handleConnectionError(error) {
 
 
 
-   async function handleMint() {
-    const tokenId = parseInt(document.getElementById('tokenId').value, 10);
-    const amount = 1; // Assuming you want to mint only 1 NFT per transaction.
+  async function handleMint() {
+    const tokenIdInput = document.getElementById('tokenId').value;
+    const tokenId = BigInt(tokenIdInput); // Use BigInt to handle large integers
+    const amount = 1; // Assuming you want to mint only 1 NFT per transaction
 
-    if (isNaN(tokenId) || tokenId <= 0) {
+    if (isNaN(Number(tokenId)) || tokenId <= 0n) { // Check if tokenId is valid
         alert('Please enter a valid Token ID.');
         return;
     }
@@ -393,13 +394,14 @@ function handleConnectionError(error) {
         document.getElementById('processingIcon').style.display = 'inline'; 
         document.getElementById('completedIcon').style.display = 'none'; 
         document.getElementById('errorIcon').style.display = 'none'; 
-        document.getElementById('statusMessage').innerText = 'Processing your transaction...Wait 30s';
+        document.getElementById('statusMessage').innerText = 'Processing your transaction... Please wait';
 
+        // Fetch token price
         const pricePerToken = await contract.tokenPrice();
         const totalPrice = pricePerToken.mul(amount);
 
         // Initiate transaction
-        const tx = await contract.buyNFT(tokenId, amount, { value: totalPrice });
+        const tx = await contract.buyNFT(tokenId.toString(), amount, { value: totalPrice });
 
         // Wait for transaction confirmation
         await tx.wait();  
@@ -421,14 +423,13 @@ function handleConnectionError(error) {
         document.getElementById('completedIcon').style.display = 'none'; 
         document.getElementById('errorIcon').style.display = 'inline'; 
         document.getElementById('statusMessage').innerText = 'Transaction failed!';
-        
+
         // Hide status icons after a short delay
         setTimeout(() => {
             document.getElementById('statusIcons').style.display = 'none';
         }, 3000);
     }
 }
-
 
 
 
