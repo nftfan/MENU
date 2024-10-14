@@ -91,8 +91,8 @@
   /* Add the border and invert color animation */
   .invert-animation {
     animation: invertColors 0.5s infinite, borderAnimation 2s infinite; /* Combine color inversion and border animation */
-    border: 2px solid transparent; /* Initial border */
-    border-radius: 2%; /* Make the border rounded */
+    border: 1px solid transparent; /* Initial border */
+    border-radius: 2px; /* Make the border rounded */
     padding: 5px; /* Padding around the image to show the border */
   }
 
@@ -527,7 +527,7 @@ function coolBlinkPolygon() {
   setInterval(function() {
     polygon.setStyle({
       color: toggle ? 'cyan' : 'magenta', // Switch between two bright colors
-      weight: toggle ? 5 : 8,             // Animate the border size from 5px to 8px
+      weight: toggle ? 1 : 2,             // Animate the border size from 5px to 8px
       opacity: toggle ? 1 : 0.7           // Adjust opacity for a subtle glowing effect
     });
     toggle = !toggle;
@@ -545,7 +545,13 @@ coolBlinkPolygon();
 		
 		// Define the coordinates for the polygon
 var latlngs = [
-  [24.95119533856187, 54.99748014037269], [24.977962468328794, 54.93741205640428], [25.042055389346867, 54.94153101073353], [25.059472922693814, 54.96384201335037], [25.050453437584355, 55.01567218866025], [25.0109464983634, 55.03558046791838], [24.96395713819319, 55.03283449836551]
+  [24.95119533856187, 54.99748014037269], 
+  [24.977962468328794, 54.93741205640428], 
+  [25.042055389346867, 54.94153101073353], 
+  [25.059472922693814, 54.96384201335037], 
+  [25.050453437584355, 55.01567218866025], 
+  [25.0109464983634, 55.03558046791838], 
+  [24.96395713819319, 55.03283449836551]
 ];
 
 // Create the polygon with initial color
@@ -573,22 +579,140 @@ function changePolygonColor() {
 }
 
 // Start the color animation every 1000 milliseconds (1 second)
-setInterval(changePolygonColor, 100);
+setInterval(changePolygonColor, 1000); // Adjusted to 1000ms for better visibility
 
-// Function to show the popup with owner, token details, and a link
-polygon.on('click', function() {
-  var popupContent =  '<b> <a href="https://opensea.io/assets/matic/0xf0dd291e86b9735504a485ad517ae761a8fb4644/3" target="_blank">Palm Jebel Ali BUY</a><br>' +
-                    '<b>Owner:</b> 0x92d550cdbc234211957bd1b579d962c885a127ba<br>' +
-                    '<b>Tokens:</b> 100KT $NFTFAN';
+// Define the popup content only once
+var popupContent =  
+  '<b> <a href="https://opensea.io/assets/matic/0xf0dd291e86b9735504a485ad517ae761a8fb4644/3" target="_blank">Palm Jebel Ali BUY</a></b><br>' +
+  '<b>Owner:</b> 0x92d550cdbc234211957bd1b579d962c885a127ba<br>' +
+  '<b>Tokens:</b> 100KT $NFTFAN';
 
-					 
-					 
-                    
-  polygon.bindPopup(popupContent).openPopup();
+// Bind the popup to the polygon
+polygon.bindPopup(popupContent);
+
+// Function to show the popup at the click location
+polygon.on('click', function(e) {
+  polygon.openPopup(e.latlng); // Open the popup at the click position
 });
 
 
+// Define the coordinates for the polygon (now only two points for back-and-forth movement)
+var latlngs = [
+  [66.75676874647057, 50.613716025173204], 
+  [55.92390384282393, 67.30921090645086]
+];
 
+// Create the polygon with initial style (no fill and no blinking)
+var polygon = L.polygon(latlngs, {
+  color: 'blue',       // Line color
+  weight: 2,           // Line thickness
+  fillOpacity: 0,      // No fill color
+  smoothFactor: 1      // Smoother path transitions
+}).addTo(map);
+
+// Define an array of colors to cycle through for the border (smooth transitions)
+var colors = ['#FF5733', '#33FF57', '#5733FF', '#FF33A6', '#A633FF', '#33FFF9'];
+var currentColorIndex = 0;
+
+// Function to change the polygon border color smoothly
+function changePolygonBorderColor() {
+  polygon.setStyle({
+    color: colors[currentColorIndex],  // Change border color
+  });
+
+  // Move to the next color in the array
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
+}
+
+// Start the smooth color transition every 3000 milliseconds (3 seconds)
+setInterval(changePolygonBorderColor, 3000);
+
+// Add an image (GIF) that moves slowly along the polygon border
+var gifUrl = "https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/areanft/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png";
+
+// Create a custom marker icon to represent the moving GIF
+var icon = L.divIcon({
+  className: 'gif-icon',
+  html: `<img src="${gifUrl}" style="width: 30px; height: 30px;">`,
+  iconSize: [30, 30], // Size of the icon
+  iconAnchor: [15, 15] // Anchor point of the icon (center of the image)
+});
+
+// Create a marker that will move along the polygon's path
+var marker = L.marker(latlngs[0], {icon: icon}).addTo(map);
+
+// Speed control (duration of movement between each point)
+var movementDuration = 3000; // Milliseconds to move between points (3 seconds)
+var currentIndex = 0;
+var totalPoints = latlngs.length;
+
+// Direction flag to switch between forward and backward movement
+var movingForward = true;
+
+// Function to animate the GIF in small steps
+function animateMarker() {
+  // Get current and next points
+  var currentPoint = latlngs[currentIndex];
+  var nextIndex = movingForward ? (currentIndex + 1) % totalPoints : (currentIndex - 1 + totalPoints) % totalPoints;
+  var nextPoint = latlngs[nextIndex];
+
+  // Calculate the difference between current and next point (vector)
+  var latDiff = nextPoint[0] - currentPoint[0];
+  var lngDiff = nextPoint[1] - currentPoint[1];
+  
+  var startTime = performance.now();
+
+  // Function to animate marker movement (linear interpolation)
+  function moveMarker(timeElapsed) {
+    // Calculate the progress of the animation
+    var progress = timeElapsed / movementDuration;
+
+    // If progress is greater than 1, it means we have finished the move
+    if (progress < 1) {
+      // Interpolate the position between the current and next point
+      var newLat = currentPoint[0] + latDiff * progress;
+      var newLng = currentPoint[1] + lngDiff * progress;
+
+      // Set the new position of the marker
+      marker.setLatLng([newLat, newLng]);
+
+      // Continue the animation
+      requestAnimationFrame(moveMarker);
+    } else {
+      // Once the marker reaches the next point, move to the next index
+      currentIndex = nextIndex;
+
+      // Check if we need to reverse the direction after reaching the end or start
+      if (currentIndex === 0 || currentIndex === totalPoints - 1) {
+        movingForward = !movingForward; // Reverse direction
+      }
+
+      // Continue moving in the opposite direction
+      setTimeout(animateMarker, 500);  // Delay before the next move (500ms pause)
+    }
+  }
+
+  // Start the animation for the current segment
+  requestAnimationFrame(function(timestamp) {
+    moveMarker(timestamp - startTime);
+  });
+}
+
+// Start the animation loop by calling the function immediately and continuously
+animateMarker();
+
+// Ensure the animation keeps looping indefinitely
+setInterval(function() {
+  animateMarker();  // Restart the animation from the current position after some delay
+}, movementDuration + 500);  // Add some delay after each full movement loop
+
+// Function to show the popup with owner, token details, and a link
+polygon.on('click', function() {
+  var popupContent =  '<b> <a href="https://opensea.io/assets/matic/0xf0dd291e86b9735504a485ad517ae761a8fb4644/3" target="_blank">Russian Air Force BUY</a><br>' +
+                      '<b>Owner:</b> 0x92d550cdbc234211957bd1b579d962c885a127ba<br>' +
+                      '<b>Tokens:</b> 500KT $NFTFAN';
+  polygon.bindPopup(popupContent).openPopup();
+});
 
 		
     </script>
