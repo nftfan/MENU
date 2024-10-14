@@ -18,7 +18,7 @@
         }
         h1 {
             margin: 0;
-            font-size: 12px;
+            font-size: 1.5em;
             letter-spacing: 0.1em;
             text-transform: uppercase;
         }
@@ -30,10 +30,10 @@
         .headline {
             margin: 10px 0;
             padding: 12px;
-            background-color: #333;
+            background-color: #000000;
             border-radius: 6px;
             transition: background-color 0.3s;
-            font-size: 10px; /* Smaller text size */
+            font-size: 0.9em; /* Smaller text size */
         }
         .headline:hover {
             background-color: #444;
@@ -48,11 +48,16 @@
         }
         @media (max-width: 768px) {
             h1 {
-                font-size: 12px;
+                font-size: 1.2em;
             }
             .headline a {
-                font-size: 10px;
+                font-size: 1em;
             }
+        }
+        .loading {
+            text-align: center;
+            color: #f0f0f0;
+            margin: 20px;
         }
     </style>
 </head>
@@ -64,7 +69,13 @@
         <!-- Dynamic content will be loaded here -->
     </main>
 
+    <div id="loading" class="loading" style="display:none;">Loading more headlines...</div>
+
     <script>
+        let allItems = [];
+        let currentIndex = 0;
+        const itemsPerPage = 10; // Number of items to load at a time
+
         async function fetchRSSFeed() {
             const keywords = [
     'nvidia', 'ai', 'gpu', 'machine learning', 'tech news', 'artificial intelligence', 
@@ -124,8 +135,7 @@
     'DNA Sequencing', 'Carbon Footprint', 'Sustainability', 'Carbon Credit Trading', 'Climate Action', 'Climate Solutions', 
     'Bioinformatics', 'Synthetic Biology', 'Clean Water', 'Humanitarian Aid', 'Food Security', 'Global Health Initiatives', 
     'Disaster Relief', 'Data Privacy'
-]
-;
+];
 
             const feedUrls = keywords.map(keyword => 
                 `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=en-US&gl=US&ceid=US%3Aen`
@@ -135,15 +145,17 @@
             const feedPromises = feedUrls.map(url => fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`).then(res => res.json()));
             const allFeeds = await Promise.all(feedPromises);
 
-            // Flatten all feed items
-            const allItems = allFeeds.flatMap(feed => feed.items);
-
-            displayHeadlines(allItems); // Display all headlines
+            // Flatten all feed items into a single array
+            allItems = allFeeds.flatMap(feed => feed.items);
+            displayHeadlines(); // Initial headlines load
         }
 
-        function displayHeadlines(items) {
+        function displayHeadlines() {
             const container = document.getElementById('news-container');
-            items.forEach(item => {
+            const currentItems = allItems.slice(currentIndex, currentIndex + itemsPerPage);
+            currentIndex += itemsPerPage;
+
+            currentItems.forEach(item => {
                 const headlineDiv = document.createElement('div');
                 headlineDiv.classList.add('headline');
                 
@@ -157,8 +169,26 @@
             });
         }
 
-        // Load the news on page load
+        function checkScroll() {
+            const container = document.getElementById('news-container');
+            const loadingElement = document.getElementById('loading');
+
+            // If the user has scrolled to the bottom of the page, load more headlines
+            if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 100) {
+                if (currentIndex < allItems.length) {
+                    loadingElement.style.display = 'block'; // Show loading indicator
+                    setTimeout(() => {
+                        loadingElement.style.display = 'none'; // Hide loading indicator after content is loaded
+                        displayHeadlines(); // Load more headlines
+                    }, 1000);
+                }
+            }
+        }
+
+        // Initialize
         window.onload = fetchRSSFeed;
+        window.onscroll = checkScroll; // Detect scroll event to trigger loading more headlines
+
     </script>
 </body>
 </html>
