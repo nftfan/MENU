@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -414,10 +415,71 @@ function moveMarkerRandomly(marker, distance = 0.045) {
     marker.setLatLng(newLatlng);
 }
 
+// Function to generate a unique 16-character ID
+function generateUniqueId() {
+    return Math.random().toString(36).substring(2, 18); // Generates a 16 character string
+}
+
 // Function to play the sound when double-clicking on the map
 function playDoubleClickSound() {
     var audio = new Audio('https://github.com/nftfan/MENU/raw/refs/heads/main/areanft/mario_coin_sound.mp3');
     audio.play();
+}
+
+// Initialize the map and set up double-click event
+map.on('dblclick', function (e) {
+    var latlng = e.latlng; // Get the double-clicked location
+
+    // Generate a unique ID for the marker
+    var uniqueId = generateUniqueId();
+
+    // Create an icon with the image
+    var imageIcon = L.icon({
+        iconUrl: 'https://github.com/nftfan/MENU/blob/main/Copy%20of%20Untitled%20Design%20(8).png?raw=true',
+        iconSize: [10, 10], // Set the size of the image to 10x10px
+        iconAnchor: [5, 5], // Anchor the icon at the center
+    });
+
+    // Add the image to the map at the double-clicked location
+    var marker = L.marker(latlng, { icon: imageIcon }).addTo(map);
+
+    // Save the double-click location to DynamoDB with the unique ID
+    saveDoubleClickLocationToDynamoDB(latlng, uniqueId);
+
+    // Add a click event to the marker to display the pop-up with the unique ID
+    marker.on('click', function () {
+        marker.bindPopup('Area Fan ID: ' + uniqueId).openPopup(); // Display the unique ID in a small pop-up
+    });
+
+    // Play the sound on double-click
+    playDoubleClickSound();
+});
+
+// Function to save the double-click location and unique ID to DynamoDB
+function saveDoubleClickLocationToDynamoDB(latlng, uniqueId) {
+    var solfanKey = 'dblclick-' + new Date().getTime(); // Unique solfan key
+
+    var params = {
+        TableName: tableName,
+        Item: {
+            solfan: solfanKey, // Include the solfan key as DynamoDB expects it
+            latitude: latlng.lat, // Save the latitude
+            longitude: latlng.lng, // Save the longitude
+            timestamp: new Date().toISOString(), // Save the timestamp
+            uniqueId: uniqueId // Save the unique ID
+        }
+    };
+
+    console.log('Saving double-click location to DynamoDB:', params);
+
+    dynamoDB.put(params, function (err, data) {
+        if (err) {
+            console.error('Error saving double-click location to DynamoDB:', err);
+            alert('Error saving double-click location to DynamoDB: ' + err.message);
+        } else {
+            console.log('Successfully saved double-click location to DynamoDB.');
+        }
+    });
 }
 
 // Function to fetch and display double-click markers with random movement
@@ -446,7 +508,7 @@ function fetchAndDisplayDoubleClickImages() {
             // Add debug logging to inspect the data retrieved from DynamoDB
             console.log('Item from DynamoDB:', item);
 
-            if (item.latitude && item.longitude && item.solfan) { // Ensure latitude, longitude, and solfan exist
+            if (item.latitude && item.longitude && item.solfan && item.uniqueId) { // Ensure latitude, longitude, solfan, and uniqueId exist
                 var latlng = L.latLng(parseFloat(item.latitude), parseFloat(item.longitude));
 
                 console.log('Placing marker at latlng:', latlng); // Log marker position
@@ -461,14 +523,16 @@ function fetchAndDisplayDoubleClickImages() {
                 // Add the image to the map at the location
                 var marker = L.marker(latlng, { icon: imageIcon }).addTo(map);
 
-                // Log marker creation
-                console.log('Marker added for solfan:', item.solfan);
-
                 // Add the marker to the array
                 drawnDoubleClickMarkers.push(marker);
 
+                // Add a click event to the marker to display the pop-up with the unique ID
+                marker.on('click', function () {
+                    marker.bindPopup('Area Fan ID: ' + item.uniqueId).openPopup(); // Display the unique ID in a small pop-up
+                });
+
                 // Make the marker move randomly every 50ms for continuous, faster motion
-                setInterval(function() {
+                setInterval(function () {
                     moveMarkerRandomly(marker, 0.045); // Move by ~5 km per step
                 }, 50); // Update every 50ms for smoother, continuous movement
             } else {
@@ -478,19 +542,33 @@ function fetchAndDisplayDoubleClickImages() {
     });
 }
 
+// Function to move a marker randomly in large steps (5 km)
+function moveMarkerRandomly(marker, distance = 0.045) {
+    // Get the current position of the marker
+    var currentLatlng = marker.getLatLng();
+
+    // Calculate random change in latitude and longitude (move by ~5km)
+    var randomLatChange = (Math.random() - 0.5) * 2 * distance;  // Random between -distance and +distance
+    var randomLngChange = (Math.random() - 0.5) * 2 * distance;  // Random between -distance and +distance
+
+    // Calculate the new position by adding the random change
+    var newLatlng = L.latLng(currentLatlng.lat + randomLatChange, currentLatlng.lng + randomLngChange);
+
+    // Move the marker to the new position smoothly
+    marker.setLatLng(newLatlng);
+}
+
 // Attach the double-click event to the map to play the sound
-map.on('dblclick', function(e) {
+map.on('dblclick', function (e) {
     playDoubleClickSound(); // Play sound on double-click
     fetchAndDisplayDoubleClickImages(); // Fetch and display markers after double-click
 });
-
-
-
 
 // Call the fetch function immediately after the map is initialized
 map.whenReady(function () {
     fetchAndDisplayDoubleClickImages(); // Fetch markers after map is ready
 });
+
 
 
 
