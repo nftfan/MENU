@@ -397,9 +397,8 @@ function saveDoubleClickLocationToDynamoDB(latlng) {
 
 
 var drawnDoubleClickMarkers = []; // Initialize globally
-var drawnLines = []; // Array to store drawn lines
 
-// Function to move a marker randomly in large steps (5 km) and draw the movement line
+// Function to move a marker randomly in large steps (5 km)
 function moveMarkerRandomly(marker, distance = 0.045) {
     // Get the current position of the marker
     var currentLatlng = marker.getLatLng();
@@ -411,50 +410,17 @@ function moveMarkerRandomly(marker, distance = 0.045) {
     // Calculate the new position by adding the random change
     var newLatlng = L.latLng(currentLatlng.lat + randomLatChange, currentLatlng.lng + randomLngChange);
 
-    // Draw a line from the current position to the new position
-    drawMovementLine(currentLatlng, newLatlng);
-
     // Move the marker to the new position smoothly
     marker.setLatLng(newLatlng);
-
-    // Update the distance traveled for the marker and convert to tokens ($nftfan)
-    updateDistanceTraveled(marker, currentLatlng, newLatlng);
 }
 
-// Function to draw a line between two positions (previous and new)
-function drawMovementLine(fromLatlng, toLatlng) {
-    // Create a line from the previous position to the new position
-    var line = L.polyline([fromLatlng, toLatlng], {
-        color: 'blue',  // Line color
-        weight: 2,      // Line thickness
-        opacity: 0.5    // Line opacity
-    }).addTo(map);
-
-    // Store the line in the array to keep track of it
-    drawnLines.push(line);
+// Function to play the sound when double-clicking on the map
+function playDoubleClickSound() {
+    var audio = new Audio('https://github.com/nftfan/MENU/raw/refs/heads/main/areanft/beep-02.mp3');
+    audio.play();
 }
 
-// Function to update the distance traveled (tokens collected) by the marker
-function updateDistanceTraveled(marker, previousLatlng, currentLatlng) {
-    // Calculate the distance between the previous and current positions in meters
-    var distanceInMeters = previousLatlng.distanceTo(currentLatlng); // Distance in meters
-
-    // Convert the distance to tokens ($nftfan) assuming 1 meter = 1 $nftfan
-    var tokensCollected = distanceInMeters;
-
-    // Add the tokens to the marker's "tokens" property (if it exists, otherwise initialize)
-    if (!marker.tokensCollected) {
-        marker.tokensCollected = 0;  // Initialize if it doesn't exist
-    }
-    marker.tokensCollected += tokensCollected;
-
-    // Only show popup after collecting 100,000 $nftfan tokens
-    if (marker.tokensCollected >= 1000000000000) {
-        marker.bindPopup("Tokens Collected: " + Math.round(marker.tokensCollected) + " $nftfan").openPopup();
-    }
-}
-
-// Function to fetch and display double-click markers with random movement and line drawing
+// Function to fetch and display double-click markers with random movement
 function fetchAndDisplayDoubleClickImages() {
     var params = {
         TableName: tableName
@@ -468,16 +434,12 @@ function fetchAndDisplayDoubleClickImages() {
 
         console.log('Fetched double-click items:', data.Items);
 
-        // Clear previously displayed markers and lines
+        // Clear previously displayed markers
         drawnDoubleClickMarkers.forEach(function (marker) {
             map.removeLayer(marker);
         });
-        drawnLines.forEach(function (line) {
-            map.removeLayer(line);
-        });
 
-        drawnDoubleClickMarkers = []; // Reset the marker array
-        drawnLines = []; // Reset the line array
+        drawnDoubleClickMarkers = []; // Reset the array
 
         // Iterate over the fetched items and add markers for double-clicks
         data.Items.forEach(function (item) {
@@ -502,18 +464,8 @@ function fetchAndDisplayDoubleClickImages() {
                 // Log marker creation
                 console.log('Marker added for solfan:', item.solfan);
 
-                // Initialize tokens collected
-                marker.tokensCollected = 0;
-
                 // Add the marker to the array
                 drawnDoubleClickMarkers.push(marker);
-
-                // Set up the click event to show tokens collected (only after 100,000 $nftfan)
-                marker.on('click', function() {
-                    if (marker.tokensCollected >= 100000) {
-                        alert("Tokens Collected: " + Math.round(marker.tokensCollected) + " $nftfan");
-                    }
-                });
 
                 // Make the marker move randomly every 50ms for continuous, faster motion
                 setInterval(function() {
@@ -525,6 +477,13 @@ function fetchAndDisplayDoubleClickImages() {
         });
     });
 }
+
+// Attach the double-click event to the map to play the sound
+map.on('dblclick', function(e) {
+    playDoubleClickSound(); // Play sound on double-click
+    fetchAndDisplayDoubleClickImages(); // Fetch and display markers after double-click
+});
+
 
 
 
