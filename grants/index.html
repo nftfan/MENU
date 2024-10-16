@@ -249,68 +249,71 @@
             return /Mobi|Android/i.test(navigator.userAgent);
         }
 
-        async function connectWallet() {
-            const loadingElement = document.getElementById("loading");
-            loadingElement.style.display = "block";
-            updateMessage('');
-
-            if (isMobile()) {
-                document.getElementById("metamaskInstructions").style.display = "block";
-            }
-
+        async function switchToPolygon() {
+            const polygonChainId = '0x89'; // Polygon Mainnet Chain ID
             try {
-                if (typeof window.bitkeep !== "undefined" && typeof window.bitkeep.ethereum !== "undefined") {
-                    provider = new ethers.providers.Web3Provider(window.bitkeep.ethereum);
-                    await window.bitkeep.ethereum.request({ method: "eth_requestAccounts" });
-                } else if (typeof window.ethereum !== "undefined") {
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await window.ethereum.request({ method: "eth_requestAccounts" });
+                await provider.send('wallet_switchEthereumChain', [{ chainId: polygonChainId }]);
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    // Chain not added to MetaMask
+                    await provider.send('wallet_addEthereumChain', [{
+                        chainId: polygonChainId,
+                        chainName: 'Polygon Mainnet',
+                        rpcUrls: ['https://polygon-rpc.com/'],
+                        nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                        blockExplorerUrls: ['https://polygonscan.com/'],
+                    }]);
                 } else {
-                    updateMessage("Please install MetaMask, BitKeep Wallet, or another compatible Ethereum wallet.");
-                    return;
+                    console.error("Failed to switch to Polygon network:", switchError);
                 }
+            }
+        }
 
-                signer = provider.getSigner();
-                contract = new ethers.Contract(contractAddress, contractABI, signer);
+        async function connectWallet() {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+                try {
+                    // Prompt user for account connections
+                    await provider.send("eth_requestAccounts", []);
+                    signer = provider.getSigner();
+                    contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-                document.getElementById("claimTokens").disabled = false;
-                updateMessage("Wallet connected.");
-                document.getElementById("metamaskInstructions").style.display = "none";
-            } catch (error) {
-                console.error("Error connecting wallet:", error);
-                updateMessage("Failed to connect wallet. Please check your wallet or browser.");
-            } finally {
-                loadingElement.style.display = "none";
+                    await switchToPolygon();
+                    
+                    document.getElementById("claimTokens").disabled = false;
+                    updateMessage("Wallet connected!");
+                } catch (error) {
+                    if (error.code === 4001) {
+                        updateMessage("User rejected the connection request.");
+                    } else if (error.code === -32002) {
+                        updateMessage("Connection request already pending. Check your wallet.");
+                    } else {
+                        updateMessage("Failed to connect wallet. Please check your wallet or browser.");
+                    }
+                    console.error(error);
+                }
+            } else {
+                updateMessage("Please install MetaMask or BitKeep Wallet.");
+                document.getElementById("metamaskInstructions").style.display = "block";
             }
         }
 
         async function claimTokens() {
-            const loadingElement = document.getElementById("loading");
-            loadingElement.style.display = "block";
-            updateMessage('');
-
             try {
-                const address = await signer.getAddress();
-                const lastClaimedTime = await contract.lastClaimedTime(address);
-                const claimInterval = await contract.claimInterval();
-                const currentTime = Math.floor(Date.now() / 1000);
-
-                if (currentTime >= lastClaimedTime.toNumber() + claimInterval.toNumber()) {
-                    const tx = await contract.claimTokens();
-                    await tx.wait();
-                    updateMessage("Tokens claimed successfully!");
-                } else {
-                    const nextClaimTime = new Date((lastClaimedTime.toNumber() + claimInterval.toNumber()) * 1000);
-                    updateMessage(`You can claim tokens again after ${nextClaimTime.toLocaleString()}`);
-                }
+                document.getElementById("loading").style.display = "block";
+                await contract.claimTokens();
+                updateMessage("Tokens claimed successfully!");
             } catch (error) {
-                console.error("Error claiming tokens:", error);
-                updateMessage("Failed to claim tokens. See console for details.");
+                if (error.code === 4001) {
+                    updateMessage("User rejected the transaction.");
+                } else {
+                    updateMessage("Error claiming tokens. Please try again.");
+                }
+                console.error(error);
             } finally {
-                loadingElement.style.display = "none";
+                document.getElementById("loading").style.display = "none";
             }
         }
-
     </script>
 </body>
 </html>
