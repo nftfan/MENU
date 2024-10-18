@@ -7,6 +7,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -506,7 +507,6 @@ function saveDoubleClickLocationToDynamoDB(latlng, uniqueId) {
     });
 }
 
-// Function to fetch and display double-click markers with random movement
 function fetchAndDisplayDoubleClickImages() {
     var params = {
         TableName: tableName
@@ -527,6 +527,20 @@ function fetchAndDisplayDoubleClickImages() {
 
         drawnDoubleClickMarkers = []; // Reset the array
 
+        // Define the default icon URL
+        var defaultIconUrl = 'https://github.com/nftfan/MENU/blob/main/Copy%20of%20Untitled%20Design%20(8).png?raw=true';
+
+        // Define the icon URL for specific Fan IDs
+        var specificIconUrl = 'https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/areanft/Copy%20of%20Copy%20of%20Untitled%20Design%20(2)GGG.gif';
+
+        // Define the list of Fan IDs that will use the specific icon
+        var validFanIds = [
+            'm5l25ukszb', 
+            'y804k2u3cn', 
+            'ewmpi33yylc'
+            // Add more IDs here if needed
+        ];
+
         // Iterate over the fetched items and add markers for double-clicks
         data.Items.forEach(function (item) {
             // Add debug logging to inspect the data retrieved from DynamoDB
@@ -537,11 +551,29 @@ function fetchAndDisplayDoubleClickImages() {
 
                 console.log('Placing marker at latlng:', latlng); // Log marker position
 
-                // Create an icon with the double-click image
+                // Default icon size (10x10px)
+                var iconSize = [10, 10];
+                var popUpContent = 'Area Fan ID: ' + item.uniqueId;
+
+                // If the uniqueId is in the validFanIds list, set a larger icon size (25x25px) and add "Verified Member" text
+                if (validFanIds.includes(item.uniqueId)) {
+                    iconSize = [25, 25]; // Set the size for specific Fan IDs
+                    popUpContent += '<br><strong>Verified Member</strong>'; // Add Verified Member text to the pop-up
+                }
+
+                // Use the specific icon for matching uniqueId or the default icon otherwise
+                var iconUrl = defaultIconUrl; // Default icon
+
+                // If the uniqueId is in the validFanIds list, use the specific icon
+                if (validFanIds.includes(item.uniqueId)) {
+                    iconUrl = specificIconUrl; // Use the specific icon for these IDs
+                }
+
+                // Create an icon with the selected image and size
                 var imageIcon = L.icon({
-                    iconUrl: 'https://github.com/nftfan/MENU/blob/main/Copy%20of%20Untitled%20Design%20(8).png?raw=true',
-                    iconSize: [10, 10], // Keep the size of the image to 10x10px
-                    iconAnchor: [5, 5], // Anchor the icon at the center
+                    iconUrl: iconUrl,
+                    iconSize: iconSize, // Set the size based on the ID
+                    iconAnchor: [iconSize[0] / 2, iconSize[1] / 2], // Anchor the icon at the center
                 });
 
                 // Add the image to the map at the location
@@ -550,9 +582,9 @@ function fetchAndDisplayDoubleClickImages() {
                 // Add the marker to the array
                 drawnDoubleClickMarkers.push(marker);
 
-                // Add a click event to the marker to display the pop-up with the unique ID
+                // Add a click event to the marker to display the pop-up with the unique ID and "Verified Member" text for specific IDs
                 marker.on('click', function () {
-                    marker.bindPopup('Area Fan ID: ' + item.uniqueId).openPopup(); // Display the unique ID in a small pop-up
+                    marker.bindPopup(popUpContent).openPopup(); // Display the unique ID with Verified Member text for specific IDs
                 });
 
                 // Make the marker move randomly every 50ms for continuous, faster motion
@@ -565,6 +597,7 @@ function fetchAndDisplayDoubleClickImages() {
         });
     });
 }
+
 
 // Function to move a marker randomly in large steps (5 km)
 function moveMarkerRandomly(marker, distance = 0.045) {
