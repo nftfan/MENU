@@ -25,13 +25,15 @@
             <input type="number" id="amount" value="1" required />
         </div>
 
-        <button id="mintBtn">Mint NFT</button>
+        <button id="mintBtn">Buy NFT</button>
     </div>
 
     <script type="text/javascript">
         const contractAddress = "0x3e6E1F0e21A6521eE69baceEBA22e7CeCe42eb1c";
-        const contractABI = [ "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
-        "function tokenPrice() external view returns (uint256)" ];
+        const contractABI = [
+            "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
+            "function tokenPrice() external view returns (uint256)"
+        ];
 
         let web3;
         let nftContract;
@@ -63,19 +65,27 @@
             }
         });
 
-        // Mint NFT Function
+        // Buy NFT Function
         document.getElementById("mintBtn").addEventListener("click", async () => {
             const tokenId = document.getElementById("tokenId").value;
             const amount = document.getElementById("amount").value;
 
             if (tokenId && amount) {
                 try {
-                    const result = await nftContract.methods.mint(userAddress, tokenId, amount, "").send({ from: userAddress });
-                    document.getElementById("status").innerHTML = `Minted ${amount} NFT(s) with Token ID ${tokenId}`;
+                    // Fetch the token price from the contract
+                    const tokenPrice = await nftContract.methods.tokenPrice().call();
+                    const totalPrice = tokenPrice * amount;
+
+                    const result = await nftContract.methods.buyNFT(tokenId, amount).send({
+                        from: userAddress,
+                        value: totalPrice // MATIC value sent for the NFTs
+                    });
+
+                    document.getElementById("status").innerHTML = `Bought ${amount} NFT(s) with Token ID ${tokenId}`;
                     console.log(result);
                 } catch (error) {
-                    console.error("Minting error:", error);
-                    document.getElementById("status").innerHTML = "Error minting NFT: " + error.message;
+                    console.error("Buying error:", error);
+                    document.getElementById("status").innerHTML = "Error buying NFT: " + error.message;
                 }
             } else {
                 document.getElementById("status").innerHTML = "Please fill out all fields.";
