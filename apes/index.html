@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>NFTFANS BANK - Mint Your NFT</title>
+    <style>
+        body {
+            background-color: #1f1f2e;
+            color: #e4e4eb;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #2a2a3b;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.7);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .container h1 {
+            font-size: 2.2rem;
+            color: #00b4d8;
+            margin-bottom: 20px;
+        }
+
+        .image {
+            width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .details {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        .details p {
+            margin: 10px 0;
+        }
+
+        .buy-button {
+            background-color: #00b4d8;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .buy-button:hover {
+            background-color: #0077b6;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #e63946;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>NFTFANS BANK</h1>
+    <img src="https://pbs.twimg.com/media/GagaJEYWEAAtZOF?format=jpg&name=4096x4096" alt="NFT Image" class="image">
+    <div class="details">
+        <p>Price: 1 $POL</p>
+        <p>Tokens: 10KT $NFTFAN</p>
+    </div>
+    <button class="buy-button" id="buyNFTBtn">Mint Tokens</button>
+    <div id="status"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+<script>
+    const contractAddress = "0x3e6E1F0e21A6521eE69baceEBA22e7CeCe42eb1c";
+    const contractABI = [
+        {
+            "constant": false,
+            "inputs": [
+                { "name": "_tokenId", "type": "uint256" },
+                { "name": "_amount", "type": "uint256" }
+            ],
+            "name": "buyNFT",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "tokenPrice",
+            "outputs": [
+                { "name": "", "type": "uint256" }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ];
+
+    document.getElementById('buyNFTBtn').addEventListener('click', async () => {
+        if (typeof window.ethereum !== 'undefined') {
+            const web3 = new Web3(window.ethereum);
+            try {
+                await window.ethereum.enable();
+                const accounts = await web3.eth.getAccounts();
+                const userAddress = accounts[0];
+                const nftContract = new web3.eth.Contract(contractABI, contractAddress);
+                const tokenPrice = await nftContract.methods.tokenPrice().call();
+                const totalPrice = tokenPrice * 1;
+
+                await nftContract.methods.buyNFT(1, 10).send({
+                    from: userAddress,
+                    value: totalPrice
+                });
+
+                document.getElementById('status').innerHTML = "NFT purchased successfully!";
+            } catch (error) {
+                console.error("Error buying NFT:", error);
+                document.getElementById('status').innerHTML = "Error: " + error.message;
+            }
+        } else {
+            document.getElementById('status').innerHTML = "Please install MetaMask!";
+        }
+    });
+</script>
+
+</body>
+</html>
