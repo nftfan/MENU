@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pump Fun Token Monitor</title>
+</head>
+<body>
+    <h1>Pump Fun Token Launch Monitor</h1>
+    <p>This page sends a notification whenever a new token is launched on Pump Fun.</p>
+
+    <script>
+        // Replace with your Telegram Bot Token and Chat ID
+        const botToken = '7515580049:AAHkZBOprnrY_XN53aohz80HSs8M7QJUphQ';
+        const chatId = '2141064153';
+
+        // Function to send a Telegram notification
+        function sendNotification(tokenName) {
+            const message = `🚀 A new token "${tokenName}" has been launched on Pump Fun!`;
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        console.log(`Notification sent for token: ${tokenName}`);
+                    } else {
+                        console.error('Failed to send notification:', data);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Function to monitor for new token launches
+        function monitorTokenLaunch() {
+            const apiEndpoint = 'https://pumpportal.fun/api/trade-local'; // Updated API endpoint
+            let lastTokenId = null; // Track the last notified token ID
+
+            setInterval(() => {
+                fetch(apiEndpoint)
+                    .then(response => response.json())
+                    .then(tokens => {
+                        if (tokens && tokens.length) {
+                            const latestToken = tokens[0]; // Assuming the newest token is the first item
+                            if (latestToken.id !== lastTokenId) {
+                                lastTokenId = latestToken.id; // Update the last notified token ID
+                                sendNotification(latestToken.name);
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error fetching tokens:', error));
+            }, 60000); // Check every 60 seconds
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            monitorTokenLaunch();
+        });
+    </script>
+</body>
+</html>
