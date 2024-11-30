@@ -12,41 +12,24 @@
       color: #fff;
       display: flex;
       height: 100vh;
-      flex-direction: row;
-      overflow-x: hidden; /* Prevent horizontal scrollbar by default */
+      overflow: hidden;
     }
 
     .container {
       display: flex;
       flex: 1;
-      overflow-x: auto; /* Allow horizontal scrolling only if content exceeds viewport */
+      overflow: hidden;
     }
 
     .sidebar {
       width: 250px;
       background-color: #1c1c1c;
-      padding: 20px;
+      padding: 15px;
       display: flex;
       flex-direction: column;
+      gap: 10px;
       overflow-y: auto;
-      transition: transform 0.3s ease;
-    }
-
-    .sidebar.minimized {
-      transform: translateX(-100%);
-    }
-
-    .toggle-btn {
-      background-color: #444;
-      color: white;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-
-    .toggle-btn:hover {
-      background-color: #333;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
     }
 
     .new-note-btn {
@@ -54,8 +37,11 @@
       color: white;
       border: none;
       padding: 10px;
+      font-size: 14px;
       cursor: pointer;
-      margin-bottom: 20px;
+      border-radius: 5px;
+      text-align: center;
+      transition: background-color 0.2s ease;
     }
 
     .new-note-btn:hover {
@@ -63,14 +49,19 @@
     }
 
     .notes-list {
+      flex: 1;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .note {
-      background-color: #2e2e2e;
-      margin-bottom: 10px;
+      background-color: #0d0d0d;
       padding: 10px;
+      border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.2s ease;
     }
 
     .note:hover {
@@ -79,6 +70,7 @@
 
     .note-title {
       font-weight: bold;
+      font-size: 14px;
     }
 
     .note-date {
@@ -90,44 +82,43 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 20px;
+      padding: 15px;
       background-color: #1e1e1e;
-      overflow-y: auto;
+      overflow: hidden;
+      gap: 10px;
     }
 
     #note-title,
     #note-content {
       width: 100%;
       padding: 10px;
-      margin-top: 10px;
       border: none;
       border-radius: 5px;
-      background-color: #2e2e2e;
+      background-color: #0d0d0d;
       color: #fff;
-      box-sizing: border-box; /* Prevents overflow */
+      box-sizing: border-box;
     }
 
     #note-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
     }
 
     #note-content {
       flex: 1;
-      min-height: 300px; /* Increased the height of the note content area */
       font-size: 14px;
       resize: none;
       overflow-y: auto;
-      word-wrap: break-word; /* Break long words to prevent horizontal scrolling */
+      word-wrap: break-word;
     }
 
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
 
     ::-webkit-scrollbar-thumb {
       background-color: #444;
-      border-radius: 4px;
+      border-radius: 3px;
     }
 
     ::-webkit-scrollbar-track {
@@ -137,8 +128,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="sidebar" id="sidebar">
-      <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+    <div class="sidebar">
       <h3>Saved Notes</h3>
       <button class="new-note-btn" onclick="createNewNote()">+ New Note</button>
       <div class="notes-list" id="notes-list"></div>
@@ -150,29 +140,14 @@
   </div>
 
   <script>
-    const notesKey = 'notes'; // Key to store notes in localStorage
-    let notes = JSON.parse(localStorage.getItem(notesKey)) || []; // Load notes from localStorage, or initialize an empty array if none exist
+    const notesKey = 'notes';
+    let notes = JSON.parse(localStorage.getItem(notesKey)) || [];
     let activeNote = null;
 
-    // Load the notes list from localStorage and render them
     renderNotesList();
 
-    // Save notes to localStorage whenever they change
     function saveNotes() {
       localStorage.setItem(notesKey, JSON.stringify(notes));
-    }
-
-    function toggleSidebar() {
-      const sidebar = document.getElementById("sidebar");
-      const toggleButton = document.querySelector(".toggle-btn");
-
-      if (sidebar.classList.contains("minimized")) {
-        sidebar.classList.remove("minimized");
-        toggleButton.innerText = "☰";
-      } else {
-        sidebar.classList.add("minimized");
-        toggleButton.innerText = "➤";
-      }
     }
 
     function createNewNote() {
@@ -193,32 +168,30 @@
       };
 
       notes.push(newNote);
-      saveNotes(); // Save to localStorage
+      saveNotes();
       renderNotesList();
       openNote(newNote);
       document.getElementById("note-title").value = "";
       document.getElementById("note-content").value = "";
     }
 
-   function renderNotesList() {
-  const notesList = document.getElementById("notes-list");
-  notesList.innerHTML = "";
+    function renderNotesList() {
+      const notesList = document.getElementById("notes-list");
+      notesList.innerHTML = "";
 
-  // Reverse the order of notes so that the latest ones appear first
-  const sortedNotes = notes.slice().reverse();
+      const sortedNotes = notes.slice().reverse();
 
-  sortedNotes.forEach((note) => {
-    const noteElement = document.createElement("div");
-    noteElement.className = "note";
-    noteElement.innerHTML = `
-      <div class="note-title">${note.title}</div>
-      <div class="note-date">${note.date}</div>
-    `;
-    noteElement.onclick = () => openNote(note);
-    notesList.appendChild(noteElement);
-  });
-}
-
+      sortedNotes.forEach((note) => {
+        const noteElement = document.createElement("div");
+        noteElement.className = "note";
+        noteElement.innerHTML = `
+          <div class="note-title">${note.title}</div>
+          <div class="note-date">${note.date}</div>
+        `;
+        noteElement.onclick = () => openNote(note);
+        notesList.appendChild(noteElement);
+      });
+    }
 
     function openNote(note) {
       activeNote = note.id;
