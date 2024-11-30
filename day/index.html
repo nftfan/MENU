@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remaining Time Today</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container {
+            text-align: center;
+            background-color: #1e1e1e;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        .time {
+            font-size: 40px;
+            font-weight: bold;
+            color: #76ff03;
+            margin-top: 20px;
+        }
+        .current-hour {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff4081;
+            margin-top: 20px;
+        }
+        .description {
+            font-size: 12px;
+            color: #b0bec5;
+            margin-top: 10px;
+        }
+        .month-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .month-day {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background-color: #333;
+            color: #ffffff;
+            transition: background-color 0.3s;
+        }
+        .current-day {
+            background-color: #ff4081;
+            color: white;
+            font-weight: bold;
+        }
+        .month-day:hover {
+            background-color: #76ff03;
+            cursor: pointer;
+        }
+        .table-container {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        th {
+            background-color: #333;
+            color: #ffffff;
+        }
+        td {
+            background-color: #212121;
+            color: #e0e0e0;
+        }
+        .completed {
+            color: #9e9e9e;
+        }
+        .upcoming {
+            color: #76ff03;
+        }
+        .countdown {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ff4081;
+        }
+        .month-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            .time {
+                font-size: 30px;
+            }
+            h1 {
+                font-size: 12px;
+            }
+            .current-hour {
+                font-size: 14px;
+            }
+            .countdown {
+                font-size: 12px;
+            }
+            .month-day {
+                width: 25px;
+                height: 25px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Remaining Time Today</h1>
+        
+        <div class="month-header" id="month-header">October 2024</div>
+        
+        <div id="day-name" class="time">Monday</div>
+        <div id="time" class="time">00:00:00</div>
+        <div class="description">Until the day ends</div>
+        
+        <div class="current-hour" id="current-hour-time">Remaining Time This Hour: 00:00:00</div>
+
+        <!-- Month Row -->
+        <div class="month-row" id="month-row">
+            <!-- Days of the month will be inserted here -->
+        </div>
+        
+        <div class="table-container">
+            <h2>Hours Today</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hour</th>
+                        <th>Status</th>
+                        <th>Remaining Time</th>
+                    </tr>
+                </thead>
+                <tbody id="hoursTable">
+                    <!-- Hours will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function calculateRemainingTime() {
+            const now = new Date();
+            const endOfDay = new Date();
+            endOfDay.setHours(24, 0, 0, 0); // Set to midnight next day
+
+            const remainingTime = endOfDay - now;
+            const remainingHours = Math.floor(remainingTime / 1000 / 60 / 60);
+            const remainingMinutes = Math.floor((remainingTime / 1000 / 60) % 60);
+            const remainingSeconds = Math.floor((remainingTime / 1000) % 60);
+
+            document.getElementById('time').textContent = `${remainingHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+
+            // Current hour countdown
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+            const remainingMinutesThisHour = 60 - currentMinute;
+            const remainingSecondsThisHour = 60 - currentSecond;
+            
+            document.getElementById('current-hour-time').textContent = `Remaining Time This Hour: ${remainingMinutesThisHour.toString().padStart(2, '0')}:${remainingSecondsThisHour.toString().padStart(2, '0')}`;
+
+            updateHourStatus(currentHour);
+            updateMonthRow(now.getDate(), now.getMonth(), now.getFullYear());
+            updateDayName(now);
+        }
+
+        function updateHourStatus(currentHour) {
+            const now = new Date();
+            const hoursTable = document.getElementById('hoursTable');
+            hoursTable.innerHTML = ''; // Clear the table
+
+            for (let i = 0; i < 24; i++) {
+                const row = document.createElement('tr');
+                const hourCell = document.createElement('td');
+                const statusCell = document.createElement('td');
+                const remainingCell = document.createElement('td');
+
+                hourCell.textContent = `${i}:00`;
+
+                if (i < currentHour) {
+                    statusCell.textContent = 'Completed';
+                    statusCell.classList.add('completed');
+                    remainingCell.textContent = '--:--';
+                } else if (i === currentHour) {
+                    statusCell.textContent = 'Current';
+                    statusCell.classList.add('countdown');
+                    const remainingMinutes = 60 - now.getMinutes();
+                    const remainingSeconds = 60 - now.getSeconds();
+                    remainingCell.textContent = `${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                } else {
+                    statusCell.textContent = 'Upcoming';
+                    statusCell.classList.add('upcoming');
+                    remainingCell.textContent = '--:--';
+                }
+
+                row.appendChild(hourCell);
+                row.appendChild(statusCell);
+                row.appendChild(remainingCell);
+                hoursTable.appendChild(row);
+            }
+        }
+
+        function updateMonthRow(currentDate, currentMonth, currentYear) {
+            const monthRow = document.getElementById('month-row');
+            monthRow.innerHTML = ''; // Clear previous rows
+
+            const now = new Date();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Get month name
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('month-header').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('month-day');
+                if (i === currentDate) {
+                    dayElement.classList.add('current-day');
+                }
+                dayElement.textContent = i;
+                monthRow.appendChild(dayElement);
+            }
+        }
+
+        function updateDayName(now) {
+            const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const currentDayName = dayNames[now.getDay()];
+            document.getElementById('day-name').textContent = currentDayName;
+        }
+
+        setInterval(calculateRemainingTime, 1000); // Update every second
+    </script>
+</body>
+</html>
