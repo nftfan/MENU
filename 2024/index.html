@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Earnings Tracker</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 30px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    input {
+      background-color: #2e2e2e;
+      color: #f5f5f5;
+      font-size: 1.2rem;
+      padding: 12px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    button {
+      background-color: #5aab61;
+      color: white;
+      font-size: 1rem;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #4b9d54;
+    }
+
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+      width: 100%;
+      max-width: 800px;
+      display: none; /* Initially hide months */
+      box-sizing: border-box;
+    }
+
+    .card {
+      background-color: #333;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 10px;
+      width: calc(33.333% - 20px);
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.3s;
+      box-sizing: border-box;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .total-earnings {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #5aab61;
+    }
+
+    .time {
+      font-size: 1rem;
+      color: #888;
+      margin-top: 10px;
+    }
+
+    .entries-list {
+      display: none;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #bbb;
+    }
+
+    .entries-list.active {
+      display: block;
+    }
+
+    .entry {
+      margin-bottom: 8px;
+      background-color: #444;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .date {
+      font-weight: bold;
+    }
+
+    .year-card {
+      background-color: #34495e; /* Darker color */
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      padding: 30px;
+      border-radius: 10px;
+      margin-top: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: transform 0.3s;
+      box-sizing: border-box;
+    }
+
+    .year-card:hover {
+      transform: scale(1.05);
+    }
+
+    .year-name {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .year-card.active {
+      background-color: #1abc9c; /* Active color when clicked */
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .card {
+        width: calc(50% - 20px); /* Two cards per row on tablets */
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        width: 100%; /* One card per row on mobile screens */
+      }
+
+      .input-container {
+        width: 100%;
+      }
+
+      .year-name {
+        font-size: 2.5rem; /* Slightly smaller font size for mobile */
+      }
+
+      .total-earnings {
+        font-size: 1.8rem; /* Slightly smaller font size for mobile */
+      }
+
+      .time {
+        font-size: 0.9rem; /* Smaller text size for mobile */
+      }
+
+      button {
+        font-size: 1rem; /* Ensure button text fits */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Input Section -->
+  <div class="input-container">
+    <input type="number" id="earningsInput" placeholder="Enter today's earnings" />
+    <button onclick="submitEarnings()">Submit Earnings</button>
+  </div>
+
+  <!-- Year Card -->
+  <div id="yearCard" class="year-card" onclick="toggleMonthCards()">
+    <div class="year-name">2024</div>
+    <div class="total-earnings" id="yearTotalEarnings">€ 0.00</div>
+  </div>
+
+  <!-- Card Display Section -->
+  <div class="card-container" id="cardContainer">
+    <!-- Cards will be added here dynamically -->
+  </div>
+
+  <script>
+    const earningsData = {
+      "2024": {
+        totalEarnings: 0,
+        months: {}
+      }
+    };
+
+    function submitEarnings() {
+      const earningsInput = document.getElementById("earningsInput").value;
+      if (!earningsInput || isNaN(earningsInput)) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+
+      // Get current date information
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1; // Months are 0-based, so add 1
+      const day = date.getDate();
+
+      // Format date as Year-Month
+      const yearMonth = `${year}-${month < 10 ? '0' + month : month}`;
+      
+      // Check if this month already has earnings stored
+      if (!earningsData["2024"].months[yearMonth]) {
+        earningsData["2024"].months[yearMonth] = {
+          totalEarnings: 0,
+          entries: []
+        };
+      }
+
+      // Add today's earnings
+      earningsData["2024"].months[yearMonth].totalEarnings += parseFloat(earningsInput);
+      earningsData["2024"].months[yearMonth].entries.push({ day, earnings: earningsInput, time: date.toLocaleTimeString() });
+      earningsData["2024"].totalEarnings += parseFloat(earningsInput);
+
+      // Update the UI
+      renderCards();
+      updateYearTotal();
+      document.getElementById("earningsInput").value = ''; // Clear input field
+    }
+
+    function renderCards() {
+      const cardContainer = document.getElementById("cardContainer");
+      cardContainer.innerHTML = ''; // Clear previous cards
+
+      for (let month = 1; month <= 12; month++) {
+        const monthStr = month < 10 ? '0' + month : month;
+        const monthName = new Date(2024, month - 1).toLocaleString('default', { month: 'long' });
+
+        const card = document.createElement("div");
+        card.classList.add("card");
+
+        // Check if this month has earnings
+        const monthData = earningsData["2024"].months[`2024-${monthStr}`];
+        const totalEarnings = monthData ? monthData.totalEarnings : 0;
+
+        // Month Card content
+        card.innerHTML = `
+          <div class="total-earnings">€ ${totalEarnings.toFixed(2)}</div>
+          <div class="time">${monthName}</div>
+        `;
+
+        // Create the expandable list of entries
+        const entriesList = document.createElement("div");
+        entriesList.classList.add("entries-list");
+
+        if (monthData) {
+          monthData.entries.forEach(entry => {
+            const entryDiv = document.createElement("div");
+            entryDiv.classList.add("entry");
+            entryDiv.innerHTML = `<span class="date">${entry.day}-${monthStr}-2024 </span>€ ${entry.earnings} at ${entry.time}`;
+            entriesList.appendChild(entryDiv);
+          });
+        }
+
+        // Toggle entries visibility on card click
+        card.addEventListener("click", () => {
+          entriesList.classList.toggle("active");
+        });
+
+        // Add the entries list to the card
+        card.appendChild(entriesList);
+        cardContainer.appendChild(card);
+      }
+    }
+
+    function updateYearTotal() {
+      const yearTotalEarnings = earningsData["2024"].totalEarnings;
+      document.getElementById("yearTotalEarnings").textContent = `€ ${yearTotalEarnings.toFixed(2)}`;
+    }
+
+    function toggleMonthCards() {
+      const cardContainer = document.getElementById("cardContainer");
+      cardContainer.style.display = cardContainer.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // Initial render of cards
+    renderCards();
+    updateYearTotal();
+  </script>
+</body>
+</html>
