@@ -1,6 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+   <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Delivery</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+	  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Delivery</title>
+    
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Personal Delivery">
+    
+    <!-- iOS Icons (Optional, recommended to create your own) -->
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    
+    <!-- iOS Splash Screen (Optional, recommended to create your own) -->
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <!-- Add the Web App Manifest (Optional) -->
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <!-- iOS Viewport Adjustment -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remaining Time Today</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Years, Months, and Days from 1989 to 2089</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Earnings Tracker</title>
@@ -199,106 +231,111 @@
   </div>
 
   <script>
-    const earningsData = {
-      "2024": {
-        totalEarnings: 0,
-        months: {}
-      }
+// Load earnings data from localStorage or initialize if not available
+let earningsData = JSON.parse(localStorage.getItem("earningsData")) || {
+  "2024": {
+    totalEarnings: 0,
+    months: {}
+  }
+};
+
+function submitEarnings() {
+  const earningsInput = document.getElementById("earningsInput").value;
+  if (!earningsInput || isNaN(earningsInput)) {
+    alert("Please enter a valid amount.");
+    return;
+  }
+
+  // Get current date information
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1; // Months are 0-based, so add 1
+  const day = date.getDate();
+
+  // Format date as Year-Month
+  const yearMonth = `${year}-${month < 10 ? '0' + month : month}`;
+  
+  // Check if this month already has earnings stored
+  if (!earningsData["2024"].months[yearMonth]) {
+    earningsData["2024"].months[yearMonth] = {
+      totalEarnings: 0,
+      entries: []
     };
+  }
 
-    function submitEarnings() {
-      const earningsInput = document.getElementById("earningsInput").value;
-      if (!earningsInput || isNaN(earningsInput)) {
-        alert("Please enter a valid amount.");
-        return;
-      }
+  // Add today's earnings
+  earningsData["2024"].months[yearMonth].totalEarnings += parseFloat(earningsInput);
+  earningsData["2024"].months[yearMonth].entries.push({ day, earnings: earningsInput, time: date.toLocaleTimeString() });
+  earningsData["2024"].totalEarnings += parseFloat(earningsInput);
 
-      // Get current date information
-      const date = new Date();
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1; // Months are 0-based, so add 1
-      const day = date.getDate();
+  // Save updated earnings data to localStorage
+  localStorage.setItem("earningsData", JSON.stringify(earningsData));
 
-      // Format date as Year-Month
-      const yearMonth = `${year}-${month < 10 ? '0' + month : month}`;
-      
-      // Check if this month already has earnings stored
-      if (!earningsData["2024"].months[yearMonth]) {
-        earningsData["2024"].months[yearMonth] = {
-          totalEarnings: 0,
-          entries: []
-        };
-      }
+  // Update the UI
+  renderCards();
+  updateYearTotal();
+  document.getElementById("earningsInput").value = ''; // Clear input field
+}
 
-      // Add today's earnings
-      earningsData["2024"].months[yearMonth].totalEarnings += parseFloat(earningsInput);
-      earningsData["2024"].months[yearMonth].entries.push({ day, earnings: earningsInput, time: date.toLocaleTimeString() });
-      earningsData["2024"].totalEarnings += parseFloat(earningsInput);
+function renderCards() {
+  const cardContainer = document.getElementById("cardContainer");
+  cardContainer.innerHTML = ''; // Clear previous cards
 
-      // Update the UI
-      renderCards();
-      updateYearTotal();
-      document.getElementById("earningsInput").value = ''; // Clear input field
+  for (let month = 1; month <= 12; month++) {
+    const monthStr = month < 10 ? '0' + month : month;
+    const monthName = new Date(2024, month - 1).toLocaleString('default', { month: 'long' });
+
+    const card = document.createElement("div");
+    card.classList.add("card");
+
+    // Check if this month has earnings
+    const monthData = earningsData["2024"].months[`2024-${monthStr}`];
+    const totalEarnings = monthData ? monthData.totalEarnings : 0;
+
+    // Month Card content
+    card.innerHTML = `
+      <div class="total-earnings">€ ${totalEarnings.toFixed(2)}</div>
+      <div class="time">${monthName}</div>
+    `;
+
+    // Create the expandable list of entries
+    const entriesList = document.createElement("div");
+    entriesList.classList.add("entries-list");
+
+    if (monthData) {
+      monthData.entries.forEach(entry => {
+        const entryDiv = document.createElement("div");
+        entryDiv.classList.add("entry");
+        entryDiv.innerHTML = `<span class="date">${entry.day}-${monthStr}-2024 </span>€ ${entry.earnings} at ${entry.time}`;
+        entriesList.appendChild(entryDiv);
+      });
     }
 
-    function renderCards() {
-      const cardContainer = document.getElementById("cardContainer");
-      cardContainer.innerHTML = ''; // Clear previous cards
+    // Toggle entries visibility on card click
+    card.addEventListener("click", () => {
+      entriesList.classList.toggle("active");
+    });
 
-      for (let month = 1; month <= 12; month++) {
-        const monthStr = month < 10 ? '0' + month : month;
-        const monthName = new Date(2024, month - 1).toLocaleString('default', { month: 'long' });
+    // Add the entries list to the card
+    card.appendChild(entriesList);
+    cardContainer.appendChild(card);
+  }
+}
 
-        const card = document.createElement("div");
-        card.classList.add("card");
+function updateYearTotal() {
+  const yearTotalEarnings = earningsData["2024"].totalEarnings;
+  document.getElementById("yearTotalEarnings").textContent = `€ ${yearTotalEarnings.toFixed(2)}`;
+}
 
-        // Check if this month has earnings
-        const monthData = earningsData["2024"].months[`2024-${monthStr}`];
-        const totalEarnings = monthData ? monthData.totalEarnings : 0;
+function toggleMonthCards() {
+  const cardContainer = document.getElementById("cardContainer");
+  cardContainer.style.display = cardContainer.style.display === 'flex' ? 'none' : 'flex';
+}
 
-        // Month Card content
-        card.innerHTML = `
-          <div class="total-earnings">€ ${totalEarnings.toFixed(2)}</div>
-          <div class="time">${monthName}</div>
-        `;
+// Initial render of cards
+renderCards();
+updateYearTotal();
 
-        // Create the expandable list of entries
-        const entriesList = document.createElement("div");
-        entriesList.classList.add("entries-list");
-
-        if (monthData) {
-          monthData.entries.forEach(entry => {
-            const entryDiv = document.createElement("div");
-            entryDiv.classList.add("entry");
-            entryDiv.innerHTML = `<span class="date">${entry.day}-${monthStr}-2024 </span>€ ${entry.earnings} at ${entry.time}`;
-            entriesList.appendChild(entryDiv);
-          });
-        }
-
-        // Toggle entries visibility on card click
-        card.addEventListener("click", () => {
-          entriesList.classList.toggle("active");
-        });
-
-        // Add the entries list to the card
-        card.appendChild(entriesList);
-        cardContainer.appendChild(card);
-      }
-    }
-
-    function updateYearTotal() {
-      const yearTotalEarnings = earningsData["2024"].totalEarnings;
-      document.getElementById("yearTotalEarnings").textContent = `€ ${yearTotalEarnings.toFixed(2)}`;
-    }
-
-    function toggleMonthCards() {
-      const cardContainer = document.getElementById("cardContainer");
-      cardContainer.style.display = cardContainer.style.display === 'flex' ? 'none' : 'flex';
-    }
-
-    // Initial render of cards
-    renderCards();
-    updateYearTotal();
   </script>
 </body>
 </html>
