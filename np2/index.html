@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Theme Notepad</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: #1c1c1c;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .new-note-btn {
+      background-color: #444;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 5px;
+      text-align: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .new-note-btn:hover {
+      background-color: #333;
+    }
+
+    .notes-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .note {
+      background-color: #0d0d0d;
+      padding: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .note:hover {
+      background-color: #444;
+    }
+
+    .note-title {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .note-date {
+      color: #aaa;
+      font-size: 12px;
+    }
+
+    .notepad {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      background-color: #1e1e1e;
+      overflow: hidden;
+      gap: 10px;
+    }
+
+    #note-title,
+    #note-content {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+      color: #fff;
+      box-sizing: border-box;
+    }
+
+    #note-title {
+      font-size: 16px;
+      font-weight: bold;
+	  width: 300px;
+    }
+
+    #note-content {
+      flex: 1;
+      font-size: 14px;
+      resize: none;
+      overflow-y: auto;
+      word-wrap: break-word;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: #444;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background-color: #2e2e2e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h3>Saved Notes</h3>
+      <button class="new-note-btn" onclick="createNewNote()">+ New Note</button>
+	  <!-- Search Box -->
+<input 
+  type="text" 
+  id="search-box" 
+  placeholder="Search notes..." 
+  style="
+    padding: 10px; 
+    border-radius: 5px; 
+    border: none; 
+    background-color: #0d0d0d; 
+    color: #fff; 
+    width: 100%; 
+    box-sizing: border-box; 
+    margin-bottom: 10px;"
+  oninput="filterNotes()"
+/>
+
+      <div class="notes-list" id="notes-list"></div>
+    </div>
+   <div class="notepad" style="display: flex; flex-direction: column; gap: 10px;">
+  <!-- Flex container for title and date input -->
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <input 
+      type="text" 
+      id="note-title" 
+      placeholder="Enter note title" 
+      style="flex: 3; padding: 10px; border-radius: 5px; border: none; background-color: #0d0d0d; color: #fff;" 
+    />
+    <input 
+      type="date" 
+      id="note-date" 
+      style="flex: 1; padding: 10px; border-radius: 5px; border: none; background-color: #0d0d0d; color: #fff;" 
+      value="${new Date().toISOString().split('T')[0]}" 
+    />
+  </div>
+
+  <!-- Textarea for note content -->
+  <textarea 
+    id="note-content" 
+    placeholder="Start writing..." 
+    style="padding: 10px; border-radius: 5px; border: none; background-color: #0d0d0d; color: #fff; height: 200px; resize: none;"
+  ></textarea>
+</div>
+
+
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1364.0.min.js"></script>
+  <script>
+  AWS.config.update({
+    region: 'eu-north-1',
+    credentials: new AWS.Credentials('AKIAVRUVVVUMQ7ZZ55PL', 'BuMg3n7AOfsvmbfvjv00AE1XXACdeKiCpgj/LMmC')
+  });
+
+  const dynamodb = new AWS.DynamoDB.DocumentClient();
+  const tableName = 'lf02';
+
+  let notes = [];
+  let activeNote = null;
+
+  // Load Notes from DynamoDB
+  async function loadNotes() {
+    const params = {
+        TableName: tableName,
+    };
+    try {
+        const data = await dynamodb.scan(params).promise();
+        notes = data.Items || [];
+        renderNotesList();
+    } catch (error) {
+        console.error("Error loading notes:", error);
+    }
+  }
+
+  // Save Note to DynamoDB
+  async function saveNoteToDynamoDB(note) {
+    const params = {
+        TableName: tableName,
+        Item: {
+            lf02: note.id, // Partition key
+            noteId: note.id, // Sort key
+            title: note.title,
+            content: note.content,
+            date: note.date,
+            timestamp: note.timestamp, // Timestamp for sorting
+        },
+    };
+    try {
+        await dynamodb.put(params).promise();
+        console.log("Note saved successfully");
+    } catch (error) {
+        console.error("Error saving note:", error);
+    }
+  }
+
+  // Create New Note
+ // Create New Note
+async function createNewNote() {
+  const titleInput = document.getElementById("note-title");
+  const contentInput = document.getElementById("note-content");
+  const dateInput = document.getElementById("note-date");
+
+  const title = titleInput.value.trim();
+  const content = contentInput.value.trim();
+  const selectedDate = dateInput.value;
+
+  // Ensure title and content are provided
+  if (!title || !content) {
+    alert("Please provide both a title and content for the note.");
+    return;
+  }
+
+  // Use the selected date or default to today's date
+  const currentDate = selectedDate || new Date().toISOString().split("T")[0];
+  const currentTime = new Date().toTimeString().split(" ")[0];
+
+  const newNote = {
+    id: `note-${Date.now()}`, // Unique ID
+    title,
+    content,
+    date: currentDate,
+    timestamp: `${currentDate} ${currentTime}`, // Combined date and time
+  };
+
+  // Add the new note to the list
+  notes.push(newNote);
+
+  // Save the note to DynamoDB
+  await saveNoteToDynamoDB(newNote);
+
+  // Re-render the notes list
+  renderNotesList();
+
+  // Open the newly created note
+  openNote(newNote);
+
+  // Clear input fields
+  titleInput.value = "";
+  contentInput.value = "";
+  dateInput.value = new Date().toISOString().split("T")[0]; // Reset date to today's date
+}
+
+
+  function renderNotesList() {
+  const notesList = document.getElementById("notes-list");
+  notesList.innerHTML = "";
+
+  // Group notes by date
+  const groupedNotes = notes.reduce((groups, note) => {
+    const date = note.date;
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(note);
+    return groups;
+  }, {});
+
+  // Sort dates (descending)
+  const sortedDates = Object.keys(groupedNotes).sort((a, b) => new Date(b) - new Date(a));
+
+  sortedDates.forEach((date) => {
+    // Create a date header
+    const dateHeader = document.createElement("div");
+    dateHeader.style.fontWeight = "bold";
+    dateHeader.style.marginTop = "10px";
+    dateHeader.style.cursor = "pointer";
+    dateHeader.style.borderBottom = "1px solid #444";
+    dateHeader.style.paddingBottom = "5px";
+    dateHeader.innerText = date;
+    dateHeader.onclick = () => toggleNotesVisibility(date);
+
+    notesList.appendChild(dateHeader);
+
+    // Create a container for the notes under this date
+    const notesContainer = document.createElement("div");
+    notesContainer.id = `notes-container-${date}`;
+    notesContainer.style.display = "none"; // Initially collapsed
+
+    // Sort notes by timestamp within each date (descending)
+    const sortedNotes = groupedNotes[date].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    sortedNotes.forEach((note) => {
+      const noteElement = document.createElement("div");
+      noteElement.className = "note";
+      noteElement.innerHTML = `
+        <div class="note-title">${note.title}</div>
+        <div class="note-date">${note.timestamp}</div>
+      `;
+      noteElement.onclick = () => openNote(note);
+      notesContainer.appendChild(noteElement);
+    });
+
+    notesList.appendChild(notesContainer);
+  });
+}
+
+// Toggle visibility of notes under a date
+function toggleNotesVisibility(date) {
+  const notesContainer = document.getElementById(`notes-container-${date}`);
+  if (notesContainer.style.display === "none") {
+    notesContainer.style.display = "block"; // Expand
+  } else {
+    notesContainer.style.display = "none"; // Collapse
+  }
+}
+
+
+  // Open a Note
+  function openNote(note) {
+    activeNote = note.id;
+    document.getElementById("note-title").value = note.title;
+    document.getElementById("note-content").value = note.content;
+  }
+
+  // Initial Load
+  document.addEventListener("DOMContentLoaded", () => {
+    loadNotes(); // Load notes from DynamoDB on page load
+  });
+  
+  
+  // Filter Notes by Search Query
+function filterNotes() {
+  const query = document.getElementById("search-box").value.toLowerCase();
+
+  // Filter notes by title or content
+  const filteredNotes = notes.filter(
+    (note) => 
+      note.title.toLowerCase().includes(query) || 
+      note.content.toLowerCase().includes(query)
+  );
+
+  renderNotesList(filteredNotes); // Render the filtered list
+}
+
+// Update renderNotesList to accept optional filtered notes
+function renderNotesList(filteredNotes = notes) {
+  const notesList = document.getElementById("notes-list");
+  notesList.innerHTML = "";
+
+  // Group notes by date
+  const groupedNotes = filteredNotes.reduce((groups, note) => {
+    const date = note.date;
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(note);
+    return groups;
+  }, {});
+
+  // Sort dates (descending)
+  const sortedDates = Object.keys(groupedNotes).sort((a, b) => new Date(b) - new Date(a));
+
+  sortedDates.forEach((date) => {
+    // Create a date header
+    const dateHeader = document.createElement("div");
+    dateHeader.style.fontWeight = "bold";
+    dateHeader.style.marginTop = "10px";
+    dateHeader.style.cursor = "pointer";
+    dateHeader.style.borderBottom = "1px solid #444";
+    dateHeader.style.paddingBottom = "5px";
+    dateHeader.innerText = date;
+    dateHeader.onclick = () => toggleNotesVisibility(date);
+
+    notesList.appendChild(dateHeader);
+
+    // Create a container for the notes under this date
+    const notesContainer = document.createElement("div");
+    notesContainer.id = `notes-container-${date}`;
+    notesContainer.style.display = "none"; // Initially collapsed
+
+    // Sort notes by timestamp within each date (descending)
+    const sortedNotes = groupedNotes[date].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    sortedNotes.forEach((note) => {
+      const noteElement = document.createElement("div");
+      noteElement.className = "note";
+      noteElement.innerHTML = `
+        <div class="note-title">${note.title}</div>
+        <div class="note-date">${note.timestamp}</div>
+      `;
+      noteElement.onclick = () => openNote(note);
+      notesContainer.appendChild(noteElement);
+    });
+
+    notesList.appendChild(notesContainer);
+  });
+}
+
+  </script>
+</body>
+</html>
