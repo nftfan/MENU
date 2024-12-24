@@ -54,52 +54,52 @@
         .container {
             width: 100%;
             max-width: 500px;
-            padding: 10px; /* Reduced padding */
+            padding: 10px;
             background-color: #1e1e1e;
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            margin-bottom: 20px; /* Reduced margin */
+            margin-bottom: 20px;
         }
         .header {
             text-align: center;
-            margin-bottom: 10px; /* Reduced margin */
+            margin-bottom: 10px;
         }
         h1 {
-            font-size: 10px; /* Smaller font size */
+            font-size: 10px;
             color: #ffeb3b;
         }
-        .input-box {
+        .input-box, .select-box {
             width: 100%;
-            padding: 8px; /* Reduced padding */
-            margin: 6px 0; /* Reduced margin */
+            padding: 8px;
+            margin: 6px 0;
             border-radius: 6px;
-            font-size: 9px; /* Smaller font size */
+            font-size: 9px;
             background-color: #333;
             color: #fff;
             border: 1px solid #444;
         }
-        .input-box:focus {
+        .input-box:focus, .select-box:focus {
             outline: none;
             border-color: #ffeb3b;
         }
         .card {
             background-color: #292929;
             border-radius: 12px;
-            padding: 10px; /* Reduced padding */
-            margin: 8px 0; /* Reduced margin */
+            padding: 10px;
+            margin: 8px 0;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
         }
         .card .title {
-            font-size: 9px; /* Smaller font size */
+            font-size: 9px;
             font-weight: bold;
             color: #ffeb3b;
-            margin-bottom: 8px; /* Reduced margin */
+            margin-bottom: 8px;
         }
         .total {
             text-align: center;
-            font-size: 9px; /* Smaller font size */
+            font-size: 9px;
             font-weight: bold;
-            margin-top: 10px; /* Reduced margin */
+            margin-top: 10px;
         }
         .total span {
             color: #ffeb3b;
@@ -107,10 +107,10 @@
         .button {
             background-color: #4caf50;
             color: white;
-            padding: 10px; /* Reduced padding */
+            padding: 10px;
             border: none;
             border-radius: 6px;
-            font-size: 9px; /* Smaller font size */
+            font-size: 9px;
             width: 100%;
             cursor: pointer;
             transition: background-color 0.3s ease;
@@ -122,10 +122,10 @@
             width: 100%;
             border-collapse: collapse;
             color: #fff;
-            font-size: 8px; /* Smaller font size */
+            font-size: 8px;
         }
         th, td {
-            padding: 6px; /* Reduced padding */
+            padding: 6px;
             text-align: center;
             border: 1px solid #444;
         }
@@ -137,9 +137,9 @@
         }
         .footer {
             text-align: center;
-            font-size: 8px; /* Smaller font size */
+            font-size: 8px;
             color: #b0b0b0;
-            margin-top: 10px; /* Reduced margin */
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -148,17 +148,30 @@
 <div class="container">
     <div class="header">
         <h1>Daily Earnings and Spending Tracker</h1>
-        <input type="date" id="dateInput" class="input-box" aria-label="Select Date" onchange="updateEntries()">
+        <input type="date" id="dateInput" class="input-box" aria-label="Select Date">
     </div>
 
     <div class="card">
         <div class="title">Earnings</div>
         <input type="number" id="earningsInput" class="input-box" placeholder="Enter Earnings ($)" aria-label="Enter Earnings" oninput="updateTotal()">
+        <select id="earningsTagInput" class="select-box" aria-label="Select Earnings Tag">
+            <option value="LeuvenFlyers">LeuvenFlyers</option>
+            <option value="Oppizi">Oppizi</option>
+            <option value="BS">BS</option>
+            <option value="Online">Online</option>
+        </select>
     </div>
 
     <div class="card">
         <div class="title">Spending</div>
         <input type="number" id="spendingInput" class="input-box" placeholder="Enter Spending ($)" aria-label="Enter Spending" oninput="updateTotal()">
+        <select id="spendingTagInput" class="select-box" aria-label="Select Spending Tag">
+            <option value="eat">Eat</option>
+            <option value="wear">Wear</option>
+            <option value="rent">Rent</option>
+            <option value="bill">Bill</option>
+            <option value="other">Other</option>
+        </select>
     </div>
 
     <div class="total">
@@ -172,6 +185,8 @@
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Time</th>
+                    <th>Tag</th>
                     <th>Earnings</th>
                     <th>Spending</th>
                     <th>Total</th>
@@ -224,145 +239,201 @@
     </div>
 </div>
 
+<!-- Tag Totals Table -->
+<div class="container">
+    <h2 style="text-align: center; color: #ffeb3b; font-size: 10px;">Tag Totals</h2>
+    <div class="table-container">
+        <table id="tagTotalTable">
+            <thead>
+                <tr>
+                    <th>Tag</th>
+                    <th>Earnings</th>
+                    <th>Spending</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Tag totals will be added here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="footer">
     <p>&copy; 2024 Daily Tracker. All rights reserved.</p>
 </div>
 
 <script>
- // Load data from local storage
-let currentEntries = JSON.parse(localStorage.getItem('currentEntries')) || {};
-let monthlyTotal = JSON.parse(localStorage.getItem('monthlyTotal')) || {};
-let yearlyTotal = JSON.parse(localStorage.getItem('yearlyTotal')) || {};
+    // Load data from local storage
+    let currentEntries = JSON.parse(localStorage.getItem('currentEntries')) || [];
+    let monthlyTotal = JSON.parse(localStorage.getItem('monthlyTotal')) || {};
+    let yearlyTotal = JSON.parse(localStorage.getItem('yearlyTotal')) || {};
+    let tagTotal = JSON.parse(localStorage.getItem('tagTotal')) || {};
 
-function updateTotal() {
-    const earnings = parseFloat(document.getElementById('earningsInput').value) || 0;
-    const spending = parseFloat(document.getElementById('spendingInput').value) || 0;
-    const total = earnings - spending;
-    document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
-}
+    function updateTotal() {
+        const earnings = parseFloat(document.getElementById('earningsInput').value) || 0;
+        const spending = parseFloat(document.getElementById('spendingInput').value) || 0;
+        const total = earnings - spending;
+        document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+    }
 
-function updateEntries() {
-    const selectedDate = document.getElementById('dateInput').value;
-    if (currentEntries[selectedDate]) {
-        document.getElementById('earningsInput').value = currentEntries[selectedDate].earnings;
-        document.getElementById('spendingInput').value = currentEntries[selectedDate].spending;
+    function postEntry() {
+        const selectedDate = document.getElementById('dateInput').value;
+        const earnings = parseFloat(document.getElementById('earningsInput').value) || 0;
+        const spending = parseFloat(document.getElementById('spendingInput').value) || 0;
+        const total = earnings - spending;
+        const earningsTag = document.getElementById('earningsTagInput').value;
+        const spendingTag = document.getElementById('spendingTagInput').value;
+
+        // Validate date input
+        if (!selectedDate) {
+            alert('Please select a date.');
+            return;
+        }
+
+        // Create a timestamp for the entry
+        const timestamp = new Date().toISOString();
+
+        // Save the current entry with the timestamp
+        currentEntries.push({ date: selectedDate, timestamp, earnings, spending, total, earningsTag, spendingTag });
+        localStorage.setItem('currentEntries', JSON.stringify(currentEntries));
+
+        // Update the entries table
+        updateEntriesTable();
+
+        // Update monthly, yearly, and tag totals
+        updateMonthlyYearlyTotals(selectedDate, earnings, spending);
+        updateTagTotals(earningsTag, spendingTag, earnings, spending);
         updateTotal();
-    } else {
-        document.getElementById('earningsInput').value = '';
-        document.getElementById('spendingInput').value = '';
-        document.getElementById('totalAmount').textContent = '$0.00';
-    }
-}
-
-function postEntry() {
-    const selectedDate = document.getElementById('dateInput').value;
-    const earnings = parseFloat(document.getElementById('earningsInput').value) || 0;
-    const spending = parseFloat(document.getElementById('spendingInput').value) || 0;
-    const total = earnings - spending;
-
-    // Validate date input
-    if (!selectedDate) {
-        alert('Please select a date.');
-        return;
     }
 
-    // Save the current entry for the selected date
-    currentEntries[selectedDate] = { earnings, spending, total };
-    localStorage.setItem('currentEntries', JSON.stringify(currentEntries));
+    function updateEntriesTable() {
+        const tableBody = document.getElementById('entriesTable').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = ''; // Clear previous entries
 
-    // Update the entries table
-    updateEntriesTable();
+        // Sort entries by date and time in descending order
+        currentEntries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    // Update monthly and yearly totals
-    updateMonthlyYearlyTotals(selectedDate, earnings, spending);
-    updateTotal();
-}
-
-function updateEntriesTable() {
-    const tableBody = document.getElementById('entriesTable').getElementsByTagName('tbody')[0];
-    tableBody.innerHTML = ''; // Clear previous entries
-
-    // Get sorted dates in descending order
-    const sortedDates = Object.keys(currentEntries).sort((a, b) => new Date(b) - new Date(a));
-
-    for (let date of sortedDates) {
-        const entry = currentEntries[date];
-        const row = tableBody.insertRow();
-        row.innerHTML = `
-            <td>${date}</td>
-            <td>$${entry.earnings.toFixed(2)}</td>
-            <td>$${entry.spending.toFixed(2)}</td>
-            <td>$${entry.total.toFixed(2)}</td>
-        `;
+        for (let entry of currentEntries) {
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+                <td>${entry.date}</td>
+                <td>${entry.timestamp.split('T')[1].split('.')[0]}</td>
+                <td>${entry.earnings ? entry.earningsTag : entry.spendingTag}</td>
+                <td>$${entry.earnings.toFixed(2)}</td>
+                <td>$${entry.spending.toFixed(2)}</td>
+                <td>$${entry.total.toFixed(2)}</td>
+            `;
+        }
     }
-}
 
-function updateMonthlyYearlyTotals(date, earnings, spending) {
-    const dateObj = new Date(date);
-    const month = dateObj.toLocaleString('default', { month: 'short' }) + ' ' + dateObj.getFullYear().toString().slice(2, 4);
-    const year = dateObj.getFullYear();
+    function updateMonthlyYearlyTotals(date, earnings, spending) {
+        const dateObj = new Date(date);
+        const month = dateObj.toLocaleString('default', { month: 'short' }) + ' ' + dateObj.getFullYear().toString().slice(2, 4);
+        const year = dateObj.getFullYear();
 
-    // Update Monthly Totals
-    if (!monthlyTotal[month]) {
-        monthlyTotal[month] = { earnings: 0, spending: 0, total: 0 };
+        // Update Monthly Totals
+        if (!monthlyTotal[month]) {
+            monthlyTotal[month] = { earnings: 0, spending: 0, total: 0 };
+        }
+        monthlyTotal[month].earnings += earnings;
+        monthlyTotal[month].spending += spending;
+        monthlyTotal[month].total += (earnings - spending);
+        localStorage.setItem('monthlyTotal', JSON.stringify(monthlyTotal));
+
+        // Update Monthly Totals Table
+        updateMonthlyTotalsTable();
+
+        // Update Yearly Totals
+        if (!yearlyTotal[year]) {
+            yearlyTotal[year] = { earnings: 0, spending: 0, total: 0 };
+        }
+        yearlyTotal[year].earnings += earnings;
+        yearlyTotal[year].spending += spending;
+        yearlyTotal[year].total += (earnings - spending);
+        localStorage.setItem('yearlyTotal', JSON.stringify(yearlyTotal));
+
+        // Update Yearly Totals Table
+        updateYearlyTotalsTable();
     }
-    monthlyTotal[month].earnings += earnings;
-    monthlyTotal[month].spending += spending;
-    monthlyTotal[month].total += (earnings - spending);
-    localStorage.setItem('monthlyTotal', JSON.stringify(monthlyTotal));
 
-    // Update Monthly Totals Table
-    updateMonthlyTotalsTable();
-
-    // Update Yearly Totals
-    if (!yearlyTotal[year]) {
-        yearlyTotal[year] = { earnings: 0, spending: 0, total: 0 };
+    function updateMonthlyTotalsTable() {
+        const monthlyRow = document.getElementById('monthlyTotalTable').getElementsByTagName('tbody')[0];
+        monthlyRow.innerHTML = ''; // Clear previous entries
+        for (let month in monthlyTotal) {
+            const total = monthlyTotal[month];
+            const row = monthlyRow.insertRow();
+            row.innerHTML = `
+                <td>${month}</td>
+                <td>$${total.earnings.toFixed(2)}</td>
+                <td>$${total.spending.toFixed(2)}</td>
+                <td>$${total.total.toFixed(2)}</td>
+            `;
+        }
     }
-    yearlyTotal[year].earnings += earnings;
-    yearlyTotal[year].spending += spending;
-    yearlyTotal[year].total += (earnings - spending);
-    localStorage.setItem('yearlyTotal', JSON.stringify(yearlyTotal));
 
-    // Update Yearly Totals Table
-    updateYearlyTotalsTable();
-}
-
-function updateMonthlyTotalsTable() {
-    const monthlyRow = document.getElementById('monthlyTotalTable').getElementsByTagName('tbody')[0];
-    monthlyRow.innerHTML = ''; // Clear previous entries
-    for (let month in monthlyTotal) {
-        const total = monthlyTotal[month];
-        const row = monthlyRow.insertRow();
-        row.innerHTML = `
-            <td>${month}</td>
-            <td>$${total.earnings.toFixed(2)}</td>
-            <td>$${total.spending.toFixed(2)}</td>
-            <td>$${total.total.toFixed(2)}</td>
-        `;
+    function updateYearlyTotalsTable() {
+        const yearlyRow = document.getElementById('yearlyTotalTable').getElementsByTagName('tbody')[0];
+        yearlyRow.innerHTML = ''; // Clear previous entries
+        for (let year in yearlyTotal) {
+            const total = yearlyTotal[year];
+            const row = yearlyRow.insertRow();
+            row.innerHTML = `
+                <td>${year}</td>
+                <td>$${total.earnings.toFixed(2)}</td>
+                <td>$${total.spending.toFixed(2)}</td>
+                <td>$${total.total.toFixed(2)}</td>
+            `;
+        }
     }
-}
 
-function updateYearlyTotalsTable() {
-    const yearlyRow = document.getElementById('yearlyTotalTable').getElementsByTagName('tbody')[0];
-    yearlyRow.innerHTML = ''; // Clear previous entries
-    for (let year in yearlyTotal) {
-        const total = yearlyTotal[year];
-        const row = yearlyRow.insertRow();
-        row.innerHTML = `
-            <td>${year}</td>
-            <td>$${total.earnings.toFixed(2)}</td>
-            <td>$${total.spending.toFixed(2)}</td>
-            <td>$${total.total.toFixed(2)}</td>
-        `;
+    function updateTagTotals(earningsTag, spendingTag, earnings, spending) {
+        // Update Tag Totals for earnings
+        if (earnings > 0) {
+            if (!tagTotal[earningsTag]) {
+                tagTotal[earningsTag] = { earnings: 0, spending: 0, total: 0 };
+            }
+            tagTotal[earningsTag].earnings += earnings;
+            tagTotal[earningsTag].total += earnings;
+        }
+
+        // Update Tag Totals for spending
+        if (spending > 0) {
+            if (!tagTotal[spendingTag]) {
+                tagTotal[spendingTag] = { earnings: 0, spending: 0, total: 0 };
+            }
+            tagTotal[spendingTag].spending += spending;
+            tagTotal[spendingTag].total -= spending;
+        }
+
+        localStorage.setItem('tagTotal', JSON.stringify(tagTotal));
+
+        // Update Tag Totals Table
+        updateTagTotalsTable();
     }
-}
 
-// Load initial data
-window.onload = function() {
-    updateEntriesTable();
-    updateMonthlyTotalsTable();
-    updateYearlyTotalsTable();
-};
+    function updateTagTotalsTable() {
+        const tagRow = document.getElementById('tagTotalTable').getElementsByTagName('tbody')[0];
+        tagRow.innerHTML = ''; // Clear previous entries
+        for (let tag in tagTotal) {
+            const total = tagTotal[tag];
+            const row = tagRow.insertRow();
+            row.innerHTML = `
+                <td>${tag}</td>
+                <td>$${total.earnings.toFixed(2)}</td>
+                <td>$${total.spending.toFixed(2)}</td>
+                <td>$${total.total.toFixed(2)}</td>
+            `;
+        }
+    }
+
+    // Load initial data
+    window.onload = function() {
+        updateEntriesTable();
+        updateMonthlyTotalsTable();
+        updateYearlyTotalsTable();
+        updateTagTotalsTable();
+    };
 </script>
 
 </body>
