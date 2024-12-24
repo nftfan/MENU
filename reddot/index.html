@@ -95,7 +95,7 @@
             font-weight: bold;
             color: #32CD32;
         }
-        .connect-button {
+        .connect-button, .pay-button {
             padding: 10px 20px;
             font-size: 1rem;
             font-weight: bold;
@@ -107,7 +107,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             transition: background-color 0.2s, transform 0.2s;
         }
-        .connect-button:hover {
+        .connect-button:hover, .pay-button:hover {
             background-color: #ff7979;
             transform: scale(1.05);
         }
@@ -150,6 +150,7 @@
     </div>
     <div class="container">
         <button class="connect-button" id="connectButton">Connect Wallet</button>
+        <button class="pay-button" id="payButton" style="display: none;">Pay 1 $MATIC to Start</button>
         <div class="status" id="status"></div>
         <div class="grid" id="grid"></div>
         <div class="message" id="message">You have 5 clicks. Find the red dot!</div>
@@ -163,6 +164,7 @@
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
     <script>
         const connectButton = document.getElementById('connectButton');
+        const payButton = document.getElementById('payButton');
         const grid = document.getElementById('grid');
         const message = document.getElementById('message');
         const status = document.getElementById('status');
@@ -173,27 +175,57 @@
         let clicksRemaining = 5;
         let randomIndex = Math.floor(Math.random() * 1000);
         let web3;
+        let account;
+        const recipientAddress = '0x92d550cdBc234211957Bd1B579d962c885A127Ba';  // Your recipient address
 
         connectButton.addEventListener('click', async () => {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     // Request account access if needed
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     web3 = new Web3(window.ethereum);
+                    account = accounts[0];
 
-                    // Display the grid and hide the connect button
+                    // Display the pay button and hide the connect button
                     connectButton.style.display = 'none';
-                    grid.style.display = 'grid';
+                    payButton.style.display = 'block';
                     status.textContent = 'Wallet Connected!';
-                    message.textContent = 'You have 5 clicks. Find the red dot!';
 
-                    // Initialize the game
-                    initializeGame();
                 } catch (error) {
                     console.error('User denied account access or error occurred:', error);
                 }
             } else {
                 alert('Please install MetaMask!');
+            }
+        });
+
+        payButton.addEventListener('click', async () => {
+            if (web3 && account) {
+                try {
+                    const transactionParameters = {
+                        to: recipientAddress,  // The address to send the transaction to
+                        from: account,        // The user's MetaMask account
+                        value: web3.utils.toHex(web3.utils.toWei('1', 'ether')), // 1 $MATIC in wei
+                    };
+
+                    // Send the transaction
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [transactionParameters],
+                    });
+
+                    // Display the grid and hide the pay button
+                    payButton.style.display = 'none';
+                    grid.style.display = 'grid';
+                    message.textContent = 'You have 5 clicks. Find the red dot!';
+
+                    // Initialize the game
+                    initializeGame();
+                } catch (error) {
+                    console.error('Payment failed or error occurred:', error);
+                }
+            } else {
+                alert('Please connect your wallet first!');
             }
         });
 
