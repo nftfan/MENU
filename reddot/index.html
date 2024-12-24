@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Dot Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 10px;
+            height: 100vh;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #b3b3b3;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+            gap: 5px;
+            width: 100%;
+            max-width: 600px;
+            display: none;
+        }
+        .dot {
+            width: 100%;
+            padding-bottom: 100%;
+            background-color: #333333;
+            border-radius: 50%;
+            position: relative;
+        }
+        .dot.red {
+            background-color: #ff5252;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            color: #e0e0e0;
+        }
+        .connect-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #121212;
+            background-color: #ff5252;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">Click on the dots to find the red one! You have 5 clicks to locate it. Good luck!</div>
+    <button class="connect-button" id="connectButton">Connect Wallet</button>
+    <div class="grid" id="grid"></div>
+    <div class="message" id="message">You have 5 clicks. Find the red dot!</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const grid = document.getElementById('grid');
+        const message = document.getElementById('message');
+
+        let clicksRemaining = 5;
+        let randomIndex = Math.floor(Math.random() * 1000);
+        let web3;
+
+        connectButton.addEventListener('click', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+
+                    // Display the grid and hide the connect button
+                    connectButton.style.display = 'none';
+                    grid.style.display = 'grid';
+                    message.textContent = 'You have 5 clicks. Find the red dot!';
+
+                    // Initialize the game
+                    initializeGame();
+                } catch (error) {
+                    console.error('User denied account access or error occurred:', error);
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        });
+
+        function initializeGame() {
+            for (let i = 0; i < 1000; i++) {
+                const dot = document.createElement('div');
+                dot.classList.add('dot');
+                dot.dataset.index = i;
+                grid.appendChild(dot);
+
+                dot.addEventListener('click', () => {
+                    if (clicksRemaining > 0) {
+                        if (parseInt(dot.dataset.index) === randomIndex) {
+                            dot.classList.add('red');
+                            message.textContent = 'Congratulations! You found the red dot!';
+                            grid.style.pointerEvents = 'none';
+                        } else {
+                            clicksRemaining--;
+                            message.textContent = `Wrong dot! ${clicksRemaining} clicks remaining.`;
+                            if (clicksRemaining === 0) {
+                                message.textContent = 'Game Over! You ran out of clicks.';
+                                grid.style.pointerEvents = 'none';
+                                document.querySelector(`[data-index="${randomIndex}"]`).classList.add('red');
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
