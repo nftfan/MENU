@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prayer Times</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #008080;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 0;
+            color: #555;
+        }
+
+        .time-box {
+            margin: 10px 0;
+            padding: 10px 15px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .time-box span {
+            display: block;
+            font-size: 16px;
+        }
+
+        .time-remaining {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #ff5722;
+        }
+
+        .verse {
+            margin-top: 20px;
+            font-style: italic;
+            font-size: 14px;
+            color: #444;
+            padding: 15px;
+            background: #e7f5f4;
+            border-radius: 8px;
+            border-left: 4px solid #008080;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prayer Times</h1>
+        <h2>Islamic Date: <span id="islamic-date">Loading...</span></h2>
+
+        <div id="prayer-times">
+            <!-- Prayer times will be dynamically added here -->
+        </div>
+
+        <div class="verse" id="random-verse">
+            <!-- Random verse will be displayed here -->
+        </div>
+    </div>
+    <footer>
+        Powered by Al-Quran & Prayer Times API
+    </footer>
+
+    <script>
+        async function fetchPrayerTimes() {
+            const apiUrl = 'https://api.aladhan.com/v1/timingsByCity?city=Brussels&country=Belgium&method=2';
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            const timings = data.data.timings;
+            const islamicDate = data.data.date.hijri.date;
+
+            // Display Islamic Date
+            document.getElementById('islamic-date').textContent = islamicDate;
+
+            // Display Prayer Times
+            const prayerTimesDiv = document.getElementById('prayer-times');
+            const now = new Date();
+
+            let nextPrayer = '';
+            let minDiff = Infinity;
+
+            Object.entries(timings).forEach(([name, time]) => {
+                const timeBox = document.createElement('div');
+                timeBox.classList.add('time-box');
+
+                const prayerTime = new Date(`${now.toDateString()} ${time}`);
+                const diff = (prayerTime - now) / 1000;
+
+                if (diff > 0 && diff < minDiff) {
+                    minDiff = diff;
+                    nextPrayer = `${name} - ${time}`;
+                }
+
+                timeBox.innerHTML = `<span>${name}: ${time}</span>`;
+                prayerTimesDiv.appendChild(timeBox);
+            });
+
+            // Show Time Remaining for the Next Prayer
+            const timeRemainingDiv = document.createElement('div');
+            timeRemainingDiv.classList.add('time-remaining');
+            const minutes = Math.floor(minDiff / 60);
+            const seconds = Math.floor(minDiff % 60);
+            timeRemainingDiv.textContent = `Next: ${nextPrayer} in ${minutes} min ${seconds} sec`;
+
+            prayerTimesDiv.appendChild(timeRemainingDiv);
+        }
+
+        async function fetchRandomVerse() {
+            const verses = [
+                "Indeed, prayer prohibits immorality and wrongdoing. (Quran 29:45)",
+                "So remember Me; I will remember you. (Quran 2:152)",
+                "And establish prayer and give zakah. (Quran 2:43)",
+                "Indeed, Allah is with those who fear Him. (Quran 2:194)"
+            ];
+            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+            document.getElementById('random-verse').textContent = randomVerse;
+        }
+
+        // Initialize
+        fetchPrayerTimes();
+        fetchRandomVerse();
+    </script>
+</body>
+</html>
