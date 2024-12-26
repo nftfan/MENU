@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,11 +29,9 @@
         }
 
         @keyframes glow {
-            0%,
-            100% {
+            0%, 100% {
                 text-shadow: 0px 0px 10px #e3b341, 0px 0px 20px #e3b341;
             }
-
             50% {
                 text-shadow: 0px 0px 20px #ffffff, 0px 0px 30px #ffffff;
             }
@@ -77,13 +74,8 @@
         }
 
         @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .circle img {
@@ -137,7 +129,6 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
 </head>
-
 <body>
     <div class="container">
         <div class="title">NFT FANS UNIVERSE</div>
@@ -168,9 +159,40 @@
 
     <script>
         const contractAddress = '0x3e6E1F0e21A6521eE69baceEBA22e7CeCe42eb1c';
+        // Ensure the ABI is correct and includes the tokenPrice method
         const abi = [
-            "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
-            "function tokenPrice() external view returns (uint256)"
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "tokenPrice",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_tokenId",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "_amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "buyNFT",
+                "outputs": [],
+                "payable": true,
+                "stateMutability": "payable",
+                "type": "function"
+            }
         ];
 
         let web3;
@@ -220,8 +242,8 @@
                 console.log("Price per token (in Wei):", pricePerToken);
 
                 // Calculate the total price in Wei
-                const totalPrice = web3.utils.toWei(pricePerToken.toString(), 'wei') * amount;
-                console.log("Total price (in Wei):", totalPrice);
+                const totalPrice = web3.utils.toBN(pricePerToken).mul(web3.utils.toBN(amount));
+                console.log("Total price (in Wei):", totalPrice.toString());
 
                 // Initiate the transaction
                 const tx = await contract.methods.buyNFT(tokenId, amount).send({ from: account, value: totalPrice });
