@@ -215,13 +215,15 @@
                 const statusMessage = document.getElementById('walletAddress');
                 statusMessage.innerText = 'Processing your transaction...Wait 30s';
 
+                // Fetch the price per token from the contract
                 const pricePerToken = await contract.methods.tokenPrice().call();
-                console.log("Price per token:", pricePerToken);
+                console.log("Price per token (in Wei):", pricePerToken);
 
+                // Calculate the total price in Wei
                 const totalPrice = web3.utils.toWei(pricePerToken.toString(), 'wei') * amount;
-                console.log("Total price:", totalPrice);
+                console.log("Total price (in Wei):", totalPrice);
 
-                // Initiate transaction
+                // Initiate the transaction
                 const tx = await contract.methods.buyNFT(tokenId, amount).send({ from: account, value: totalPrice });
                 console.log("Transaction successful:", tx);
 
@@ -236,6 +238,14 @@
                 console.error('Transaction error:', error);
                 const statusMessage = document.getElementById('walletAddress');
                 statusMessage.innerText = 'Transaction failed!';
+
+                // Display detailed error message in the console
+                if (error.message) {
+                    console.error('Error message:', error.message);
+                }
+                if (error.data) {
+                    console.error('Error data:', error.data);
+                }
 
                 // Hide status message after a short delay
                 setTimeout(() => {
