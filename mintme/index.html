@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT FANS TOKEN COMMUNITY</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: radial-gradient(circle, #1d1f27, #14151a);
+            color: #ffffff;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #e3b341;
+            text-shadow: 0px 0px 10px #e3b341;
+            animation: glow 2s infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                text-shadow: 0px 0px 10px #e3b341, 0px 0px 20px #e3b341;
+            }
+            50% {
+                text-shadow: 0px 0px 20px #ffffff, 0px 0px 30px #ffffff;
+            }
+        }
+
+        #connectWalletButton {
+            display: inline-block;
+            background-color: #ffd662;
+            color: #000000;
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            margin-bottom: 20px;
+        }
+
+        #connectWalletButton:hover {
+            background-color: #ffc107;
+            transform: scale(1.02);
+        }
+
+        .image-circle {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+            animation: spin 5s linear infinite;
+            position: relative;
+            cursor: pointer;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .mint-button {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #38ccbe;
+            color: #000000;
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .circle:hover .mint-button, .circle:focus .mint-button {
+            display: block;
+        }
+
+        .footer {
+            font-size: 1rem;
+            margin-top: 20px;
+            color: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.5rem;
+            }
+
+            .circle {
+                width: 80px;
+                height: 80px;
+            }
+
+            .mint-button {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">NFT FANS UNIVERSE</div>
+        <button id="connectWalletButton"><strong>Connect Wallet</strong></button>
+        <div class="image-circle">
+            <div class="circle" data-token-id="2">
+                <img src="https://pbs.twimg.com/profile_images/1865859610713759744/-67YXvpo_400x400.jpg" alt="NFT Fans Token">
+                <button class="mint-button">Mint Now</button>
+            </div>
+            <div class="circle" data-token-id="1">
+                <img src="https://pbs.twimg.com/profile_images/1650469271284199425/Ljwjto6I_400x400.jpg" alt="NFT Fans Token">
+                <button class="mint-button">Mint Now</button>
+            </div>
+            <div class="circle" data-token-id="3">
+                <img src="https://pbs.twimg.com/profile_images/1865859610713759744/-67YXvpo_400x400.jpg" alt="NFT Fans Token">
+                <button class="mint-button">Mint Now</button>
+            </div>
+        </div>
+        <p id="walletAddress">Not connected<br>Switch to Polygon Network in your wallet</p>
+    </div>
+
+    <footer>
+        <p>© 2023 NFTFANS - All Rights Reserved</p>
+    </footer>
+
+    <script>
+    const contractAddress = '0x3e6E1F0e21A6521eE69baceEBA22e7CeCe42eb1c'; 
+    const abi = [
+        "function buyNFT(uint256 _tokenId, uint256 _amount) external payable",
+        "function tokenPrice() external view returns (uint256)"
+    ];
+
+    let provider;
+    let contract;
+    let signer;
+
+    async function connectWallet() {
+        if (window.ethereum && window.ethereum.isMetaMask) {
+            try {
+                // Initialize provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send('eth_requestAccounts', []);
+                signer = provider.getSigner();
+                const address = await signer.getAddress();
+                
+                // Update wallet address display and other UI elements
+                updateUIOnSuccess(address);
+
+                // Initialize contract
+                contract = new ethers.Contract(contractAddress, abi, signer);
+
+                // Listen for network changes
+                window.ethereum.on('chainChanged', handleNetworkChange);
+
+            } catch (error) {
+                handleConnectionError(error);
+            }
+        } else {
+            alert('MetaMask is not installed. Please install MetaMask and try again.');
+        }
+    }
+
+    function handleNetworkChange(chainId) {
+        if (chainId !== '0x89') { // Polygon Mainnet chain ID
+            alert('Please switch to the Polygon Network in MetaMask.');
+        }
+    }
+
+    function updateUIOnSuccess(address) {
+        document.getElementById('walletAddress').innerText = `Connected: ${address}`;
+        const connectWalletButton = document.getElementById('connectWalletButton');
+        connectWalletButton.innerHTML = '<strong>Connected</strong>';
+        connectWalletButton.style.backgroundColor = '#238636'; // Change button color
+    }
+
+    function handleConnectionError(error) {
+        console.error('Error connecting wallet:', error);
+        let errorMessage = 'Failed to connect wallet. ';
+        if (error.code === 4001) {
+            errorMessage += 'User rejected the request.';
+        } else if (error.code === -32002) {
+            errorMessage += 'Request already pending. Please check MetaMask.';
+        } else {
+            errorMessage += 'Check the console for details.';
+        }
+        document.getElementById('walletAddress').innerText = errorMessage;
+        alert(errorMessage);
+    }
+
+    async function handleMint(tokenId) {
+        const amount = 1; // Assuming you want to mint only 1 NFT per transaction.
+
+        try {
+            // Show status message
+            const statusMessage = document.getElementById('walletAddress');
+            statusMessage.innerText = 'Processing your transaction...Wait 30s';
+
+            const pricePerToken = await contract.tokenPrice();
+            const totalPrice = pricePerToken.mul(amount);
+
+            // Initiate transaction
+            const tx = await contract.buyNFT(tokenId, amount, { value: totalPrice });
+
+            // Wait for transaction confirmation
+            await tx.wait();  
+
+            // Update status
+            statusMessage.innerText = 'Transaction successful!';
+            
+            // Hide status message after a short delay
+            setTimeout(() => {
+                statusMessage.innerText = 'Connected';
+            }, 6000);
+        } catch (error) {
+            console.error('Transaction error:', error);
+            const statusMessage = document.getElementById('walletAddress');
+            statusMessage.innerText = 'Transaction failed!';
+            
+            // Hide status message after a short delay
+            setTimeout(() => {
+                statusMessage.innerText = 'Connected';
+            }, 6000);
+        }
+    }
+
+    function init() {
+        document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
+        document.querySelectorAll('.mint-button').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const tokenId = event.target.closest('.circle').getAttribute('data-token-id');
+                handleMint(tokenId);
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
