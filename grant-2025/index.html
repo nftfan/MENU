@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFT FANS TOKEN - Community Grants</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 10px;
+      box-sizing: border-box;
+      font-size: 10px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      text-align: center;
+      padding: 10px;
+	   background-color: #df3056;
+    }
+
+    .banner {
+      margin-bottom: 20px;
+      border: 1px solid;
+      border-image-source: linear-gradient(90deg, #00ffcc, #ff00cc);
+      border-image-slice: 1;
+      border-radius: 0px;
+      animation: neonBorder 1.5s infinite alternate;
+    }
+
+    .banner img {
+      width: 100%;
+      border-radius: 0px;
+    }
+
+    @keyframes neonBorder {
+      0% {
+        box-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc, 0 0 30px #ff00cc;
+      }
+      100% {
+        box-shadow: 0 0 20px #ff00cc, 0 0 30px #00ffcc, 0 0 40px #ff00cc;
+      }
+    }
+
+   h1 {
+  font-size: 1.1rem; /* 11px */
+  margin-bottom: 10px;
+  color: #212121;
+  font-weight: bold;
+}
+
+
+
+    p {
+      font-size: 10px; /* 10px */
+      line-height: 1.4;
+      margin-bottom: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .input-box {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 300px;
+      padding: 8px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-size: 0.9rem; /* 10px */
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4caf50;
+      color: #ffffff;
+      font-size: 0.9rem; /* 10px */
+      cursor: pointer;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.6), 0 0 15px rgba(255, 0, 204, 0.6);
+    }
+
+    .wallet-list {
+      margin-top: 20px;
+    }
+
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      margin: 4px 0;
+      border: 1px solid #22af58;
+      border-radius: 5px;
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-size: 0.9rem; /* 9px */
+      height: 24px; /* Adjusted for sleekness */
+    }
+
+    .avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .wallet-item span {
+      background-color: #22af58;
+      color: #ffffff;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-left: auto;
+      font-size: 5px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Media query for mobile screens */
+    @media (max-width: 767px) {
+      .wallet-item {
+        font-size: 0.7rem; /* 7px */
+      }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffc107;
+      color: #121212;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+      z-index: 1000;
+    }
+
+    .notification.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="banner">
+      <img src="https://i.imgur.com/z4PaTOP.jpeg" alt="NFT FANS TOKEN Banner">
+    </div>
+    <h1>Community Grant Program</h1> <br>
+	 <h1>1 000 000 000 000 000 000 tokens for claiming rewards.</h1>
+    <p>
+      NFT FANS TOKEN has allocated <strong>Trillions</strong> of $NFTFAN TOKENS for the community.<br>
+      To view tokens, add this contract address in your Bitget wallet:
+      <strong>0x2017Fcaea540d2925430586DC92818035Bfc2F50</strong>
+    </p>
+
+    <div class="input-box">
+      <form id="postForm">
+        <input type="text" id="walletInput" placeholder="Enter your Polygon wallet address">
+        <button type="submit">Submit Wallet</button>
+      </form>
+    </div>
+
+    <div id="claimerCount">Number of Claimers: 0</div>
+    <div class="wallet-list" id="walletList">
+      <!-- Wallets will be displayed here -->
+    </div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
+  <script>
+  // Configure AWS SDK
+  AWS.config.update({
+      region: 'eu-north-1',
+      credentials: new AWS.Credentials('AKIAVRUVVVUMUTVBFLWP', 'llyVopZkA+XOnmjPUGs9tG4ihdfmDVdsgAxYMjaF')
+  });
+
+  var dynamodb = new AWS.DynamoDB.DocumentClient();
+  var tableName = 'lf03';
+
+  document.getElementById('postForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      var wallet = document.getElementById('walletInput').value.trim();
+      if (/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+          checkDuplicateWallet(wallet, function(isDuplicate) {
+              if (isDuplicate) {
+                  showNotification('Wallet address already posted!');
+              } else {
+                  postWallet(wallet);
+              }
+          });
+      } else {
+          showNotification('Invalid Matic wallet address!');
+      }
+  });
+
+  function checkDuplicateWallet(wallet, callback) {
+      var params = {
+          TableName: tableName,
+          FilterExpression: '#wallet = :wallet',
+          ExpressionAttributeNames: {
+              '#wallet': 'wallet'
+          },
+          ExpressionAttributeValues: {
+              ':wallet': wallet
+          }
+      };
+
+      dynamodb.scan(params, function(err, data) {
+          if (err) {
+              console.error("Error checking for duplicate wallet in DynamoDB:", JSON.stringify(err));
+              callback(false); // Assume it's not a duplicate on error
+          } else {
+              callback(data.Items.length > 0);
+          }
+      });
+  }
+
+  function postWallet(wallet) {
+      var params = {
+          TableName: tableName,
+          Item: {
+              lf03: 'lf03_' + Date.now(), // Adding nftfan attribute
+              wallet: wallet,
+              createdAt: new Date().toISOString(),
+              tokensDropped: 5000000000 // Fixed token drop value
+          }
+      };
+
+      dynamodb.put(params, function(err, data) {
+          if (err) {
+              console.error("Error posting wallet to DynamoDB:", JSON.stringify(err));
+              showNotification('Error posting wallet to DynamoDB. ' + err.message);
+          } else {
+              console.log("Successfully posted wallet to DynamoDB:", JSON.stringify(data));
+              incrementClaimerCount();
+              showNotification('Wallet posted successfully!');
+              addWalletToList(wallet);
+          }
+      });
+  }
+
+  function incrementClaimerCount() {
+      var countElement = document.getElementById('claimerCount');
+      var count = parseInt(countElement.textContent.split(': ')[1], 10) + 1;
+      countElement.textContent = 'Number of Claimers: ' + count;
+  }
+
+  function loadClaimerCount() {
+      var params = {
+          TableName: tableName,
+          Select: 'COUNT'
+      };
+
+      dynamodb.scan(params, function(err, data) {
+          if (err) {
+              console.error("Error loading claimer count from DynamoDB:", JSON.stringify(err));
+              showNotification('Error loading claimer count from DynamoDB. ' + err.message);
+          } else {
+              var countElement = document.getElementById('claimerCount');
+              countElement.textContent = 'Number of Claimers: ' + data.Count;
+          }
+      });
+  }
+
+  function loadWallets() {
+      var params = {
+          TableName: tableName
+      };
+
+      dynamodb.scan(params, function(err, data) {
+          if (err) {
+              console.error("Error loading wallets from DynamoDB:", JSON.stringify(err));
+              showNotification('Error loading wallets from DynamoDB. ' + err.message);
+          } else {
+              // Ensure that the items have a 'createdAt' attribute
+              if (data.Items && data.Items.length > 0) {
+                  // Sort the items by 'createdAt' in descending order
+                  data.Items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                  data.Items.forEach(wallet => {
+                      addWalletToList(wallet.wallet);
+                  });
+              } else {
+                  console.log("No items found in the DynamoDB table.");
+              }
+          }
+      });
+  }
+
+  function addWalletToList(wallet) {
+      var walletList = document.getElementById('walletList');
+      var walletItem = document.createElement('div');
+      walletItem.className = 'wallet-item';
+
+      fetch(`https://api.multiavatar.com/${encodeURIComponent(wallet)}`)
+          .then(res => res.text())
+          .then(svg => {
+              const avatar = document.createElement('div');
+              avatar.className = 'avatar';
+              avatar.innerHTML = svg;
+
+              const walletText = document.createTextNode(formatWallet(wallet));
+              const status = document.createElement('span');
+              status.textContent = 'Submitted';
+
+              walletItem.appendChild(avatar);
+              walletItem.appendChild(walletText);
+              walletItem.appendChild(status);
+
+              // Prepend the wallet item to the wallet list to show the latest on top
+              walletList.insertBefore(walletItem, walletList.firstChild);
+          })
+          .catch(err => console.error('Error fetching avatar:', err));
+  }
+
+  function formatWallet(wallet) {
+      return `${wallet.slice(0, 4)}...${wallet.slice(-4)}`;
+  }
+
+  function showNotification(message) {
+      var notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(function() {
+          notification.classList.remove('show');
+      }, 3000); // Hide after 3 seconds
+  }
+
+  window.onload = function() {
+      loadClaimerCount(); // Load claimer count on page load
+      loadWallets(); // Load wallets on page load
+  };
+</script>
+</body>
+</html>
