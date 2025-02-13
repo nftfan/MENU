@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -219,67 +220,105 @@
   var dynamodb = new AWS.DynamoDB.DocumentClient();
   var tableName = 'lf03';
 
-  document.getElementById('postForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      var wallet = document.getElementById('walletInput').value.trim();
-      if (/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-          checkDuplicateWallet(wallet, function(isDuplicate) {
-              if (isDuplicate) {
-                  showNotification('Wallet address already posted!');
-              } else {
-                  postWallet(wallet);
-              }
-          });
-      } else {
-          showNotification('Invalid Matic wallet address!');
-      }
-  });
+ document.getElementById('postForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    var wallet = document.getElementById('walletInput').value.trim();
+
+    if (/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        checkDuplicateWallet(wallet, function(isDuplicate) {
+            if (isDuplicate) {
+                showNotification('Error in posting'); // Don't specify reason to avoid detection of restrictions
+            } else {
+                checkSubmissionCooldown(wallet, function(isAllowed) {
+                    if (isAllowed) {
+                        postWallet(wallet);
+                    } else {
+                        showNotification('Error in posting'); // Don't specify reason to avoid detection of restrictions
+                    }
+                });
+            }
+        });
+    } else {
+        showNotification('Error in posting'); // Invalid wallet address
+    }
+});
+
 
   function checkDuplicateWallet(wallet, callback) {
-      var params = {
-          TableName: tableName,
-          FilterExpression: '#wallet = :wallet',
-          ExpressionAttributeNames: {
-              '#wallet': 'wallet'
-          },
-          ExpressionAttributeValues: {
-              ':wallet': wallet
-          }
-      };
+    var params = {
+        TableName: tableName,
+        FilterExpression: '#wallet = :wallet',
+        ExpressionAttributeNames: {
+            '#wallet': 'wallet'
+        },
+        ExpressionAttributeValues: {
+            ':wallet': wallet
+        }
+    };
 
-      dynamodb.scan(params, function(err, data) {
-          if (err) {
-              console.error("Error checking for duplicate wallet in DynamoDB:", JSON.stringify(err));
-              callback(false); // Assume it's not a duplicate on error
-          } else {
-              callback(data.Items.length > 0);
-          }
-      });
-  }
+    dynamodb.scan(params, function(err, data) {
+        if (err) {
+            console.error("Error checking for duplicate wallet in DynamoDB:", JSON.stringify(err));
+            callback(false); // Assume it's not a duplicate on error
+        } else {
+            callback(data.Items.length > 0);
+        }
+    });
+}
+
 
   function postWallet(wallet) {
-      var params = {
-          TableName: tableName,
-          Item: {
-              lf03: 'lf03_' + Date.now(), // Adding nftfan attribute
-              wallet: wallet,
-              createdAt: new Date().toISOString(),
-              tokensDropped: 5000000000 // Fixed token drop value
-          }
-      };
+    var params = {
+        TableName: tableName,
+        Item: {
+            lf03: 'lf03_' + Date.now(), // Adding nftfan attribute
+            wallet: wallet,
+            createdAt: new Date().toISOString(), // Timestamp when wallet is submitted
+            tokensDropped: 5000000000 // Fixed token drop value
+        }
+    };
 
-      dynamodb.put(params, function(err, data) {
-          if (err) {
-              console.error("Error posting wallet to DynamoDB:", JSON.stringify(err));
-              showNotification('Error posting wallet to DynamoDB. ' + err.message);
-          } else {
-              console.log("Successfully posted wallet to DynamoDB:", JSON.stringify(data));
-              incrementClaimerCount();
-              showNotification('Wallet posted successfully!');
-              addWalletToList(wallet);
-          }
-      });
-  }
+    dynamodb.put(params, function(err, data) {
+        if (err) {
+            console.error("Error posting wallet to DynamoDB:", JSON.stringify(err));
+            showNotification('Error posting wallet to DynamoDB. ' + err.message);
+        } else {
+            console.log("Successfully posted wallet to DynamoDB:", JSON.stringify(data));
+            incrementClaimerCount();
+            addWalletToList(wallet);
+        }
+    });
+}
+
+function checkSubmissionCooldown(wallet, callback) {
+    var params = {
+        TableName: tableName,
+        Key: {
+            'wallet': wallet
+        }
+    };
+
+    dynamodb.get(params, function(err, data) {
+        if (err) {
+            console.error("Error fetching wallet from DynamoDB:", JSON.stringify(err));
+            callback(false); // Assume no cooldown on error
+        } else if (data.Item) {
+            // Calculate the time difference
+            var lastSubmitted = new Date(data.Item.createdAt);
+            var now = new Date();
+            var diffInHours = (now - lastSubmitted) / (1000 * 60 * 60); // Difference in hours
+
+            if (diffInHours < 24) {
+                callback(false); // Less than 24 hours, reject the submission
+            } else {
+                callback(true); // More than 24 hours, allow the submission
+            }
+        } else {
+            callback(true); // No previous submission, allow the submission
+        }
+    });
+}
+
 
   function incrementClaimerCount() {
       var countElement = document.getElementById('claimerCount');
