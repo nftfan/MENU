@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract NFTFANS is ERC1155URIStorage, Ownable {
+    string public name = "SEND NFTS";
+    string public constant symbol = "SNDNFT";
+    string public constant Twitter = "@nftfanstoken";
+
+    uint256 public rewardAmount; // Amount of $NFTFAN rewarded per NFT transfer
+    IERC20 public nftFanToken; // ERC20 contract of $NFTFAN token
+
+    // Mapping to track which wallets have received a specific NFT before
+    mapping(uint256 => mapping(address => bool)) public hasReceivedNFT;
+
+    constructor(address _nftFanTokenAddress, uint256 _rewardAmount) ERC1155("") Ownable(msg.sender) {
+        require(_nftFanTokenAddress != address(0), "Invalid token address");
+        nftFanToken = IERC20(_nftFanTokenAddress);
+        rewardAmount = _rewardAmount;
+    }
+
+    // Mint function to create new NFTs
+    function mint(
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        string memory tokenURI
+    ) external onlyOwner {
+        _mint(to, tokenId, amount, "");
+        _setURI(tokenId, tokenURI);
+
+        // Mark the first recipient as having received it to prevent self-reward
+        hasReceivedNFT[tokenId][to] = true;
+    }
+
+    // Override the safeTransferFrom function to add reward logic
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public override {
+        super.safeTransferFrom(from, to, id, amount, data);
+        _rewardTransfer(from, to, id);
+    }
+
+    // Override the batch transfer function for multiple transfers
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public override {
+        super.safeBatchTransferFrom(from, to, ids, amounts, data);
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            _rewardTransfer(from, to, ids[i]);
+        }
+    }
+
+    // Internal function to handle $NFTFAN rewards
+    function _rewardTransfer(address sender, address recipient, uint256 tokenId) internal {
+        require(sender != address(0), "Invalid sender address");
+        require(recipient != address(0), "Invalid recipient address");
+
+        // Check if the recipient has ever received this NFT before
+        require(!hasReceivedNFT[tokenId][recipient], "Recipient already received this NFT before");
+
+        require(nftFanToken.balanceOf(address(this)) >= rewardAmount, "Insufficient contract balance");
+        bool success = nftFanToken.transfer(sender, rewardAmount);
+        require(success, "Reward transfer failed");
+
+        // Mark this recipient as having received this NFT
+        hasReceivedNFT[tokenId][recipient] = true;
+    }
+
+    // Fund the contract with $NFTFAN tokens
+    function fundContract(uint256 amount) external onlyOwner {
+        require(amount > 0, "Must send some value to fund");
+        require(
+            nftFanToken.transferFrom(msg.sender, address(this), amount),
+            "Token transfer failed"
+        );
+    }
+
+    // Owner function to withdraw funds
+    function withdrawFunds() external onlyOwner {
+        uint256 balance = nftFanToken.balanceOf(address(this));
+        require(balance > 0, "No funds to withdraw");
+        require(nftFanToken.transfer(owner(), balance), "Withdrawal failed");
+    }
+
+    // Function to update the reward amount
+    function setRewardAmount(uint256 newRewardAmount) external onlyOwner {
+        rewardAmount = newRewardAmount;
+    }
+
+    // Overriding the URI function to use from ERC1155URIStorage
+    function uri(uint256 tokenId)
+        public
+        view
+        override(ERC1155URIStorage)
+        returns (string memory)
+    {
+        return super.uri(tokenId);
+    }
+}
