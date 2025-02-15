@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract NFTFANS is ERC1155URIStorage, Ownable {
+    string public name = "NFTFANS 3D CARDS";
+    string public constant symbol = "NFTFAN";
+    string public constant Twitter = "@nftfanstoken";
+
+    uint256 public rewardAmount; // Reward amount per eligible transfer
+    IERC20 public nftFanToken; // ERC20 contract of $NFTFAN token
+
+    // Mapping to track transfer counts for each NFT
+    mapping(uint256 => uint256) public transferCount;
+
+    constructor(address _nftFanTokenAddress, uint256 _rewardAmount) ERC1155("") Ownable(msg.sender) {
+        require(_nftFanTokenAddress != address(0), "Invalid token address");
+        nftFanToken = IERC20(_nftFanTokenAddress);
+        rewardAmount = _rewardAmount;
+    }
+
+    // Mint function to create new NFTs
+    function mint(
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        string memory tokenURI
+    ) external onlyOwner {
+        _mint(to, tokenId, amount, "");
+        _setURI(tokenId, tokenURI);
+        
+        // Reset transfer count on minting
+        transferCount[tokenId] = 0;
+    }
+
+    // Override safeTransferFrom to track transfers
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public override {
+        super.safeTransferFrom(from, to, id, amount, data);
+        _processTransfer(from, id);
+    }
+
+    // Override batch transfer function
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public override {
+        super.safeBatchTransferFrom(from, to, ids, amounts, data);
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            _processTransfer(from, ids[i]);
+        }
+    }
+
+    // Internal function to handle transfer counting and rewards
+    function _processTransfer(address sender, uint256 tokenId) internal {
+        require(sender != address(0), "Invalid sender");
+
+        // Increase transfer count
+        transferCount[tokenId]++;
+
+        // Reward only on every 10th transfer
+        if (transferCount[tokenId] % 10 == 0) {
+            _rewardTransfer(sender);
+        }
+    }
+
+    // Internal function to send rewards
+    function _rewardTransfer(address user) internal {
+        require(nftFanToken.balanceOf(address(this)) >= rewardAmount, "Insufficient contract balance");
+        
+        bool success = nftFanToken.transfer(user, rewardAmount);
+        require(success, "Reward transfer failed");
+    }
+
+    // Function to fund the contract with $NFTFAN tokens
+    function fundContract(uint256 amount) external onlyOwner {
+        require(amount > 0, "Must send some value to fund");
+        require(
+            nftFanToken.transferFrom(msg.sender, address(this), amount),
+            "Token transfer failed"
+        );
+    }
+
+    // Owner function to withdraw funds
+    function withdrawFunds() external onlyOwner {
+        uint256 balance = nftFanToken.balanceOf(address(this));
+        require(balance > 0, "No funds to withdraw");
+        require(nftFanToken.transfer(owner(), balance), "Withdrawal failed");
+    }
+
+    // Function to update the reward amount
+    function setRewardAmount(uint256 newRewardAmount) external onlyOwner {
+        rewardAmount = newRewardAmount;
+    }
+
+    // Overriding the URI function
+    function uri(uint256 tokenId)
+        public
+        view
+        override(ERC1155URIStorage)
+        returns (string memory)
+    {
+        return super.uri(tokenId);
+    }
+}
