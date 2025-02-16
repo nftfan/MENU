@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTFAN Token Airdrop</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+    <h2>Claim 5 Billion NFTFAN Tokens</h2>
+    <p>Connect your wallet to claim your tokens!</p>
+    
+    <button id="connectButton">Connect Wallet</button>
+    <button id="claimButton" style="display:none;">Claim Tokens</button>
+    <div id="walletAddress"></div>
+
+    <script>
+        const contractAddress = "0xa1107D3D1d532735FF58112652bcBfA27C32DA8D";  // Your Airdrop contract address
+        const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";  // Your NFTFAN Token contract address
+        const claimAmount = "5000000000";  // 5 billion NFTFAN tokens (adjust decimals on contract side)
+        let web3;
+        let contract;
+        let userAccount;
+
+        // Connect to MetaMask
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.enable(); // Request access to MetaMask
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                document.getElementById('walletAddress').innerText = `Connected: ${userAccount}`;
+                document.getElementById('connectButton').style.display = 'none';
+                document.getElementById('claimButton').style.display = 'block';
+                setupContract();
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        // Setup smart contract
+        function setupContract() {
+            contract = new web3.eth.Contract([
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "claimTokens",
+                    "outputs": [],
+                    "payable": false,
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ], contractAddress);
+        }
+
+        // Claim function
+        async function claimTokens() {
+            try {
+                const gasPrice = await web3.eth.getGasPrice();
+                const gasLimit = 200000; // Estimate gas for this function
+
+                const tx = await contract.methods.claimTokens().send({
+                    from: userAccount,
+                    gas: gasLimit,
+                    gasPrice: gasPrice
+                });
+
+                console.log('Transaction successful: ', tx);
+                alert('You have successfully claimed your NFTFAN tokens!');
+            } catch (error) {
+                console.error('Transaction failed: ', error);
+                alert('Claim failed. Please try again later.');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('connectButton').addEventListener('click', connectWallet);
+        document.getElementById('claimButton').addEventListener('click', claimTokens);
+    </script>
+</body>
+</html>
