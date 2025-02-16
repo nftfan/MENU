@@ -68,35 +68,6 @@
             display: none;
         }
 
-        .notification {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #333;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #fff;
-            width: 100%;
-            max-width: 350px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .success {
-            background-color: #4CAF50;
-        }
-
-        .error {
-            background-color: #F44336;
-        }
-
-        .processing {
-            background-color: #FF9800;
-        }
-
-        .waiting {
-            background-color: #2196F3;
-        }
-
         .wallet-info {
             margin-top: 20px;
             color: #B0B0B0;
@@ -113,6 +84,42 @@
             margin-right: auto;
         }
 
+        /* Table style for notifications */
+        table {
+            width: 100%;
+            margin-top: 20px;
+            color: #fff;
+            font-size: 14px;
+            text-align: left;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #333;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        td {
+            background-color: #2C2C2C;
+        }
+
+        .status-pending {
+            background-color: #FF9800;
+        }
+
+        .status-done {
+            background-color: #4CAF50;
+        }
+
+        .status-error {
+            background-color: #F44336;
+        }
+
         /* Mobile-first responsiveness */
         @media (max-width: 480px) {
             h2 {
@@ -124,9 +131,8 @@
                 padding: 12px 20px;
             }
 
-            .notification {
+            table {
                 font-size: 12px;
-                padding: 10px;
             }
 
             .wallet-info {
@@ -147,7 +153,17 @@
         <button id="claimButton" class="hidden">Withdraw Tokens</button>
 
         <div id="walletAddress" class="wallet-info"></div>
-        <div id="notification" class="notification hidden"></div>
+
+        <!-- Notifications table -->
+        <table id="notificationsTable" class="hidden">
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="notificationRows"></tbody>
+        </table>
     </div>
 
     <script>
@@ -160,7 +176,7 @@
 
         // Connect to MetaMask
         async function connectWallet() {
-            showNotification("Connecting wallet...", "processing");
+            addNotification("Connecting wallet...", "pending");
 
             if (typeof window.ethereum !== 'undefined') {
                 web3 = new Web3(window.ethereum);
@@ -171,11 +187,11 @@
                 document.getElementById('walletAddress').innerText = `Connected: ${userAccount}`;
                 document.getElementById('connectButton').classList.add('hidden');
                 document.getElementById('claimButton').classList.remove('hidden');
-                showNotification("Wallet connected! Ready to withdraw your tokens.", "success");
+                addNotification("Wallet connected! Ready to withdraw your tokens.", "done");
 
                 setupContract();
             } else {
-                showNotification("Please install MetaMask!", "error");
+                addNotification("Please install MetaMask!", "error");
             }
         }
 
@@ -195,15 +211,14 @@
 
         // Withdraw function
         async function claimTokens() {
-            // Show waiting notification
-            showNotification("Please wait, transaction is processing...", "waiting");
+            addNotification("Please wait, transaction is processing...", "pending");
 
             try {
                 const gasPrice = await web3.eth.getGasPrice();
                 const gasLimit = 200000; // Estimate gas for this function
 
                 // Show processing notification right before the transaction is being sent
-                showNotification("Processing your transaction...", "processing");
+                addNotification("Processing your transaction...", "pending");
 
                 // Sending the transaction
                 const tx = await contract.methods.claimTokens().send({
@@ -213,25 +228,27 @@
                 });
 
                 console.log('Transaction successful: ', tx);
-                showNotification('You have successfully withdrawn your NFTFAN tokens!', 'success');
+                addNotification('You have successfully withdrawn your NFTFAN tokens!', 'done');
             } catch (error) {
                 console.error('Transaction failed: ', error);
-                showNotification('Withdrawal failed. Please try again later.', 'error');
+                addNotification('Withdrawal failed. Please try again later.', 'error');
             }
         }
 
-        // Display notifications
-        function showNotification(message, type) {
-            const notification = document.getElementById('notification');
-            notification.innerText = message;
-            notification.classList.remove("success", "error", "processing", "waiting");
-            notification.classList.add(type);
-            notification.classList.remove("hidden");
+        // Add a new notification row
+        function addNotification(message, status) {
+            const notificationTable = document.getElementById('notificationsTable');
+            const notificationRows = document.getElementById('notificationRows');
 
-            // Hide notification after 5 seconds
-            setTimeout(() => {
-                notification.classList.add("hidden");
-            }, 5000);
+            // Show table when notifications start
+            if (notificationTable.classList.contains('hidden')) {
+                notificationTable.classList.remove('hidden');
+            }
+
+            const row = document.createElement('tr');
+            row.classList.add(`status-${status}`);
+            row.innerHTML = `<td>${message}</td><td>${status.charAt(0).toUpperCase() + status.slice(1)}</td>`;
+            notificationRows.appendChild(row);
         }
 
         // Event listeners
