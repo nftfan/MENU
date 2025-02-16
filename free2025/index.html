@@ -4,37 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NFTFAN Token Airdrop</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #121212;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+        .container {
+            background: #1d1d1d;
+            padding: 15px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+        }
+        h2 {
+            font-size: 11px;
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+        p {
+            margin-bottom: 10px;
+            color: #ccc;
+            font-size: 10px;
+        }
+        button {
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            border: none;
+            padding: 10px 20px;
+            font-size: 10px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        .hidden {
+            display: none;
+        }
+        .notification {
+            margin-top: 15px;
+            padding: 8px;
+            background-color: #333;
+            border-radius: 8px;
+            font-size: 10px;
+            color: #fff;
+        }
+        .success {
+            background-color: #4CAF50;
+        }
+        .error {
+            background-color: #F44336;
+        }
+        .processing {
+            background-color: #FF9800;
+        }
+        .wallet-info {
+            margin-top: 10px;
+            color: #8D8D8D;
+            font-size: 10px;
+            word-break: break-word;
+        }
+        img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Mobile-first responsiveness */
+        @media (max-width: 480px) {
+            h2 {
+                font-size: 10px;
+            }
+            button {
+                font-size: 10px;
+                padding: 8px 16px;
+            }
+            .notification {
+                font-size: 9px;
+                padding: 6px;
+            }
+            .wallet-info {
+                font-size: 9px;
+            }
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
 </head>
 <body>
-    <h2>Claim 5 Billion NFTFAN Tokens</h2>
-    <p>Connect your wallet to claim your tokens!</p>
-    
-    <button id="connectButton">Connect Wallet</button>
-    <button id="claimButton" style="display:none;">Claim Tokens</button>
-    <div id="walletAddress"></div>
+
+    <div class="container">
+        <img src="https://pbs.twimg.com/media/GjkqjDuXwAAPDsd?format=jpg&name=large" alt="NFTFAN Token Image">
+        <h2>Claim Your 5 Billion NFTFAN Tokens</h2>
+        <p>Connect your wallet to start claiming your tokens. It's fast, easy, and secure.</p>
+
+        <button id="connectButton">Connect Wallet</button>
+        <button id="claimButton" class="hidden">Claim Tokens</button>
+
+        <div id="walletAddress" class="wallet-info"></div>
+        <div id="notification" class="notification hidden"></div>
+    </div>
 
     <script>
-        const contractAddress = "0xa1107D3D1d532735FF58112652bcBfA27C32DA8D";  // Your Airdrop contract address
-        const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";  // Your NFTFAN Token contract address
-        const claimAmount = "5000000000";  // 5 billion NFTFAN tokens (adjust decimals on contract side)
+        const contractAddress = "0xa1107D3D1d532735FF58112652bcBfA27C32DA8D";  // Airdrop contract address
+        const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";  // NFTFAN Token contract address
+        const claimAmount = "5000000000";  // 5 billion NFTFAN tokens
         let web3;
         let contract;
         let userAccount;
 
         // Connect to MetaMask
         async function connectWallet() {
+            showNotification("Connecting wallet...", "processing");
+
             if (typeof window.ethereum !== 'undefined') {
                 web3 = new Web3(window.ethereum);
                 await window.ethereum.enable(); // Request access to MetaMask
                 const accounts = await web3.eth.getAccounts();
                 userAccount = accounts[0];
+
                 document.getElementById('walletAddress').innerText = `Connected: ${userAccount}`;
-                document.getElementById('connectButton').style.display = 'none';
-                document.getElementById('claimButton').style.display = 'block';
+                document.getElementById('connectButton').classList.add('hidden');
+                document.getElementById('claimButton').classList.remove('hidden');
+                showNotification("Wallet connected! Ready to claim your tokens.", "success");
+
                 setupContract();
             } else {
-                alert("Please install MetaMask!");
+                showNotification("Please install MetaMask!", "error");
             }
         }
 
@@ -55,6 +170,8 @@
 
         // Claim function
         async function claimTokens() {
+            showNotification("Processing your claim...", "processing");
+
             try {
                 const gasPrice = await web3.eth.getGasPrice();
                 const gasLimit = 200000; // Estimate gas for this function
@@ -66,16 +183,31 @@
                 });
 
                 console.log('Transaction successful: ', tx);
-                alert('You have successfully claimed your NFTFAN tokens!');
+                showNotification('You have successfully claimed your NFTFAN tokens!', 'success');
             } catch (error) {
                 console.error('Transaction failed: ', error);
-                alert('Claim failed. Please try again later.');
+                showNotification('Claim failed. Please try again later.', 'error');
             }
+        }
+
+        // Display notifications
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.innerText = message;
+            notification.classList.remove("success", "error", "processing");
+            notification.classList.add(type);
+            notification.classList.remove("hidden");
+
+            // Hide notification after 5 seconds
+            setTimeout(() => {
+                notification.classList.add("hidden");
+            }, 5000);
         }
 
         // Event listeners
         document.getElementById('connectButton').addEventListener('click', connectWallet);
         document.getElementById('claimButton').addEventListener('click', claimTokens);
     </script>
+
 </body>
 </html>
