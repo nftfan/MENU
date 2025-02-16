@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTFAN Token Withdrawal</title>
+    <link rel="icon" href="https://i.imgur.com/cBuKhzq.png">
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1F1F1F;
+            color: #fff;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #2C2C2C;
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: none;
+        }
+        input {
+            background: #444;
+            color: white;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Withdraw Your 5 Billion NFTFAN Tokens</h2>
+        <p>Enter your wallet address below to claim your tokens.</p>
+        <input type="text" id="walletInput" placeholder="Enter your wallet address">
+        <button id="claimButton">Withdraw Tokens</button>
+        <p id="statusMessage"></p>
+    </div>
+    <script>
+        const contractAddress = "0x8C627FEC294a2E4955546c3bB77a696A44Aa2328";
+        const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+        let web3 = new Web3("https://polygon-rpc.com");
+        let contract = new web3.eth.Contract([
+            {
+                "constant": false,
+                "inputs": [{ "name": "userAddress", "type": "address" }],
+                "name": "claimTokens",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ], contractAddress);
+
+        document.getElementById("claimButton").addEventListener("click", async function() {
+            let userWallet = document.getElementById("walletInput").value;
+            if (!web3.utils.isAddress(userWallet)) {
+                document.getElementById("statusMessage").innerText = "Invalid wallet address!";
+                return;
+            }
+            document.getElementById("statusMessage").innerText = "Processing transaction...";
+            try {
+                let tx = await contract.methods.claimTokens(userWallet).send({ from: "0xYourAdminWalletAddress" });
+                document.getElementById("statusMessage").innerText = "Tokens successfully claimed!";
+            } catch (error) {
+                document.getElementById("statusMessage").innerText = "Transaction failed!";
+            }
+        });
+    </script>
+</body>
+</html>
