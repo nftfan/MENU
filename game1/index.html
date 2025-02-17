@@ -87,62 +87,92 @@
         let reward = 0;
         const minReward = 1_000_000;
         const maxReward = 10_000_000_000_000_000;
+        let web3;
+        let contract;
 
+        // Connect to MetaMask
         async function connectWallet() {
             if (typeof window.ethereum === "undefined") {
                 alert("Please install MetaMask to connect your wallet.");
                 return;
             }
-            
-            const web3 = new Web3(window.ethereum);
-            const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-            document.getElementById("walletStatus").innerText = accounts[0] ? "Connected" : "Not Connected";
+
+            try {
+                const web3Instance = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" }); // Request wallet connection
+                web3 = web3Instance;
+                const accounts = await web3.eth.getAccounts();
+                const userAccount = accounts[0];
+
+                if (userAccount) {
+                    document.getElementById("walletStatus").innerText = "Connected: " + userAccount;
+                } else {
+                    document.getElementById("walletStatus").innerText = "Not Connected";
+                }
+            } catch (error) {
+                console.error("Wallet connection failed:", error);
+                alert("Wallet connection failed. Please try again.");
+            }
         }
 
+        // Generate a random reward for the user
         function generateRandomReward() {
             reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
             document.getElementById("rewardAmount").innerText = `You won: ${reward.toLocaleString()} NFTFAN!`;
             document.getElementById("tokensWon").innerText = reward.toLocaleString();
         }
 
+        // Claim the tokens won by the user
         async function claimTokens() {
             if (reward === 0) {
                 alert("Please play first to get a reward!");
                 return;
             }
-            
+
             if (typeof window.ethereum === "undefined") {
                 alert("Please install MetaMask to claim your tokens.");
                 return;
             }
-            
-            const web3 = new Web3(window.ethereum);
-            const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-            const user = accounts[0];
-            const contractAddress = "0x9cc9A8025AC96072895fbd2388cA1Cd7a24A8fb3";
-            const contractABI = [
-                // ABI of claimTokens function (replace with actual ABI from your smart contract)
-            ];
-            const contract = new web3.eth.Contract(contractABI, contractAddress);
-            
+
             try {
                 document.getElementById("txStatus").innerText = "Processing...";
-                
-                const nonce = Math.floor(Math.random() * 1e6); // Generate a random nonce
-                const timestamp = Math.floor(Date.now() / 1000);
-                
-                // Simulate signing a message (in real use, the backend should sign it)
-                const message = web3.utils.soliditySha3(user, nonce, timestamp);
-                const signature = await web3.eth.personal.sign(message, user);
-                
-                await contract.methods.claimTokens(user, nonce, timestamp, signature)
-                    .send({ from: user, value: web3.utils.toWei("1", "ether") });
-                
+
+                // Replace with actual contract ABI
+                const contractABI = [
+                    {
+                        "constant": false,
+                        "inputs": [
+                            {
+                                "name": "user",
+                                "type": "address"
+                            },
+                            {
+                                "name": "reward",
+                                "type": "uint256"
+                            }
+                        ],
+                        "name": "claimTokens",
+                        "outputs": [],
+                        "payable": false,
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+
+                const contractAddress = "0x9cc9A8025AC96072895fbd2388cA1Cd7a24A8fb3"; // Your contract address
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+
+                const accounts = await web3.eth.getAccounts();
+                const user = accounts[0];
+
+                // Sending the claim transaction
+                await contract.methods.claimTokens(user, reward).send({ from: user });
+
                 document.getElementById("txStatus").innerText = "Transaction Successful";
                 document.getElementById("polPaid").innerText = "1 POL Paid";
                 alert("Claim successful! Tokens sent to your wallet.");
             } catch (error) {
-                console.error(error);
+                console.error("Claim failed:", error);
                 document.getElementById("txStatus").innerText = "Failed";
                 alert("Claim failed!");
             }
