@@ -110,6 +110,10 @@
       font-size: 10px;
       color: #00e6e6;
     }
+    .select-all-checkbox {
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
   </style>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
@@ -119,11 +123,9 @@
     <h1>Wallet Addresses</h1>
     <button id="connectButton">Connect Wallet</button>
     <div id="walletAddress" class="wallet-info"></div>
-    <div class="wallet-list" id="walletList">
-      <!-- Wallets will be displayed here -->
-    </div>
     <div class="actions">
-      <button onclick="getSelectedWallets()">Get Selected Wallets</button>
+      <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox"> Select All
+      <button onclick="showSelectedWalletCount()">Get Selected Wallets</button>
       <button onclick="distributeTokens()">Distribute Tokens</button>
     </div>
     <!-- Notifications Table -->
@@ -136,6 +138,9 @@
       </thead>
       <tbody id="notificationRows"></tbody>
     </table>
+    <div class="wallet-list" id="walletList">
+      <!-- Wallets will be displayed here -->
+    </div>
   </div>
 
   <div id="notification" class="notification"></div>
@@ -259,6 +264,12 @@
       }
     }
 
+    // Show selected wallet count
+    function showSelectedWalletCount() {
+      const selectedWallets = getSelectedWallets();
+      showNotification(`Number of selected wallets: ${selectedWallets.length}`, "info");
+    }
+
     // Get selected wallets
     function getSelectedWallets() {
       var selectedWallets = [];
@@ -327,6 +338,14 @@
       walletItem.innerHTML = `<input type="checkbox" value="${wallet}">${wallet}`;
       walletList.appendChild(walletItem);
     }
+
+    // Select or deselect all wallets
+    document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+      var checkboxes = document.querySelectorAll('.wallet-item input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+    });
 
     // Configure AWS SDK
     AWS.config.update({
