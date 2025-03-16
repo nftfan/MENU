@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Organizer - nftfan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header .tabs {
+            display: flex;
+            gap: 20px;
+        }
+        .header .tabs span {
+            background-color: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .date-navigation {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .date-navigation input[type="date"] {
+            padding: 5px 10px;
+            background-color: #333;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+        }
+        .date-navigation button {
+            padding: 5px 10px;
+            background-color: #333;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .date-navigation button:hover {
+            background-color: #444;
+        }
+        .days-container {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            padding: 10px;
+        }
+        .day {
+            border: 1px solid #333;
+            padding: 5px;
+            margin: 2px;
+            width: calc(100% / 14 - 4px);
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-sizing: border-box;
+            font-size: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            transition: all 0.3s;
+        }
+        .day .number {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .day .day-name {
+            font-size: 12px;
+        }
+        .day.current {
+            background-color: #ffeb3b;
+            color: #000;
+        }
+        .day:hover {
+            background-color: #333;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            color: #e0e0e0;
+            border-radius: 10px;
+        }
+        .popup input[type="text"], .popup input[type="color"], .popup input[type="number"] {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .popup button {
+            padding: 10px 20px;
+            background-color: #333;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .popup button:hover {
+            background-color: #444;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tabs">
+                <span id="age-in-days"></span>
+                <span id="remaining-days"></span>
+                <span id="total-money-made"></span>
+            </div>
+            <div class="date-navigation">
+                <input type="date" id="date-picker" min="1989-01-21" max="2089-01-21">
+                <button onclick="goToSelectedDate()">Go to Date</button>
+                <button class="go-to-current-day" onclick="goToCurrentDay()">Go to Current Day</button>
+            </div>
+        </div>
+        <div class="days-container" id="days-container"></div>
+    </div>
+
+    <div class="popup" id="popup">
+        <h3>Add Note</h3>
+        <input type="text" id="note" placeholder="Enter note">
+        <input type="color" id="color" value="#ffffff">
+        <input type="number" id="money" placeholder="Enter money" step="0.01">
+        <button onclick="saveNote()">Save</button>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        const startDate = new Date('1989-01-21');
+        const endDate = new Date('2089-01-21');
+        const today = new Date('2025-03-16 18:26:36');
+        const currentUser = 'nftfan';
+
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'test');
+                const testValue = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                console.log('localStorage is working properly');
+                return true;
+            } catch (e) {
+                console.error('localStorage is not working:', e);
+                return false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            testLocalStorage();
+            const datePicker = document.getElementById('date-picker');
+            datePicker.value = today.toISOString().split('T')[0];
+        });
+
+        const ageInDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        const remainingDays = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+
+        document.getElementById('age-in-days').innerText = `Age in days: ${ageInDays}`;
+        document.getElementById('remaining-days').innerText = `Remaining days: ${remainingDays}`;
+
+        const daysContainer = document.getElementById('days-container');
+        let notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || {};
+        console.log('Loaded notes from localStorage:', notes);
+        let totalMoneyMade = 0;
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        totalMoneyMade = Object.values(notes).reduce((acc, note) => acc + (parseFloat(note.money) || 0), 0);
+        document.getElementById('total-money-made').innerText = `Total money made: €${totalMoneyMade.toFixed(2)}`;
+
+        for (let d = new Date(startDate), dayNumber = 1; d <= endDate; d.setDate(d.getDate() + 1), dayNumber++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            const dateStr = d.toISOString().split('T')[0];
+            dayDiv.dataset.date = dateStr;
+            const dayName = dayNames[d.getDay()];
+            
+            const savedData = notes[dateStr] || {};
+            const note = savedData.note || '';
+            const color = savedData.color || '#1e1e1e';
+            const money = parseFloat(savedData.money) || 0;
+
+            dayDiv.innerHTML = `
+                <div class="number">${dayNumber}</div>
+                <div class="day-name">${dayName}</div>
+                <div>${dateStr}</div>
+                <div style="font-size: 7px; color: #fff;">${note}</div>
+                <div style="font-size: 7px; color: #fff;">€${money.toFixed(2)}</div>
+            `;
+            
+            dayDiv.style.backgroundColor = color;
+            
+            if (dateStr === today.toISOString().split('T')[0]) {
+                dayDiv.classList.add('current');
+                dayDiv.id = 'current-day';
+            }
+            
+            dayDiv.addEventListener('click', () => showPopup(dayDiv));
+            daysContainer.appendChild(dayDiv);
+        }
+
+        function showPopup(dayDiv) {
+            const popup = document.getElementById('popup');
+            const overlay = document.getElementById('overlay');
+            const date = dayDiv.dataset.date;
+            popup.dataset.date = date;
+            
+            const savedData = notes[date] || {};
+            document.getElementById('note').value = savedData.note || '';
+            document.getElementById('color').value = savedData.color || '#ffffff';
+            document.getElementById('money').value = savedData.money || '';
+            
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function hidePopup() {
+            const popup = document.getElementById('popup');
+            const overlay = document.getElementById('overlay');
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function saveNote() {
+            const noteInput = document.getElementById('note');
+            const colorInput = document.getElementById('color');
+            const moneyInput = document.getElementById('money');
+            const note = noteInput.value.trim();
+            const color = colorInput.value;
+            const money = parseFloat(moneyInput.value) || 0;
+            const date = document.getElementById('popup').dataset.date;
+
+            notes[date] = { note, color, money };
+            console.log('Saving note:', { date, note, color, money });
+
+            const dayDiv = document.querySelector(`.day[data-date="${date}"]`);
+            dayDiv.style.backgroundColor = color;
+            dayDiv.querySelector('div[style*="font-size: 7px;"]:nth-child(4)').innerText = note;
+            dayDiv.querySelector('div[style*="font-size: 7px;"]:nth-child(5)').innerText = `€${money.toFixed(2)}`;
+
+            try {
+                localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
+                console.log('Successfully saved to localStorage');
+                const savedNotes = JSON.parse(localStorage.getItem(`notes_${currentUser}`));
+                console.log('Verified saved notes:', savedNotes);
+            } catch (e) {
+                console.error("Failed to save to localStorage:", e);
+            }
+
+            totalMoneyMade = Object.values(notes).reduce((acc, note) => acc + (parseFloat(note.money) || 0), 0);
+            document.getElementById('total-money-made').innerText = `Total money made: €${totalMoneyMade.toFixed(2)}`;
+
+            noteInput.value = '';
+            colorInput.value = '#ffffff';
+            moneyInput.value = '';
+            hidePopup();
+        }
+
+        function goToCurrentDay() {
+            const currentDay = document.getElementById('current-day');
+            currentDay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function goToSelectedDate() {
+            const datePicker = document.getElementById('date-picker');
+            const selectedDate = datePicker.value;
+            
+            if (!selectedDate) {
+                alert('Please select a date');
+                return;
+            }
+
+            const dayDiv = document.querySelector(`.day[data-date="${selectedDate}"]`);
+            if (dayDiv) {
+                dayDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight the selected date temporarily
+                dayDiv.style.border = '2px solid #ffeb3b';
+                setTimeout(() => {
+                    dayDiv.style.border = '1px solid #333';
+                }, 2000);
+            } else {
+                alert('Date must be between 1989-01-21 and 2089-01-21');
+            }
+        }
+
+        document.getElementById('overlay').addEventListener('click', hidePopup);
+    </script>
+</body>
+</html>
