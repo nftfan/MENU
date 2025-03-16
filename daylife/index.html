@@ -73,10 +73,9 @@
             border: 1px solid #333;
             padding: 5px;
             margin: 2px;
-            width: calc(100% / 14 - 4px);
-            height: 80px;
+            width: calc(100% / 28 - 4px);
+            height: 40px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -85,13 +84,6 @@
             background-color: #1e1e1e;
             color: #e0e0e0;
             transition: all 0.3s;
-        }
-        .day .number {
-            font-weight: bold;
-            font-size: 20px;
-        }
-        .day .day-name {
-            font-size: 12px;
         }
         .day.current {
             background-color: #ffeb3b;
@@ -169,6 +161,7 @@
         <input type="text" id="note" placeholder="Enter note">
         <input type="color" id="color" value="#ffffff">
         <input type="number" id="money" placeholder="Enter money" step="0.01">
+        <div id="popup-date"></div>
         <button onclick="saveNote()">Save</button>
     </div>
     <div class="overlay" id="overlay"></div>
@@ -209,8 +202,6 @@
         console.log('Loaded notes from localStorage:', notes);
         let totalMoneyMade = 0;
 
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
         totalMoneyMade = Object.values(notes).reduce((acc, note) => acc + (parseFloat(note.money) || 0), 0);
         document.getElementById('total-money-made').innerText = `Total money made: €${totalMoneyMade.toFixed(2)}`;
 
@@ -219,7 +210,6 @@
             dayDiv.className = 'day';
             const dateStr = d.toISOString().split('T')[0];
             dayDiv.dataset.date = dateStr;
-            const dayName = dayNames[d.getDay()];
             
             const savedData = notes[dateStr] || {};
             const note = savedData.note || '';
@@ -228,10 +218,6 @@
 
             dayDiv.innerHTML = `
                 <div class="number">${dayNumber}</div>
-                <div class="day-name">${dayName}</div>
-                <div>${dateStr}</div>
-                <div style="font-size: 7px; color: #fff;">${note}</div>
-                <div style="font-size: 7px; color: #fff;">€${money.toFixed(2)}</div>
             `;
             
             dayDiv.style.backgroundColor = color;
@@ -250,6 +236,8 @@
             const overlay = document.getElementById('overlay');
             const date = dayDiv.dataset.date;
             popup.dataset.date = date;
+
+            document.getElementById('popup-date').innerText = `Date: ${date}`;
             
             const savedData = notes[date] || {};
             document.getElementById('note').value = savedData.note || '';
@@ -281,8 +269,7 @@
 
             const dayDiv = document.querySelector(`.day[data-date="${date}"]`);
             dayDiv.style.backgroundColor = color;
-            dayDiv.querySelector('div[style*="font-size: 7px;"]:nth-child(4)').innerText = note;
-            dayDiv.querySelector('div[style*="font-size: 7px;"]:nth-child(5)').innerText = `€${money.toFixed(2)}`;
+            dayDiv.querySelector('.number').innerText = date;
 
             try {
                 localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
