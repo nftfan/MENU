@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.clock {
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  position: relative;
+  margin: 50px auto;
+  border: 4px solid #0ff;
+  box-shadow: 0 0 30px #0ff,
+    inset 0 0 30px #0ff;
+  background: #000;
+}
+
+.number {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transform: rotate(calc(var(--i) * 15deg));
+  font-family: 'Courier New', monospace;
+  color: #f0f;
+  text-shadow: 0 0 15px #f0f;
+  font-weight: bold;
+  font-size: 32px;
+  z-index: 3;
+}
+
+.number span {
+  position: absolute;
+  transform: rotate(calc(var(--i) * -15deg));
+  display: inline-block;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) rotate(calc(var(--i) * -15deg));
+}
+
+.minute-marker {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform: rotate(calc(var(--m) * 6deg));
+}
+
+.minute-marker::after {
+  content: '';
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  width: 2px;
+  height: 15px;
+  background: #0ff;
+  transform: translateX(-50%);
+  box-shadow: 0 0 10px #0ff;
+}
+
+.hour-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  width: 6px;
+  height: 40%;
+  background: #ff0066;
+  transform-origin: bottom;
+  box-shadow: 0 0 15px #ff0066,
+    0 0 30px #ff0066;
+  border-radius: 3px;
+  z-index: 2;
+}
+
+.seconds-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  width: 3px;
+  height: 50%;
+  background: #0f0;
+  transform-origin: bottom;
+  box-shadow: 0 0 15px #0f0,
+    0 0 30px #0f0;
+  border-radius: 2px;
+  z-index: 4;
+}
+
+body {
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.clock {
+  animation: glow 2s infinite;
+}
+</style>
+</head>
+<body>
+<div class="clock">
+  <div class="hour-hand" id="hourHand"></div>
+  <div class="seconds-hand" id="secondsHand"></div>
+</div>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const milliseconds = now.getMilliseconds();
+
+  const hourRotation = (hours % 24) * 15 + minutes * 0.25 + seconds * (0.25/60);
+  const secondsRotation = seconds * 6 + (milliseconds/1000) * 6;
+
+  document.getElementById('hourHand').style.transform = `rotate(${hourRotation}deg)`;
+  document.getElementById('secondsHand').style.transform = `rotate(${secondsRotation}deg)`;
+}
+
+// Create clock elements
+const clock = document.querySelector('.clock');
+
+// Add minute markers
+for(let m = 0; m < 60; m++) {
+  const marker = document.createElement('div');
+  marker.className = 'minute-marker';
+  marker.style.setProperty('--m', m);
+  clock.appendChild(marker);
+}
+
+// Add hour numbers
+for(let i = 0; i < 24; i++) {
+  const number = document.createElement('div');
+  number.className = 'number';
+  number.style.setProperty('--i', i);
+  const span = document.createElement('span');
+  span.textContent = i;
+  number.appendChild(span);
+  clock.appendChild(number);
+}
+
+// Initialize clock
+updateClock();
+setInterval(updateClock, 50);
+
+// Adjust number positions
+document.querySelectorAll('.number').forEach(num => {
+  const i = parseInt(num.style.getPropertyValue('--i'));
+  num.querySelector('span').style.transform = 
+    `translateX(-50%) rotate(${-i * 15}deg)`;
+});
+</script>
+
+</body>
+</html>
