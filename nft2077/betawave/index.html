@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  background: #000;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.matrix {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: radial-gradient(circle, #001122 0%, #000 70%);
+}
+
+.neuron {
+  width: 12px;
+  height: 12px;
+  background: #0ff;
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(1px);
+  box-shadow: 0 0 20px #0ff;
+}
+
+.synapse {
+  position: absolute;
+  background: #f0f;
+  height: 2px;
+  transform-origin: left center;
+  box-shadow: 0 0 10px #f0f;
+}
+
+.vortex {
+  width: 400px;
+  height: 400px;
+  position: absolute;
+  border: 2px solid #0f0;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 50px #0f0;
+  animation: pulse 3s infinite;
+}
+
+.bio-readout {
+  position: fixed;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px #fff;
+  padding: 10px;
+  background: #000000aa;
+  border: 1px solid #0ff;
+}
+
+#psionic-level {
+  top: 20px;
+  left: 20px;
+}
+
+#neural-load {
+  bottom: 20px;
+  right: 20px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+</style>
+</head>
+<body>
+<div class="matrix">
+  <div class="vortex"></div>
+  <div id="psionic-level" class="bio-readout">PSIONIC CHARGE: 00.00%</div>
+  <div id="neural-load" class="bio-readout">NEURAL OSCILLATION: δ-wave</div>
+</div>
+
+<script>
+const neurons = [];
+const synapses = [];
+const matrix = document.querySelector('.matrix');
+
+// Create neural network
+function createNeuron(x, y) {
+  const neuron = document.createElement('div');
+  neuron.className = 'neuron';
+  neuron.style.left = x + 'px';
+  neuron.style.top = y + 'px';
+  matrix.appendChild(neuron);
+  return {
+    element: neuron,
+    x, y,
+    targetX: x,
+    targetY: y,
+    charge: 0
+  };
+}
+
+// Create initial neurons
+for(let i = 0; i < 150; i++) {
+  neurons.push(createNeuron(
+    Math.random() * window.innerWidth,
+    Math.random() * window.innerHeight
+  ));
+}
+
+// Neural animation
+function animate() {
+  const time = Date.now() / 1000;
+  
+  // Update neuron positions
+  neurons.forEach(neuron => {
+    neuron.x += (neuron.targetX - neuron.x) * 0.1;
+    neuron.y += (neuron.targetY - neuron.y) * 0.1;
+    neuron.element.style.left = neuron.x + 'px';
+    neuron.element.style.top = neuron.y + 'px';
+    
+    // Pulsing effect based on charge
+    const scale = 1 + Math.sin(time * 2 + neuron.x) * 0.2;
+    neuron.element.style.transform = `scale(${scale})`;
+  });
+
+  // Update readouts
+  document.getElementById('psionic-level').textContent = 
+    `PSIONIC CHARGE: ${(Math.sin(time) * 50 + 50).toFixed(2)}%`;
+  document.getElementById('neural-load').textContent = 
+    `NEURAL OSCILLATION: ${['δ-wave','θ-wave','α-wave','β-wave'][Math.floor(time) % 4]}`;
+
+  // Create new connections
+  if(synapses.length < 300) {
+    const a = neurons[Math.floor(Math.random() * neurons.length)];
+    const b = neurons[Math.floor(Math.random() * neurons.length)];
+    
+    const synapse = document.createElement('div');
+    synapse.className = 'synapse';
+    matrix.appendChild(synapse);
+    
+    const updateSynapse = () => {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const length = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      
+      synapse.style.width = length + 'px';
+      synapse.style.left = a.x + 'px';
+      synapse.style.top = a.y + 'px';
+      synapse.style.transform = `rotate(${angle}deg)`;
+    };
+    
+    synapses.push({ element: synapse, a, b, updateSynapse });
+  }
+
+  // Update existing synapses
+  synapses.forEach(s => {
+    s.updateSynapse();
+    s.element.style.opacity = Math.random() * 0.5 + 0.5;
+  });
+
+  requestAnimationFrame(animate);
+}
+
+// Mouse interaction
+document.addEventListener('mousemove', (e) => {
+  neurons.forEach(neuron => {
+    const dx = e.clientX - neuron.x;
+    const dy = e.clientY - neuron.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    
+    if(dist < 200) {
+      neuron.targetX = neuron.x - dx * 0.1;
+      neuron.targetY = neuron.y - dy * 0.1;
+    }
+  });
+});
+
+animate();
+</script>
+
+</body>
+</html>
