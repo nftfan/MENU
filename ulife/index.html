@@ -37,16 +37,31 @@
             overflow: hidden;
         }
         .year-header {
-            font-size: 18px;
+            font-size: 11px;
             font-weight: bold;
             color: #FFFFFF;
             margin-bottom: 10px;
+            position: relative;
+        }
+        .year-header .money-sum {
+            font-size: 10px;
+            color: #FFD700;
+            position: absolute;
+            top: 0;
+            right: 10px;
         }
         .month {
             display: grid;
             grid-template-columns: repeat(8, 1fr); /* 7 days + 1 for week number */
             gap: 5px;
             margin-top: 5px;
+        }
+        .month-header {
+            font-size: 12px;
+            color: #FFD700;
+            grid-column: span 8;
+            text-align: right;
+            margin-bottom: 5px;
         }
         .day-cell {
             padding: 5px;
@@ -86,13 +101,42 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
         }
-        .color-picker input[type="color"] {
+        .color-picker input[type="color"],
+        .color-picker input[type="text"],
+        .color-picker input[type="number"] {
             margin: 10px;
+            width: calc(100% - 20px);
+            padding: 5px;
+            border: 1px solid #DDD;
+            border-radius: 5px;
         }
         .color-picker button {
             padding: 10px;
             margin-top: 10px;
+            width: 48%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .color-picker button.save {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .color-picker button.cancel {
+            background-color: #f44336;
+            color: white;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
     </style>
 </head>
@@ -104,14 +148,25 @@
     <div class="color-picker" id="colorPicker">
         <h2>Select a color</h2>
         <input type="color" id="colorInput">
-        <button onclick="saveColor()">Save</button>
-        <button onclick="closeColorPicker()">Cancel</button>
+        <h2>Enter a note</h2>
+        <input type="text" id="noteInput" placeholder="Enter a note">
+        <h2>Enter amount in €</h2>
+        <input type="number" id="moneyInput" placeholder="Enter amount in €">
+        <div>
+            <button class="save" onclick="saveDetails()">Save</button>
+            <button class="cancel" onclick="closeColorPicker()">Cancel</button>
+        </div>
     </div>
+    <div class="overlay" id="overlay" onclick="closeColorPicker()"></div>
 
     <script>
         const container = document.getElementById("container");
         const colorPicker = document.getElementById("colorPicker");
         const colorInput = document.getElementById("colorInput");
+        const noteInput = document.getElementById("noteInput");
+        const moneyInput = document.getElementById("moneyInput");
+        const overlay = document.getElementById("overlay");
+        const apiUrl = 'https://getpantry.cloud/apiv1/pantry/ac2eb037-b72e-4e18-8d14-f6a497abed1a/basket/dates';
         let currentDayElement = null;
 
         const currentDate = new Date();
@@ -131,37 +186,106 @@
 
         function openColorPicker(dayElement) {
             currentDayElement = dayElement;
+            const details = getDetailsFromLocalStorage(currentDayElement.dataset.date);
+            colorInput.value = details.color || "#ffffff";
+            noteInput.value = details.note || "";
+            moneyInput.value = details.money || "";
             colorPicker.style.display = "block";
+            overlay.style.display = "block";
         }
 
         function closeColorPicker() {
             colorPicker.style.display = "none";
+            overlay.style.display = "none";
             currentDayElement = null;
         }
 
-        function saveColor() {
+        async function saveDetails() {
             const selectedColor = colorInput.value;
+            const note = noteInput.value;
+            const money = parseFloat(moneyInput.value) || 0;
             if (currentDayElement) {
                 currentDayElement.style.backgroundColor = selectedColor;
-                saveColorToLocalStorage(currentDayElement.dataset.date, selectedColor);
+                const date = currentDayElement.dataset.date;
+                saveDetailsToLocalStorage(date, selectedColor, note, money);
+                await saveDetailsToApi(date, selectedColor, note, money);
+                updateMoneySums();
             }
             closeColorPicker();
         }
 
-        function saveColorToLocalStorage(date, color) {
-            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            colors[date] = color;
-            localStorage.setItem("dayColors", JSON.stringify(colors));
+        function saveDetailsToLocalStorage(date, color, note, money) {
+            let details = JSON.parse(localStorage.getItem("dayDetails")) || {};
+            details[date] = { color, note, money };
+            localStorage.setItem("dayDetails", JSON.stringify(details));
         }
 
-        function loadColorsFromLocalStorage() {
-            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            for (const [date, color] of Object.entries(colors)) {
+        async function saveDetailsToApi(date, color, note, money) {
+            const details = { date, color, note, money };
+            try {
+                await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(details)
+                });
+            } catch (error) {
+                console.error('Error saving details to API:', error);
+            }
+        }
+
+        async function loadDetailsFromApi() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data && Array.isArray(data)) {
+                    data.forEach(detail => {
+                        const dayElement = document.querySelector(`[data-date="${detail.date}"]`);
+                        if (dayElement) {
+                            dayElement.style.backgroundColor = detail.color;
+                            saveDetailsToLocalStorage(detail.date, detail.color, detail.note, detail.money);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading details from API:', error);
+            }
+        }
+
+        function getDetailsFromLocalStorage(date) {
+            let details = JSON.parse(localStorage.getItem("dayDetails")) || {};
+            return details[date] || {};
+        }
+
+        function loadDetailsFromLocalStorage() {
+            let details = JSON.parse(localStorage.getItem("dayDetails")) || {};
+            for (const [date, detail] of Object.entries(details)) {
                 const dayElement = document.querySelector(`[data-date="${date}"]`);
                 if (dayElement) {
-                    dayElement.style.backgroundColor = color;
+                    dayElement.style.backgroundColor = detail.color;
                 }
             }
+        }
+
+        function updateMoneySums() {
+            const yearCards = document.querySelectorAll(".year-card");
+            yearCards.forEach(yearCard => {
+                let yearSum = 0;
+                const months = yearCard.querySelectorAll(".month");
+                months.forEach(month => {
+                    let monthSum = 0;
+                    const daysInMonth = month.querySelectorAll(".day-cell");
+                    daysInMonth.forEach(dayCell => {
+                        const details = getDetailsFromLocalStorage(dayCell.dataset.date);
+                        monthSum += details.money || 0;
+                    });
+                    const monthHeader = month.querySelector(".month-header");
+                    monthHeader.textContent = `€${monthSum.toFixed(2)}`;
+                    yearSum += monthSum;
+                });
+                const yearHeader = yearCard.querySelector(".year-header");
+                const moneySum = yearHeader.querySelector(".money-sum");
+                moneySum.textContent = `€${yearSum.toFixed(2)}`;
+            });
         }
 
         function generateYearCards() {
@@ -177,6 +301,9 @@
                 yearHeader.textContent = `Year ${year}`;
                 if (year === currentYear) yearHeader.classList.add("highlight");
 
+                const moneySum = document.createElement("div");
+                moneySum.classList.add("money-sum");
+                yearHeader.appendChild(moneySum);
                 yearCard.appendChild(yearHeader);
 
                 for (let month = 0; month < 12; month++) {
@@ -188,6 +315,11 @@
                     monthNameDiv.classList.add("month-name");
                     monthNameDiv.textContent = monthNames[month];
                     monthDiv.appendChild(monthNameDiv);
+
+                    // Add month header for money sum
+                    const monthHeader = document.createElement("div");
+                    monthHeader.classList.add("month-header");
+                    monthDiv.appendChild(monthHeader);
 
                     // Add day names
                     const weekNumberDiv = document.createElement("div");
@@ -242,7 +374,9 @@
                 container.appendChild(yearCard);
             }
 
-            loadColorsFromLocalStorage();
+            loadDetailsFromLocalStorage();
+            loadDetailsFromApi();
+            updateMoneySums();
         }
 
         generateYearCards();
