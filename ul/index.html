@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Calendar</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000000;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        h1 {
+            background-color: #333333;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        .year-card {
+            background-color: #333333;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .year-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+        .month {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr); /* 7 days + 1 for week number */
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .day-cell {
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #171814;
+            cursor: pointer;
+            font-size: 7px;
+            color: #969696;
+        }
+        .day-cell:hover {
+            background-color: #87cefa;
+        }
+        .highlight {
+            background-color: #00a000;
+        }
+        .day-name {
+            font-size: 7px;
+            color: #4682b4;
+        }
+        .month-name {
+            font-size: 10px;
+            font-weight: bold;
+            color: #FFFFFF;
+            grid-column: span 8; /* 7 days + 1 for week number */
+        }
+        .week-number {
+            font-size: 7px;
+            color: #FF6347;
+        }
+        .color-picker {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .color-picker input[type="color"] {
+            margin: 10px;
+        }
+        .color-picker button {
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>My Life Calendar</h1>
+    <div class="container" id="container"></div>
+
+    <div class="color-picker" id="colorPicker">
+        <h2>Select a color</h2>
+        <input type="color" id="colorInput">
+        <button onclick="saveColor()">Save</button>
+        <button onclick="closeColorPicker()">Cancel</button>
+    </div>
+
+    <script>
+        const container = document.getElementById("container");
+        const colorPicker = document.getElementById("colorPicker");
+        const colorInput = document.getElementById("colorInput");
+        let currentDayElement = null;
+
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth(); // 0-based index
+        const currentDay = currentDate.getDate();
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getWeekNumber(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - startOfYear) / 86400000;
+            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+        }
+
+        function openColorPicker(dayElement) {
+            currentDayElement = dayElement;
+            colorPicker.style.display = "block";
+        }
+
+        function closeColorPicker() {
+            colorPicker.style.display = "none";
+            currentDayElement = null;
+        }
+
+        function saveColor() {
+            const selectedColor = colorInput.value;
+            if (currentDayElement) {
+                currentDayElement.style.backgroundColor = selectedColor;
+                saveColorToLocalStorage(currentDayElement.dataset.date, selectedColor);
+            }
+            closeColorPicker();
+        }
+
+        function saveColorToLocalStorage(date, color) {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            colors[date] = color;
+            localStorage.setItem("dayColors", JSON.stringify(colors));
+        }
+
+        function loadColorsFromLocalStorage() {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            for (const [date, color] of Object.entries(colors)) {
+                const dayElement = document.querySelector(`[data-date="${date}"]`);
+                if (dayElement) {
+                    dayElement.style.backgroundColor = color;
+                }
+            }
+        }
+
+        function generateYearCards() {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+
+            for (let year = 1989; year <= 2089; year++) {
+                const yearCard = document.createElement("div");
+                yearCard.classList.add("year-card");
+
+                const yearHeader = document.createElement("div");
+                yearHeader.classList.add("year-header");
+                yearHeader.textContent = `Year ${year}`;
+                if (year === currentYear) yearHeader.classList.add("highlight");
+
+                yearCard.appendChild(yearHeader);
+
+                for (let month = 0; month < 12; month++) {
+                    const monthDiv = document.createElement("div");
+                    monthDiv.classList.add("month");
+
+                    // Add month name
+                    const monthNameDiv = document.createElement("div");
+                    monthNameDiv.classList.add("month-name");
+                    monthNameDiv.textContent = monthNames[month];
+                    monthDiv.appendChild(monthNameDiv);
+
+                    // Add day names
+                    const weekNumberDiv = document.createElement("div");
+                    weekNumberDiv.classList.add("week-number");
+                    monthDiv.appendChild(weekNumberDiv);
+
+                    dayNames.forEach(day => {
+                        const dayNameDiv = document.createElement("div");
+                        dayNameDiv.classList.add("day-name");
+                        dayNameDiv.textContent = day;
+                        monthDiv.appendChild(dayNameDiv);
+                    });
+
+                    const daysInMonth = getDaysInMonth(year, month);
+                    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Adjust to start week with Monday
+
+                    // Add week number and empty cells for days before the first day of the month
+                    let weekNumber = getWeekNumber(new Date(year, month, 1));
+                    for (let i = 0; i < firstDay; i++) {
+                        if (i === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const emptyDiv = document.createElement("div");
+                        emptyDiv.classList.add("day-cell");
+                        monthDiv.appendChild(emptyDiv);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if ((firstDay + day - 1) % 7 === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const dayDiv = document.createElement("div");
+                        dayDiv.classList.add("day-cell");
+                        dayDiv.dataset.date = `${year}-${month + 1}-${day}`; // Store date in data attribute
+                        if (year === currentYear && month === currentMonth && day === currentDay) {
+                            dayDiv.classList.add("highlight");
+                        }
+                        dayDiv.textContent = day;
+                        dayDiv.onclick = () => openColorPicker(dayDiv);
+                        monthDiv.appendChild(dayDiv);
+                    }
+
+                    yearCard.appendChild(monthDiv);
+                }
+
+                container.appendChild(yearCard);
+            }
+
+            loadColorsFromLocalStorage();
+        }
+
+        generateYearCards();
+    </script>
+</body>
+</html>
