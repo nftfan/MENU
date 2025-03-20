@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Calendar</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000000;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            padding-top: 80px; /* Space for fixed time bar */
+        }
+        h1 {
+            background-color: #333333;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        .year-card {
+            background-color: #333333;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .year-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+        .month {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr); /* 7 days + 1 for week number */
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .day-cell {
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #171814;
+            cursor: pointer;
+            font-size: 7px;
+            color: #969696;
+        }
+        .day-cell:hover {
+            background-color: #87cefa;
+        }
+        .highlight {
+            background-color: #00a000;
+        }
+        .day-name {
+            font-size: 7px;
+            color: #4682b4;
+        }
+        .month-name {
+            font-size: 10px;
+            font-weight: bold;
+            color: #FFFFFF;
+            grid-column: span 8; /* 7 days + 1 for week number */
+        }
+        .week-number {
+            font-size: 7px;
+            color: #FF6347;
+        }
+        .color-picker {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 80%;
+            width: 400px;
+            z-index: 1000;
+        }
+        .color-picker input[type="color"] {
+            margin: 10px;
+        }
+        .color-picker button {
+            padding: 10px;
+            margin-top: 10px;
+            margin-right: 5px;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .color-picker button:hover {
+            background-color: #5f9ea0;
+        }
+        .note-input {
+            width: 100%;
+            min-height: 80px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        .time-bar {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333333;
+            padding: 5px 0;
+            z-index: 100;
+        }
+        .hour-box {
+            flex: 1;
+            height: 30px;
+            margin: 0 1px;
+            background-color: #444;
+            color: #969696;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+        }
+        .current-hour {
+            background-color: #00a000;
+            color: white;
+        }
+        .notes-container {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .note-item {
+            background-color: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-align: left;
+            position: relative;
+        }
+        .delete-note {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .selected-date {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="time-bar" id="timeBar"></div>
+    
+    
+    <div class="container" id="container"></div>
+
+    <div class="color-picker" id="colorPicker">
+        <h2>Day Details</h2>
+        <div class="selected-date" id="selectedDate"></div>
+        
+        <h3>Choose Color</h3>
+        <input type="color" id="colorInput">
+        
+        <h3>Add Note</h3>
+        <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
+        
+        <h3>Notes</h3>
+        <div class="notes-container" id="notesContainer"></div>
+        
+        <button onclick="saveColor()">Save</button>
+        <button onclick="closeColorPicker()">Close</button>
+    </div>
+
+    <script>
+        const container = document.getElementById("container");
+        const colorPicker = document.getElementById("colorPicker");
+        const colorInput = document.getElementById("colorInput");
+        const noteInput = document.getElementById("noteInput");
+        const notesContainer = document.getElementById("notesContainer");
+        const selectedDateElement = document.getElementById("selectedDate");
+        const timeBar = document.getElementById("timeBar");
+        
+        let currentDayElement = null;
+        let currentDate = null;
+
+        // Get current date and time
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-based index
+        const currentDay = now.getDate();
+        const currentHour = now.getHours();
+
+        function createTimeBar() {
+            for (let i = 0; i < 24; i++) {
+                const hourBox = document.createElement("div");
+                hourBox.classList.add("hour-box");
+                hourBox.textContent = i < 10 ? `0${i}` : `${i}`;
+                if (i === currentHour) {
+                    hourBox.classList.add("current-hour");
+                }
+                timeBar.appendChild(hourBox);
+            }
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getWeekNumber(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - startOfYear) / 86400000;
+            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+        }
+
+        function formatDate(year, month, day) {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            return `${monthNames[month]} ${day}, ${year}`;
+        }
+
+        function openColorPicker(dayElement, year, month, day) {
+            currentDayElement = dayElement;
+            currentDate = `${year}-${month + 1}-${day}`;
+            
+            // Set selected date
+            selectedDateElement.textContent = formatDate(year, month, day);
+            
+            // Set current color
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            const currentColor = colors[currentDate] || "#171814";
+            colorInput.value = currentColor;
+            
+            // Clear notes container and input
+            notesContainer.innerHTML = "";
+            noteInput.value = "";
+            
+            // Load notes for this date
+            loadNotes(currentDate);
+            
+            colorPicker.style.display = "block";
+        }
+
+        function closeColorPicker() {
+            colorPicker.style.display = "none";
+            currentDayElement = null;
+            currentDate = null;
+        }
+
+        function saveColor() {
+            const selectedColor = colorInput.value;
+            const note = noteInput.value.trim();
+            
+            if (currentDayElement && currentDate) {
+                // Save color
+                currentDayElement.style.backgroundColor = selectedColor;
+                saveColorToLocalStorage(currentDate, selectedColor);
+                
+                // Save note if not empty
+                if (note) {
+                    saveNote(currentDate, note);
+                    noteInput.value = "";
+                    loadNotes(currentDate);
+                }
+            }
+        }
+
+        function saveColorToLocalStorage(date, color) {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            colors[date] = color;
+            localStorage.setItem("dayColors", JSON.stringify(colors));
+        }
+
+        function saveNote(date, note) {
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            if (!notesData[date]) {
+                notesData[date] = [];
+            }
+            
+            notesData[date].push({
+                id: Date.now(), // Use timestamp as unique ID
+                text: note,
+                timestamp: new Date().toISOString()
+            });
+            
+            localStorage.setItem("dayNotes", JSON.stringify(notesData));
+        }
+
+        function deleteNote(date, noteId) {
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            if (notesData[date]) {
+                notesData[date] = notesData[date].filter(note => note.id !== noteId);
+                
+                if (notesData[date].length === 0) {
+                    delete notesData[date];
+                }
+                
+                localStorage.setItem("dayNotes", JSON.stringify(notesData));
+                loadNotes(date);
+            }
+        }
+
+        function loadNotes(date) {
+            notesContainer.innerHTML = "";
+            
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            const notes = notesData[date] || [];
+            
+            if (notes.length === 0) {
+                notesContainer.innerHTML = "<p>No notes for this day</p>";
+                return;
+            }
+            
+            notes.forEach(note => {
+                const noteElement = document.createElement("div");
+                noteElement.classList.add("note-item");
+                
+                const deleteButton = document.createElement("button");
+                deleteButton.classList.add("delete-note");
+                deleteButton.innerHTML = "×";
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteNote(date, note.id);
+                };
+                
+                noteElement.textContent = note.text;
+                noteElement.appendChild(deleteButton);
+                notesContainer.appendChild(noteElement);
+            });
+        }
+
+        function loadColorsFromLocalStorage() {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            for (const [date, color] of Object.entries(colors)) {
+                const dayElement = document.querySelector(`[data-date="${date}"]`);
+                if (dayElement) {
+                    dayElement.style.backgroundColor = color;
+                }
+            }
+        }
+
+        function generateYearCards() {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+
+            for (let year = 1989; year <= 2089; year++) {
+                const yearCard = document.createElement("div");
+                yearCard.classList.add("year-card");
+
+                const yearHeader = document.createElement("div");
+                yearHeader.classList.add("year-header");
+                yearHeader.textContent = `${year}`; // Removed "Year" text
+                if (year === currentYear) yearHeader.classList.add("highlight");
+
+                yearCard.appendChild(yearHeader);
+
+                for (let month = 0; month < 12; month++) {
+                    const monthDiv = document.createElement("div");
+                    monthDiv.classList.add("month");
+
+                    // Add month name
+                    const monthNameDiv = document.createElement("div");
+                    monthNameDiv.classList.add("month-name");
+                    monthNameDiv.textContent = monthNames[month];
+                    monthDiv.appendChild(monthNameDiv);
+
+                    // Add day names
+                    const weekNumberDiv = document.createElement("div");
+                    weekNumberDiv.classList.add("week-number");
+                    monthDiv.appendChild(weekNumberDiv);
+
+                    dayNames.forEach(day => {
+                        const dayNameDiv = document.createElement("div");
+                        dayNameDiv.classList.add("day-name");
+                        dayNameDiv.textContent = day;
+                        monthDiv.appendChild(dayNameDiv);
+                    });
+
+                    const daysInMonth = getDaysInMonth(year, month);
+                    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Adjust to start week with Monday
+
+                    // Add week number and empty cells for days before the first day of the month
+                    let weekNumber = getWeekNumber(new Date(year, month, 1));
+                    for (let i = 0; i < firstDay; i++) {
+                        if (i === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const emptyDiv = document.createElement("div");
+                        emptyDiv.classList.add("day-cell");
+                        monthDiv.appendChild(emptyDiv);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if ((firstDay + day - 1) % 7 === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const dayDiv = document.createElement("div");
+                        dayDiv.classList.add("day-cell");
+                        dayDiv.dataset.date = `${year}-${month + 1}-${day}`; // Store date in data attribute
+                        if (year === currentYear && month === currentMonth && day === currentDay) {
+                            dayDiv.classList.add("highlight");
+                        }
+                        dayDiv.textContent = day;
+                        dayDiv.onclick = () => openColorPicker(dayDiv, year, month, day);
+                        monthDiv.appendChild(dayDiv);
+                    }
+
+                    yearCard.appendChild(monthDiv);
+                }
+
+                container.appendChild(yearCard);
+            }
+
+            loadColorsFromLocalStorage();
+        }
+
+        // Initialize
+        createTimeBar();
+        generateYearCards();
+    </script>
+</body>
+</html>
