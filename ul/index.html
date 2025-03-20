@@ -56,12 +56,21 @@
             cursor: pointer;
             font-size: 7px;
             color: #969696;
+            position: relative;
         }
         .day-cell:hover {
             background-color: #87cefa;
         }
         .highlight {
             background-color: #00a000;
+        }
+        .current-day-blink {
+            animation: blinkBorder 2s infinite;
+        }
+        @keyframes blinkBorder {
+            0% { border: 1px solid transparent; }
+            50% { border: 1px solid #00ff00; }
+            100% { border: 1px solid transparent; }
         }
         .day-name {
             font-size: 7px;
@@ -136,6 +145,7 @@
             color: #969696;
             font-size: 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             border-radius: 3px;
@@ -143,6 +153,10 @@
         .current-hour {
             background-color: #00a000;
             color: white;
+        }
+        .remaining-time {
+            font-size: 7px;
+            margin-top: 2px;
         }
         .notes-container {
             max-height: 200px;
@@ -185,6 +199,16 @@
             margin-bottom: 10px;
             font-weight: bold;
         }
+        .note-dot {
+            position: absolute;
+            bottom: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #FFFFFF;
+            border-radius: 1px;
+        }
     </style>
 </head>
 <body>
@@ -222,24 +246,78 @@
         
         let currentDayElement = null;
         let currentDate = null;
+        let hourBoxes = [];
+        let currentHourBox = null;
+        let lastHour = -1; // Track the last hour to detect changes
 
         // Get current date and time
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth(); // 0-based index
         const currentDay = now.getDate();
-        const currentHour = now.getHours();
-
+        
         function createTimeBar() {
+            timeBar.innerHTML = ""; // Clear existing content
+            hourBoxes = []; // Reset hourBoxes array
+            
             for (let i = 0; i < 24; i++) {
                 const hourBox = document.createElement("div");
                 hourBox.classList.add("hour-box");
-                hourBox.textContent = i < 10 ? `0${i}` : `${i}`;
-                if (i === currentHour) {
-                    hourBox.classList.add("current-hour");
-                }
+                
+                const hourText = document.createElement("div");
+                hourText.textContent = i < 10 ? `0${i}` : `${i}`;
+                hourBox.appendChild(hourText);
+                
+                // Add placeholder for the remaining time
+                const timeElement = document.createElement("div");
+                timeElement.classList.add("remaining-time");
+                hourBox.appendChild(timeElement);
+                
                 timeBar.appendChild(hourBox);
+                hourBoxes.push(hourBox);
             }
+            
+            // Initial update
+            updateTimeDisplay();
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+            
+            // Calculate remaining time in current hour
+            const remainingMinutes = 59 - currentMinute;
+            const remainingSeconds = 59 - currentSecond;
+            
+            // Check if hour changed
+            if (currentHour !== lastHour) {
+                // Remove highlight from previous hour
+                if (currentHourBox) {
+                    currentHourBox.classList.remove("current-hour");
+                }
+                
+                // Add highlight to current hour
+                currentHourBox = hourBoxes[currentHour];
+                currentHourBox.classList.add("current-hour");
+                
+                lastHour = currentHour;
+            }
+            
+            // Update the time display in all hour boxes
+            hourBoxes.forEach((box, index) => {
+                const timeElement = box.querySelector(".remaining-time");
+                
+                if (index === currentHour) {
+                    timeElement.textContent = `${remainingMinutes}m ${remainingSeconds}s left`;
+                } else {
+                    timeElement.textContent = "";
+                }
+            });
+            
+            // Schedule next update
+            setTimeout(updateTimeDisplay, 1000);
         }
 
         function getDaysInMonth(year, month) {
@@ -299,6 +377,11 @@
                     saveNote(currentDate, note);
                     noteInput.value = "";
                     loadNotes(currentDate);
+                    
+                    // Add note dot if not already present
+                    if (!currentDayElement.querySelector('.note-dot')) {
+                        addNoteDot(currentDayElement);
+                    }
                 }
             }
         }
@@ -323,6 +406,9 @@
             });
             
             localStorage.setItem("dayNotes", JSON.stringify(notesData));
+            
+            // Update all day cells with this date to show note dot
+            updateNoteDots();
         }
 
         function deleteNote(date, noteId) {
@@ -337,6 +423,32 @@
                 
                 localStorage.setItem("dayNotes", JSON.stringify(notesData));
                 loadNotes(date);
+                
+                // Update note dots
+                updateNoteDots();
+            }
+        }
+
+        function addNoteDot(dayElement) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("note-dot");
+            dayElement.appendChild(dotElement);
+        }
+
+        function updateNoteDots() {
+            // Clear all existing note dots
+            document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
+            
+            // Add dots for days with notes
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            for (const date in notesData) {
+                if (notesData[date] && notesData[date].length > 0) {
+                    const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
+                    dayElements.forEach(dayElement => {
+                        addNoteDot(dayElement);
+                    });
+                }
             }
         }
 
@@ -445,6 +557,7 @@
                         dayDiv.dataset.date = `${year}-${month + 1}-${day}`; // Store date in data attribute
                         if (year === currentYear && month === currentMonth && day === currentDay) {
                             dayDiv.classList.add("highlight");
+                            dayDiv.classList.add("current-day-blink"); // Add blinking effect to current day
                         }
                         dayDiv.textContent = day;
                         dayDiv.onclick = () => openColorPicker(dayDiv, year, month, day);
@@ -458,11 +571,15 @@
             }
 
             loadColorsFromLocalStorage();
+            updateNoteDots(); // Add note dots after generating all cards
         }
 
         // Initialize
         createTimeBar();
         generateYearCards();
+        
+        // Set up dynamic updating
+        updateTimeDisplay();
     </script>
 </body>
 </html>
