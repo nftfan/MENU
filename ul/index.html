@@ -159,7 +159,7 @@
             margin-top: 2px;
         }
         .notes-container {
-            max-height: 200px;
+            max-height: 500px;
             overflow-y: auto;
             margin: 10px 0;
         }
@@ -209,6 +209,47 @@
             background-color: #FFFFFF;
             border-radius: 1px;
         }
+        .image-note-dot {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 4px;
+            height: 4px;
+            background-color: #FF6347;
+            border-radius: 1px;
+        }
+        .note-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .file-upload {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .file-upload label {
+            padding: 8px 12px;
+            background-color: #4682b4;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .file-upload label:hover {
+            background-color: #5f9ea0;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ccc;
+        }
     </style>
 </head>
 <body>
@@ -219,16 +260,23 @@
     <div class="container" id="container"></div>
 
     <div class="color-picker" id="colorPicker">
-        <h2>Day Details</h2>
+       
         <div class="selected-date" id="selectedDate"></div>
         
-        <h3>Choose Color</h3>
+       
         <input type="color" id="colorInput">
         
-        <h3>Add Note</h3>
+        
         <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
         
-        <h3>Notes</h3>
+       
+        <div class="file-upload">
+            <label for="imageInput">Choose Image</label>
+            <input type="file" id="imageInput" accept="image/*">
+            <div class="file-name" id="fileName">No file chosen</div>
+        </div>
+        
+        
         <div class="notes-container" id="notesContainer"></div>
         
         <button onclick="saveColor()">Save</button>
@@ -243,12 +291,34 @@
         const notesContainer = document.getElementById("notesContainer");
         const selectedDateElement = document.getElementById("selectedDate");
         const timeBar = document.getElementById("timeBar");
+        const imageInput = document.getElementById("imageInput");
+        const fileNameElement = document.getElementById("fileName");
         
         let currentDayElement = null;
         let currentDate = null;
         let hourBoxes = [];
         let currentHourBox = null;
         let lastHour = -1; // Track the last hour to detect changes
+        let selectedImage = null;
+
+        // Update file name when image is selected
+        imageInput.addEventListener("change", function() {
+            if (this.files.length > 0) {
+                fileNameElement.textContent = this.files[0].name;
+                readImageFile(this.files[0]);
+            } else {
+                fileNameElement.textContent = "No file chosen";
+                selectedImage = null;
+            }
+        });
+
+        function readImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedImage = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
 
         // Get current date and time
         const now = new Date();
@@ -351,6 +421,11 @@
             notesContainer.innerHTML = "";
             noteInput.value = "";
             
+            // Reset image input
+            imageInput.value = "";
+            fileNameElement.textContent = "No file chosen";
+            selectedImage = null;
+            
             // Load notes for this date
             loadNotes(currentDate);
             
@@ -372,15 +447,23 @@
                 currentDayElement.style.backgroundColor = selectedColor;
                 saveColorToLocalStorage(currentDate, selectedColor);
                 
-                // Save note if not empty
-                if (note) {
-                    saveNote(currentDate, note);
+                // Save note and/or image if provided
+                if (note || selectedImage) {
+                    saveNote(currentDate, note, selectedImage);
                     noteInput.value = "";
+                    imageInput.value = "";
+                    fileNameElement.textContent = "No file chosen";
+                    selectedImage = null;
                     loadNotes(currentDate);
                     
                     // Add note dot if not already present
                     if (!currentDayElement.querySelector('.note-dot')) {
                         addNoteDot(currentDayElement);
+                    }
+                    
+                    // Add image dot if image was included
+                    if (selectedImage && !currentDayElement.querySelector('.image-note-dot')) {
+                        addImageNoteDot(currentDayElement);
                     }
                 }
             }
@@ -392,7 +475,7 @@
             localStorage.setItem("dayColors", JSON.stringify(colors));
         }
 
-        function saveNote(date, note) {
+        function saveNote(date, note, image) {
             let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
             
             if (!notesData[date]) {
@@ -402,6 +485,7 @@
             notesData[date].push({
                 id: Date.now(), // Use timestamp as unique ID
                 text: note,
+                image: image,
                 timestamp: new Date().toISOString()
             });
             
@@ -435,9 +519,16 @@
             dayElement.appendChild(dotElement);
         }
 
+        function addImageNoteDot(dayElement) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("image-note-dot");
+            dayElement.appendChild(dotElement);
+        }
+
         function updateNoteDots() {
             // Clear all existing note dots
             document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
+            document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
             
             // Add dots for days with notes
             let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
@@ -447,6 +538,12 @@
                     const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
                     dayElements.forEach(dayElement => {
                         addNoteDot(dayElement);
+                        
+                        // Check if any notes have images
+                        const hasImage = notesData[date].some(note => note.image);
+                        if (hasImage) {
+                            addImageNoteDot(dayElement);
+                        }
                     });
                 }
             }
@@ -475,7 +572,21 @@
                     deleteNote(date, note.id);
                 };
                 
-                noteElement.textContent = note.text;
+                // Add note text
+                if (note.text) {
+                    const textElement = document.createElement("div");
+                    textElement.textContent = note.text;
+                    noteElement.appendChild(textElement);
+                }
+                
+                // Add image if exists
+                if (note.image) {
+                    const imageElement = document.createElement("img");
+                    imageElement.src = note.image;
+                    imageElement.classList.add("note-image");
+                    noteElement.appendChild(imageElement);
+                }
+                
                 noteElement.appendChild(deleteButton);
                 notesContainer.appendChild(noteElement);
             });
