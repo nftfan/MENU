@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery</title>
+    <style>
+        :root {
+            --background-color: #0d0d0d;
+            --surface-color: #1a1a1a;
+            --primary-color: #a970ff;
+            --text-color: #ffffff;
+            --spacing: 4px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            touch-action: manipulation;
+            line-height: 1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 8px var(--spacing);
+            background-color: var(--surface-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header button, .header input {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .header input[type="date"] {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 16px;
+            padding: 6px 10px;
+        }
+
+        .header button:hover {
+            background-color: #9060d9;
+        }
+
+        .timeline {
+            padding: var(--spacing);
+        }
+
+        .date-group {
+            margin-bottom: 16px;
+        }
+
+        .date-header {
+            padding: 8px 0;
+            font-size: 1rem;
+            font-weight: 500;
+            background-color: var(--surface-color);
+            cursor: pointer;
+            position: sticky;
+            top: 48px;
+            z-index: 8;
+            transition: background-color 0.2s;
+        }
+
+        .date-header:hover {
+            background-color: #252525;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: var(--spacing);
+            width: 100%;
+            transition: height 0.3s ease;
+        }
+
+        @media (max-width: 480px) {
+            .photo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .photo-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .photo-item {
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            background-color: var(--surface-color);
+            position: relative;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+
+        .photo-item:active img {
+            transform: scale(0.98);
+        }
+
+        .photo-date {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 4px 6px;
+            font-size: 11px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .photo-item:hover .photo-date {
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--surface-color);
+            padding: 16px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--primary-color);
+            padding: 24px 12px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .upload-area.dragover {
+            background-color: rgba(169, 112, 255, 0.1);
+        }
+
+        .upload-area p {
+            margin: 0 0 8px 0;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .browse-btn {
+            background-color: var(--primary-color);
+            color: black;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .no-photos {
+            text-align: center;
+            padding: 32px 16px;
+            color: #666;
+        }
+
+        .paste-instruction {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #999;
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .paste-instruction {
+                display: block;
+            }
+        }
+
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+
+        .loading-indicator.active {
+            display: block;
+        }
+
+        .photo-item .delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .photo-item:hover .delete-btn,
+        .photo-item:active .delete-btn {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .photo-item .delete-btn {
+                opacity: 0.7;
+            }
+        }
+
+        .fullscreen-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .fullscreen-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        .fullscreen-controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+        }
+
+        .fullscreen-close {
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button id="upload-button">Upload</button>
+            <input type="date" id="date-picker" max="2025-03-22">
+            <button id="go-to-date">Go</button>
+        </div>
+
+        <div id="timeline" class="timeline">
+            <div class="no-photos" id="no-photos-message">
+                No photos yet. Tap "Upload" to add some!
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upload Photos</h2>
+                <button class="close-btn" id="close-modal">×</button>
+            </div>
+            <div id="upload-area" class="upload-area">
+                <p>Tap to choose photos</p>
+                <p>or</p>
+                <p>Drag & drop here</p>
+                <input type="date" id="upload-date" max="2025-03-22" style="margin: 8px 0; padding: 6px; border-radius: 8px; background: var(--background-color); color: var(--text-color); border: 1px solid var(--primary-color);">
+                <input type="file" id="file-input" accept="image/*" multiple>
+                <button class="browse-btn" id="browse-btn">Choose Photos</button>
+                <p class="paste-instruction">Or paste images directly (Ctrl+V)</p>
+            </div>
+            <div id="loading-indicator" class="loading-indicator">
+                Uploading photos...
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen image view -->
+    <div id="fullscreen-view" class="fullscreen-view">
+        <img id="fullscreen-image" class="fullscreen-image" src="" alt="Fullscreen image">
+        <div class="fullscreen-controls">
+            <button id="fullscreen-close" class="fullscreen-close">×</button>
+        </div>
+    </div>
+
+    <script>
+        // Telegram bot constants
+        const TELEGRAM_BOT_TOKEN = '7925210990:AAHDX4Y2f1iqGZw9fQ5-qSPt__xVs6Lv99M';
+        const TELEGRAM_CHAT_ID = '2141064153';
+
+        // DOM elements
+        const timeline = document.getElementById('timeline');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadModal = document.getElementById('upload-modal');
+        const closeModal = document.getElementById('close-modal');
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const browseBtn = document.getElementById('browse-btn');
+        const noPhotosMessage = document.getElementById('no-photos-message');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const fullscreenView = document.getElementById('fullscreen-view');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const fullscreenClose = document.getElementById('fullscreen-close');
+        const datePicker = document.getElementById('date-picker');
+        const goToDateBtn = document.getElementById('go-to-date');
+        const uploadDate = document.getElementById('upload-date');
+
+        // Storage key for localStorage
+        const STORAGE_KEY = 'darkGalleryPhotos';
+
+        // Load photos from localStorage on page load
+        document.addEventListener('DOMContentLoaded', loadPhotos);
+
+        // Event listeners
+        uploadButton.addEventListener('click', openModal);
+        closeModal.addEventListener('click', closeModalHandler);
+        browseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => processFiles(e.target.files));
+        fullscreenClose.addEventListener('click', closeFullscreen);
+        goToDateBtn.addEventListener('click', goToSelectedDate);
+        
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target === uploadArea) {
+                fileInput.click();
+            }
+        });
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                processFiles(e.dataTransfer.files);
+            }
+        });
+
+        document.addEventListener('paste', (e) => {
+            if (uploadModal.style.display === 'flex') {
+                const items = e.clipboardData.items;
+                const imageItems = Array.from(items).filter(item => item.type.indexOf('image') !== -1);
+                if (imageItems.length > 0) {
+                    e.preventDefault();
+                    const files = imageItems.map(item => item.getAsFile());
+                    processFiles(files);
+                }
+            }
+        });
+
+        timeline.addEventListener('click', (e) => {
+            const photoItem = e.target.closest('.photo-item');
+            if (photoItem && e.target.tagName === 'IMG') {
+                e.preventDefault();
+                openFullscreen(e.target.src);
+            }
+            if (e.target.classList.contains('date-header')) {
+                toggleDateGroup(e.target);
+            }
+        });
+
+        // Functions
+        function openModal() {
+            uploadModal.style.display = 'flex';
+            uploadDate.value = new Date().toISOString().split('T')[0]; // Default to today
+        }
+
+        function closeModalHandler() {
+            uploadModal.style.display = 'none';
+            hideLoading();
+        }
+
+        async function processFiles(files) {
+            showLoading();
+            const selectedDate = uploadDate.value || new Date().toISOString().split('T')[0];
+            const uploadPromises = Array.from(files).map(async (file) => {
+                if (!file.type.match('image.*')) return; // Skip non-image files
+
+                const formData = new FormData();
+                formData.append('chat_id', TELEGRAM_CHAT_ID);
+                formData.append('photo', file);
+
+                try {
+                    const sendResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const sendData = await sendResponse.json();
+                    if (!sendData.ok) {
+                        console.error('Failed to send photo:', sendData.description);
+                        return;
+                    }
+
+                    const photoArray = sendData.result.photo;
+                    const fileId = photoArray[photoArray.length - 1].file_id;
+
+                    const fileResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+                    const fileData = await fileResponse.json();
+                    if (!fileData.ok) {
+                        console.error('Failed to get file:', fileData.description);
+                        return;
+                    }
+
+                    const filePath = fileData.result.file_path;
+                    const imageUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+
+                    addPhotoToTimeline(imageUrl, selectedDate);
+                } catch (error) {
+                    console.error('Error uploading photo to Telegram:', error);
+                }
+            });
+
+            await Promise.all(uploadPromises);
+            hideLoading();
+        }
+
+        function showLoading() {
+            loadingIndicator.classList.add('active');
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.remove('active');
+        }
+
+        function addPhotoToTimeline(imageUrl, date) {
+            if (document.querySelectorAll('.photo-item').length === 0) {
+                noPhotosMessage.style.display = 'none';
+            }
+
+            let dateGroup = timeline.querySelector(`.date-group[data-date="${date}"]`);
+            if (!dateGroup) {
+                dateGroup = document.createElement('div');
+                dateGroup.className = 'date-group';
+                dateGroup.dataset.date = date;
+                
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'date-header';
+                dateHeader.textContent = new Date(date).toLocaleDateString();
+                dateGroup.appendChild(dateHeader);
+                
+                const photoGrid = document.createElement('div');
+                photoGrid.className = 'photo-grid';
+                dateGroup.appendChild(photoGrid);
+                
+                timeline.appendChild(dateGroup);
+            }
+
+            const photoGrid = dateGroup.querySelector('.photo-grid');
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = "Gallery photo";
+            
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'photo-date';
+            dateSpan.textContent = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.setAttribute('aria-label', 'Delete photo');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                photoItem.remove();
+                savePhotos();
+                if (photoGrid.children.length === 0) {
+                    dateGroup.remove();
+                }
+                if (document.querySelectorAll('.photo-item').length === 0) {
+                    noPhotosMessage.style.display = 'block';
+                }
+            });
+            
+            photoItem.appendChild(img);
+            photoItem.appendChild(dateSpan);
+            photoItem.appendChild(deleteBtn);
+            photoGrid.appendChild(photoItem);
+        }
+
+        function savePhotos() {
+            const photos = [];
+            const dateGroups = timeline.querySelectorAll('.date-group');
+            dateGroups.forEach(group => {
+                const date = group.dataset.date;
+                const images = group.querySelectorAll('.photo-item img');
+                images.forEach(img => {
+                    photos.push({ src: img.src, date: date });
+                });
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(photos));
+        }
+
+        function loadPhotos() {
+            const storedPhotos = localStorage.getItem(STORAGE_KEY);
+            if (storedPhotos) {
+                const photos = JSON.parse(storedPhotos);
+                if (photos.length > 0) {
+                    noPhotosMessage.style.display = 'none';
+                    photos.forEach(photo => {
+                        addPhotoToTimeline(photo.src, photo.date);
+                    });
+                }
+            }
+        }
+
+        function openFullscreen(src) {
+            fullscreenImage.src = src;
+            fullscreenView.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeFullscreen() {
+            fullscreenView.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function goToSelectedDate() {
+            const selectedDate = datePicker.value;
+            if (selectedDate) {
+                const dateGroup = timeline.querySelector(`.date-group[data-date="${selectedDate}"]`);
+                if (dateGroup) {
+                    dateGroup.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('No photos found for this date.');
+                }
+            }
+        }
+
+        function toggleDateGroup(header) {
+            const photoGrid = header.nextElementSibling;
+            if (photoGrid.style.display === 'none') {
+                photoGrid.style.display = 'grid';
+            } else {
+                photoGrid.style.display = 'none';
+            }
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === uploadModal) {
+                closeModalHandler();
+            }
+            if (e.target === fullscreenView) {
+                closeFullscreen();
+            }
+        });
+
+        let startY = 0;
+        fullscreenView.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+        
+        fullscreenView.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            if (diff > 50) {
+                closeFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            timeline.style.width = '100%';
+        });
+    </script>
+</body>
+</html>
