@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet Addresses</title>
+  <link rel="icon" href="https://i.imgur.com/QiaVsoi.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #0a0a0a, #1e1e1e);
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px 0;
+      background: rgba(20, 20, 20, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 16px;
+      color: #00e6e6;
+      margin-bottom: 15px;
+      letter-spacing: 1px;
+    }
+    h3 {
+      font-size: 10px;
+      color: #22af58;
+      margin: 15px 0 5px;
+      letter-spacing: 0.5px;
+    }
+    .wallet-list {
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #22af58 #1e1e1e;
+    }
+    .wallet-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .wallet-list::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    .wallet-list::-webkit-scrollbar-thumb {
+      background-color: #22af58;
+      border-radius: 5px;
+    }
+    .date-group {
+      margin-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+    }
+    .wallet-items {
+      padding-left: 10px;
+    }
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      margin: 4px 0;
+      border: 1px solid #22af58;
+      border-radius: 6px;
+      background-color: rgba(30, 30, 30, 0.8);
+      font-size: 10px;
+    }
+    .wallet-item input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .actions button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 6px;
+      background: linear-gradient(45deg, #22af58, #4caf50);
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      letter-spacing: 0.5px;
+    }
+    .actions button:hover {
+      background: linear-gradient(45deg, #4caf50, #22af58);
+      transform: scale(1.05);
+    }
+    #notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffc107;
+      color: #121212;
+      padding: 10px 15px;
+      border-radius: 6px;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      font-size: 10px;
+    }
+    #notification.show {
+      display: block;
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    #notificationsTable {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    #notificationsTable th, 
+    #notificationsTable td {
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .status-pending {
+      background-color: rgba(255, 193, 7, 0.2);
+    }
+    .status-done {
+      background-color: rgba(34, 175, 88, 0.2);
+    }
+    .status-error {
+      background-color: rgba(244, 67, 54, 0.2);
+    }
+    .status-info {
+      background-color: rgba(33, 150, 243, 0.2);
+    }
+    .wallet-info {
+      margin: 10px 0;
+      font-size: 10px;
+      color: #00e6e6;
+    }
+    .select-all-checkbox, .select-date-checkbox {
+      cursor: pointer;
+      margin-right: 5px;
+    }
+    #selectAllCheckbox {
+      margin-right: 5px;
+    }
+    .action-label {
+      font-size: 10px;
+      margin-right: 10px;
+      color: #00e6e6;
+    }
+    .checkbox-label {
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      margin-right: 15px;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    #connectButton {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 6px;
+      background: linear-gradient(45deg, #00e6e6, #00a0a0);
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    #connectButton:hover {
+      background: linear-gradient(45deg, #00a0a0, #00e6e6);
+      transform: scale(1.05);
+    }
+    .hidden {
+      display: none;
+    }
+    .status-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    .badge-done {
+      background-color: #22af58;
+      color: white;
+    }
+  </style>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>WALLET ADDRESSES</h1>
+    <button id="connectButton">CONNECT WALLET</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    
+    <div class="checkbox-container">
+      <label class="checkbox-label">
+        <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
+        Select All
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="selectFirst50Checkbox">
+        Select First 50
+      </label>
+    </div>
+    
+    <div class="actions">
+      <button onclick="showSelectedWalletCount()">GET SELECTED COUNT</button>
+      <button onclick="distributeTokens()">DISTRIBUTE TOKENS</button>
+    </div>
+    
+    <!-- Notifications Table -->
+    <table id="notificationsTable">
+      <thead>
+        <tr>
+          <th>STEP</th>
+          <th>STATUS</th>
+        </tr>
+      </thead>
+      <tbody id="notificationRows"></tbody>
+    </table>
+    
+    <div class="wallet-list" id="walletList">
+      <!-- Wallets will be displayed here -->
+    </div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+  <script>
+    const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+    const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50"; // NFTFAN Token contract address
+    let web3;
+    let contract;
+    let userAccount;
+    let allWallets = [];
+
+    // Connect to MetaMask
+    async function connectWallet() {
+      showNotification("Connecting wallet...", "pending");
+
+      if (typeof window.ethereum !== 'undefined') {
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.enable(); // Request access to MetaMask
+        const accounts = await web3.eth.getAccounts();
+        userAccount = accounts[0];
+
+        document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+        document.getElementById('connectButton').classList.add('hidden');
+        showNotification("Wallet connected! Ready to distribute tokens.", "done");
+
+        setupContract();
+      } else {
+        showNotification("Please install MetaMask!", "error");
+      }
+    }
+
+    // Setup smart contract
+    function setupContract() {
+      const abi = [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_tokenAddress",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "TokensDistributed",
+          "type": "event"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address[]",
+              "name": "recipients",
+              "type": "address[]"
+            }
+          ],
+          "name": "distributeTokens",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "withdrawTokens",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ];
+      contract = new web3.eth.Contract(abi, contractAddress);
+    }
+
+    // Distribute tokens function
+    async function distributeTokens() {
+      showNotification("Please wait, transaction is processing...", "pending");
+
+      try {
+        const selectedWallets = getSelectedWallets();
+        if (selectedWallets.length === 0) {
+          showNotification("No wallets selected.", "error");
+          return;
+        }
+
+        showNotification("Processing your transaction...", "pending");
+
+        // Sending the transaction
+        const tx = await contract.methods.distributeTokens(selectedWallets).send({
+          from: userAccount,
+          gas: 2000000 // Adjust gas limit as per need
+        });
+
+        console.log('Transaction successful: ', tx);
+        showNotification('AIRDROP DONE', 'done');
+      } catch (error) {
+        console.error('Transaction failed: ', error);
+        showNotification('Distribution failed. Please try again later.', 'error');
+      }
+    }
+
+    // Show selected wallet count
+    function showSelectedWalletCount() {
+      const selectedWallets = getSelectedWallets();
+      showNotification(`Number of selected wallets: ${selectedWallets.length}`, "info");
+    }
+
+    // Get selected wallets
+    function getSelectedWallets() {
+      var selectedWallets = [];
+      var checkboxes = document.querySelectorAll('.wallet-checkbox:checked');
+      checkboxes.forEach(checkbox => {
+        selectedWallets.push(checkbox.value);
+      });
+      return selectedWallets;
+    }
+
+    // Show notification
+    function showNotification(message, status) {
+      var notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(function () {
+        notification.classList.remove('show');
+      }, 3000);
+
+      addNotificationToTable(message, status);
+    }
+
+    // Add notification to table
+    function addNotificationToTable(message, status) {
+      const notificationRows = document.getElementById('notificationRows');
+      const statusText = status === 'done' ? 'AIRDROP DONE' : status.charAt(0).toUpperCase() + status.slice(1);
+      
+      const row = document.createElement('tr');
+      row.classList.add(`status-${status}`);
+      row.innerHTML = `<td>${message}</td><td>${statusText}</td>`;
+      
+      // Clear previous notifications if this is a new "done" status
+      if (status === 'done' && message === 'AIRDROP DONE') {
+        const existingDoneRows = document.querySelectorAll('.status-done');
+        existingDoneRows.forEach(existingRow => {
+          if (existingRow.querySelector('td:last-child').textContent === 'AIRDROP DONE') {
+            existingRow.remove();
+          }
+        });
+      }
+      
+      notificationRows.appendChild(row);
+    }
+
+    // Configure AWS SDK
+    AWS.config.update({
+      region: 'eu-north-1',
+      credentials: new AWS.Credentials('AKIAVRUVVVUMUTVBFLWP', 'llyVopZkA+XOnmjPUGs9tG4ihdfmDVdsgAxYMjaF')
+    });
+
+    var dynamodb = new AWS.DynamoDB.DocumentClient();
+
+    // Load wallets from DynamoDB
+    function loadWallets() {
+      var params = {
+        TableName: 'lf03'
+      };
+
+      dynamodb.scan(params, function (err, data) {
+        if (err) {
+          console.error("Error loading wallets from DynamoDB:", JSON.stringify(err));
+          showNotification('Error loading wallets from DynamoDB. ' + err.message, 'error');
+        } else {
+          if (data.Items && data.Items.length > 0) {
+            // Sort wallets by descending date
+            data.Items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            // Store all wallets for selection functions
+            allWallets = data.Items.map(item => item.wallet);
+            
+            let groupedWallets = {};
+            data.Items.forEach(wallet => {
+              let dateKey = new Date(wallet.createdAt).toISOString().split('T')[0];
+              if (!groupedWallets[dateKey]) {
+                groupedWallets[dateKey] = [];
+              }
+              groupedWallets[dateKey].push(wallet.wallet);
+            });
+            
+            displayGroupedWallets(groupedWallets);
+          } else {
+            console.log("No items found in the DynamoDB table.");
+          }
+        }
+      });
+    }
+
+    function displayGroupedWallets(groupedWallets) {
+      var walletList = document.getElementById('walletList');
+      walletList.innerHTML = '';
+      
+      Object.keys(groupedWallets).forEach(date => {
+        let dateContainer = document.createElement('div');
+        dateContainer.className = 'date-group';
+        
+        let dateHeader = document.createElement('h3');
+        dateHeader.innerHTML = `${date} (${groupedWallets[date].length}) <input type="checkbox" class="select-date-checkbox" data-date="${date}"> SELECT ALL`;
+        dateContainer.appendChild(dateHeader);
+        
+        let walletItems = document.createElement('div');
+        walletItems.className = 'wallet-items';
+        
+        groupedWallets[date].forEach(wallet => {
+          let walletItem = document.createElement('div');
+          walletItem.className = 'wallet-item';
+          walletItem.innerHTML = `<input type="checkbox" class="wallet-checkbox" value="${wallet}" data-date="${date}">${wallet}`;
+          walletItems.appendChild(walletItem);
+        });
+        
+        dateContainer.appendChild(walletItems);
+        walletList.appendChild(dateContainer);
+      });
+      
+      setupCheckboxListeners();
+    }
+
+    function setupCheckboxListeners() {
+      // Date checkbox listeners
+      document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          let date = this.dataset.date;
+          document.querySelectorAll(`.wallet-checkbox[data-date='${date}']`).forEach(walletCheckbox => {
+            walletCheckbox.checked = this.checked;
+          });
+          updateSelectAllCheckbox();
+        });
+      });
+      
+      // Select all checkbox
+      document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+        document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
+          checkbox.checked = this.checked;
+        });
+        document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
+          checkbox.checked = this.checked;
+        });
+      });
+      
+      // Select first 50 checkbox
+      document.getElementById('selectFirst50Checkbox').addEventListener('change', function() {
+        // First uncheck all
+        document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        
+        // Then check first 50
+        if (this.checked) {
+          const checkboxes = document.querySelectorAll('.wallet-checkbox');
+          for (let i = 0; i < Math.min(50, checkboxes.length); i++) {
+            checkboxes[i].checked = true;
+          }
+          updateDateCheckboxes();
+        }
+        
+        // Update select all checkbox
+        updateSelectAllCheckbox();
+      });
+      
+      // Individual wallet checkboxes
+      document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          updateDateCheckboxes();
+          updateSelectAllCheckbox();
+        });
+      });
+    }
+    
+    function updateDateCheckboxes() {
+      document.querySelectorAll('.select-date-checkbox').forEach(dateCheckbox => {
+        const date = dateCheckbox.dataset.date;
+        const dateWalletCheckboxes = document.querySelectorAll(`.wallet-checkbox[data-date='${date}']`);
+        const checkedDateWalletCheckboxes = document.querySelectorAll(`.wallet-checkbox[data-date='${date}']:checked`);
+        
+        dateCheckbox.checked = dateWalletCheckboxes.length === checkedDateWalletCheckboxes.length;
+      });
+    }
+    
+    function updateSelectAllCheckbox() {
+      const allWalletCheckboxes = document.querySelectorAll('.wallet-checkbox');
+      const checkedWalletCheckboxes = document.querySelectorAll('.wallet-checkbox:checked');
+      
+      document.getElementById('selectAllCheckbox').checked = allWalletCheckboxes.length === checkedWalletCheckboxes.length;
+    }
+
+    window.onload = function () {
+      loadWallets();
+      document.getElementById('connectButton').addEventListener('click', connectWallet);
+    };
+  </script>
+</body>
+</html>
