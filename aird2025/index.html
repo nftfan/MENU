@@ -69,7 +69,6 @@
     .wallet-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       padding: 6px 10px;
       margin: 4px 0;
       border: 1px solid #22af58;
@@ -80,6 +79,28 @@
     .wallet-item input[type="checkbox"] {
       margin-right: 8px;
       cursor: pointer;
+    }
+    .wallet-address {
+      flex-grow: 1;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wallet-status {
+      margin-left: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 8px;
+      white-space: nowrap;
+    }
+    .status-airdropped {
+      background-color: #22af58;
+      color: white;
+    }
+    .status-pending {
+      background-color: #ffc107;
+      color: black;
     }
     .actions {
       margin-top: 15px;
@@ -138,7 +159,7 @@
       padding: 6px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .status-pending {
+    .status-pending-row {
       background-color: rgba(255, 193, 7, 0.2);
     }
     .status-done {
@@ -178,6 +199,7 @@
       align-items: center;
       justify-content: center;
       margin-bottom: 10px;
+      flex-wrap: wrap;
     }
     #connectButton {
       padding: 8px 15px;
@@ -198,15 +220,29 @@
     .hidden {
       display: none;
     }
-    .status-badge {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-left: 10px;
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+      gap: 5px;
     }
-    .badge-done {
-      background-color: #22af58;
-      color: white;
+    .pagination button {
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      background: #1e1e1e;
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .pagination button:hover, .pagination button.active {
+      background: #22af58;
+    }
+    .selection-info {
+      font-size: 10px;
+      color: #00e6e6;
+      margin: 10px 0;
     }
   </style>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
@@ -220,13 +256,21 @@
     
     <div class="checkbox-container">
       <label class="checkbox-label">
-        <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
-        Select All
+        <input type="checkbox" id="selectAllVisible" class="select-all-checkbox">
+        Select All Visible
       </label>
       <label class="checkbox-label">
-        <input type="checkbox" id="selectFirst50Checkbox">
-        Select First 50
+        <input type="checkbox" id="selectNextBatch">
+        Select Next 50
       </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showOnlyPending">
+        Show Only Pending
+      </label>
+    </div>
+    
+    <div class="selection-info" id="selectionInfo">
+      Selected: 0 of 0 wallets
     </div>
     
     <div class="actions">
@@ -248,6 +292,10 @@
     <div class="wallet-list" id="walletList">
       <!-- Wallets will be displayed here -->
     </div>
+    
+    <div class="pagination" id="pagination">
+      <!-- Pagination buttons will be added here -->
+    </div>
   </div>
 
   <div id="notification" class="notification"></div>
@@ -259,6 +307,23 @@
     let contract;
     let userAccount;
     let allWallets = [];
+    let airdropStatus = {}; // To track which wallets have received airdrops
+    let currentPage = 1;
+    let walletsPerPage = 50;
+    let filteredWallets = [];
+    
+    // Load airdrop status from localStorage
+    function loadAirdropStatus() {
+      const savedStatus = localStorage.getItem('airdropStatus');
+      if (savedStatus) {
+        airdropStatus = JSON.parse(savedStatus);
+      }
+    }
+    
+    // Save airdrop status to localStorage
+    function saveAirdropStatus() {
+      localStorage.setItem('airdropStatus', JSON.stringify(airdropStatus));
+    }
 
     // Connect to MetaMask
     async function connectWallet() {
@@ -364,6 +429,15 @@
 
         console.log('Transaction successful: ', tx);
         showNotification('AIRDROP DONE', 'done');
+        
+        // Update airdrop status for each wallet
+        selectedWallets.forEach(wallet => {
+          airdropStatus[wallet] = 'airdropped';
+        });
+        saveAirdropStatus();
+        
+        // Refresh the displayed wallets
+        displayWallets();
       } catch (error) {
         console.error('Transaction failed: ', error);
         showNotification('Distribution failed. Please try again later.', 'error');
@@ -407,16 +481,6 @@
       row.classList.add(`status-${status}`);
       row.innerHTML = `<td>${message}</td><td>${statusText}</td>`;
       
-      // Clear previous notifications if this is a new "done" status
-      if (status === 'done' && message === 'AIRDROP DONE') {
-        const existingDoneRows = document.querySelectorAll('.status-done');
-        existingDoneRows.forEach(existingRow => {
-          if (existingRow.querySelector('td:last-child').textContent === 'AIRDROP DONE') {
-            existingRow.remove();
-          }
-        });
-      }
-      
       notificationRows.appendChild(row);
     }
 
@@ -430,6 +494,8 @@
 
     // Load wallets from DynamoDB
     function loadWallets() {
+      loadAirdropStatus(); // Load saved airdrop status
+      
       var params = {
         TableName: 'lf03'
       };
@@ -444,35 +510,70 @@
             data.Items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
             // Store all wallets for selection functions
-            allWallets = data.Items.map(item => item.wallet);
+            allWallets = data.Items.map(item => ({
+              wallet: item.wallet,
+              createdAt: item.createdAt
+            }));
             
-            let groupedWallets = {};
-            data.Items.forEach(wallet => {
-              let dateKey = new Date(wallet.createdAt).toISOString().split('T')[0];
-              if (!groupedWallets[dateKey]) {
-                groupedWallets[dateKey] = [];
-              }
-              groupedWallets[dateKey].push(wallet.wallet);
-            });
+            // Update filtered wallets
+            updateFilteredWallets();
             
-            displayGroupedWallets(groupedWallets);
+            // Display wallets with pagination
+            displayWallets();
           } else {
             console.log("No items found in the DynamoDB table.");
           }
         }
       });
     }
+    
+    function updateFilteredWallets() {
+      const showOnlyPending = document.getElementById('showOnlyPending').checked;
+      
+      if (showOnlyPending) {
+        filteredWallets = allWallets.filter(wallet => !airdropStatus[wallet.wallet] || airdropStatus[wallet.wallet] !== 'airdropped');
+      } else {
+        filteredWallets = [...allWallets];
+      }
+      
+      // Update the selection info
+      updateSelectionInfo();
+    }
+    
+    function updateSelectionInfo() {
+      const selectedCount = getSelectedWallets().length;
+      const totalCount = filteredWallets.length;
+      document.getElementById('selectionInfo').textContent = `Selected: ${selectedCount} of ${totalCount} wallets`;
+    }
 
-    function displayGroupedWallets(groupedWallets) {
-      var walletList = document.getElementById('walletList');
+    function displayWallets() {
+      const walletList = document.getElementById('walletList');
       walletList.innerHTML = '';
       
+      // Calculate pagination
+      const totalPages = Math.ceil(filteredWallets.length / walletsPerPage);
+      const startIndex = (currentPage - 1) * walletsPerPage;
+      const endIndex = Math.min(startIndex + walletsPerPage, filteredWallets.length);
+      
+      // Group wallets by date for the current page
+      let groupedWallets = {};
+      for (let i = startIndex; i < endIndex; i++) {
+        const wallet = filteredWallets[i];
+        const dateKey = new Date(wallet.createdAt).toISOString().split('T')[0];
+        
+        if (!groupedWallets[dateKey]) {
+          groupedWallets[dateKey] = [];
+        }
+        groupedWallets[dateKey].push(wallet.wallet);
+      }
+      
+      // Display grouped wallets
       Object.keys(groupedWallets).forEach(date => {
         let dateContainer = document.createElement('div');
         dateContainer.className = 'date-group';
         
         let dateHeader = document.createElement('h3');
-        dateHeader.innerHTML = `${date} (${groupedWallets[date].length}) <input type="checkbox" class="select-date-checkbox" data-date="${date}"> SELECT ALL`;
+        dateHeader.innerHTML = `${date} (${groupedWallets[date].length})`;
         dateContainer.appendChild(dateHeader);
         
         let walletItems = document.createElement('div');
@@ -481,7 +582,16 @@
         groupedWallets[date].forEach(wallet => {
           let walletItem = document.createElement('div');
           walletItem.className = 'wallet-item';
-          walletItem.innerHTML = `<input type="checkbox" class="wallet-checkbox" value="${wallet}" data-date="${date}">${wallet}`;
+          
+          const status = airdropStatus[wallet] || 'pending';
+          const statusLabel = status === 'airdropped' ? 'AIRDROP DONE' : 'PENDING';
+          const statusClass = `status-${status}`;
+          
+          walletItem.innerHTML = `
+            <input type="checkbox" class="wallet-checkbox" value="${wallet}" data-date="${date}">
+            <span class="wallet-address">${wallet}</span>
+            <span class="wallet-status ${statusClass}">${statusLabel}</span>
+          `;
           walletItems.appendChild(walletItem);
         });
         
@@ -489,78 +599,126 @@
         walletList.appendChild(dateContainer);
       });
       
+      // Update pagination controls
+      updatePagination(totalPages);
+      
+      // Setup event listeners
       setupCheckboxListeners();
+      
+      // Update selection info
+      updateSelectionInfo();
+    }
+    
+    function updatePagination(totalPages) {
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      
+      // Previous button
+      if (totalPages > 1) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = '←';
+        prevButton.disabled = currentPage === 1;
+        prevButton.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            displayWallets();
+          }
+        });
+        pagination.appendChild(prevButton);
+      }
+      
+      // Page numbers
+      const maxButtons = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      
+      if (endPage - startPage + 1 < maxButtons) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.classList.toggle('active', i === currentPage);
+        pageButton.addEventListener('click', () => {
+          currentPage = i;
+          displayWallets();
+        });
+        pagination.appendChild(pageButton);
+      }
+      
+      // Next button
+      if (totalPages > 1) {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = '→';
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            displayWallets();
+          }
+        });
+        pagination.appendChild(nextButton);
+      }
     }
 
     function setupCheckboxListeners() {
-      // Date checkbox listeners
-      document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-          let date = this.dataset.date;
-          document.querySelectorAll(`.wallet-checkbox[data-date='${date}']`).forEach(walletCheckbox => {
-            walletCheckbox.checked = this.checked;
-          });
-          updateSelectAllCheckbox();
-        });
-      });
-      
-      // Select all checkbox
-      document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+      // Select all visible checkbox
+      document.getElementById('selectAllVisible').addEventListener('change', function() {
         document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
           checkbox.checked = this.checked;
         });
-        document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
-          checkbox.checked = this.checked;
-        });
+        updateSelectionInfo();
       });
       
-      // Select first 50 checkbox
-      document.getElementById('selectFirst50Checkbox').addEventListener('change', function() {
-        // First uncheck all
-        document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
-          checkbox.checked = false;
-        });
-        document.querySelectorAll('.select-date-checkbox').forEach(checkbox => {
-          checkbox.checked = false;
-        });
-        
-        // Then check first 50
+      // Select next batch checkbox
+      document.getElementById('selectNextBatch').addEventListener('change', function() {
         if (this.checked) {
+          // First uncheck all
+          document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+          });
+          
+          // Find next 50 pending wallets
+          const pendingWallets = filteredWallets.filter(wallet => 
+            !airdropStatus[wallet.wallet] || airdropStatus[wallet.wallet] !== 'airdropped'
+          );
+          
+          // Get the wallets on the current page
           const checkboxes = document.querySelectorAll('.wallet-checkbox');
-          for (let i = 0; i < Math.min(50, checkboxes.length); i++) {
-            checkboxes[i].checked = true;
+          const checkboxValues = Array.from(checkboxes).map(cb => cb.value);
+          
+          // Find which of these wallets are pending
+          const pendingOnPage = checkboxValues.filter(wallet => 
+            !airdropStatus[wallet] || airdropStatus[wallet] !== 'airdropped'
+          );
+          
+          // Check up to 50 pending wallets
+          const toCheck = Math.min(50, pendingOnPage.length);
+          for (let i = 0; i < toCheck; i++) {
+            const checkbox = document.querySelector(`.wallet-checkbox[value="${pendingOnPage[i]}"]`);
+            if (checkbox) checkbox.checked = true;
           }
-          updateDateCheckboxes();
+        } else {
+          // Uncheck all if toggled off
+          document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+          });
         }
-        
-        // Update select all checkbox
-        updateSelectAllCheckbox();
+        updateSelectionInfo();
+      });
+      
+      // Show only pending checkbox
+      document.getElementById('showOnlyPending').addEventListener('change', function() {
+        updateFilteredWallets();
+        currentPage = 1; // Reset to first page
+        displayWallets();
       });
       
       // Individual wallet checkboxes
       document.querySelectorAll('.wallet-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-          updateDateCheckboxes();
-          updateSelectAllCheckbox();
-        });
+        checkbox.addEventListener('change', updateSelectionInfo);
       });
-    }
-    
-    function updateDateCheckboxes() {
-      document.querySelectorAll('.select-date-checkbox').forEach(dateCheckbox => {
-        const date = dateCheckbox.dataset.date;
-        const dateWalletCheckboxes = document.querySelectorAll(`.wallet-checkbox[data-date='${date}']`);
-        const checkedDateWalletCheckboxes = document.querySelectorAll(`.wallet-checkbox[data-date='${date}']:checked`);
-        
-        dateCheckbox.checked = dateWalletCheckboxes.length === checkedDateWalletCheckboxes.length;
-      });
-    }
-    
-    function updateSelectAllCheckbox() {
-      const allWalletCheckboxes = document.querySelectorAll('.wallet-checkbox');
-      const checkedWalletCheckboxes = document.querySelectorAll('.wallet-checkbox:checked');
-      
-      document.getElementById('selectAllCheckbox').checked = allWalletCheckboxes.length === checkedWalletCheckboxes.length;
     }
 
     window.onload = function () {
