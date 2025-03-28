@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Fans Token Wallets Extractor and Airdrop</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h2, h3 {
+            text-align: center;
+        }
+        textarea {
+            width: 90%;
+            max-width: 500px;
+            height: 150px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            resize: none;
+        }
+        button {
+            margin-top: 10px;
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 90%;
+            max-width: 500px;
+        }
+        button:hover {
+            background: #3700b3;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 500px;
+        }
+        li {
+            background: #1e1e1e;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .hidden {
+            display: none;
+        }
+        .wallet-info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #00e6e6;
+        }
+    </style>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+    <h2>NFT Fans Token Wallets Extractor</h2>
+    <textarea id="inputText" placeholder="Paste text here..."></textarea>
+    <button onclick="extractWallets()">Extract Wallets</button>
+    <ul id="walletList"></ul>
+
+    <h3>Airdrop Distribution</h3>
+    <button id="connectButton" onclick="connectWallet()">CONNECT WALLET</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <button class="hidden" id="distributeButton" onclick="distributeTokens()">DISTRIBUTE TOKENS</button>
+
+    <script>
+        const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+        let web3;
+        let contract;
+        let userAccount;
+
+        // Extract wallets from text
+        function extractWallets() {
+            let text = document.getElementById("inputText").value;
+            let regex = /0x[a-fA-F0-9]{40}/g;
+            let matches = text.match(regex);
+            let walletList = document.getElementById("walletList");
+            walletList.innerHTML = "";
+            if (matches) {
+                let uniqueWallets = [...new Set(matches)];
+                uniqueWallets.forEach(wallet => {
+                    let li = document.createElement("li");
+                    li.textContent = wallet;
+                    li.dataset.wallet = wallet;
+                    walletList.appendChild(li);
+                });
+            }
+        }
+
+        // Connect to MetaMask
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.enable(); // Request access to MetaMask
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+                document.getElementById('connectButton').classList.add('hidden');
+                document.getElementById('distributeButton').classList.remove('hidden');
+                setupContract();
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        // Setup smart contract
+        function setupContract() {
+            const abi = [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_tokenAddress",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address"
+                        },
+                        {
+                            "indexed": false,
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        }
+                    ],
+                    "name": "TokensDistributed",
+                    "type": "event"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address[]",
+                            "name": "recipients",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "distributeTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        }
+                    ],
+                    "name": "withdrawTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            contract = new web3.eth.Contract(abi, contractAddress);
+        }
+
+        // Distribute tokens function
+        async function distributeTokens() {
+            try {
+                const walletListItems = document.querySelectorAll("#walletList li");
+                const wallets = Array.from(walletListItems).map(item => item.dataset.wallet);
+
+                if (wallets.length === 0) {
+                    alert("No wallets extracted.");
+                    return;
+                }
+
+                // Sending the transaction
+                const tx = await contract.methods.distributeTokens(wallets).send({
+                    from: userAccount,
+                    gas: 2000000 // Adjust gas limit as needed
+                });
+
+                console.log('Transaction successful: ', tx);
+                alert('AIRDROP DONE');
+            } catch (error) {
+                console.error('Transaction failed: ', error);
+                alert('Distribution failed. Please try again later.');
+            }
+        }
+    </script>
+</body>
+</html>
