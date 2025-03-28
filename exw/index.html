@@ -129,6 +129,7 @@
     <button id="connectButton" onclick="connectWallet()">CONNECT WALLET</button>
     <div id="walletAddress" class="wallet-info"></div>
     <button class="hidden" id="distributeButton" onclick="distributeTokens()">DISTRIBUTE TOKENS</button>
+    <button class="hidden" id="nextButton" onclick="distributeNextTokens()">NEXT 50 WALLETS</button>
 
     <div id="notification" class="notification"></div>
 
@@ -147,6 +148,9 @@
         let web3;
         let contract;
         let userAccount;
+        let extractedWallets = [];
+        let currentBatchIndex = 0;
+        const walletsPerBatch = 50;
 
         // Extract wallets from text
         function extractWallets() {
@@ -156,8 +160,8 @@
             let walletList = document.getElementById("walletList");
             walletList.innerHTML = "";
             if (matches) {
-                let uniqueWallets = [...new Set(matches)];
-                uniqueWallets.forEach(wallet => {
+                extractedWallets = [...new Set(matches)];
+                extractedWallets.slice(0, walletsPerBatch).forEach(wallet => {
                     let li = document.createElement("li");
                     li.textContent = wallet;
                     li.dataset.wallet = wallet;
@@ -253,8 +257,7 @@
             showNotification("Please wait, transaction is processing...", "pending");
 
             try {
-                const walletListItems = document.querySelectorAll("#walletList li");
-                const wallets = Array.from(walletListItems).map(item => item.dataset.wallet);
+                const wallets = extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch);
 
                 if (wallets.length === 0) {
                     showNotification("No wallets extracted.", "error");
@@ -271,10 +274,30 @@
 
                 console.log('Transaction successful: ', tx);
                 showNotification('AIRDROP DONE', 'done');
+
+                currentBatchIndex += walletsPerBatch;
+                if (currentBatchIndex < extractedWallets.length) {
+                    document.getElementById('nextButton').classList.remove('hidden');
+                } else {
+                    document.getElementById('nextButton').classList.add('hidden');
+                }
             } catch (error) {
                 console.error('Transaction failed: ', error);
                 showNotification('Distribution failed. Please try again later.', 'error');
             }
+        }
+
+        // Distribute next batch of tokens
+        async function distributeNextTokens() {
+            await distributeTokens();
+            const walletList = document.getElementById("walletList");
+            walletList.innerHTML = "";
+            extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch).forEach(wallet => {
+                let li = document.createElement("li");
+                li.textContent = wallet;
+                li.dataset.wallet = wallet;
+                walletList.appendChild(li);
+            });
         }
 
         // Show notification
