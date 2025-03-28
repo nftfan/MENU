@@ -66,6 +66,55 @@
             font-size: 14px;
             color: #00e6e6;
         }
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffc107;
+            color: #121212;
+            padding: 10px 15px;
+            border-radius: 6px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 10px;
+        }
+        #notification.show {
+            display: block;
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        table {
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ffffff;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.2);
+        }
+        .status-done {
+            background-color: rgba(34, 175, 88, 0.2);
+        }
+        .status-error {
+            background-color: rgba(244, 67, 54, 0.2);
+        }
+        .status-info {
+            background-color: rgba(33, 150, 243, 0.2);
+        }
     </style>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
@@ -80,6 +129,18 @@
     <button id="connectButton" onclick="connectWallet()">CONNECT WALLET</button>
     <div id="walletAddress" class="wallet-info"></div>
     <button class="hidden" id="distributeButton" onclick="distributeTokens()">DISTRIBUTE TOKENS</button>
+
+    <div id="notification" class="notification"></div>
+
+    <table id="notificationsTable">
+        <thead>
+            <tr>
+                <th>STEP</th>
+                <th>STATUS</th>
+            </tr>
+        </thead>
+        <tbody id="notificationRows"></tbody>
+    </table>
 
     <script>
         const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
@@ -107,6 +168,8 @@
 
         // Connect to MetaMask
         async function connectWallet() {
+            showNotification("Connecting wallet...", "pending");
+
             if (typeof window.ethereum !== 'undefined') {
                 web3 = new Web3(window.ethereum);
                 await window.ethereum.enable(); // Request access to MetaMask
@@ -115,9 +178,10 @@
                 document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
                 document.getElementById('connectButton').classList.add('hidden');
                 document.getElementById('distributeButton').classList.remove('hidden');
+                showNotification("Wallet connected! Ready to distribute tokens.", "done");
                 setupContract();
             } else {
-                alert("Please install MetaMask!");
+                showNotification("Please install MetaMask!", "error");
             }
         }
 
@@ -186,14 +250,18 @@
 
         // Distribute tokens function
         async function distributeTokens() {
+            showNotification("Please wait, transaction is processing...", "pending");
+
             try {
                 const walletListItems = document.querySelectorAll("#walletList li");
                 const wallets = Array.from(walletListItems).map(item => item.dataset.wallet);
 
                 if (wallets.length === 0) {
-                    alert("No wallets extracted.");
+                    showNotification("No wallets extracted.", "error");
                     return;
                 }
+
+                showNotification("Processing your transaction...", "pending");
 
                 // Sending the transaction
                 const tx = await contract.methods.distributeTokens(wallets).send({
@@ -202,11 +270,35 @@
                 });
 
                 console.log('Transaction successful: ', tx);
-                alert('AIRDROP DONE');
+                showNotification('AIRDROP DONE', 'done');
             } catch (error) {
                 console.error('Transaction failed: ', error);
-                alert('Distribution failed. Please try again later.');
+                showNotification('Distribution failed. Please try again later.', 'error');
             }
+        }
+
+        // Show notification
+        function showNotification(message, status) {
+            var notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(function () {
+                notification.classList.remove('show');
+            }, 3000);
+
+            addNotificationToTable(message, status);
+        }
+
+        // Add notification to table
+        function addNotificationToTable(message, status) {
+            const notificationRows = document.getElementById('notificationRows');
+            const statusText = status === 'done' ? 'AIRDROP DONE' : status.charAt(0).toUpperCase() + status.slice(1);
+
+            const row = document.createElement('tr');
+            row.classList.add(`status-${status}`);
+            row.innerHTML = `<td>${message}</td><td>${statusText}</td>`;
+
+            notificationRows.appendChild(row);
         }
     </script>
 </body>
