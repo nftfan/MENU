@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify NFTFans Token</title>
+
+    <!-- Meta Tags for Mobile & Dark Theme -->
+    <meta name="theme-color" content="#121212">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #1c1c1c;
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        p {
+            font-size: 16px;
+            margin: 20px 0;
+            color: #b0b0b0;
+            text-align: left;
+        }
+
+        .success-message {
+            background-color: #4caf50;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .waiting-message {
+            background-color: #ff9800;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .waiting-message a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        /* For mobile devices */
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                padding: 10px;
+            }
+
+            .logo {
+                width: 100px;
+                height: 100px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logo and Heading -->
+    <div class="container">
+        <img src="https://pbs.twimg.com/profile_images/1905880342021517312/APojZiz7_400x400.jpg" alt="NFTFans Logo" class="logo">
+        
+        <h1>NFTFans Token Verification</h1>
+
+        <!-- Display appropriate message -->
+        <p id="message">Waiting for the payment...</p>
+        
+        <!-- Web3 Script -->
+        <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+        <script>
+            // Contract info & wallet to watch
+            const walletAddress = "0x92d550cdBc234211957Bd1B579d962c885A127Ba";
+            const targetAmount = 1 * 10**18;  // 1 MATIC (in Wei)
+
+            // Initialize Web3 (use the window.ethereum object for metamask integration)
+            if (typeof window.ethereum !== 'undefined') {
+                const web3 = new Web3(window.ethereum);
+
+                // Request wallet access
+                window.ethereum.request({ method: 'eth_requestAccounts' }).then(accounts => {
+                    const userAccount = accounts[0];  // First account from Metamask
+
+                    // Poll for payment every 5 seconds
+                    setInterval(() => {
+                        checkPayment(userAccount, web3);
+                    }, 5000);
+                }).catch(error => {
+                    console.error('User denied account access:', error);
+                });
+
+            } else {
+                alert('Please install MetaMask to interact with the blockchain.');
+            }
+
+            // Function to check for 1 MATIC payment to the wallet
+            function checkPayment(userAccount, web3) {
+                web3.eth.getBalance(walletAddress).then(balance => {
+                    const userBalance = web3.utils.toBN(balance);
+                    
+                    // Check if the user has sent 1 MATIC (converted to Wei)
+                    if (userBalance.eq(web3.utils.toBN(targetAmount))) {
+                        document.getElementById('message').innerHTML = 'Congratulations, you are now verified by NFT FANS TOKEN!';
+                        document.getElementById('message').className = 'success-message';
+                    } else {
+                        document.getElementById('message').innerHTML = 'Waiting for the payment...';
+                        document.getElementById('message').className = 'waiting-message';
+                    }
+                }).catch(err => {
+                    console.error('Error checking balance:', err);
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>
