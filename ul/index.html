@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,438 +260,444 @@
     
     <div class="container" id="container"></div>
 
-    <div class="color-picker" id="colorPicker">
-       
-        <div class="selected-date" id="selectedDate"></div>
-        
-       
-        <input type="color" id="colorInput">
-        
-        
-        <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
-        
-       
-        <div class="file-upload">
-            <label for="imageInput">Choose Image</label>
-            <input type="file" id="imageInput" accept="image/*">
-            <div class="file-name" id="fileName">No file chosen</div>
-        </div>
-        
-        
-        <div class="notes-container" id="notesContainer"></div>
-        
-        <button onclick="saveColor()">Save</button>
-        <button onclick="closeColorPicker()">Close</button>
+   <div class="color-picker" id="colorPicker">
+    <div class="selected-date" id="selectedDate"></div>
+    <input type="color" id="colorInput">
+    <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
+    <div class="file-upload">
+        <label for="imageInput">Choose Image</label>
+        <input type="file" id="imageInput" accept="image/*">
+        <div class="file-name" id="fileName">No file chosen</div>
     </div>
+    <input type="color" id="noteDotColorInput" value="#FFFFFF"> <!-- New color input for note dot -->
+    <div class="notes-container" id="notesContainer"></div>
+    <button onclick="saveColor()">Save</button>
+    <button onclick="closeColorPicker()">Close</button>
+</div>
 
-    <script>
-        const container = document.getElementById("container");
-        const colorPicker = document.getElementById("colorPicker");
-        const colorInput = document.getElementById("colorInput");
-        const noteInput = document.getElementById("noteInput");
-        const notesContainer = document.getElementById("notesContainer");
-        const selectedDateElement = document.getElementById("selectedDate");
-        const timeBar = document.getElementById("timeBar");
-        const imageInput = document.getElementById("imageInput");
-        const fileNameElement = document.getElementById("fileName");
-        
-        let currentDayElement = null;
-        let currentDate = null;
-        let hourBoxes = [];
-        let currentHourBox = null;
-        let lastHour = -1; // Track the last hour to detect changes
-        let selectedImage = null;
+   <script>
+    const container = document.getElementById("container");
+    const colorPicker = document.getElementById("colorPicker");
+    const colorInput = document.getElementById("colorInput");
+    const noteInput = document.getElementById("noteInput");
+    const notesContainer = document.getElementById("notesContainer");
+    const selectedDateElement = document.getElementById("selectedDate");
+    const timeBar = document.getElementById("timeBar");
+    const imageInput = document.getElementById("imageInput");
+    const fileNameElement = document.getElementById("fileName");
+    const noteDotColorInput = document.getElementById("noteDotColorInput"); // New note dot color input
+    
+    let currentDayElement = null;
+    let currentDate = null;
+    let hourBoxes = [];
+    let currentHourBox = null;
+    let lastHour = -1; // Track the last hour to detect changes
+    let selectedImage = null;
 
-        // Update file name when image is selected
-        imageInput.addEventListener("change", function() {
-            if (this.files.length > 0) {
-                fileNameElement.textContent = this.files[0].name;
-                readImageFile(this.files[0]);
-            } else {
-                fileNameElement.textContent = "No file chosen";
-                selectedImage = null;
-            }
-        });
-
-        function readImageFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                selectedImage = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Get current date and time
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); // 0-based index
-        const currentDay = now.getDate();
-        
-        function createTimeBar() {
-            timeBar.innerHTML = ""; // Clear existing content
-            hourBoxes = []; // Reset hourBoxes array
-            
-            for (let i = 0; i < 24; i++) {
-                const hourBox = document.createElement("div");
-                hourBox.classList.add("hour-box");
-                
-                const hourText = document.createElement("div");
-                hourText.textContent = i < 10 ? `0${i}` : `${i}`;
-                hourBox.appendChild(hourText);
-                
-                // Add placeholder for the remaining time
-                const timeElement = document.createElement("div");
-                timeElement.classList.add("remaining-time");
-                hourBox.appendChild(timeElement);
-                
-                timeBar.appendChild(hourBox);
-                hourBoxes.push(hourBox);
-            }
-            
-            // Initial update
-            updateTimeDisplay();
-        }
-
-        function updateTimeDisplay() {
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentSecond = now.getSeconds();
-            
-            // Calculate remaining time in current hour
-            const remainingMinutes = 59 - currentMinute;
-            const remainingSeconds = 59 - currentSecond;
-            
-            // Check if hour changed
-            if (currentHour !== lastHour) {
-                // Remove highlight from previous hour
-                if (currentHourBox) {
-                    currentHourBox.classList.remove("current-hour");
-                }
-                
-                // Add highlight to current hour
-                currentHourBox = hourBoxes[currentHour];
-                currentHourBox.classList.add("current-hour");
-                
-                lastHour = currentHour;
-            }
-            
-            // Update the time display in all hour boxes
-            hourBoxes.forEach((box, index) => {
-                const timeElement = box.querySelector(".remaining-time");
-                
-                if (index === currentHour) {
-                    timeElement.textContent = `${remainingMinutes}m ${remainingSeconds}s left`;
-                } else {
-                    timeElement.textContent = "";
-                }
-            });
-            
-            // Schedule next update
-            setTimeout(updateTimeDisplay, 1000);
-        }
-
-        function getDaysInMonth(year, month) {
-            return new Date(year, month + 1, 0).getDate();
-        }
-
-        function getWeekNumber(date) {
-            const startOfYear = new Date(date.getFullYear(), 0, 1);
-            const pastDaysOfYear = (date - startOfYear) / 86400000;
-            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
-        }
-
-        function formatDate(year, month, day) {
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            return `${monthNames[month]} ${day}, ${year}`;
-        }
-
-        function openColorPicker(dayElement, year, month, day) {
-            currentDayElement = dayElement;
-            currentDate = `${year}-${month + 1}-${day}`;
-            
-            // Set selected date
-            selectedDateElement.textContent = formatDate(year, month, day);
-            
-            // Set current color
-            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            const currentColor = colors[currentDate] || "#171814";
-            colorInput.value = currentColor;
-            
-            // Clear notes container and input
-            notesContainer.innerHTML = "";
-            noteInput.value = "";
-            
-            // Reset image input
-            imageInput.value = "";
+    // Update file name when image is selected
+    imageInput.addEventListener("change", function() {
+        if (this.files.length > 0) {
+            fileNameElement.textContent = this.files[0].name;
+            readImageFile(this.files[0]);
+        } else {
             fileNameElement.textContent = "No file chosen";
             selectedImage = null;
-            
-            // Load notes for this date
-            loadNotes(currentDate);
-            
-            colorPicker.style.display = "block";
         }
+    });
 
-        function closeColorPicker() {
-            colorPicker.style.display = "none";
-            currentDayElement = null;
-            currentDate = null;
-        }
+    function readImageFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            selectedImage = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 
-        function saveColor() {
-            const selectedColor = colorInput.value;
-            const note = noteInput.value.trim();
+    // Get current date and time
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-based index
+    const currentDay = now.getDate();
+    
+    function createTimeBar() {
+        timeBar.innerHTML = ""; // Clear existing content
+        hourBoxes = []; // Reset hourBoxes array
+        
+        for (let i = 0; i < 24; i++) {
+            const hourBox = document.createElement("div");
+            hourBox.classList.add("hour-box");
             
-            if (currentDayElement && currentDate) {
-                // Save color
-                currentDayElement.style.backgroundColor = selectedColor;
-                saveColorToLocalStorage(currentDate, selectedColor);
+            const hourText = document.createElement("div");
+            hourText.textContent = i < 10 ? `0${i}` : `${i}`;
+            hourBox.appendChild(hourText);
+            
+            // Add placeholder for the remaining time
+            const timeElement = document.createElement("div");
+            timeElement.classList.add("remaining-time");
+            hourBox.appendChild(timeElement);
+            
+            timeBar.appendChild(hourBox);
+            hourBoxes.push(hourBox);
+        }
+        
+        // Initial update
+        updateTimeDisplay();
+    }
+
+    function updateTimeDisplay() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentSecond = now.getSeconds();
+        
+        // Calculate remaining time in current hour
+        const remainingMinutes = 59 - currentMinute;
+        const remainingSeconds = 59 - currentSecond;
+        
+        // Check if hour changed
+        if (currentHour !== lastHour) {
+            // Remove highlight from previous hour
+            if (currentHourBox) {
+                currentHourBox.classList.remove("current-hour");
+            }
+            
+            // Add highlight to current hour
+            currentHourBox = hourBoxes[currentHour];
+            currentHourBox.classList.add("current-hour");
+            
+            lastHour = currentHour;
+        }
+        
+        // Update the time display in all hour boxes
+        hourBoxes.forEach((box, index) => {
+            const timeElement = box.querySelector(".remaining-time");
+            
+            if (index === currentHour) {
+                timeElement.textContent = `${remainingMinutes}m ${remainingSeconds}s left`;
+            } else {
+                timeElement.textContent = "";
+            }
+        });
+        
+        // Schedule next update
+        setTimeout(updateTimeDisplay, 1000);
+    }
+
+    function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+
+    function getWeekNumber(date) {
+        const startOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date - startOfYear) / 86400000;
+        return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+    }
+
+    function formatDate(year, month, day) {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        return `${monthNames[month]} ${day}, ${year}`;
+    }
+
+    function openColorPicker(dayElement, year, month, day) {
+        currentDayElement = dayElement;
+        currentDate = `${year}-${month + 1}-${day}`;
+        
+        // Set selected date
+        selectedDateElement.textContent = formatDate(year, month, day);
+        
+        // Set current color
+        let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+        const currentColor = colors[currentDate] || "#171814";
+        colorInput.value = currentColor;
+        
+        // Clear notes container and input
+        notesContainer.innerHTML = "";
+        noteInput.value = "";
+        
+        // Reset image input
+        imageInput.value = "";
+        fileNameElement.textContent = "No file chosen";
+        selectedImage = null;
+        
+        // Load notes for this date
+        loadNotes(currentDate);
+        
+        // Load note dot color
+        let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+        const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
+        noteDotColorInput.value = currentNoteDotColor;
+        
+        colorPicker.style.display = "block";
+    }
+
+    function closeColorPicker() {
+        colorPicker.style.display = "none";
+        currentDayElement = null;
+        currentDate = null;
+    }
+
+    function saveColor() {
+        const selectedColor = colorInput.value;
+        const note = noteInput.value.trim();
+        const selectedNoteDotColor = noteDotColorInput.value; // Get selected note dot color
+        
+        if (currentDayElement && currentDate) {
+            // Save color
+            currentDayElement.style.backgroundColor = selectedColor;
+            saveColorToLocalStorage(currentDate, selectedColor);
+            
+            // Save note and/or image if provided
+            if (note || selectedImage) {
+                saveNote(currentDate, note, selectedImage, selectedNoteDotColor); // Pass note dot color
+                noteInput.value = "";
+                imageInput.value = "";
+                fileNameElement.textContent = "No file chosen";
+                selectedImage = null;
+                loadNotes(currentDate);
                 
-                // Save note and/or image if provided
-                if (note || selectedImage) {
-                    saveNote(currentDate, note, selectedImage);
-                    noteInput.value = "";
-                    imageInput.value = "";
-                    fileNameElement.textContent = "No file chosen";
-                    selectedImage = null;
-                    loadNotes(currentDate);
-                    
-                    // Add note dot if not already present
-                    if (!currentDayElement.querySelector('.note-dot')) {
-                        addNoteDot(currentDayElement);
-                    }
-                    
-                    // Add image dot if image was included
-                    if (selectedImage && !currentDayElement.querySelector('.image-note-dot')) {
-                        addImageNoteDot(currentDayElement);
-                    }
+                // Add note dot if not already present
+                if (!currentDayElement.querySelector('.note-dot')) {
+                    addNoteDot(currentDayElement, selectedNoteDotColor); // Pass note dot color
+                }
+                
+                // Add image dot if image was included
+                if (selectedImage && !currentDayElement.querySelector('.image-note-dot')) {
+                    addImageNoteDot(currentDayElement);
                 }
             }
         }
+    }
 
-        function saveColorToLocalStorage(date, color) {
-            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            colors[date] = color;
-            localStorage.setItem("dayColors", JSON.stringify(colors));
+    function saveColorToLocalStorage(date, color) {
+        let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+        colors[date] = color;
+        localStorage.setItem("dayColors", JSON.stringify(colors));
+    }
+
+    function saveNote(date, note, image, noteDotColor) {
+        let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+        
+        if (!notesData[date]) {
+            notesData[date] = [];
         }
+        
+        notesData[date].push({
+            id: Date.now(), // Use timestamp as unique ID
+            text: note,
+            image: image,
+            timestamp: new Date().toISOString(),
+            dotColor: noteDotColor // Save note dot color
+        });
+        
+        localStorage.setItem("dayNotes", JSON.stringify(notesData));
+        
+        // Save note dot color to local storage
+        let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+        noteDotColors[date] = noteDotColor;
+        localStorage.setItem("noteDotColors", JSON.stringify(noteDotColors));
+        
+        // Update all day cells with this date to show note dot
+        updateNoteDots();
+    }
 
-        function saveNote(date, note, image) {
-            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+    function deleteNote(date, noteId) {
+        let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+        
+        if (notesData[date]) {
+            notesData[date] = notesData[date].filter(note => note.id !== noteId);
             
-            if (!notesData[date]) {
-                notesData[date] = [];
+            if (notesData[date].length === 0) {
+                delete notesData[date];
             }
-            
-            notesData[date].push({
-                id: Date.now(), // Use timestamp as unique ID
-                text: note,
-                image: image,
-                timestamp: new Date().toISOString()
-            });
             
             localStorage.setItem("dayNotes", JSON.stringify(notesData));
+            loadNotes(date);
             
-            // Update all day cells with this date to show note dot
+            // Update note dots
             updateNoteDots();
         }
+    }
 
-        function deleteNote(date, noteId) {
-            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
-            
-            if (notesData[date]) {
-                notesData[date] = notesData[date].filter(note => note.id !== noteId);
-                
-                if (notesData[date].length === 0) {
-                    delete notesData[date];
-                }
-                
-                localStorage.setItem("dayNotes", JSON.stringify(notesData));
-                loadNotes(date);
-                
-                // Update note dots
-                updateNoteDots();
-            }
-        }
+    function addNoteDot(dayElement, color) {
+        const dotElement = document.createElement("div");
+        dotElement.classList.add("note-dot");
+        dotElement.style.backgroundColor = color; // Set dot color
+        dayElement.appendChild(dotElement);
+    }
 
-        function addNoteDot(dayElement) {
-            const dotElement = document.createElement("div");
-            dotElement.classList.add("note-dot");
-            dayElement.appendChild(dotElement);
-        }
+    function addImageNoteDot(dayElement) {
+        const dotElement = document.createElement("div");
+        dotElement.classList.add("image-note-dot");
+        dayElement.appendChild(dotElement);
+    }
 
-        function addImageNoteDot(dayElement) {
-            const dotElement = document.createElement("div");
-            dotElement.classList.add("image-note-dot");
-            dayElement.appendChild(dotElement);
-        }
-
-        function updateNoteDots() {
-            // Clear all existing note dots
-            document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
-            document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
-            
-            // Add dots for days with notes
-            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
-            
-            for (const date in notesData) {
-                if (notesData[date] && notesData[date].length > 0) {
-                    const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
-                    dayElements.forEach(dayElement => {
-                        addNoteDot(dayElement);
-                        
-                        // Check if any notes have images
-                        const hasImage = notesData[date].some(note => note.image);
-                        if (hasImage) {
-                            addImageNoteDot(dayElement);
-                        }
-                    });
-                }
-            }
-        }
-
-        function loadNotes(date) {
-            notesContainer.innerHTML = "";
-            
-            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
-            const notes = notesData[date] || [];
-            
-            if (notes.length === 0) {
-                notesContainer.innerHTML = "<p>No notes for this day</p>";
-                return;
-            }
-            
-            notes.forEach(note => {
-                const noteElement = document.createElement("div");
-                noteElement.classList.add("note-item");
-                
-                const deleteButton = document.createElement("button");
-                deleteButton.classList.add("delete-note");
-                deleteButton.innerHTML = "×";
-                deleteButton.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteNote(date, note.id);
-                };
-                
-                // Add note text
-                if (note.text) {
-                    const textElement = document.createElement("div");
-                    textElement.textContent = note.text;
-                    noteElement.appendChild(textElement);
-                }
-                
-                // Add image if exists
-                if (note.image) {
-                    const imageElement = document.createElement("img");
-                    imageElement.src = note.image;
-                    imageElement.classList.add("note-image");
-                    noteElement.appendChild(imageElement);
-                }
-                
-                noteElement.appendChild(deleteButton);
-                notesContainer.appendChild(noteElement);
-            });
-        }
-
-        function loadColorsFromLocalStorage() {
-            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            for (const [date, color] of Object.entries(colors)) {
-                const dayElement = document.querySelector(`[data-date="${date}"]`);
-                if (dayElement) {
-                    dayElement.style.backgroundColor = color;
-                }
-            }
-        }
-
-        function generateYearCards() {
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
-
-            for (let year = 1989; year <= 2089; year++) {
-                const yearCard = document.createElement("div");
-                yearCard.classList.add("year-card");
-
-                const yearHeader = document.createElement("div");
-                yearHeader.classList.add("year-header");
-                yearHeader.textContent = `${year}`; // Removed "Year" text
-                if (year === currentYear) yearHeader.classList.add("highlight");
-
-                yearCard.appendChild(yearHeader);
-
-                for (let month = 0; month < 12; month++) {
-                    const monthDiv = document.createElement("div");
-                    monthDiv.classList.add("month");
-
-                    // Add month name
-                    const monthNameDiv = document.createElement("div");
-                    monthNameDiv.classList.add("month-name");
-                    monthNameDiv.textContent = monthNames[month];
-                    monthDiv.appendChild(monthNameDiv);
-
-                    // Add day names
-                    const weekNumberDiv = document.createElement("div");
-                    weekNumberDiv.classList.add("week-number");
-                    monthDiv.appendChild(weekNumberDiv);
-
-                    dayNames.forEach(day => {
-                        const dayNameDiv = document.createElement("div");
-                        dayNameDiv.classList.add("day-name");
-                        dayNameDiv.textContent = day;
-                        monthDiv.appendChild(dayNameDiv);
-                    });
-
-                    const daysInMonth = getDaysInMonth(year, month);
-                    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Adjust to start week with Monday
-
-                    // Add week number and empty cells for days before the first day of the month
-                    let weekNumber = getWeekNumber(new Date(year, month, 1));
-                    for (let i = 0; i < firstDay; i++) {
-                        if (i === 0) {
-                            const weekNumberDiv = document.createElement("div");
-                            weekNumberDiv.classList.add("week-number");
-                            weekNumberDiv.textContent = weekNumber++;
-                            monthDiv.appendChild(weekNumberDiv);
-                        }
-                        const emptyDiv = document.createElement("div");
-                        emptyDiv.classList.add("day-cell");
-                        monthDiv.appendChild(emptyDiv);
-                    }
-
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        if ((firstDay + day - 1) % 7 === 0) {
-                            const weekNumberDiv = document.createElement("div");
-                            weekNumberDiv.classList.add("week-number");
-                            weekNumberDiv.textContent = weekNumber++;
-                            monthDiv.appendChild(weekNumberDiv);
-                        }
-                        const dayDiv = document.createElement("div");
-                        dayDiv.classList.add("day-cell");
-                        dayDiv.dataset.date = `${year}-${month + 1}-${day}`; // Store date in data attribute
-                        if (year === currentYear && month === currentMonth && day === currentDay) {
-                            dayDiv.classList.add("highlight");
-                            dayDiv.classList.add("current-day-blink"); // Add blinking effect to current day
-                        }
-                        dayDiv.textContent = day;
-                        dayDiv.onclick = () => openColorPicker(dayDiv, year, month, day);
-                        monthDiv.appendChild(dayDiv);
-                    }
-
-                    yearCard.appendChild(monthDiv);
-                }
-
-                container.appendChild(yearCard);
-            }
-
-            loadColorsFromLocalStorage();
-            updateNoteDots(); // Add note dots after generating all cards
-        }
-
-        // Initialize
-        createTimeBar();
-        generateYearCards();
+    function updateNoteDots() {
+        // Clear all existing note dots
+        document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
+        document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
         
-        // Set up dynamic updating
-        updateTimeDisplay();
-    </script>
+        // Add dots for days with notes
+        let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+        
+        for (const date in notesData) {
+            if (notesData[date] && notesData[date].length > 0) {
+                const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
+                dayElements.forEach(dayElement => {
+                    const noteDotColor = notesData[date][0].dotColor || "#FFFFFF"; // Get note dot color
+                    addNoteDot(dayElement, noteDotColor); // Pass note dot color
+                    
+                    // Check if any notes have images
+                    const hasImage = notesData[date].some(note => note.image);
+                    if (hasImage) {
+                        addImageNoteDot(dayElement);
+                    }
+                });
+            }
+        }
+    }
+
+    function loadNotes(date) {
+        notesContainer.innerHTML = "";
+        
+        let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+        const notes = notesData[date] || [];
+        
+        if (notes.length === 0) {
+            notesContainer.innerHTML = "<p>No notes for this day</p>";
+            return;
+        }
+        
+        notes.forEach(note => {
+            const noteElement = document.createElement("div");
+            noteElement.classList.add("note-item");
+            
+            const deleteButton = document.createElement("button");
+            deleteButton.classList.add("delete-note");
+            deleteButton.innerHTML = "×";
+            deleteButton.onclick = (e) => {
+                e.stopPropagation();
+                deleteNote(date, note.id);
+            };
+            
+            // Add note text
+            if (note.text) {
+                const textElement = document.createElement("div");
+                textElement.textContent = note.text;
+                noteElement.appendChild(textElement);
+            }
+            
+            // Add image if exists
+            if (note.image) {
+                const imageElement = document.createElement("img");
+                imageElement.src = note.image;
+                imageElement.classList.add("note-image");
+                noteElement.appendChild(imageElement);
+            }
+            
+            noteElement.appendChild(deleteButton);
+            notesContainer.appendChild(noteElement);
+        });
+    }
+
+    function loadColorsFromLocalStorage() {
+        let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+        for (const [date, color] of Object.entries(colors)) {
+            const dayElement = document.querySelector(`[data-date="${date}"]`);
+            if (dayElement) {
+                dayElement.style.backgroundColor = color;
+            }
+        }
+    }
+
+    function generateYearCards() {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+
+        for (let year = 1989; year <= 2089; year++) {
+            const yearCard = document.createElement("div");
+            yearCard.classList.add("year-card");
+
+            const yearHeader = document.createElement("div");
+            yearHeader.classList.add("year-header");
+            yearHeader.textContent = `${year}`; // Removed "Year" text
+            if (year === currentYear) yearHeader.classList.add("highlight");
+
+            yearCard.appendChild(yearHeader);
+
+            for (let month = 0; month < 12; month++) {
+                const monthDiv = document.createElement("div");
+                monthDiv.classList.add("month");
+
+                // Add month name
+                const monthNameDiv = document.createElement("div");
+                monthNameDiv.classList.add("month-name");
+                monthNameDiv.textContent = monthNames[month];
+                monthDiv.appendChild(monthNameDiv);
+
+                // Add day names
+                const weekNumberDiv = document.createElement("div");
+                weekNumberDiv.classList.add("week-number");
+                monthDiv.appendChild(weekNumberDiv);
+
+                dayNames.forEach(day => {
+                    const dayNameDiv = document.createElement("div");
+                    dayNameDiv.classList.add("day-name");
+                    dayNameDiv.textContent = day;
+                    monthDiv.appendChild(dayNameDiv);
+                });
+
+                const daysInMonth = getDaysInMonth(year, month);
+                const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Adjust to start week with Monday
+
+                // Add week number and empty cells for days before the first day of the month
+                let weekNumber = getWeekNumber(new Date(year, month, 1));
+                for (let i = 0; i < firstDay; i++) {
+                    if (i === 0) {
+                        const weekNumberDiv = document.createElement("div");
+                        weekNumberDiv.classList.add("week-number");
+                        weekNumberDiv.textContent = weekNumber++;
+                        monthDiv.appendChild(weekNumberDiv);
+                    }
+                    const emptyDiv = document.createElement("div");
+                    emptyDiv.classList.add("day-cell");
+                    monthDiv.appendChild(emptyDiv);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    if ((firstDay + day - 1) % 7 === 0) {
+                        const weekNumberDiv = document.createElement("div");
+                        weekNumberDiv.classList.add("week-number");
+                        weekNumberDiv.textContent = weekNumber++;
+                        monthDiv.appendChild(weekNumberDiv);
+                    }
+                    const dayDiv = document.createElement("div");
+                    dayDiv.classList.add("day-cell");
+                    dayDiv.dataset.date = `${year}-${month + 1}-${day}`; // Store date in data attribute
+                    if (year === currentYear && month === currentMonth && day === currentDay) {
+                        dayDiv.classList.add("highlight");
+                        dayDiv.classList.add("current-day-blink"); // Add blinking effect to current day
+                    }
+                    dayDiv.textContent = day;
+                    dayDiv.onclick = () => openColorPicker(dayDiv, year, month, day);
+                    monthDiv.appendChild(dayDiv);
+                }
+
+                yearCard.appendChild(monthDiv);
+            }
+
+            container.appendChild(yearCard);
+        }
+
+        loadColorsFromLocalStorage();
+        updateNoteDots(); // Add note dots after generating all cards
+    }
+
+    // Initialize
+    createTimeBar();
+    generateYearCards();
+    
+    // Set up dynamic updating
+    updateTimeDisplay();
+</script>
 </body>
 </html>
