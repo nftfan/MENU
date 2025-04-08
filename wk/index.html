@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Life Calendar</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+	    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Delivery</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+	  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Delivery</title>
+    
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Personal Delivery">
+    
+    <!-- iOS Icons (Optional, recommended to create your own) -->
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
+    
+    <!-- iOS Splash Screen (Optional, recommended to create your own) -->
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
+    <!-- Add the Web App Manifest (Optional) -->
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <!-- iOS Viewport Adjustment -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remaining Time Today</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random IPTV Channel Viewer</title>
+    <!-- Include Video.js CSS -->
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0d1117;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            padding-top: 80px; /* Space for fixed time bar */
+            padding-bottom: 50px; /* Space for navigation */
+            touch-action: pan-y; /* Enable horizontal swiping */
+            overscroll-behavior-x: contain;
+        }
+        .header {
+            background-color: #333333;
+            color: white;
+            padding: 10px;
+            margin: 0;
+            position: fixed;
+            top: 50px;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .week-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            grid-auto-rows: 1fr;
+            gap: 10px;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .day-card {
+            background-color: #000000;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            aspect-ratio: 1 / 1;
+        }
+        .day-header {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFFFFF;
+            padding: 8px;
+            background-color: #171814;
+        }
+        .day-name {
+            font-size: 12px;
+            color: #4682b4;
+        }
+        .day-number {
+            font-size: 18px;
+            margin-top: 5px;
+        }
+        .day-content {
+            flex: 1;
+            padding: 10px;
+            background-color: #171814;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #969696;
+            position: relative;
+        }
+        .day-content:hover {
+            background-color: #87cefa;
+        }
+        .highlight {
+            background-color: #00a000;
+        }
+        .current-day-blink {
+            animation: blinkBorder 2s infinite;
+        }
+        @keyframes blinkBorder {
+            0% { border: 2px solid transparent; }
+            50% { border: 2px solid #238636; }
+            100% { border: 2px solid transparent; }
+        }
+        .color-picker {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #000000;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            width: 90%;
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .color-picker input[type="color"] {
+            margin: 10px;
+        }
+        .color-picker button {
+            padding: 10px;
+            margin-top: 10px;
+            margin-right: 5px;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .color-picker button:hover {
+            background-color: #5f9ea0;
+        }
+        .note-input {
+            width: 100%;
+            min-height: 80px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #000000;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .time-bar {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333333;
+            padding: 5px 0;
+            z-index: 100;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .time-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .hour-box {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 30px;
+            margin: 0 1px;
+            background-color: #000000;
+            color: #969696;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+        }
+        .current-hour {
+            background-color: #00a000;
+            color: white;
+        }
+        .remaining-time {
+            font-size: 7px;
+            margin-top: 2px;
+        }
+        .notes-container {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .note-item {
+            background-color: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-align: left;
+            position: relative;
+        }
+        .delete-note {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .selected-date {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .note-dot {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+        }
+        .image-note-dot {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background-color: #FF6347;
+            border-radius: 50%;
+        }
+        .note-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .file-upload {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .file-upload label {
+            padding: 8px 12px;
+            background-color: #4682b4;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .file-upload label:hover {
+            background-color: #5f9ea0;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ccc;
+            font-size: 12px;
+        }
+        .week-navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #333333;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            z-index: 99;
+        }
+        .nav-btn {
+            padding: 8px 15px;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .week-info {
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .dot-label {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .dot-sample {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+            display: inline-block;
+        }
+        /* Adjust grid based on screen size */
+        @media (max-width: 480px) {
+            .week-container {
+                grid-template-columns: repeat(2, 1fr); /* 2x4 grid on small screens */
+            }
+        }
+        
+        @media (min-width: 481px) and (max-width: 768px) {
+            .week-container {
+                grid-template-columns: repeat(3, 1fr); /* 3x3 grid on medium screens */
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .week-container {
+                grid-template-columns: repeat(4, 1fr); /* 4x2 grid on larger screens */
+            }
+        }
+        
+        .month-label {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="time-bar" id="timeBar"></div>
+    
+    <div class="header">
+        <button class="nav-btn" id="prevWeekBtn">←</button>
+        <h1 id="weekTitle">Week of April 2, 2025</h1>
+        <button class="nav-btn" id="nextWeekBtn">→</button>
+    </div>
+    
+    <div class="week-container" id="weekContainer"></div>
+    
+    <div class="week-navigation">
+        <div class="dot-label">
+            <span class="dot-sample" style="background-color: #FFFFFF;"></span>
+            <span>Note</span>
+        </div>
+        <div class="dot-label">
+            <span class="dot-sample" style="background-color: #FF6347;"></span>
+            <span>Image</span>
+        </div>
+        <div class="week-info" id="weekInfo">Week 14 of 2025</div>
+    </div>
+
+    <div class="color-picker" id="colorPicker">
+        <div class="selected-date" id="selectedDate"></div>
+        <input type="color" id="colorInput">
+        <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
+        <div class="file-upload">
+            <label for="imageInput">Choose Image</label>
+            <input type="file" id="imageInput" accept="image/*">
+            <div class="file-name" id="fileName">No file chosen</div>
+        </div>
+        <input type="color" id="noteDotColorInput" value="#FFFFFF">
+        <div class="notes-container" id="notesContainer"></div>
+        <button onclick="saveColor()">Save</button>
+        <button onclick="closeColorPicker()">Close</button>
+    </div>
+
+    <script>
+        const weekContainer = document.getElementById("weekContainer");
+        const colorPicker = document.getElementById("colorPicker");
+        const colorInput = document.getElementById("colorInput");
+        const noteInput = document.getElementById("noteInput");
+        const notesContainer = document.getElementById("notesContainer");
+        const selectedDateElement = document.getElementById("selectedDate");
+        const timeBar = document.getElementById("timeBar");
+        const imageInput = document.getElementById("imageInput");
+        const fileNameElement = document.getElementById("fileName");
+        const noteDotColorInput = document.getElementById("noteDotColorInput");
+        const weekTitle = document.getElementById("weekTitle");
+        const weekInfo = document.getElementById("weekInfo");
+        const prevWeekBtn = document.getElementById("prevWeekBtn");
+        const nextWeekBtn = document.getElementById("nextWeekBtn");
+        
+        let currentDayElement = null;
+        let currentDate = null;
+        let hourBoxes = [];
+        let currentHourBox = null;
+        let lastHour = -1;
+        let selectedImage = null;
+        let currentWeekStart = null;
+
+        // Get current date and time
+        const now = new Date();
+        
+        // Initialize week to current week
+        initializeCurrentWeek();
+        
+        // Add swipe detection
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+        
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+        
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+                // Swipe left - next week
+                goToNextWeek();
+            }
+            if (touchEndX > touchStartX + 50) {
+                // Swipe right - previous week
+                goToPrevWeek();
+            }
+        }
+        
+        // Setup navigation buttons
+        prevWeekBtn.addEventListener("click", goToPrevWeek);
+        nextWeekBtn.addEventListener("click", goToNextWeek);
+        
+        function initializeCurrentWeek() {
+            // Find the start of the current week (Monday)
+            const current = new Date();
+            const day = current.getDay();
+            const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+            currentWeekStart = new Date(current.setDate(diff));
+            
+            displayWeek(currentWeekStart);
+        }
+        
+        function goToPrevWeek() {
+            const newStart = new Date(currentWeekStart);
+            newStart.setDate(newStart.getDate() - 7);
+            currentWeekStart = newStart;
+            displayWeek(currentWeekStart);
+        }
+        
+        function goToNextWeek() {
+            const newStart = new Date(currentWeekStart);
+            newStart.setDate(newStart.getDate() + 7);
+            currentWeekStart = newStart;
+            displayWeek(currentWeekStart);
+        }
+        
+        function getWeekNumber(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - startOfYear) / 86400000;
+            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+        }
+        
+        function formatDate(date) {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+        }
+        
+        function displayWeek(startDate) {
+            weekContainer.innerHTML = "";
+            
+            // Update week title and info
+            weekTitle.textContent = `Week of ${formatDate(startDate)}`;
+            const weekNum = getWeekNumber(startDate);
+            weekInfo.textContent = `Week ${weekNum} of ${startDate.getFullYear()}`;
+            
+            const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                
+                const dayCard = document.createElement("div");
+                dayCard.classList.add("day-card");
+                
+                const dayHeader = document.createElement("div");
+                dayHeader.classList.add("day-header");
+                
+                const dayNameElement = document.createElement("div");
+                dayNameElement.classList.add("day-name");
+                dayNameElement.textContent = dayNames[i];
+                dayHeader.appendChild(dayNameElement);
+                
+                const dayNumberElement = document.createElement("div");
+                dayNumberElement.classList.add("day-number");
+                dayNumberElement.textContent = date.getDate();
+                dayHeader.appendChild(dayNumberElement);
+                
+                const monthLabel = document.createElement("div");
+                monthLabel.classList.add("month-label");
+                monthLabel.textContent = monthNames[date.getMonth()];
+                dayHeader.appendChild(monthLabel);
+                
+                dayCard.appendChild(dayHeader);
+                
+                const dayContent = document.createElement("div");
+                dayContent.classList.add("day-content");
+                dayContent.dataset.date = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+                
+                // Highlight current day
+                const currentDate = new Date();
+                if (date.getDate() === currentDate.getDate() && 
+                    date.getMonth() === currentDate.getMonth() && 
+                    date.getFullYear() === currentDate.getFullYear()) {
+                    dayContent.classList.add("highlight");
+                    dayContent.classList.add("current-day-blink");
+                }
+                
+                dayContent.onclick = () => openColorPicker(dayContent, date.getFullYear(), date.getMonth(), date.getDate());
+                dayCard.appendChild(dayContent);
+                
+                weekContainer.appendChild(dayCard);
+            }
+            
+            // Make grid items square regardless of screen size
+            adjustDayCardHeight();
+            
+            loadColorsFromLocalStorage();
+            updateNoteDots();
+        }
+        
+        function adjustDayCardHeight() {
+            // This runs after the grid is created to maintain the aspect ratio
+            const dayCards = document.querySelectorAll('.day-card');
+            window.requestAnimationFrame(() => {
+                dayCards.forEach(card => {
+                    // Just let CSS handle this with aspect-ratio property
+                });
+            });
+        }
+        
+        // Handle window resize to keep squares proportional
+        window.addEventListener('resize', adjustDayCardHeight);
+        
+        // Update file name when image is selected
+        imageInput.addEventListener("change", function() {
+            if (this.files.length > 0) {
+                fileNameElement.textContent = this.files[0].name;
+                readImageFile(this.files[0]);
+            } else {
+                fileNameElement.textContent = "No file chosen";
+                selectedImage = null;
+            }
+        });
+
+        function readImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedImage = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function createTimeBar() {
+            timeBar.innerHTML = "";
+            hourBoxes = [];
+            
+            for (let i = 0; i < 24; i++) {
+                const hourBox = document.createElement("div");
+                hourBox.classList.add("hour-box");
+                
+                const hourText = document.createElement("div");
+                hourText.textContent = i < 10 ? `0${i}` : `${i}`;
+                hourBox.appendChild(hourText);
+                
+                const timeElement = document.createElement("div");
+                timeElement.classList.add("remaining-time");
+                hourBox.appendChild(timeElement);
+                
+                timeBar.appendChild(hourBox);
+                hourBoxes.push(hourBox);
+            }
+            
+            updateTimeDisplay();
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+            
+            const remainingMinutes = 59 - currentMinute;
+            const remainingSeconds = 59 - currentSecond;
+            
+            if (currentHour !== lastHour) {
+                if (currentHourBox) {
+                    currentHourBox.classList.remove("current-hour");
+                }
+                
+                currentHourBox = hourBoxes[currentHour];
+                currentHourBox.classList.add("current-hour");
+                
+                // Auto-scroll to current hour
+                timeBar.scrollLeft = Math.max(0, (currentHour * 42) - 100);
+                
+                lastHour = currentHour;
+            }
+            
+            hourBoxes.forEach((box, index) => {
+                const timeElement = box.querySelector(".remaining-time");
+                
+                if (index === currentHour) {
+                    timeElement.textContent = `${remainingMinutes}m ${remainingSeconds}s`;
+                } else {
+                    timeElement.textContent = "";
+                }
+            });
+            
+            setTimeout(updateTimeDisplay, 1000);
+        }
+
+        function openColorPicker(dayElement, year, month, day) {
+            currentDayElement = dayElement;
+            currentDate = `${year}-${month + 1}-${day}`;
+            
+            selectedDateElement.textContent = formatDate(new Date(year, month, day));
+            
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            const currentColor = colors[currentDate] || "#171814";
+            colorInput.value = currentColor;
+            
+            notesContainer.innerHTML = "";
+            noteInput.value = "";
+            
+            imageInput.value = "";
+            fileNameElement.textContent = "No file chosen";
+            selectedImage = null;
+            
+            loadNotes(currentDate);
+            
+            let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+            const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
+            noteDotColorInput.value = currentNoteDotColor;
+            
+            colorPicker.style.display = "block";
+        }
+
+        function closeColorPicker() {
+            colorPicker.style.display = "none";
+            currentDayElement = null;
+            currentDate = null;
+        }
+
+        function saveColor() {
+            const selectedColor = colorInput.value;
+            const note = noteInput.value.trim();
+            const selectedNoteDotColor = noteDotColorInput.value;
+            
+            if (currentDayElement && currentDate) {
+                currentDayElement.style.backgroundColor = selectedColor;
+                saveColorToLocalStorage(currentDate, selectedColor);
+                
+                if (note || selectedImage) {
+                    saveNote(currentDate, note, selectedImage, selectedNoteDotColor);
+                    noteInput.value = "";
+                    imageInput.value = "";
+                    fileNameElement.textContent = "No file chosen";
+                    selectedImage = null;
+                    loadNotes(currentDate);
+                    
+                    if (!currentDayElement.querySelector('.note-dot')) {
+                        addNoteDot(currentDayElement, selectedNoteDotColor);
+                    }
+                    
+                    if (selectedImage && !currentDayElement.querySelector('.image-note-dot')) {
+                        addImageNoteDot(currentDayElement);
+                    }
+                }
+            }
+        }
+
+        function saveColorToLocalStorage(date, color) {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            colors[date] = color;
+            localStorage.setItem("dayColors", JSON.stringify(colors));
+        }
+
+        function saveNote(date, note, image, noteDotColor) {
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            if (!notesData[date]) {
+                notesData[date] = [];
+            }
+            
+            notesData[date].push({
+                id: Date.now(),
+                text: note,
+                image: image,
+                timestamp: new Date().toISOString(),
+                dotColor: noteDotColor
+            });
+            
+            localStorage.setItem("dayNotes", JSON.stringify(notesData));
+            
+            let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+            noteDotColors[date] = noteDotColor;
+            localStorage.setItem("noteDotColors", JSON.stringify(noteDotColors));
+            
+            updateNoteDots();
+        }
+
+        function deleteNote(date, noteId) {
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            if (notesData[date]) {
+                notesData[date] = notesData[date].filter(note => note.id !== noteId);
+                
+                if (notesData[date].length === 0) {
+                    delete notesData[date];
+                }
+                
+                localStorage.setItem("dayNotes", JSON.stringify(notesData));
+                loadNotes(date);
+                
+                updateNoteDots();
+            }
+        }
+
+        function addNoteDot(dayElement, color) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("note-dot");
+            dotElement.style.backgroundColor = color;
+            dayElement.appendChild(dotElement);
+        }
+
+        function addImageNoteDot(dayElement) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("image-note-dot");
+            dayElement.appendChild(dotElement);
+        }
+
+        function updateNoteDots() {
+            document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
+            document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
+            
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            
+            for (const date in notesData) {
+                if (notesData[date] && notesData[date].length > 0) {
+                    const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
+                    dayElements.forEach(dayElement => {
+                        const noteDotColor = notesData[date][0].dotColor || "#FFFFFF";
+                        addNoteDot(dayElement, noteDotColor);
+                        
+                        const hasImage = notesData[date].some(note => note.image);
+                        if (hasImage) {
+                            addImageNoteDot(dayElement);
+                        }
+                    });
+                }
+            }
+        }
+
+        function loadNotes(date) {
+            notesContainer.innerHTML = "";
+            
+            let notesData = JSON.parse(localStorage.getItem("dayNotes")) || {};
+            const notes = notesData[date] || [];
+            
+            if (notes.length === 0) {
+                notesContainer.innerHTML = "<p>No notes for this day</p>";
+                return;
+            }
+            
+            notes.forEach(note => {
+                const noteElement = document.createElement("div");
+                noteElement.classList.add("note-item");
+                
+                const deleteButton = document.createElement("button");
+                deleteButton.classList.add("delete-note");
+                deleteButton.innerHTML = "×";
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteNote(date, note.id);
+                };
+                
+                if (note.text) {
+                    const textElement = document.createElement("div");
+                    textElement.textContent = note.text;
+                    noteElement.appendChild(textElement);
+                }
+                
+                if (note.image) {
+                    const imageElement = document.createElement("img");
+                    imageElement.src = note.image;
+                    imageElement.classList.add("note-image");
+                    noteElement.appendChild(imageElement);
+                }
+                
+                noteElement.appendChild(deleteButton);
+                notesContainer.appendChild(noteElement);
+            });
+        }
+
+        function loadColorsFromLocalStorage() {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            for (const [date, color] of Object.entries(colors)) {
+                const dayElement = document.querySelector(`[data-date="${date}"]`);
+                if (dayElement) {
+                    dayElement.style.backgroundColor = color;
+                }
+            }
+        }
+
+        // Initialize
+        createTimeBar();
+        
+        // Scroll timebar to current hour
+        setTimeout(() => {
+            const currentHour = new Date().getHours();
+            timeBar.scrollLeft = Math.max(0, (currentHour * 42) - 100);
+        }, 100);
+    </script>
+</body>
+</html>
