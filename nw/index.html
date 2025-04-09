@@ -4,22 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>News Search</title>
-      <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Personal News</title>
     
-    <!-- iOS Web App Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Personal News">
-    
-    <!-- iOS Icons -->
-    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
-    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
-    
-    <!-- Web App Manifest -->
-    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -81,16 +66,38 @@
             border-bottom: 1px solid #333333;
             font-size: 14px;
             color: #E0E0E0;
+            display: flex;
+            align-items: flex-start;
         }
 
-        .news-link {
+        .unread-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #1E90FF;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .read {
+            display: none;
+        }
+        
+        .news-title {
             text-decoration: none;
             color: #e3e3e3;
-            display: block;
-            width: 100%;
+            flex-grow: 1;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .news-title.read-status {
+            font-weight: normal;
         }
 
-        .news-link:hover {
+        .news-title:hover {
             color: #FFFFFF;
         }
 
@@ -99,11 +106,95 @@
             text-align: center;
             margin-top: 10px;
         }
+        
+        /* Modal Popup */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: #121212;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            color: #E0E0E0;
+        }
+        
+        .modal-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #FFFFFF;
+            font-size: 18px;
+        }
+        
+        .modal-description {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .modal-source {
+            font-size: 12px;
+            color: #AAAAAA;
+            margin-bottom: 10px;
+        }
+        
+        .modal-date {
+            font-size: 12px;
+            color: #AAAAAA;
+            margin-bottom: 20px;
+        }
+        
+        .read-more-btn {
+            background-color: #1E90FF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin-right: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .close-btn {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: flex-start;
+        }
 
         /* Media Queries */
         @media (max-width: 600px) {
             .custom-input input {
                 font-size: 12px;
+            }
+            .modal-content {
+                margin: 20% auto;
+                width: 90%;
             }
         }
     </style>
@@ -118,6 +209,20 @@
         <div id="error" class="error"></div>
         <div id="results"></div>
     </div>
+    
+    <!-- Modal Popup for News Details -->
+    <div id="newsModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="modal-title"></h2>
+            <div id="modalSource" class="modal-source"></div>
+            <div id="modalDate" class="modal-date"></div>
+            <div id="modalDescription" class="modal-description"></div>
+            <div class="button-container">
+                <a id="readMoreLink" class="read-more-btn" target="_blank">Read More</a>
+                <button id="closeModal" class="close-btn">Close</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -126,6 +231,29 @@
                 const customCategory = document.getElementById('custom-category').value.trim();
                 if (customCategory) {
                     loadCategory(customCategory);
+                }
+            });
+
+            // Add event listener for Enter key in search input
+            document.getElementById('custom-category').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const customCategory = document.getElementById('custom-category').value.trim();
+                    if (customCategory) {
+                        loadCategory(customCategory);
+                    }
+                }
+            });
+            
+            // Modal close button
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('newsModal').style.display = 'none';
+            });
+            
+            // Close modal when clicking outside of it
+            window.addEventListener('click', (e) => {
+                const modal = document.getElementById('newsModal');
+                if (e.target === modal) {
+                    modal.style.display = 'none';
                 }
             });
         });
@@ -162,22 +290,66 @@
                 const item = items[i];
                 const title = item.querySelector("title").textContent;
                 const link = item.querySelector("link").textContent;
+                const description = item.querySelector("description") ? item.querySelector("description").textContent : "No description available";
+                const pubDate = item.querySelector("pubDate") ? item.querySelector("pubDate").textContent : "";
+                const source = item.querySelector("source") ? item.querySelector("source").textContent : "Unknown Source";
 
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
                 
-                const anchor = document.createElement("a");
-                anchor.href = link;
-                anchor.className = "news-link";
-                anchor.target = "_blank";
-                anchor.textContent = title;
+                // Create unread indicator (blue dot)
+                const unreadDot = document.createElement("span");
+                unreadDot.className = "unread-dot";
                 
-                cell.appendChild(anchor);
+                // Add click event to make the dot disappear
+                unreadDot.addEventListener('click', function(e) {
+                    this.classList.add('read');
+                    const titleElement = cell.querySelector('.news-title');
+                    titleElement.classList.add('read-status');
+                    e.stopPropagation();
+                });
+                
+                // Create title element
+                const titleElement = document.createElement("span");
+                titleElement.className = "news-title";
+                titleElement.textContent = title;
+                titleElement.dataset.link = link;
+                titleElement.dataset.description = description;
+                titleElement.dataset.pubDate = pubDate;
+                titleElement.dataset.source = source;
+                
+                // Add click event to show popup with details
+                titleElement.addEventListener('click', function() {
+                    // Mark as read
+                    unreadDot.classList.add('read');
+                    this.classList.add('read-status');
+                    
+                    // Show modal with details
+                    showNewsDetails(this.textContent, this.dataset.description, this.dataset.link, this.dataset.source, this.dataset.pubDate);
+                });
+                
+                cell.appendChild(unreadDot);
+                cell.appendChild(titleElement);
                 row.appendChild(cell);
                 table.appendChild(row);
             }
             
             resultsContainer.appendChild(table);
+        }
+        
+        function showNewsDetails(title, description, link, source, pubDate) {
+            // Format the description - remove HTML tags if present
+            description = description.replace(/<[^>]*>/g, '');
+            
+            // Set modal content
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalSource').textContent = `Source: ${source}`;
+            document.getElementById('modalDate').textContent = `Published: ${pubDate}`;
+            document.getElementById('modalDescription').textContent = description;
+            document.getElementById('readMoreLink').href = link;
+            
+            // Show modal
+            document.getElementById('newsModal').style.display = 'block';
         }
 
         async function loadCategory(category) {
