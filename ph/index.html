@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Photo Gallery</title>
+	  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Personal News</title>
+    
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Personal News">
+    
+    <!-- iOS Icons -->
+    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000000;
+            color: #E0E0E0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .upload-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .upload-container input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333333;
+            background-color: #1A1A1A;
+            color: #FFFFFF;
+            font-size: 14px;
+        }
+
+        .upload-container button {
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #333333;
+            background-color: #1A1A1A;
+            color: #FFFFFF;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .upload-container button:hover {
+            background-color: #333333;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 5px;
+            width: 100%;
+            flex-grow: 1;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .gallery-item {
+            width: 100%;
+            aspect-ratio: 1;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid #333333;
+            background-color: #1A1A1A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .full-screen-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+        }
+
+        .full-screen-view img {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .full-screen-view button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #CF6679;
+            border: none;
+            border-radius: 5px;
+            color: #FFFFFF;
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .full-screen-view button:hover {
+            background-color: #E57373;
+        }
+
+        /* Media Queries */
+        @media (max-width: 600px) {
+            .upload-container input {
+                font-size: 12px;
+            }
+
+            .upload-container button {
+                font-size: 12px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <input type="file" id="photo-upload" accept="image/*">
+        <button id="upload-button">Upload</button>
+    </div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+    <div class="full-screen-view" id="full-screen-view">
+        <button id="close-view">Close</button>
+        <img id="full-screen-img" src="" alt="Full View">
+    </div>
+
+    <script>
+        const galleryGrid = document.getElementById("gallery-grid");
+        const uploadButton = document.getElementById("upload-button");
+        const photoUpload = document.getElementById("photo-upload");
+        const fullScreenView = document.getElementById("full-screen-view");
+        const fullScreenImg = document.getElementById("full-screen-img");
+        const closeViewButton = document.getElementById("close-view");
+
+        // Load photos from localStorage
+        document.addEventListener("DOMContentLoaded", () => {
+            loadPhotos();
+
+            // Upload button event listener
+            uploadButton.addEventListener("click", () => {
+                const file = photoUpload.files[0];
+                if (file && file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const photoData = event.target.result;
+                        savePhoto(photoData);
+                        photoUpload.value = ''; // Clear file input
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert("Please upload a valid image file.");
+                }
+            });
+
+            // Close full-screen view
+            closeViewButton.addEventListener("click", () => {
+                fullScreenView.style.display = "none";
+            });
+        });
+
+        // Function to save photo to localStorage
+        function savePhoto(data) {
+            const photos = JSON.parse(localStorage.getItem("photos")) || [];
+            photos.push(data);
+            localStorage.setItem("photos", JSON.stringify(photos));
+            loadPhotos();
+        }
+
+        // Function to load photos from localStorage
+        function loadPhotos() {
+            galleryGrid.innerHTML = "";
+            const photos = JSON.parse(localStorage.getItem("photos")) || [];
+            photos.forEach((photo, index) => {
+                const photoItem = document.createElement("div");
+                photoItem.className = "gallery-item";
+
+                const img = document.createElement("img");
+                img.src = photo;
+                img.alt = `Photo ${index + 1}`;
+                img.addEventListener("click", () => {
+                    openFullScreenView(photo);
+                });
+
+                photoItem.appendChild(img);
+                galleryGrid.appendChild(photoItem);
+            });
+        }
+
+        // Function to open full-screen view
+        function openFullScreenView(photo) {
+            fullScreenImg.src = photo;
+            fullScreenView.style.display = "flex";
+        }
+    </script>
+</body>
+</html>
