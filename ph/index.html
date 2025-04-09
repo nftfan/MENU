@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Photo Gallery</title>
-	  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Personal News</title>
     
     <!-- iOS Web App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Personal News">
+    <meta name="apple-mobile-web-app-title" content="Personal Photos">
     
     <!-- iOS Icons -->
     <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
@@ -33,6 +30,19 @@
             justify-content: flex-start;
             height: 100vh;
             overflow: hidden;
+        }
+
+        .header {
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            background-color: #1A1A1A;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
         }
 
         .upload-container {
@@ -86,7 +96,7 @@
             width: 100%;
             aspect-ratio: 1;
             overflow: hidden;
-            cursor: pointer;
+            position: relative;
             border: 1px solid #333333;
             background-color: #1A1A1A;
             display: flex;
@@ -98,6 +108,29 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            cursor: pointer;
+        }
+
+        .delete-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(207, 102, 121, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .delete-button:hover {
+            background-color: rgba(229, 115, 115, 1);
         }
 
         .full-screen-view {
@@ -136,6 +169,30 @@
             background-color: #E57373;
         }
 
+        .error-message {
+            color: #CF6679;
+            text-align: center;
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+            max-width: 800px;
+            display: none;
+        }
+
+        .clear-all {
+            margin-top: 10px;
+            background-color: #CF6679;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .clear-all:hover {
+            background-color: #E57373;
+        }
+
         /* Media Queries */
         @media (max-width: 600px) {
             .upload-container input {
@@ -153,11 +210,21 @@
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>Photo Gallery</h1>
+    </div>
+    
     <div class="upload-container">
-        <input type="file" id="photo-upload" accept="image/*">
+        <input type="file" id="photo-upload" accept="image/*" capture="camera">
         <button id="upload-button">Upload</button>
     </div>
+    
+    <div id="error-message" class="error-message"></div>
+    
     <div class="gallery-grid" id="gallery-grid"></div>
+    
+    <button id="clear-all" class="clear-all">Clear All Photos</button>
+    
     <div class="full-screen-view" id="full-screen-view">
         <button id="close-view">Close</button>
         <img id="full-screen-img" src="" alt="Full View">
@@ -170,7 +237,13 @@
         const fullScreenView = document.getElementById("full-screen-view");
         const fullScreenImg = document.getElementById("full-screen-img");
         const closeViewButton = document.getElementById("close-view");
-
+        const errorMessage = document.getElementById("error-message");
+        const clearAllButton = document.getElementById("clear-all");
+        
+        // Constants
+        const MAX_PHOTO_SIZE = 800; // Max dimension in pixels
+        const STORAGE_KEY = "photoGallery";
+        
         // Load photos from localStorage
         document.addEventListener("DOMContentLoaded", () => {
             loadPhotos();
@@ -179,15 +252,9 @@
             uploadButton.addEventListener("click", () => {
                 const file = photoUpload.files[0];
                 if (file && file.type.startsWith("image/")) {
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        const photoData = event.target.result;
-                        savePhoto(photoData);
-                        photoUpload.value = ''; // Clear file input
-                    };
-                    reader.readAsDataURL(file);
+                    processImage(file);
                 } else {
-                    alert("Please upload a valid image file.");
+                    showError("Please select a valid image file.");
                 }
             });
 
@@ -195,40 +262,173 @@
             closeViewButton.addEventListener("click", () => {
                 fullScreenView.style.display = "none";
             });
+            
+            // Clear all photos
+            clearAllButton.addEventListener("click", () => {
+                if (confirm("Are you sure you want to delete all photos?")) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    loadPhotos();
+                }
+            });
         });
 
-        // Function to save photo to localStorage
+        // Process image before saving
+        function processImage(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Resize image if needed
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Calculate new dimensions to maintain aspect ratio
+                    if (width > height && width > MAX_PHOTO_SIZE) {
+                        height = Math.round(height * (MAX_PHOTO_SIZE / width));
+                        width = MAX_PHOTO_SIZE;
+                    } else if (height > MAX_PHOTO_SIZE) {
+                        width = Math.round(width * (MAX_PHOTO_SIZE / height));
+                        height = MAX_PHOTO_SIZE;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to more efficient format
+                    const quality = 0.7;  // Adjust quality to balance size and quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    
+                    try {
+                        savePhoto(dataUrl);
+                        photoUpload.value = ''; // Clear file input
+                        hideError();
+                    } catch (err) {
+                        console.error("Error saving photo:", err);
+                        showError("Failed to save photo. Storage might be full.");
+                    }
+                };
+                img.onerror = function() {
+                    showError("Failed to process image. Please try another file.");
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                showError("Failed to read file. Please try again.");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Function to save photo to localStorage using chunked storage
         function savePhoto(data) {
-            const photos = JSON.parse(localStorage.getItem("photos")) || [];
-            photos.push(data);
-            localStorage.setItem("photos", JSON.stringify(photos));
-            loadPhotos();
+            try {
+                const timestamp = new Date().getTime();
+                const newPhoto = {
+                    id: timestamp,
+                    data: data
+                };
+                
+                const photos = getPhotos();
+                photos.push(newPhoto);
+                setPhotos(photos);
+                loadPhotos();
+            } catch (error) {
+                console.error("Error in savePhoto:", error);
+                throw error;
+            }
+        }
+        
+        // Get photos from storage
+        function getPhotos() {
+            try {
+                const photosJson = localStorage.getItem(STORAGE_KEY);
+                return photosJson ? JSON.parse(photosJson) : [];
+            } catch (error) {
+                console.error("Error getting photos:", error);
+                return [];
+            }
+        }
+        
+        // Set photos to storage
+        function setPhotos(photos) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(photos));
+            } catch (error) {
+                console.error("Error setting photos:", error);
+                throw error;
+            }
         }
 
         // Function to load photos from localStorage
         function loadPhotos() {
             galleryGrid.innerHTML = "";
-            const photos = JSON.parse(localStorage.getItem("photos")) || [];
-            photos.forEach((photo, index) => {
-                const photoItem = document.createElement("div");
-                photoItem.className = "gallery-item";
+            const photos = getPhotos();
+            
+            if (photos.length === 0) {
+                galleryGrid.innerHTML = "<div style='grid-column: span 3; text-align: center; padding: 20px;'>No photos yet. Upload some!</div>";
+            } else {
+                photos.forEach((photo) => {
+                    const photoItem = document.createElement("div");
+                    photoItem.className = "gallery-item";
 
-                const img = document.createElement("img");
-                img.src = photo;
-                img.alt = `Photo ${index + 1}`;
-                img.addEventListener("click", () => {
-                    openFullScreenView(photo);
+                    const img = document.createElement("img");
+                    img.src = photo.data;
+                    img.alt = `Photo`;
+                    img.addEventListener("click", () => {
+                        openFullScreenView(photo.data);
+                    });
+
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.className = "delete-button";
+                    deleteBtn.innerHTML = "×";
+                    deleteBtn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        deletePhoto(photo.id);
+                    });
+
+                    photoItem.appendChild(img);
+                    photoItem.appendChild(deleteBtn);
+                    galleryGrid.appendChild(photoItem);
                 });
+            }
+        }
 
-                photoItem.appendChild(img);
-                galleryGrid.appendChild(photoItem);
-            });
+        // Function to delete photo
+        function deletePhoto(photoId) {
+            if (confirm("Delete this photo?")) {
+                try {
+                    const photos = getPhotos();
+                    const updatedPhotos = photos.filter(photo => photo.id !== photoId);
+                    setPhotos(updatedPhotos);
+                    loadPhotos();
+                } catch (error) {
+                    console.error("Error deleting photo:", error);
+                    showError("Failed to delete photo.");
+                }
+            }
         }
 
         // Function to open full-screen view
-        function openFullScreenView(photo) {
-            fullScreenImg.src = photo;
+        function openFullScreenView(photoData) {
+            fullScreenImg.src = photoData;
             fullScreenView.style.display = "flex";
+        }
+        
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = "block";
+            setTimeout(() => {
+                errorMessage.style.display = "none";
+            }, 5000);
+        }
+        
+        // Hide error message
+        function hideError() {
+            errorMessage.style.display = "none";
         }
     </script>
 </body>
