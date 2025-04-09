@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>News Search</title>
-      <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Personal News</title>
     
     <!-- iOS Web App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -71,6 +68,30 @@
             cursor: pointer;
         }
 
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            margin: 15px 0;
+            border-bottom: 1px solid #333333;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background-color: #1A1A1A;
+            border: 1px solid #333333;
+            border-bottom: none;
+            color: #AAAAAA;
+        }
+
+        .tab.active {
+            background-color: #222222;
+            color: #FFFFFF;
+            border-bottom: 2px solid #1E90FF;
+        }
+
         .news-table {
             width: 100%;
             border-collapse: collapse;
@@ -116,6 +137,20 @@
             color: #FFFFFF;
         }
 
+        /* Bookmark indicator */
+        .bookmark-icon {
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            color: gold;
+            flex-shrink: 0;
+            display: none;
+        }
+        
+        .bookmarked .bookmark-icon {
+            display: inline-block;
+        }
+
         .error {
             color: #CF6679;
             text-align: center;
@@ -150,7 +185,7 @@
             margin-top: 0;
             margin-bottom: 15px;
             color: #FFFFFF;
-            font-size: 28px;
+            font-size: 18px;
         }
         
         .modal-description {
@@ -170,7 +205,14 @@
             margin-bottom: 20px;
         }
         
-        .read-more-btn {
+        .button-container {
+            display: flex;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .read-more-btn, .bookmark-btn {
             background-color: #1E90FF;
             color: white;
             border: none;
@@ -179,9 +221,13 @@
             text-decoration: none;
             display: inline-block;
             font-size: 14px;
-            margin-right: 10px;
             cursor: pointer;
             border-radius: 4px;
+        }
+        
+        .bookmark-btn.active {
+            background-color: gold;
+            color: #000;
         }
         
         .close-btn {
@@ -196,10 +242,13 @@
             cursor: pointer;
             border-radius: 4px;
         }
-        
-        .button-container {
-            display: flex;
-            justify-content: flex-start;
+
+        /* No bookmarks message */
+        .no-bookmarks {
+            text-align: center;
+            margin-top: 40px;
+            color: #AAAAAA;
+            font-style: italic;
         }
 
         /* Media Queries */
@@ -211,6 +260,13 @@
                 margin: 20% auto;
                 width: 90%;
             }
+            .button-container {
+                flex-direction: column;
+            }
+            .tab {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
         }
     </style>
 </head>
@@ -221,8 +277,16 @@
             <button id="custom-search">Search</button>
         </div>
         
+        <div class="tabs">
+            <div class="tab active" id="searchTab">Search Results</div>
+            <div class="tab" id="bookmarksTab">Bookmarks</div>
+        </div>
+        
         <div id="error" class="error"></div>
         <div id="results"></div>
+        <div id="bookmarksContainer" style="display: none;">
+            <div id="bookmarksList"></div>
+        </div>
     </div>
     
     <!-- Modal Popup for News Details -->
@@ -234,18 +298,29 @@
             <div id="modalDescription" class="modal-description"></div>
             <div class="button-container">
                 <a id="readMoreLink" class="read-more-btn" target="_blank">Read More</a>
+                <button id="bookmarkBtn" class="bookmark-btn">Bookmark</button>
                 <button id="closeModal" class="close-btn">Close</button>
             </div>
         </div>
     </div>
 
     <script>
+        // Store current news item globally
+        let currentNewsItem = null;
+        // Initialize bookmarks from localStorage
+        let bookmarks = [];
+        
         document.addEventListener("DOMContentLoaded", () => {
-            // Set up event listener for custom search
+            // Load bookmarks from localStorage
+            bookmarks = JSON.parse(localStorage.getItem('newsBookmarks')) || [];
+            
+            // Set up event listener for search button
             document.getElementById('custom-search').addEventListener('click', () => {
                 const customCategory = document.getElementById('custom-category').value.trim();
                 if (customCategory) {
                     loadCategory(customCategory);
+                    // Switch to search tab
+                    switchTab('searchTab');
                 }
             });
 
@@ -255,14 +330,25 @@
                     const customCategory = document.getElementById('custom-category').value.trim();
                     if (customCategory) {
                         loadCategory(customCategory);
+                        // Switch to search tab
+                        switchTab('searchTab');
                     }
                 }
             });
             
-            // Modal close button
+            // Tab switching
+            document.getElementById('searchTab').addEventListener('click', () => switchTab('searchTab'));
+            document.getElementById('bookmarksTab').addEventListener('click', () => {
+                switchTab('bookmarksTab');
+                displayBookmarks();
+            });
+            
+            // Modal events
             document.getElementById('closeModal').addEventListener('click', () => {
                 document.getElementById('newsModal').style.display = 'none';
             });
+            
+            document.getElementById('bookmarkBtn').addEventListener('click', toggleBookmark);
             
             // Close modal when clicking outside of it
             window.addEventListener('click', (e) => {
@@ -272,6 +358,116 @@
                 }
             });
         });
+        
+        // Function to switch tabs
+        function switchTab(tabId) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Add active class to selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            if (tabId === 'searchTab') {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('bookmarksContainer').style.display = 'none';
+            } else {
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('bookmarksContainer').style.display = 'block';
+            }
+        }
+        
+        // Bookmark functionality
+        function toggleBookmark() {
+            if (!currentNewsItem) return;
+            
+            const bookmarkBtn = document.getElementById('bookmarkBtn');
+            const isCurrentlyBookmarked = bookmarks.some(b => b.link === currentNewsItem.link);
+            
+            if (isCurrentlyBookmarked) {
+                // Remove from bookmarks
+                bookmarks = bookmarks.filter(b => b.link !== currentNewsItem.link);
+                bookmarkBtn.textContent = 'Bookmark';
+                bookmarkBtn.classList.remove('active');
+            } else {
+                // Add to bookmarks
+                bookmarks.push(currentNewsItem);
+                bookmarkBtn.textContent = 'Bookmarked';
+                bookmarkBtn.classList.add('active');
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('newsBookmarks', JSON.stringify(bookmarks));
+            
+            // Update bookmark icons in the current view
+            updateBookmarkIcons();
+        }
+        
+        function updateBookmarkIcons() {
+            // Update the bookmark icons in the current view
+            const newsItems = document.querySelectorAll('.news-title');
+            newsItems.forEach(item => {
+                const isBookmarked = bookmarks.some(b => b.link === item.dataset.link);
+                if (isBookmarked) {
+                    item.parentElement.classList.add('bookmarked');
+                } else {
+                    item.parentElement.classList.remove('bookmarked');
+                }
+            });
+        }
+        
+        function displayBookmarks() {
+            const bookmarksContainer = document.getElementById('bookmarksList');
+            bookmarksContainer.innerHTML = '';
+            
+            if (bookmarks.length === 0) {
+                bookmarksContainer.innerHTML = '<div class="no-bookmarks">No bookmarked articles yet</div>';
+                return;
+            }
+            
+            // Create table for bookmarked news
+            const table = document.createElement("table");
+            table.className = "news-table";
+            
+            bookmarks.forEach(item => {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.className = "bookmarked";
+                
+                // Create title element
+                const titleElement = document.createElement("span");
+                titleElement.className = "news-title";
+                titleElement.textContent = item.title;
+                titleElement.dataset.link = item.link;
+                titleElement.dataset.description = item.description;
+                titleElement.dataset.pubDate = item.pubDate;
+                titleElement.dataset.source = item.source;
+                
+                // Add bookmark icon
+                const bookmarkIcon = document.createElement("span");
+                bookmarkIcon.className = "bookmark-icon";
+                bookmarkIcon.innerHTML = "★";
+                
+                // Add click event for title
+                titleElement.addEventListener('click', function() {
+                    showNewsDetails(
+                        this.textContent, 
+                        this.dataset.description, 
+                        this.dataset.link, 
+                        this.dataset.source, 
+                        this.dataset.pubDate
+                    );
+                });
+                
+                cell.appendChild(titleElement);
+                cell.appendChild(bookmarkIcon);
+                row.appendChild(cell);
+                table.appendChild(row);
+            });
+            
+            bookmarksContainer.appendChild(table);
+        }
 
         async function fetchRSSFeed(category) {
             try {
@@ -312,6 +508,12 @@
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
                 
+                // Check if this article is bookmarked
+                const isBookmarked = bookmarks.some(b => b.link === link);
+                if (isBookmarked) {
+                    cell.classList.add('bookmarked');
+                }
+                
                 // Create unread indicator (blue dot)
                 const unreadDot = document.createElement("span");
                 unreadDot.className = "unread-dot";
@@ -333,6 +535,11 @@
                 titleElement.dataset.pubDate = pubDate;
                 titleElement.dataset.source = source;
                 
+                // Create bookmark icon
+                const bookmarkIcon = document.createElement("span");
+                bookmarkIcon.className = "bookmark-icon";
+                bookmarkIcon.innerHTML = "★";
+                
                 // Add click event to show popup with details
                 titleElement.addEventListener('click', function() {
                     // Mark as read
@@ -345,6 +552,7 @@
                 
                 cell.appendChild(unreadDot);
                 cell.appendChild(titleElement);
+                cell.appendChild(bookmarkIcon);
                 row.appendChild(cell);
                 table.appendChild(row);
             }
@@ -356,12 +564,33 @@
             // Format the description - remove HTML tags if present
             description = description.replace(/<[^>]*>/g, '');
             
+            // Store current news item globally for bookmark function
+            currentNewsItem = {
+                title,
+                description,
+                link,
+                source,
+                pubDate
+            };
+            
             // Set modal content
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalSource').textContent = `Source: ${source}`;
             document.getElementById('modalDate').textContent = `Published: ${pubDate}`;
             document.getElementById('modalDescription').textContent = description;
             document.getElementById('readMoreLink').href = link;
+            
+            // Check if this article is already bookmarked
+            const isBookmarked = bookmarks.some(b => b.link === link);
+            
+            const bookmarkBtn = document.getElementById('bookmarkBtn');
+            if (isBookmarked) {
+                bookmarkBtn.textContent = 'Bookmarked';
+                bookmarkBtn.classList.add('active');
+            } else {
+                bookmarkBtn.textContent = 'Bookmark';
+                bookmarkBtn.classList.remove('active');
+            }
             
             // Show modal
             document.getElementById('newsModal').style.display = 'block';
