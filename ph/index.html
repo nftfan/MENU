@@ -18,6 +18,12 @@
     <!-- Web App Manifest -->
     <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             margin: 0;
             padding: 0;
@@ -30,6 +36,7 @@
             justify-content: flex-start;
             height: 100vh;
             overflow: hidden;
+            width: 100%;
         }
 
         .header {
@@ -53,7 +60,6 @@
             width: 100%;
             max-width: 800px;
             padding: 0 10px;
-            box-sizing: border-box;
         }
 
         .upload-container input {
@@ -81,15 +87,20 @@
             background-color: #333333;
         }
 
+        .gallery-container {
+            width: 100%;
+            max-width: 100%;
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 5px;
+        }
+
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-gap: 5px;
             width: 100%;
-            flex-grow: 1;
-            padding: 10px;
-            box-sizing: border-box;
-            overflow-y: auto;
         }
 
         .gallery-item {
@@ -179,18 +190,14 @@
             display: none;
         }
 
-        .clear-all {
-            margin-top: 10px;
-            background-color: #CF6679;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            padding: 8px 15px;
+        #camera-label {
+            font-size: 2rem;
             cursor: pointer;
-        }
-
-        .clear-all:hover {
-            background-color: #E57373;
+            display: inline-block;
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #1A1A1A;
         }
 
         /* Media Queries */
@@ -207,15 +214,12 @@
                 grid-template-columns: repeat(3, 1fr);
             }
         }
-		#camera-label {
-    font-size: 2rem;
-    cursor: pointer;
-    display: inline-block;
-    padding: 10px;
-    border: 2px solid #ccc;
-    border-radius: 10px;
-}
 
+        @media (max-width: 320px) {
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -223,18 +227,17 @@
         <h1>Photo Gallery</h1>
     </div>
     
-   <div class="upload-container">
-    <input type="file" id="photo-upload" accept="image/*" capture="environment" style="display: none;">
-    <label for="photo-upload" id="camera-label">📷</label>
-    <button id="upload-button">Upload</button>
-</div>
-
+    <div class="upload-container">
+        <input type="file" id="photo-upload" accept="image/*" capture="environment" style="display: none;">
+        <label for="photo-upload" id="camera-label">📷</label>
+        <button id="upload-button">Upload</button>
+    </div>
     
     <div id="error-message" class="error-message"></div>
     
-    <div class="gallery-grid" id="gallery-grid"></div>
-    
-    <button id="clear-all" class="clear-all">Clear All Photos</button>
+    <div class="gallery-container">
+        <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
     
     <div class="full-screen-view" id="full-screen-view">
         <button id="close-view">Close</button>
@@ -249,7 +252,6 @@
         const fullScreenImg = document.getElementById("full-screen-img");
         const closeViewButton = document.getElementById("close-view");
         const errorMessage = document.getElementById("error-message");
-        const clearAllButton = document.getElementById("clear-all");
         
         // Constants
         const MAX_PHOTO_SIZE = 800; // Max dimension in pixels
@@ -269,17 +271,17 @@
                 }
             });
 
+            // Also trigger upload when file is selected via camera
+            photoUpload.addEventListener("change", () => {
+                const file = photoUpload.files[0];
+                if (file && file.type.startsWith("image/")) {
+                    processImage(file);
+                }
+            });
+
             // Close full-screen view
             closeViewButton.addEventListener("click", () => {
                 fullScreenView.style.display = "none";
-            });
-            
-            // Clear all photos
-            clearAllButton.addEventListener("click", () => {
-                if (confirm("Are you sure you want to delete all photos?")) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    loadPhotos();
-                }
             });
         });
 
