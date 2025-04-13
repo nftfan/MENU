@@ -23,18 +23,18 @@
       text-shadow: 0 0 10px #ff00c8, 0 0 20px #ff00c8;
     }
 
-    .contract-address {
+    .contract-address, .game-section {
       margin: 20px auto;
       padding: 15px;
       border: 2px solid #00ffe7;
       border-radius: 10px;
       width: 90%;
-      max-width: 600px;
+      max-width: 700px;
       background-color: rgba(255, 255, 255, 0.05);
       box-shadow: 0 0 15px #00ffe7;
     }
 
-    .mint-button {
+    .mint-button, .play-button {
       margin-top: 30px;
       padding: 15px 40px;
       font-size: 1.5rem;
@@ -48,7 +48,7 @@
       transition: all 0.3s ease;
     }
 
-    .mint-button:hover {
+    .mint-button:hover, .play-button:hover {
       background: #ff00c8;
       color: #ffffff;
       box-shadow: 0 0 20px #ff00c8, 0 0 40px #ff00c8;
@@ -66,6 +66,35 @@
       font-size: 1.1rem;
       text-shadow: 0 0 5px #00ffe7;
     }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #444;
+      cursor: pointer;
+      box-shadow: 0 0 5px #00ffe7;
+      transition: transform 0.2s;
+    }
+
+    .dot:hover {
+      transform: scale(1.2);
+    }
+
+    .dot.revealed {
+      background-color: #222;
+    }
+
+    .dot img {
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -80,6 +109,15 @@
 
   <div class="status" id="status"></div>
 
+  <div class="game-section">
+    <h2>Find the 💎 10k $NFTFAN Prize</h2>
+    <p>Pay 1 MATIC to play — 5 tries to find the winning dot. One dot contains:</p>
+    <img src="https://pbs.twimg.com/media/GobpiwAXoAETeWG?format=png&name=small" width="80" alt="Prize Icon" />
+    <button class="play-button" onclick="payToPlay()">Play Game — 1 MATIC</button>
+    <div class="status" id="gameStatus"></div>
+    <div class="grid" id="dotGrid"></div>
+  </div>
+
   <div class="footer">
     Powered by NFTFans • Cyberpunk 2088 Edition
   </div>
@@ -93,37 +131,95 @@
         "outputs": [],
         "stateMutability": "payable",
         "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "payToPlay",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
       }
     ];
 
     let web3;
     let contract;
+    let gameUnlocked = false;
+    let prizeDot = Math.floor(Math.random() * 100);
+    let triesLeft = 5;
 
-    async function mintLevel1() {
+    async function connect() {
       if (typeof window.ethereum === 'undefined') {
-        document.getElementById('status').innerText = "MetaMask not detected!";
+        alert("MetaMask not detected!");
         return;
       }
-
       web3 = new Web3(window.ethereum);
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const accounts = await web3.eth.getAccounts();
-      const account = accounts[0];
+      return accounts[0];
+    }
 
+    async function mintLevel1() {
+      const account = await connect();
       contract = new web3.eth.Contract(abi, contractAddress);
-
       document.getElementById('status').innerText = "Minting in progress...";
-
       try {
         await contract.methods.mintLevel1().send({
           from: account,
           value: web3.utils.toWei('10', 'ether')
         });
-
         document.getElementById('status').innerText = "✅ Level 1 minted successfully!";
       } catch (error) {
         console.error(error);
         document.getElementById('status').innerText = "❌ Transaction failed or cancelled.";
+      }
+    }
+
+    async function payToPlay() {
+      const account = await connect();
+      contract = new web3.eth.Contract(abi, contractAddress);
+      document.getElementById('gameStatus').innerText = "Processing payment...";
+      try {
+        await contract.methods.payToPlay().send({
+          from: account,
+          value: web3.utils.toWei('1', 'ether')
+        });
+        document.getElementById('gameStatus').innerText = "🎮 Game unlocked! Try your luck!";
+        gameUnlocked = true;
+        triesLeft = 5;
+        prizeDot = Math.floor(Math.random() * 100);
+        generateDots();
+      } catch (error) {
+        console.error(error);
+        document.getElementById('gameStatus').innerText = "❌ Payment failed or cancelled.";
+      }
+    }
+
+    function generateDots() {
+      const grid = document.getElementById('dotGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 100; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.onclick = () => handleDotClick(dot, i);
+        grid.appendChild(dot);
+      }
+    }
+
+    function handleDotClick(dot, index) {
+      if (!gameUnlocked || triesLeft <= 0 || dot.classList.contains('revealed')) return;
+      dot.classList.add('revealed');
+      triesLeft--;
+      if (index === prizeDot) {
+        dot.innerHTML = `<img src="https://pbs.twimg.com/media/GobpiwAXoAETeWG?format=png&name=small" alt="Prize" />`;
+        document.getElementById('gameStatus').innerText = `🎉 YOU FOUND THE 10K $NFTFAN PRIZE!`;
+        gameUnlocked = false;
+      } else {
+        if (triesLeft > 0) {
+          document.getElementById('gameStatus').innerText = `❌ Not here. ${triesLeft} tries left.`;
+        } else {
+          document.getElementById('gameStatus').innerText = `💀 No more tries. Better luck next time!`;
+          gameUnlocked = false;
+        }
       }
     }
   </script>
