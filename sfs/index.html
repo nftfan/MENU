@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subfan Score Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Subfan Score Checker</h1>
+    <form id="wallet-form">
+        <label for="wallet-address">Enter Wallet Address:</label><br>
+        <input type="text" id="wallet-address" placeholder="Enter wallet address" required><br><br>
+        <button type="submit">Get Subfan Score</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('wallet-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from refreshing the page
+
+            const walletAddress = document.getElementById('wallet-address').value;
+            const resultDiv = document.getElementById('result');
+
+            // Clear previous result
+            resultDiv.innerHTML = 'Loading...';
+
+            // Make API call to Flask app
+            fetch(`https://flaskapp-87hh.onrender.com/get_subfan_score?wallet_address=${walletAddress}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.subfan_score !== undefined) {
+                        resultDiv.innerHTML = `<h3>Wallet Address: ${data.wallet_address}</h3><p>Subfan Score: ${data.subfan_score}</p>`;
+                    } else {
+                        resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: Unable to fetch Subfan score. Please try again later.</p>`;
+                    console.error('Error fetching data:', error);
+                });
+        });
+    </script>
+
+</body>
+</html>
+
