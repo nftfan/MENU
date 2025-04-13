@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NFTFansMinting — Cyberpunk Minting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0f0f1b, #1a1a2e);
+      font-family: 'Orbitron', sans-serif;
+      color: #00ffe7;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-top: 50px;
+      color: #ff00c8;
+      text-shadow: 0 0 10px #ff00c8, 0 0 20px #ff00c8;
+    }
+
+    .contract-address {
+      margin: 20px auto;
+      padding: 15px;
+      border: 2px solid #00ffe7;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      background-color: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 15px #00ffe7;
+    }
+
+    .mint-button {
+      margin-top: 30px;
+      padding: 15px 40px;
+      font-size: 1.5rem;
+      background: #00ffe7;
+      color: #0f0f1b;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      text-shadow: 0 0 5px #0f0f1b;
+      box-shadow: 0 0 10px #00ffe7, 0 0 20px #00ffe7, 0 0 30px #00ffe7;
+      transition: all 0.3s ease;
+    }
+
+    .mint-button:hover {
+      background: #ff00c8;
+      color: #ffffff;
+      box-shadow: 0 0 20px #ff00c8, 0 0 40px #ff00c8;
+    }
+
+    .footer {
+      margin-top: 60px;
+      color: #777;
+      font-size: 0.9rem;
+    }
+
+    .status {
+      margin-top: 20px;
+      color: #00ffe7;
+      font-size: 1.1rem;
+      text-shadow: 0 0 5px #00ffe7;
+    }
+  </style>
+</head>
+<body>
+  <h1>NFTFans Level 1 Minting</h1>
+
+  <div class="contract-address">
+    <strong>Contract Address:</strong><br>
+    0x22D67c188C7D60964057110ed09A8CEd0aFB76C7
+  </div>
+
+  <button class="mint-button" onclick="mintLevel1()">Mint LEVEL 1 — 10 MATIC</button>
+
+  <div class="status" id="status"></div>
+
+  <div class="footer">
+    Powered by NFTFans • Cyberpunk 2088 Edition
+  </div>
+
+  <script>
+    const contractAddress = "0x22D67c188C7D60964057110ed09A8CEd0aFB76C7";
+    const abi = [
+      {
+        "inputs": [],
+        "name": "mintLevel1",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      }
+    ];
+
+    let web3;
+    let contract;
+
+    async function mintLevel1() {
+      if (typeof window.ethereum === 'undefined') {
+        document.getElementById('status').innerText = "MetaMask not detected!";
+        return;
+      }
+
+      web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+
+      contract = new web3.eth.Contract(abi, contractAddress);
+
+      document.getElementById('status').innerText = "Minting in progress...";
+
+      try {
+        await contract.methods.mintLevel1().send({
+          from: account,
+          value: web3.utils.toWei('10', 'ether')
+        });
+
+        document.getElementById('status').innerText = "✅ Level 1 minted successfully!";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('status').innerText = "❌ Transaction failed or cancelled.";
+      }
+    }
+  </script>
+</body>
+</html>
