@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Space Collector Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: none;
+      background-color: #000022;
+      font-family: 'Arial', sans-serif;
+    }
+    
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .star {
+      position: absolute;
+      background-color: white;
+      border-radius: 50%;
+    }
+    
+    #playerShip {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('https://i.imgur.com/i0TM8ky.png');
+      z-index: 100;
+      animation: spinFast 0.5s linear infinite;
+	  border-radius: 50px;
+    }
+    
+    .collectible {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('https://i.imgur.com/jFKaEpI.png');
+      animation: blinkFast 0.4s infinite;
+	  border-radius: 50px;
+    }
+    
+    .enemy {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      border-radius: 50%;
+      background-color: #ff3333;
+      box-shadow: 0 0 10px #ff6666;
+    }
+    
+    @keyframes spinFast {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes blinkFast {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0; }
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    #stats {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+      z-index: 200;
+    }
+    
+    #score, #energy, #level {
+      margin-bottom: 10px;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    }
+    
+    #energyBar {
+      width: 200px;
+      height: 15px;
+      background-color: #333;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    
+    #energyFill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+      width: 100%;
+      transition: width 0.3s;
+    }
+    
+    #gameOver, #startScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 40, 0.85);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 300;
+      box-shadow: 0 0 20px rgba(0, 150, 255, 0.7);
+      border: 2px solid #4488ff;
+    }
+    
+    #gameOver {
+      display: none;
+    }
+    
+    button {
+      background-color: #4488ff;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 18px;
+      margin-top: 20px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #225599;
+    }
+    
+    .explosion {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle, #ffff00, #ff6600, #ff0000);
+      border-radius: 50%;
+      z-index: 150;
+      animation: explode 0.5s forwards;
+    }
+    
+    @keyframes explode {
+      0% { transform: scale(0.5); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    
+    .warpEffect {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 100, 255, 0.5) 100%);
+      opacity: 0;
+      z-index: 90;
+      pointer-events: none;
+    }
+    
+    .collectSound, .damageSound, .warpSound {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="stats">
+      <div id="score">SCORE: 0</div>
+      <div id="level">LEVEL: 1</div>
+      <div id="energy">ENERGY: 100%</div>
+      <div id="energyBar">
+        <div id="energyFill"></div>
+      </div>
+    </div>
+    
+    <div id="playerShip"></div>
+    <div class="warpEffect"></div>
+    
+    <div id="startScreen">
+      <h1>NFTFANS COLLECTOR</h1>
+      <p>Collect the blinking tokens while avoiding red enemies!</p>
+      <p>Use your mouse or touch to move your ship.</p>
+      <p>Double-click/tap to activate warp (costs energy)</p>
+      <button id="startButton">START GAME</button>
+    </div>
+    
+    <div id="gameOver">
+      <h1>GAME OVER</h1>
+      <p id="finalScore">Final Score: 0</p>
+      <p id="finalLevel">Reached Level: 1</p>
+      <button id="restartButton">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <script>
+    // Game elements
+    const gameArea = document.getElementById('gameArea');
+    const playerShip = document.getElementById('playerShip');
+    const scoreDisplay = document.getElementById('score');
+    const levelDisplay = document.getElementById('level');
+    const energyDisplay = document.getElementById('energy');
+    const energyFill = document.getElementById('energyFill');
+    const gameOverScreen = document.getElementById('gameOver');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const finalLevelDisplay = document.getElementById('finalLevel');
+    const startScreen = document.getElementById('startScreen');
+    const startButton = document.getElementById('startButton');
+    const restartButton = document.getElementById('restartButton');
+    const warpEffect = document.querySelector('.warpEffect');
+    
+    // Game variables
+    let score = 0;
+    let level = 1;
+    let energy = 100;
+    let gameActive = false;
+    let playerSize = 70;
+    let collectibleSize = 50;
+    let enemySize = 60;
+    let collectibleSpawnRate = 1500;
+    let enemySpawnRate = 2000;
+    let collectibleSpawnInterval;
+    let enemySpawnInterval;
+    let energyRecoveryInterval;
+    let doubleClickTimer = null;
+    let lastWarpTime = 0;
+    let warpCooldown = 3000; // 3 seconds cooldown
+    
+    // Create starry background
+    function createStars() {
+      const starCount = 200;
+      
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        // Random star size
+        const size = Math.random() * 3;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        
+        // Random position
+        star.style.left = Math.random() * 100 + 'vw';
+        star.style.top = Math.random() * 100 + 'vh';
+        
+        // Random brightness
+        star.style.opacity = Math.random() * 0.8 + 0.2;
+        
+        gameArea.appendChild(star);
+      }
+    }
+    
+    // Set initial player position
+    function positionPlayer() {
+      const gameWidth = gameArea.clientWidth;
+      const gameHeight = gameArea.clientHeight;
+      
+      playerShip.style.left = (gameWidth / 2 - playerSize / 2) + 'px';
+      playerShip.style.top = (gameHeight / 2 - playerSize / 2) + 'px';
+    }
+    
+    // Move player ship with mouse/touch
+    function movePlayer(event) {
+      if (!gameActive) return;
+      
+      let clientX, clientY;
+      
+      if (event.type === 'touchmove') {
+        event.preventDefault();
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+      
+      const x = clientX - playerSize / 2;
+      const y = clientY - playerSize / 2;
+      
+      playerShip.style.left = x + 'px';
+      playerShip.style.top = y + 'px';
+    }
+    
+    // Spawn collectible tokens
+    function spawnCollectible() {
+      if (!gameActive) return;
+      
+      const collectible = document.createElement('div');
+      collectible.className = 'collectible';
+      gameArea.appendChild(collectible);
+      
+      const gameWidth = gameArea.clientWidth;
+      const gameHeight = gameArea.clientHeight;
+      
+      // Determine spawn position (somewhere on screen edges)
+      const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+      let posX, posY;
+      
+      switch (side) {
+        case 0: // Top
+          posX = Math.random() * (gameWidth - collectibleSize);
+          posY = -collectibleSize;
+          break;
+        case 1: // Right
+          posX = gameWidth;
+          posY = Math.random() * (gameHeight - collectibleSize);
+          break;
+        case 2: // Bottom
+          posX = Math.random() * (gameWidth - collectibleSize);
+          posY = gameHeight;
+          break;
+        case 3: // Left
+          posX = -collectibleSize;
+          posY = Math.random() * (gameHeight - collectibleSize);
+          break;
+      }
+      
+      collectible.style.left = posX + 'px';
+      collectible.style.top = posY + 'px';
+      
+      // Calculate direction to random spot on screen
+      const targetX = Math.random() * (gameWidth - collectibleSize * 2) + collectibleSize;
+      const targetY = Math.random() * (gameHeight - collectibleSize * 2) + collectibleSize;
+      
+      const dirX = targetX - posX;
+      const dirY = targetY - posY;
+      const length = Math.sqrt(dirX * dirX + dirY * dirY);
+      const normalizedDirX = dirX / length;
+      const normalizedDirY = dirY / length;
+      
+      // Collectible speed increases with level
+      const baseSpeed = 2;
+      const speed = baseSpeed + Math.min(level * 0.5, 4);
+      
+      // Move collectible
+      function moveCollectible() {
+        if (!gameActive) {
+          collectible.remove();
+          return;
+        }
+        
+        const currentLeft = parseFloat(collectible.style.left);
+        const currentTop = parseFloat(collectible.style.top);
+        
+        const newLeft = currentLeft + normalizedDirX * speed;
+        const newTop = currentTop + normalizedDirY * speed;
+        
+        collectible.style.left = newLeft + 'px';
+        collectible.style.top = newTop + 'px';
+        
+        // Check for collision with player
+        const collectibleRect = collectible.getBoundingClientRect();
+        const playerRect = playerShip.getBoundingClientRect();
+        
+        if (
+          collectibleRect.left < playerRect.right &&
+          collectibleRect.right > playerRect.left &&
+          collectibleRect.top < playerRect.bottom &&
+          collectibleRect.bottom > playerRect.top
+        ) {
+          // Collectible caught!
+          collectible.remove();
+          score += 10 * level;
+          scoreDisplay.textContent = `SCORE: ${score}`;
+          
+          // Create collection effect
+          createCollectionEffect(collectibleRect.left + collectibleRect.width/2, collectibleRect.top + collectibleRect.height/2);
+          
+          // Update level if needed
+          checkLevelUp();
+          
+          return;
+        }
+        
+        // Check if collectible is out of bounds
+        if (
+          newLeft < -collectibleSize * 2 ||
+          newLeft > gameWidth + collectibleSize * 2 ||
+          newTop < -collectibleSize * 2 ||
+          newTop > gameHeight + collectibleSize * 2
+        ) {
+          collectible.remove();
+          return;
+        }
+        
+        requestAnimationFrame(moveCollectible);
+      }
+      
+      requestAnimationFrame(moveCollectible);
+    }
+    
+    // Spawn enemy
+    function spawnEnemy() {
+      if (!gameActive) return;
+      
+      const enemy = document.createElement('div');
+      enemy.className = 'enemy';
+      gameArea.appendChild(enemy);
+      
+      const gameWidth = gameArea.clientWidth;
+      const gameHeight = gameArea.clientHeight;
+      
+      // Determine spawn position (off screen)
+      const margin = 100;
+      let posX, posY;
+      
+      // Spawn further away from the edges than collectibles
+      const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+      
+      switch (side) {
+        case 0: // Top
+          posX = Math.random() * (gameWidth - enemySize);
+          posY = -margin;
+          break;
+        case 1: // Right
+          posX = gameWidth + margin - enemySize;
+          posY = Math.random() * (gameHeight - enemySize);
+          break;
+        case 2: // Bottom
+          posX = Math.random() * (gameWidth - enemySize);
+          posY = gameHeight + margin - enemySize;
+          break;
+        case 3: // Left
+          posX = -margin;
+          posY = Math.random() * (gameHeight - enemySize);
+          break;
+      }
+      
+      enemy.style.left = posX + 'px';
+      enemy.style.top = posY + 'px';
+      
+      // Enemy will target player directly
+      let lastDirection = {x: 0, y: 0};
+      
+      // Enemy speed increases with level
+      const baseSpeed = 1.5;
+      const speed = baseSpeed + Math.min(level * 0.3, 3);
+      
+      // Move enemy
+      function moveEnemy() {
+        if (!gameActive) {
+          enemy.remove();
+          return;
+        }
+        
+        // Get current positions
+        const enemyRect = enemy.getBoundingClientRect();
+        const playerRect = playerShip.getBoundingClientRect();
+        
+        // Calculate centers
+        const enemyCenterX = enemyRect.left + enemyRect.width / 2;
+        const enemyCenterY = enemyRect.top + enemyRect.height / 2;
+        const playerCenterX = playerRect.left + playerRect.width / 2;
+        const playerCenterY = playerRect.top + playerRect.height / 2;
+        
+        // Calculate direction to player
+        let dirX = playerCenterX - enemyCenterX;
+        let dirY = playerCenterY - enemyCenterY;
+        
+        // Add some inertia to create smoother movement
+        dirX = 0.9 * dirX + 0.1 * lastDirection.x;
+        dirY = 0.9 * dirY + 0.1 * lastDirection.y;
+        
+        // Save for next frame
+        lastDirection = {x: dirX, y: dirY};
+        
+        const length = Math.sqrt(dirX * dirX + dirY * dirY);
+        
+        if (length > 0) {
+          const normalizedDirX = dirX / length;
+          const normalizedDirY = dirY / length;
+          
+          const currentLeft = parseFloat(enemy.style.left);
+          const currentTop = parseFloat(enemy.style.top);
+          
+          const newLeft = currentLeft + normalizedDirX * speed;
+          const newTop = currentTop + normalizedDirY * speed;
+          
+          enemy.style.left = newLeft + 'px';
+          enemy.style.top = newTop + 'px';
+        }
+        
+        // Check for collision with player
+        if (
+          enemyRect.left < playerRect.right &&
+          enemyRect.right > playerRect.left &&
+          enemyRect.top < playerRect.bottom &&
+          enemyRect.bottom > playerRect.top
+        ) {
+          // Collision occurred!
+          if (energy > 0) {
+            energy -= 20; // Lose 20% energy
+            if (energy < 0) energy = 0;
+            
+            updateEnergyDisplay();
+            
+            // Shake effect for player
+            playerShip.style.animation = 'none';
+            void playerShip.offsetWidth; // Trigger reflow
+            playerShip.style.animation = 'shake 0.3s, spinFast 0.5s linear infinite';
+            
+            // Create damage effect
+            createExplosion(enemyCenterX, enemyCenterY);
+            
+            enemy.remove();
+            
+            if (energy <= 0) {
+              endGame();
+            }
+            
+            return;
+          } else {
+            // Game over
+            endGame();
+            enemy.remove();
+            return;
+          }
+        }
+        
+        // Check if enemy is far out of bounds
+        if (
+          enemyCenterX < -margin * 2 ||
+          enemyCenterX > gameWidth + margin * 2 ||
+          enemyCenterY < -margin * 2 ||
+          enemyCenterY > gameHeight + margin * 2
+        ) {
+          enemy.remove();
+          return;
+        }
+        
+        requestAnimationFrame(moveEnemy);
+      }
+      
+      requestAnimationFrame(moveEnemy);
+    }
+    
+    // Check if level should increase
+    function checkLevelUp() {
+      // Level up every 100 points
+      const newLevel = Math.floor(score / 100) + 1;
+      
+      if (newLevel > level) {
+        level = newLevel;
+        levelDisplay.textContent = `LEVEL: ${level}`;
+        
+        // Adjust spawn rates for higher levels
+        clearInterval(collectibleSpawnInterval);
+        clearInterval(enemySpawnInterval);
+        
+        collectibleSpawnRate = Math.max(500, 1500 - (level - 1) * 100);
+        enemySpawnRate = Math.max(700, 2000 - (level - 1) * 150);
+        
+        collectibleSpawnInterval = setInterval(spawnCollectible, collectibleSpawnRate);
+        enemySpawnInterval = setInterval(spawnEnemy, enemySpawnRate);
+      }
+    }
+    
+    // Update energy display
+    function updateEnergyDisplay() {
+      energyDisplay.textContent = `ENERGY: ${energy}%`;
+      energyFill.style.width = energy + '%';
+      
+      // Change color based on energy level
+      if (energy < 25) {
+        energyFill.style.background = 'linear-gradient(90deg, #ff0000, #ff3300)';
+      } else if (energy < 50) {
+        energyFill.style.background = 'linear-gradient(90deg, #ff3300, #ffcc00)';
+      } else {
+        energyFill.style.background = 'linear-gradient(90deg, #ffcc00, #00ff00)';
+      }
+    }
+    
+    // Create collection effect
+    function createCollectionEffect(x, y) {
+      const effect = document.createElement('div');
+      effect.className = 'explosion';
+      effect.style.backgroundColor = 'rgba(0, 255, 150, 0.7)';
+      gameArea.appendChild(effect);
+      
+      effect.style.left = (x - 40) + 'px';
+      effect.style.top = (y - 40) + 'px';
+      
+      setTimeout(() => {
+        effect.remove();
+      }, 500);
+    }
+    
+    // Create explosion effect
+    function createExplosion(x, y) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      gameArea.appendChild(explosion);
+      
+      explosion.style.left = (x - 40) + 'px';
+      explosion.style.top = (y - 40) + 'px';
+      
+      setTimeout(() => {
+        explosion.remove();
+      }, 500);
+    }
+    
+    // Warp function (double click/tap)
+    function warp(event) {
+      if (!gameActive || energy < 30) return;
+      
+      // Check if we're in cooldown
+      const currentTime = Date.now();
+      if (currentTime - lastWarpTime < warpCooldown) return;
+      
+      if (doubleClickTimer === null) {
+        // First click, set timer
+        doubleClickTimer = setTimeout(() => {
+          doubleClickTimer = null;
+        }, 300);
+      } else {
+        // Double click detected
+        clearTimeout(doubleClickTimer);
+        doubleClickTimer = null;
+        
+        // Use energy
+        energy -= 30;
+        updateEnergyDisplay();
+        
+        // Set cooldown
+        lastWarpTime = currentTime;
+        
+        // Get mouse/touch position
+        let clientX, clientY;
+        
+        if (event.type.includes('touch')) {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        } else {
+          clientX = event.clientX;
+          clientY = event.clientY;
+        }
+        
+        // Warp to cursor position
+        playerShip.style.left = (clientX - playerSize / 2) + 'px';
+        playerShip.style.top = (clientY - playerSize / 2) + 'px';
+        
+        // Show warp effect
+        warpEffect.style.opacity = '1';
+        setTimeout(() => {
+          warpEffect.style.opacity = '0';
+        }, 300);
+      }
+    }
+    
+    // Energy recovery function
+    function recoverEnergy() {
+      if (!gameActive || energy >= 100) return;
+      
+      energy = Math.min(100, energy + 1);
+      updateEnergyDisplay();
+    }
+    
+    // End the game
+    function endGame() {
+      gameActive = false;
+      
+      // Clear intervals
+      clearInterval(collectibleSpawnInterval);
+      clearInterval(enemySpawnInterval);
+      clearInterval(energyRecoveryInterval);
+      
+      // Create final explosion at player position
+      const playerRect = playerShip.getBoundingClientRect();
+      createExplosion(
+        playerRect.left + playerRect.width / 2,
+        playerRect.top + playerRect.height / 2
+      );
+      
+      // Hide player
+      playerShip.style.display = 'none';
+      
+      // Update game over screen
+      finalScoreDisplay.textContent = `Final Score: ${score}`;
+      finalLevelDisplay.textContent = `Reached Level: ${level}`;
+      
+      // Show game over after a delay
+      setTimeout(() => {
+        gameOverScreen.style.display = 'block';
+      }, 1000);
+    }
+    
+    // Start new game
+    function startGame() {
+      // Hide screens
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      
+      // Clear any existing game elements
+      document.querySelectorAll('.collectible, .enemy, .explosion').forEach(el => el.remove());
+      
+      // Reset game variables
+      score = 0;
+      level = 1;
+      energy = 100;
+      gameActive = true;
+      collectibleSpawnRate = 1500;
+      enemySpawnRate = 2000;
+      
+      // Update displays
+      scoreDisplay.textContent = `SCORE: ${score}`;
+      levelDisplay.textContent = `LEVEL: ${level}`;
+      updateEnergyDisplay();
+      
+      // Show and position player
+      playerShip.style.display = 'block';
+      positionPlayer();
+      
+      // Start spawning
+      collectibleSpawnInterval = setInterval(spawnCollectible, collectibleSpawnRate);
+      enemySpawnInterval = setInterval(spawnEnemy, enemySpawnRate);
+      energyRecoveryInterval = setInterval(recoverEnergy, 1000);
+    }
+    
+    // Event listeners
+    gameArea.addEventListener('mousemove', movePlayer);
+    gameArea.addEventListener('touchmove', movePlayer, { passive: false });
+    gameArea.addEventListener('click', warp);
+    gameArea.addEventListener('touchstart', warp);
+    startButton.addEventListener('click', startGame);
+    restartButton.addEventListener('click', startGame);
+    
+    // Initialize
+    window.addEventListener('load', () => {
+      createStars();
+      positionPlayer();
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', positionPlayer);
+  </script>
+</body>
+</html>
