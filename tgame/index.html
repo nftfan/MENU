@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Token Catcher Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: none;
+      background-color: #121212;
+      font-family: Arial, sans-serif;
+    }
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .token {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('https://i.imgur.com/jFKaEpI.png');
+    }
+    #catcher {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('https://i.imgur.com/i0TM8ky.png');
+      z-index: 100;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 24px;
+      z-index: 200;
+    }
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+      z-index: 300;
+    }
+    #playAgain {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="score">Score: 0</div>
+    <div id="catcher"></div>
+    <div id="gameOver">
+      <h2>Game Over!</h2>
+      <p id="finalScore">Your score: 0</p>
+      <button id="playAgain">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const gameArea = document.getElementById('gameArea');
+    const catcher = document.getElementById('catcher');
+    const scoreDisplay = document.getElementById('score');
+    const gameOverScreen = document.getElementById('gameOver');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const playAgainButton = document.getElementById('playAgain');
+    
+    let score = 0;
+    let gameActive = true;
+    let spawnSpeed = 2000; // Initial spawn rate in ms
+    let moveSpeed = 3; // Initial movement speed in px
+    let spawnInterval;
+    let catcherWidth = 70;
+    let catcherHeight = 70;
+    let tokenWidth = 50;
+    let tokenHeight = 50;
+    
+    // Set initial catcher position
+    function positionCatcher() {
+      const gameWidth = gameArea.clientWidth;
+      const gameHeight = gameArea.clientHeight;
+      
+      catcher.style.left = (gameWidth / 2 - catcherWidth / 2) + 'px';
+      catcher.style.top = (gameHeight / 2 - catcherHeight / 2) + 'px';
+    }
+    
+    // Handle touch/mouse movement
+    function moveCatcher(event) {
+      if (!gameActive) return;
+      
+      let clientX, clientY;
+      
+      if (event.type === 'touchmove') {
+        event.preventDefault();
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+      
+      const x = clientX - catcherWidth / 2;
+      const y = clientY - catcherHeight / 2;
+      
+      catcher.style.left = x + 'px';
+      catcher.style.top = y + 'px';
+    }
+    
+    // Create and spawn a token
+    function spawnToken() {
+      if (!gameActive) return;
+      
+      const token = document.createElement('div');
+      token.className = 'token';
+      gameArea.appendChild(token);
+      
+      const gameWidth = gameArea.clientWidth;
+      const gameHeight = gameArea.clientHeight;
+      
+      // Determine spawn position (top, bottom, left, or right)
+      const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+      let posX, posY, targetX, targetY;
+      
+      switch (side) {
+        case 0: // Top
+          posX = Math.random() * (gameWidth - tokenWidth);
+          posY = -tokenHeight;
+          targetX = Math.random() * (gameWidth - tokenWidth);
+          targetY = gameHeight + tokenHeight;
+          break;
+        case 1: // Right
+          posX = gameWidth;
+          posY = Math.random() * (gameHeight - tokenHeight);
+          targetX = -tokenWidth;
+          targetY = Math.random() * (gameHeight - tokenHeight);
+          break;
+        case 2: // Bottom
+          posX = Math.random() * (gameWidth - tokenWidth);
+          posY = gameHeight;
+          targetX = Math.random() * (gameWidth - tokenWidth);
+          targetY = -tokenHeight;
+          break;
+        case 3: // Left
+          posX = -tokenWidth;
+          posY = Math.random() * (gameHeight - tokenHeight);
+          targetX = gameWidth + tokenWidth;
+          targetY = Math.random() * (gameHeight - tokenHeight);
+          break;
+      }
+      
+      token.style.left = posX + 'px';
+      token.style.top = posY + 'px';
+      
+      // Calculate direction vector
+      const dirX = targetX - posX;
+      const dirY = targetY - posY;
+      const length = Math.sqrt(dirX * dirX + dirY * dirY);
+      const normalizedDirX = dirX / length;
+      const normalizedDirY = dirY / length;
+      
+      // Move token
+      function moveToken() {
+        if (!gameActive) return;
+        
+        const currentLeft = parseFloat(token.style.left);
+        const currentTop = parseFloat(token.style.top);
+        
+        const newLeft = currentLeft + normalizedDirX * moveSpeed;
+        const newTop = currentTop + normalizedDirY * moveSpeed;
+        
+        token.style.left = newLeft + 'px';
+        token.style.top = newTop + 'px';
+        
+        // Check for collision with catcher
+        const catcherRect = catcher.getBoundingClientRect();
+        const tokenRect = token.getBoundingClientRect();
+        
+        if (
+          tokenRect.left < catcherRect.right &&
+          tokenRect.right > catcherRect.left &&
+          tokenRect.top < catcherRect.bottom &&
+          tokenRect.bottom > catcherRect.top
+        ) {
+          // Token caught!
+          token.remove();
+          score++;
+          scoreDisplay.textContent = `Score: ${score}`;
+          
+          // Increase difficulty
+          if (score % 5 === 0) {
+            moveSpeed += 0.5;
+            spawnSpeed = Math.max(400, spawnSpeed - 100);
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(spawnToken, spawnSpeed);
+          }
+          return;
+        }
+        
+        // Check if token is out of bounds
+        if (
+          newLeft < -tokenWidth * 2 ||
+          newLeft > gameWidth + tokenWidth * 2 ||
+          newTop < -tokenHeight * 2 ||
+          newTop > gameHeight + tokenHeight * 2
+        ) {
+          // Token missed, game over!
+          endGame();
+          token.remove();
+          return;
+        }
+        
+        requestAnimationFrame(moveToken);
+      }
+      
+      requestAnimationFrame(moveToken);
+    }
+    
+    // End the game
+    function endGame() {
+      gameActive = false;
+      clearInterval(spawnInterval);
+      finalScoreDisplay.textContent = `Your score: ${score}`;
+      gameOverScreen.style.display = 'block';
+    }
+    
+    // Reset and start a new game
+    function startGame() {
+      // Clear existing tokens
+      const tokens = document.querySelectorAll('.token');
+      tokens.forEach(token => token.remove());
+      
+      // Reset game variables
+      score = 0;
+      scoreDisplay.textContent = 'Score: 0';
+      gameActive = true;
+      spawnSpeed = 2000;
+      moveSpeed = 3;
+      gameOverScreen.style.display = 'none';
+      
+      // Position catcher in the center initially
+      positionCatcher();
+      
+      // Start spawning tokens
+      spawnInterval = setInterval(spawnToken, spawnSpeed);
+    }
+    
+    // Event listeners
+    gameArea.addEventListener('mousemove', moveCatcher);
+    gameArea.addEventListener('touchmove', moveCatcher, { passive: false });
+    playAgainButton.addEventListener('click', startGame);
+    
+    // Initialize the game
+    window.addEventListener('load', () => {
+      positionCatcher();
+      startGame();
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', positionCatcher);
+  </script>
+</body>
+</html>
