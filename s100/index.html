@@ -1,0 +1,330 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Fans Token Wallets Extractor and Airdrop</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h2, h3 {
+            text-align: center;
+        }
+        textarea {
+            width: 90%;
+            max-width: 500px;
+            height: 150px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            resize: none;
+        }
+        button {
+            margin-top: 10px;
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 90%;
+            max-width: 500px;
+        }
+        button:hover {
+            background: #3700b3;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 500px;
+        }
+        li {
+            background: #1e1e1e;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .hidden {
+            display: none;
+        }
+        .wallet-info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #00e6e6;
+        }
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffc107;
+            color: #121212;
+            padding: 10px 15px;
+            border-radius: 6px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 10px;
+        }
+        #notification.show {
+            display: block;
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        table {
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ffffff;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.2);
+        }
+        .status-done {
+            background-color: rgba(34, 175, 88, 0.2);
+        }
+        .status-error {
+            background-color: rgba(244, 67, 54, 0.2);
+        }
+        .status-info {
+            background-color: rgba(33, 150, 243, 0.2);
+        }
+    </style>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+    <h2>NFT Fans Token Wallets Extractor</h2>
+     <p>How to use this tool? <br> Go to any airdrop post on X and open comments of post. <br>  You will see a lot of people dropping wallets, fully zoom out your Chrome to 25% and select all text by Clt + a <br> Now paste the text in the box bellow and click extract wallets. <br>  Now connect your metamask wallet, and click distribute tokens. <br> Please select aggressive gas fee option in your MetaMask. <br> This tool only works with EVM wallets starting with 0x.<p>
+    <textarea id="inputText" placeholder="Paste text here..."></textarea>
+    <button onclick="extractWallets()">Extract Wallets</button>
+    <ul id="walletList"></ul>
+
+    <h3>Airdrop Distribution</h3>
+    <button id="connectButton" onclick="connectWallet()">CONNECT WALLET</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <button class="hidden" id="distributeButton" onclick="distributeTokens()">DISTRIBUTE TOKENS</button>
+    <button class="hidden" id="nextButton" onclick="distributeNextTokens()">NEXT 100 WALLETS</button>
+
+    <div id="notification" class="notification"></div>
+
+    <table id="notificationsTable">
+        <thead>
+            <tr>
+                <th>STEP</th>
+                <th>STATUS</th>
+            </tr>
+        </thead>
+        <tbody id="notificationRows"></tbody>
+    </table>
+
+    <script>
+        const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+        let web3;
+        let contract;
+        let userAccount;
+        let extractedWallets = [];
+        let currentBatchIndex = 0;
+        const walletsPerBatch = 100;
+
+        // Extract wallets from text
+        function extractWallets() {
+            let text = document.getElementById("inputText").value;
+            let regex = /0x[a-fA-F0-9]{40}/g;
+            let matches = text.match(regex);
+            let walletList = document.getElementById("walletList");
+            walletList.innerHTML = "";
+            if (matches) {
+                extractedWallets = [...new Set(matches)];
+                extractedWallets.slice(0, walletsPerBatch).forEach(wallet => {
+                    let li = document.createElement("li");
+                    li.textContent = wallet;
+                    li.dataset.wallet = wallet;
+                    walletList.appendChild(li);
+                });
+            }
+        }
+
+        // Connect to MetaMask
+        async function connectWallet() {
+            showNotification("Connecting wallet...", "pending");
+
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.enable(); // Request access to MetaMask
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+                document.getElementById('connectButton').classList.add('hidden');
+                document.getElementById('distributeButton').classList.remove('hidden');
+                showNotification("Wallet connected! Ready to distribute tokens.", "done");
+                setupContract();
+            } else {
+                showNotification("Please install MetaMask!", "error");
+            }
+        }
+
+        // Setup smart contract
+        function setupContract() {
+            const abi = [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_tokenAddress",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address"
+                        },
+                        {
+                            "indexed": false,
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        }
+                    ],
+                    "name": "TokensDistributed",
+                    "type": "event"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address[]",
+                            "name": "recipients",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "distributeTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        }
+                    ],
+                    "name": "withdrawTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            contract = new web3.eth.Contract(abi, contractAddress);
+        }
+
+        // Distribute tokens function
+        async function distributeTokens() {
+            showNotification("Please wait, transaction is processing...", "pending");
+
+            try {
+                const wallets = extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch);
+
+                if (wallets.length === 0) {
+                    showNotification("No wallets extracted.", "error");
+                    return;
+                }
+
+                showNotification("Processing your transaction...", "pending");
+
+                // Sending the transaction
+                const tx = await contract.methods.distributeTokens(wallets).send({
+                    from: userAccount,
+                    gas: 2000000 // Adjust gas limit as needed
+                });
+
+                console.log('Transaction successful: ', tx);
+                showNotification('SUCCESSFULLY DONE', 'done');
+
+                currentBatchIndex += walletsPerBatch;
+                if (currentBatchIndex < extractedWallets.length) {
+                    document.getElementById('nextButton').classList.remove('hidden');
+                } else {
+                    document.getElementById('nextButton').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Transaction failed: ', error);
+                showNotification('Distribution failed. Please try again later.', 'error');
+            }
+        }
+
+        // Distribute next batch of tokens
+        async function distributeNextTokens() {
+            await distributeTokens();
+            const walletList = document.getElementById("walletList");
+            walletList.innerHTML = "";
+            extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch).forEach(wallet => {
+                let li = document.createElement("li");
+                li.textContent = wallet;
+                li.dataset.wallet = wallet;
+                walletList.appendChild(li);
+            });
+        }
+
+        // Show notification
+        function showNotification(message, status) {
+            var notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(function () {
+                notification.classList.remove('show');
+            }, 3000);
+
+            addNotificationToTable(message, status);
+        }
+
+        // Add notification to table
+        function addNotificationToTable(message, status) {
+            const notificationRows = document.getElementById('notificationRows');
+            const statusText = status === 'done' ? 'SUCCESSFULLY DONE' : status.charAt(0).toUpperCase() + status.slice(1);
+
+            const row = document.createElement('tr');
+            row.classList.add(`status-${status}`);
+            row.innerHTML = `<td>${message}</td><td>${statusText}</td>`;
+
+            notificationRows.appendChild(row);
+        }
+    </script>
+</body>
+</html>
