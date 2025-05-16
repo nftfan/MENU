@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POL Token Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .balance-display {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #2c3e50;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>POL Token Interface</h1>
+        
+        <div class="info-box">
+            <p><strong>Token Sale Contract:</strong> 0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54</p>
+            <p>Connect your wallet to view your POL token balance and withdraw tokens.</p>
+        </div>
+
+        <button id="connectWallet">Connect Wallet</button>
+        
+        <div id="walletInfo" style="display: none;">
+            <p><strong>Connected Account:</strong> <span id="accountAddress"></span></p>
+            
+            <div class="balance-display">
+                <div>Your POL Balance:</div>
+                <div id="polBalance">Loading...</div>
+            </div>
+            
+            <div class="action-section">
+                <div>
+                    <input type="number" id="withdrawAmount" placeholder="Amount to withdraw" min="0" step="1000">
+                    <button id="withdrawButton">Withdraw POL</button>
+                    <span id="withdrawLoading" class="loading" style="display: none;"></span>
+                </div>
+                
+                <div>
+                    <input type="number" id="buyAmount" placeholder="MATIC to spend" min="0.0001" step="0.01">
+                    <button id="buyButton">Buy POL Tokens</button>
+                    <span id="buyLoading" class="loading" style="display: none;"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.2/web3.min.js"></script>
+    <script>
+        // ABI for the ERC20 token (POL)
+        const tokenABI = [
+            // Standard ERC20 functions
+            "function balanceOf(address owner) view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)"
+        ];
+        
+        // ABI for the TokenSale contract
+        const tokenSaleABI = [
+            "function token() view returns (address)",
+            "function withdraw() external",
+            "receive() external payable"
+        ];
+        
+        // Contract addresses
+        const tokenSaleAddress = "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54";
+        let tokenAddress;
+        
+        // Web3 instances
+        let web3;
+        let tokenContract;
+        let tokenSaleContract;
+        let userAccount;
+        
+        // UI Elements
+        const connectWalletBtn = document.getElementById('connectWallet');
+        const walletInfoDiv = document.getElementById('walletInfo');
+        const accountAddressSpan = document.getElementById('accountAddress');
+        const polBalanceDiv = document.getElementById('polBalance');
+        const withdrawAmountInput = document.getElementById('withdrawAmount');
+        const withdrawButton = document.getElementById('withdrawButton');
+        const withdrawLoading = document.getElementById('withdrawLoading');
+        const buyAmountInput = document.getElementById('buyAmount');
+        const buyButton = document.getElementById('buyButton');
+        const buyLoading = document.getElementById('buyLoading');
+        const statusDiv = document.getElementById('status');
+        
+        // Connect wallet button event
+        connectWalletBtn.addEventListener('click', connectWallet);
+        
+        // Withdraw button event
+        withdrawButton.addEventListener('click', withdrawTokens);
+        
+        // Buy button event
+        buyButton.addEventListener('click', buyTokens);
+        
+        // Check if MetaMask is installed
+        async function checkMetaMaskInstalled() {
+            if (typeof window.ethereum !== 'undefined') {
+                return true;
+            } else {
+                showStatus('MetaMask is not installed. Please install MetaMask to use this dApp.', 'error');
+                return false;
+            }
+        }
+        
+        // Connect to wallet
+        async function connectWallet() {
+            if (!await checkMetaMaskInstalled()) return;
+            
+            try {
+                // Request account access
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAccount = accounts[0];
+                accountAddressSpan.textContent = userAccount;
+                
+                // Initialize Web3
+                web3 = new Web3(window.ethereum);
+                
+                // Connect to the TokenSale contract
+                tokenSaleContract = new web3.eth.Contract(tokenSaleABI, tokenSaleAddress);
+                
+                // Get the token address from the TokenSale contract
+                tokenAddress = await tokenSaleContract.methods.token().call();
+                
+                // Connect to the Token contract
+                tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+                
+                // Show wallet info and update balances
+                walletInfoDiv.style.display = 'block';
+                connectWalletBtn.style.display = 'none';
+                
+                // Update token balance
+                updateBalance();
+                
+                // Setup event listeners for account changes
+                window.ethereum.on('accountsChanged', function (accounts) {
+                    userAccount = accounts[0];
+                    accountAddressSpan.textContent = userAccount;
+                    updateBalance();
+                });
+                
+            } catch (error) {
+                console.error("Error connecting to wallet:", error);
+                showStatus('Failed to connect wallet: ' + error.message, 'error');
+            }
+        }
+        
+        // Update POL token balance
+        async function updateBalance() {
+            try {
+                if (!tokenContract || !userAccount) return;
+                
+                const balance = await tokenContract.methods.balanceOf(userAccount).call();
+                const formattedBalance = web3.utils.fromWei(balance, 'ether');
+                polBalanceDiv.textContent = formattedBalance + ' POL';
+            } catch (error) {
+                console.error("Error updating balance:", error);
+                polBalanceDiv.textContent = 'Error loading balance';
+            }
+        }
+        
+        // Withdraw tokens
+        async function withdrawTokens() {
+            try {
+                const amount = withdrawAmountInput.value;
+                if (!amount || amount <= 0) {
+                    showStatus('Please enter a valid amount to withdraw', 'error');
+                    return;
+                }
+                
+                withdrawButton.disabled = true;
+                withdrawLoading.style.display = 'inline-block';
+                
+                // Convert amount to wei
+                const amountInWei = web3.utils.toWei(amount, 'ether');
+                
+                // First, approve the TokenSale contract to transfer tokens
+                const tx = await tokenContract.methods.transfer(tokenSaleAddress, amountInWei).send({
+                    from: userAccount
+                });
+                
+                showStatus('Successfully transferred ' + amount + ' POL tokens to the contract!', 'success');
+                updateBalance();
+                
+            } catch (error) {
+                console.error("Error withdrawing tokens:", error);
+                showStatus('Failed to withdraw tokens: ' + error.message, 'error');
+            } finally {
+                withdrawButton.disabled = false;
+                withdrawLoading.style.display = 'none';
+            }
+        }
+        
+        // Buy tokens
+        async function buyTokens() {
+            try {
+                const amount = buyAmountInput.value;
+                if (!amount || amount <= 0) {
+                    showStatus('Please enter a valid amount of MATIC to spend', 'error');
+                    return;
+                }
+                
+                buyButton.disabled = true;
+                buyLoading.style.display = 'inline-block';
+                
+                // Convert amount to wei
+                const amountInWei = web3.utils.toWei(amount, 'ether');
+                
+                // Send transaction to buy tokens
+                const tx = await web3.eth.sendTransaction({
+                    to: tokenSaleAddress,
+                    from: userAccount,
+                    value: amountInWei
+                });
+                
+                showStatus('Successfully purchased POL tokens!', 'success');
+                updateBalance();
+                
+            } catch (error) {
+                console.error("Error buying tokens:", error);
+                showStatus('Failed to buy tokens: ' + error.message, 'error');
+            } finally {
+                buyButton.disabled = false;
+                buyLoading.style.display = 'none';
+            }
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Check if MetaMask is installed on page load
+        window.addEventListener('load', function() {
+            checkMetaMaskInstalled();
+        });
+    </script>
+</body>
+</html>
