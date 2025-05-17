@@ -14,6 +14,71 @@
       touch-action: manipulation;
       font-size: 10px;
     }
+    .welcome-screen {
+      position: fixed;
+      z-index: 200;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #181b39 0%, #2c1976 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s;
+    }
+    .welcome-title {
+      font-size: 2.6em;
+      color: #ffd700;
+      text-shadow: 0 0 24px #26ffe6, 0 0 16px #ff5cfa;
+      margin-bottom: 18px;
+      letter-spacing: 2.5px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      text-align: center;
+      user-select: none;
+    }
+    .welcome-images {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 26px;
+      gap: 36px;
+    }
+    .welcome-img {
+      width: 92px; height: 92px;
+      border-radius: 20px;
+      box-shadow: 0 0 16px #ffd70088, 0 0 12px #26ffe688;
+      background: #23243a;
+      object-fit: contain;
+      user-select: none;
+    }
+    .welcome-btn {
+      font-size: 1.5em;
+      background: linear-gradient(90deg,#ff5cfa,#26ffe6 90%);
+      color: #181825;
+      border: none;
+      border-radius: 22px;
+      padding: 17px 66px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 2.5px;
+      margin-top: 18px;
+      box-shadow: 0 0 18px #ffd700, 0 0 32px #26ffe6;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, transform 0.09s;
+      outline: none;
+      text-shadow: 0 0 6px #fff7;
+      user-select: none;
+      border: 2px solid #ffd700;
+      animation: btnpop 1.6s infinite alternate;
+    }
+    @keyframes btnpop {
+      0% { transform: scale(1);}
+      80% { transform: scale(1.04);}
+      100% { transform: scale(0.96);}
+    }
+    .welcome-btn:active {
+      filter: brightness(1.12);
+      transform: scale(0.97);
+    }
     .title {
       text-align: center;
       width: 100%;
@@ -346,6 +411,18 @@
   </style>
 </head>
 <body>
+  <div class="welcome-screen" id="welcomeScreen">
+    <div class="welcome-title">NFTFan Ducks</div>
+    <div class="welcome-images">
+      <img src="https://i.imgur.com/Z6cWbza.png" class="welcome-img" style="background:#181b39;">
+      <img src="https://i.imgur.com/UjCFh3h.png" class="welcome-img" style="background:#181b39;">
+    </div>
+    <button class="welcome-btn" id="welcomeBtn">PLAY</button>
+  </div>
+  <audio id="bgMusic" preload="auto" loop>
+    <source src="https://github.com/airoee/allgifs/raw/refs/heads/main/2019-12-11_-_Retro_Platforming_-_David_Fesliyan.mp3" type="audio/mp3">
+  </audio>
+
   <div class="title">NFTFan Duck Shooter</div>
   <div class="game-area" id="gameArea"></div>
   <div class="bonus-label">BONUS DUCK</div>
@@ -359,6 +436,33 @@
   </div>
   <div style="display:none" id="gameOverModal"></div>
   <script>
+    // Welcome screen and music logic
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const welcomeBtn = document.getElementById('welcomeBtn');
+    const bgMusic = document.getElementById('bgMusic');
+    let gameStarted = false;
+    let afterWelcomeLoaded = false;
+    let pendingStart = false;
+
+    function hideWelcomeAndStartGame() {
+      welcomeScreen.style.opacity = "0";
+      setTimeout(() => { welcomeScreen.style.display = "none"; }, 600);
+      if (!gameStarted) {
+        gameStarted = true;
+        // Try to play music after user gesture
+        try {
+          bgMusic.currentTime = 0;
+          bgMusic.play().catch(()=>{});
+        } catch(e){}
+        if (typeof window.startGame === "function") setTimeout(startGame, 400);
+      }
+    }
+
+    welcomeBtn.addEventListener("click", hideWelcomeAndStartGame);
+    welcomeScreen.addEventListener("touchstart", function(e){
+      if(e.target === welcomeBtn) hideWelcomeAndStartGame();
+    });
+
     // --- Duck Shooter Game ---
     const DUCK_IMG = "https://i.imgur.com/Z6cWbza.png";
     const FISH_IMG = "https://i.imgur.com/UjCFh3h.png";
@@ -397,7 +501,7 @@
     ];
 
     let score = 0, missed = 0, level = 1;
-    let running = true;
+    let running = false;
     let ducks = [];
     let bonusDucks = [];
     let fishArray = [];
@@ -649,6 +753,7 @@
       setTimeout(() => {
         showGameOverModal();
       }, 350);
+      try { bgMusic.pause(); } catch(e){}
     }
 
     function showGameOverModal() {
@@ -670,6 +775,10 @@
       Array.from(document.querySelectorAll('.bonus-duck')).forEach(d => d.remove());
       Array.from(document.querySelectorAll('.fish')).forEach(d => d.remove());
       gameOverModal.style.display = "none";
+      try {
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(()=>{});
+      } catch(e){}
       startGame();
     };
 
@@ -705,6 +814,7 @@
       for (let i = 0; i < 2; ++i) setTimeout(spawnDuck, i * 300);
       setTimeout(spawnBonusDuck, 800);
       setTimeout(spawnFish, 1200);
+      running = true;
       if (gameLoopRAF) cancelAnimationFrame(gameLoopRAF);
       animate();
     }
@@ -718,13 +828,36 @@
       setLevelStyles();
     });
 
-    // Auto start
-    setTimeout(startGame, 600);
-
     // Remove double tap zoom on mobile
     document.addEventListener('touchstart', function preventZoom(e) {
       if (e.touches.length > 1) e.preventDefault();
     }, { passive: false });
+
+    // Hide game until welcome is dismissed
+    document.querySelector('.title').style.display = "none";
+    document.getElementById('gameArea').style.display = "none";
+    document.querySelector('.bonus-label').style.display = "none";
+    document.getElementById('bonusArea').style.display = "none";
+    document.querySelector('.fish-label').style.display = "none";
+    document.getElementById('fishArea').style.display = "none";
+    document.getElementById('infoPanel').style.display = "none";
+
+    function showGameUI() {
+      document.querySelector('.title').style.display = "";
+      document.getElementById('gameArea').style.display = "";
+      document.querySelector('.bonus-label').style.display = "";
+      document.getElementById('bonusArea').style.display = "";
+      document.querySelector('.fish-label').style.display = "";
+      document.getElementById('fishArea').style.display = "";
+      document.getElementById('infoPanel').style.display = "";
+    }
+
+    // When welcome screen is hidden, show UI and start game
+    welcomeBtn.addEventListener("click", showGameUI);
+    welcomeScreen.addEventListener("touchstart", function(e){
+      if(e.target === welcomeBtn) showGameUI();
+    });
+
   </script>
 </body>
 </html>
