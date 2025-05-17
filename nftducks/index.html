@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFan Duck Shooter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100vh;
+      background: #15162b;
+      font-family: 'Orbitron', Arial, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+      font-size: 10px;
+    }
+    .title {
+      text-align: center;
+      width: 100%;
+      font-size: 1.25rem;
+      color: #fff;
+      text-shadow: 0 0 7px #00f0ff, 0 0 3px #ff5cfa;
+      letter-spacing: 1px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      user-select: none;
+      pointer-events: none;
+    }
+    .game-area {
+      position: relative;
+      left: 50%; transform: translateX(-50%);
+      width: 98vw;
+      max-width: 480px;
+      height: 52vw;
+      max-height: 175px;
+      min-height: 110px;
+      background: rgba(21,22,43,0.93);
+      border: 2.5px solid #26ffe6;
+      border-radius: 1em;
+      box-shadow: 0 0 16px 3px #26ffe6, 0 0 38px 7px #ff5cfa inset;
+      overflow: hidden;
+      z-index: 2;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      transition: background 0.6s, border-color 0.6s, box-shadow 0.6s;
+    }
+    .bonus-area {
+      position: relative;
+      left: 50%; transform: translateX(-50%);
+      width: 98vw;
+      max-width: 480px;
+      height: 20vw;
+      max-height: 78px;
+      min-height: 35px;
+      background: rgba(31,12,54,0.93);
+      border: 2px solid #ff5cfa;
+      border-radius: 1em;
+      box-shadow: 0 0 12px 2px #ff5cfa, 0 0 30px 4px #ffd700 inset;
+      overflow: hidden;
+      z-index: 1;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      transition: background 0.6s, border-color 0.6s, box-shadow 0.6s;
+    }
+    .bonus-label {
+      display: block;
+      text-align: center;
+      font-size: 1.1em;
+      color: #ffd700;
+      background: rgba(51,8,65,0.91);
+      padding: 2px 18px 2px 18px;
+      border-radius: 13px;
+      border: 1px solid #ff5cfa;
+      margin: 0 auto 8px auto;
+      letter-spacing: 2px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      text-shadow: 0 0 5px #ff5cfa;
+      width: fit-content;
+      min-width: 80px;
+      user-select: none;
+      pointer-events: none;
+    }
+    .duck {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      user-select: none;
+      pointer-events: auto;
+      cursor: pointer;
+      will-change: transform, opacity;
+      transition: filter 0.07s;
+      z-index: 3;
+      filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 12px #1ec0e9aa);
+      animation: floatDuck 0.8s infinite ease-in-out;
+      touch-action: manipulation;
+    }
+    @keyframes floatDuck {
+      0% { transform: translateY(0);}
+      50% { transform: translateY(-7px);}
+      100% { transform: translateY(0);}
+    }
+    .duck.killed {
+      opacity: 0;
+      filter: brightness(3) drop-shadow(0 0 12px #ffd700) drop-shadow(0 0 18px #ff5cfa);
+      transition: opacity 0.15s, filter 0.15s;
+      pointer-events: none;
+    }
+    .bonus-duck {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      user-select: none;
+      pointer-events: auto;
+      cursor: pointer;
+      will-change: transform, opacity;
+      z-index: 10;
+      filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 0 24px #ff5cfa);
+      animation: bonusFloat 1.1s infinite ease-in-out;
+      transition: opacity 0.18s, filter 0.18s;
+      touch-action: manipulation;
+    }
+    @keyframes bonusFloat {
+      0% { transform: translateY(0);}
+      50% { transform: translateY(-13px);}
+      100% { transform: translateY(0);}
+    }
+    .bonus-duck.killed {
+      opacity: 0;
+      filter: brightness(4) drop-shadow(0 0 30px #ffd700) drop-shadow(0 0 31px #ff5cfa);
+      pointer-events: none;
+    }
+    .splash, .bonus-splash {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      pointer-events: none;
+      z-index: 10;
+      left: 0; top: 0;
+      background: radial-gradient(circle, #ffd700 0%, #ff5cfa 60%, transparent 80%);
+      opacity: 0.7;
+      animation: splashAnim 0.25s forwards;
+      border-radius: 50%;
+    }
+    .bonus-splash {
+      width: 54px;
+      height: 54px;
+      animation: bonusSplashAnim 0.32s forwards;
+      background: radial-gradient(circle, #ffd700 0%, #26ffe6 50%, #ff5cfa 80%, transparent 100%);
+      z-index: 20;
+    }
+    @keyframes splashAnim {
+      0% { opacity: 0.7; transform: scale(0.7);}
+      50% { opacity: 1; transform: scale(1.1);}
+      100% { opacity: 0; transform: scale(1.4);}
+    }
+    @keyframes bonusSplashAnim {
+      0% { opacity: 0.85; transform: scale(0.7);}
+      50% { opacity: 1; transform: scale(1.2);}
+      100% { opacity: 0; transform: scale(1.5);}
+    }
+    .gameover-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(20,20,40,0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      font-family: 'Orbitron', Arial, sans-serif;
+      animation: fadein 0.3s;
+      font-size: 10px;
+    }
+    @keyframes fadein {
+      from { opacity: 0;}
+      to   { opacity: 1;}
+    }
+    .gameover-modal .over-title {
+      font-size: 2em;
+      color: #ffd700;
+      text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .gameover-modal .final-score {
+      font-size: 1.15em;
+      color: #fff;
+      margin-bottom: 13px;
+      text-shadow: 0 0 4px #26ffe6;
+    }
+    .gameover-modal .restart-btn {
+      font-size: 1em;
+      background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%);
+      color: #15162b;
+      border: none;
+      border-radius: 16px;
+      padding: 7px 19px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-top: 6px;
+      box-shadow: 0 0 7px #ffd700, 0 0 14px #26ffe6;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      outline: none;
+      touch-action: manipulation;
+    }
+    .gameover-modal .restart-btn:active {
+      filter: brightness(1.2);
+    }
+    .info-panel {
+      width: 98vw;
+      max-width: 480px;
+      margin: 7px auto 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8em;
+      border-radius: 12px;
+      background: rgba(21,22,43,0.92);
+      border: 1.5px solid #26ffe6;
+      box-shadow: 0 0 6px #26ffe650;
+      font-size: 1.02em;
+      color: #ffd700;
+      font-family: 'Orbitron', Arial, sans-serif;
+      padding: 3px 10px 3px 10px;
+      text-align: center;
+      user-select: none;
+    }
+    .info-label {
+      color: #26ffe6;
+      margin-right: 2px;
+    }
+    .info-value {
+      font-weight: bold;
+      color: #ffd700;
+    }
+    .info-level {
+      color: #ff5cfa;
+      text-shadow: 0 0 3px #ffd700;
+      margin-left: 6px;
+      font-size: 1.04em;
+    }
+    .info-missed {
+      color: #f25a5a;
+      margin-left: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 600px) {
+      html, body { font-size: 10px;}
+      .game-area { width: 99vw; height: 42vw; min-height: 70px; max-height: 105px;}
+      .bonus-area { width: 99vw; height: 17vw; min-height: 28px; max-height: 36px;}
+      .duck, .splash { width: 17px; height: 17px;}
+      .bonus-duck, .bonus-splash { width: 34px; height: 34px;}
+      .bonus-label { font-size: .85em; padding: 1px 7px 1px 7px;}
+      .title { font-size: 0.85rem; margin-top: 3px; }
+      .info-panel { font-size: .98em; padding: 2px 5px 2px 5px;}
+      .gameover-modal .over-title { font-size: 1.1em; }
+      .gameover-modal .final-score { font-size: .9em; }
+      .gameover-modal .restart-btn { font-size: .82em; padding: 6px 12px;}
+    }
+    button, .duck, .bonus-duck, .gameover-modal .restart-btn {
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">NFTFan Duck Shooter</div>
+  <div class="game-area" id="gameArea"></div>
+  <div class="bonus-label">BONUS</div>
+  <div class="bonus-area" id="bonusArea"></div>
+  <div class="info-panel" id="infoPanel">
+    <div><span class="info-label">Score:</span> <span class="info-value" id="scoreVal">0</span></div>
+    <div class="info-level">Level: <span id="levelVal">1</span></div>
+    <div class="info-missed">Missed: <span id="missedVal">0</span>/3</div>
+  </div>
+  <div style="display:none" id="gameOverModal"></div>
+  <script>
+    // --- Duck Shooter Game ---
+    const DUCK_IMG = "https://i.imgur.com/Z6cWbza.png";
+    const gameArea = document.getElementById('gameArea');
+    const bonusArea = document.getElementById('bonusArea');
+    const scoreVal = document.getElementById('scoreVal');
+    const levelVal = document.getElementById('levelVal');
+    const missedVal = document.getElementById('missedVal');
+    const gameOverModal = document.getElementById('gameOverModal');
+    // Level colors: [bg, border, box-shadow]
+    const LEVEL_COLORS = [
+      ["rgba(21,22,43,0.93)", "#26ffe6", "0 0 16px 3px #26ffe6, 0 0 38px 7px #ff5cfa inset"],
+      ["rgba(51,8,65,0.95)", "#ff5cfa", "0 0 12px 2px #ff5cfa, 0 0 36px 6px #ffd700 inset"],
+      ["rgba(20,33,78,0.95)", "#ffd700", "0 0 12px 2px #ffd700, 0 0 36px 6px #26ffe6 inset"],
+      ["rgba(12,33,44,0.93)", "#1ec0e9", "0 0 16px 3px #1ec0e9, 0 0 40px 8px #ff5cfa inset"],
+      ["rgba(44,9,33,0.95)", "#f25a5a", "0 0 16px 3px #f25a5a, 0 0 40px 8px #ffd700 inset"],
+      ["rgba(35,15,70,0.92)", "#fff", "0 0 16px 3px #fff, 0 0 40px 8px #26ffe6 inset"]
+    ];
+    const BONUS_COLORS = [
+      ["rgba(31,12,54,0.93)", "#ff5cfa", "0 0 12px 2px #ff5cfa, 0 0 30px 4px #ffd700 inset"],
+      ["rgba(8,48,51,0.93)", "#26ffe6", "0 0 12px 2px #26ffe6, 0 0 30px 4px #ffd700 inset"],
+      ["rgba(55,39,10,0.93)", "#ffd700", "0 0 12px 2px #ffd700, 0 0 30px 4px #ff5cfa inset"],
+      ["rgba(33,44,12,0.93)", "#1ec0e9", "0 0 12px 2px #1ec0e9, 0 0 30px 4px #ff5cfa inset"],
+      ["rgba(44,9,20,0.93)", "#f25a5a", "0 0 12px 2px #f25a5a, 0 0 30px 4px #ffd700 inset"],
+      ["rgba(35,15,70,0.9)", "#fff", "0 0 12px 2px #fff, 0 0 30px 4px #26ffe6 inset"]
+    ];
+
+    let score = 0, missed = 0, level = 1;
+    let running = true;
+    let ducks = [];
+    let spawnInterval = null;
+    let ROWS = 3;
+    let duckSpeedBase = 1.6;
+    let duckSpawnBase = 700;
+    let gameLoopRAF = null;
+
+    // BONUS
+    let bonusDucks = [];
+    let bonusSpawnInterval = null;
+
+    function getRowY(row) {
+      const areaH = gameArea.offsetHeight;
+      const DUCK_H = Math.max(18, Math.min(28, areaH/ROWS - 2));
+      if (areaH < 50) return 4 + row * 14;
+      const gap = (areaH - DUCK_H) / (ROWS - 1);
+      return row * gap;
+    }
+    function setLevelStyles() {
+      const idx = Math.min(LEVEL_COLORS.length-1, level-1);
+      const [bg, border, boxshadow] = LEVEL_COLORS[idx];
+      gameArea.style.background = bg;
+      gameArea.style.borderColor = border;
+      gameArea.style.boxShadow = boxshadow;
+
+      const idxB = Math.min(BONUS_COLORS.length-1, level-1);
+      const [bBg, bBorder, bBoxShadow] = BONUS_COLORS[idxB];
+      bonusArea.style.background = bBg;
+      bonusArea.style.borderColor = bBorder;
+      bonusArea.style.boxShadow = bBoxShadow;
+    }
+    function updateHeader() {
+      scoreVal.textContent = score;
+      levelVal.textContent = level;
+      missedVal.textContent = missed;
+    }
+
+    function spawnDuck() {
+      if (!running) return;
+      const areaW = gameArea.offsetWidth;
+      const row = Math.floor(Math.random() * ROWS);
+      const y = getRowY(row);
+      const duck = document.createElement('img');
+      duck.src = DUCK_IMG;
+      duck.className = 'duck';
+      duck.style.top = `${y}px`;
+      duck.style.left = `${areaW}px`;
+      gameArea.appendChild(duck);
+
+      // Level scaling
+      const speed = duckSpeedBase + (level-1)*0.42 + Math.random()*0.52;
+      let killed = false;
+
+      function removeDuck() {
+        if (duck.parentNode) duck.parentNode.removeChild(duck);
+        ducks = ducks.filter(d => d !== duckObj);
+      }
+      const duckObj = {
+        el: duck,
+        x: areaW,
+        y: y,
+        speed: speed,
+        killed: false,
+        row: row,
+        update() {
+          if (this.killed) return;
+          this.x -= this.speed;
+          duck.style.left = `${this.x}px`;
+          if (this.x < -40) {
+            // Missed!
+            removeDuck();
+            onDuckMissed();
+          }
+        },
+        kill() {
+          if (this.killed) return;
+          this.killed = true;
+          duck.classList.add('killed');
+          // Neon splash
+          const splash = document.createElement('div');
+          splash.className = "splash";
+          splash.style.left = duck.style.left;
+          splash.style.top = duck.style.top;
+          gameArea.appendChild(splash);
+          setTimeout(() => splash.remove(), 200);
+          setTimeout(removeDuck, 150);
+          // Score!
+          score++;
+          updateHeader();
+          // Level up logic
+          if (score && score % 10 === 0) {
+            levelUp();
+          }
+        }
+      };
+      duck.addEventListener('click', () => { if (running) duckObj.kill();});
+      duck.addEventListener('touchstart', (e) => {e.preventDefault(); if (running) duckObj.kill();}, {passive:false});
+      ducks.push(duckObj);
+    }
+
+    // BONUS DUCKS
+    function spawnBonusDuck() {
+      if (!running) return;
+      const areaW = bonusArea.offsetWidth;
+      const areaH = bonusArea.offsetHeight;
+      const duckH = Math.max(36, areaH * 0.85);
+      const duckW = duckH; // keep square
+      const y = (areaH - duckH) / 2;
+      const duck = document.createElement('img');
+      duck.src = DUCK_IMG;
+      duck.className = 'bonus-duck';
+      duck.style.top = `${y}px`;
+      duck.style.left = `-${duckW}px`;
+      duck.style.width = `${duckW}px`;
+      duck.style.height = `${duckH}px`;
+      bonusArea.appendChild(duck);
+
+      // Level scaling: faster on higher levels
+      const speed = 1.15 + (level-1)*0.32 + Math.random()*0.28;
+      let killed = false;
+
+      function removeDuck() {
+        if (duck.parentNode) duck.parentNode.removeChild(duck);
+        bonusDucks = bonusDucks.filter(d => d !== duckObj);
+      }
+      const duckObj = {
+        el: duck,
+        x: -duckW,
+        y: y,
+        speed: speed,
+        killed: false,
+        update() {
+          if (this.killed) return;
+          this.x += this.speed;
+          duck.style.left = `${this.x}px`;
+          if (this.x > areaW+duckW) {
+            removeDuck();
+          }
+        },
+        kill() {
+          if (this.killed) return;
+          this.killed = true;
+          duck.classList.add('killed');
+          // Neon splash
+          const splash = document.createElement('div');
+          splash.className = "bonus-splash";
+          splash.style.left = duck.style.left;
+          splash.style.top = duck.style.top;
+          bonusArea.appendChild(splash);
+          setTimeout(() => splash.remove(), 300);
+          setTimeout(removeDuck, 200);
+          // Bonus Score!
+          score += 5;
+          updateHeader();
+          if (score && score % 10 === 0) {
+            levelUp();
+          }
+        }
+      };
+      duck.addEventListener('click', () => { if (running) duckObj.kill();});
+      duck.addEventListener('touchstart', (e) => {e.preventDefault(); if (running) duckObj.kill();}, {passive:false});
+      bonusDucks.push(duckObj);
+    }
+
+    function onDuckMissed() {
+      missed++;
+      updateHeader();
+      if (missed >= 3) {
+        gameOver();
+      }
+    }
+
+    function gameOver() {
+      running = false;
+      clearInterval(spawnInterval);
+      clearInterval(bonusSpawnInterval);
+      ducks.forEach(d => d.el.classList.add('killed'));
+      bonusDucks.forEach(d => d.el.classList.add('killed'));
+      setTimeout(() => {
+        showGameOverModal();
+      }, 350);
+    }
+
+    function showGameOverModal() {
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="over-title">Game Over</div>
+          <div class="final-score">Final Score: ${score}<br>Level: ${level}</div>
+          <button class="restart-btn" onclick="restartGame()">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+    }
+
+    window.restartGame = function() {
+      score = 0; missed = 0; level = 1; running = true; ducks = []; bonusDucks = [];
+      setLevelStyles();
+      updateHeader();
+      Array.from(document.querySelectorAll('.duck')).forEach(d => d.remove());
+      Array.from(document.querySelectorAll('.bonus-duck')).forEach(d => d.remove());
+      gameOverModal.style.display = "none";
+      startGame();
+    };
+
+    function levelUp() {
+      level++;
+      setLevelStyles();
+      updateHeader();
+      clearInterval(spawnInterval);
+      clearInterval(bonusSpawnInterval);
+      spawnInterval = setInterval(spawnDuck, Math.max(180, duckSpawnBase - (level-1)*70));
+      bonusSpawnInterval = setInterval(spawnBonusDuck, Math.max(1600, 3500 - (level-1)*200));
+    }
+
+    function animate() {
+      if (!running) return;
+      ducks.forEach(duck => duck.update());
+      bonusDucks.forEach(duck => duck.update());
+      gameLoopRAF = requestAnimationFrame(animate);
+    }
+
+    function startGame() {
+      setLevelStyles();
+      updateHeader();
+      clearInterval(spawnInterval);
+      clearInterval(bonusSpawnInterval);
+      spawnInterval = setInterval(spawnDuck, duckSpawnBase);
+      bonusSpawnInterval = setInterval(spawnBonusDuck, 3500);
+      for (let i = 0; i < 2; ++i) setTimeout(spawnDuck, i * 300);
+      setTimeout(spawnBonusDuck, 800);
+      if (gameLoopRAF) cancelAnimationFrame(gameLoopRAF);
+      animate();
+    }
+
+    // Responsive: update ducks on resize, and game area styles
+    window.addEventListener('resize', () => {
+      ducks.forEach(d => {
+        d.y = getRowY(d.row);
+        d.el.style.top = `${d.y}px`;
+      });
+      setLevelStyles();
+    });
+
+    // Auto start
+    setTimeout(startGame, 600);
+
+    // Remove double tap zoom on mobile
+    document.addEventListener('touchstart', function preventZoom(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>
