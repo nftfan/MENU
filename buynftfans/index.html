@@ -18,9 +18,9 @@
       --neon-cyan: #00ffe5;
       --neon-red: #ff003c;
       --neon-lime: #b6ff00;
-      --glass-bg: rgba(22, 10, 40, 0.80);
-      --glass-border: rgba(255,255,255,0.18);
-      --card-shadow: 0 0 32px 4px #000b, 0 0 0 1.7px #fff1;
+      --glass-bg: rgba(22, 10, 40, 0.57);
+      --glass-border: rgba(255,255,255,0.14);
+      --card-shadow: 0 0 14px 2px #000a, 0 0 0 1.2px #fff1;
       --font-main: 'Orbitron', 'Montserrat', Arial, sans-serif;
       --font-body: 'Montserrat', Arial, sans-serif;
     }
@@ -46,6 +46,28 @@
       z-index: 0;
       overflow: hidden;
     }
+    /* LASER SHOW CANVAS */
+    #laser-show {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 100;
+      display: none;
+      opacity: 1;
+      transition: opacity 0.33s;
+      mix-blend-mode: lighten;
+    }
+    #laser-show.laser-active {
+      display: block;
+      opacity: 1;
+      animation: laser-fadein 0.5s;
+    }
+    @keyframes laser-fadein {
+      0% { opacity: 0;}
+      100% { opacity: 1;}
+    }
+
+    /* MAIN GLASS CARD -- with glowing animated border */
     .main-glass {
       position: relative;
       z-index: 2;
@@ -55,15 +77,43 @@
       background: var(--glass-bg);
       border-radius: 36px;
       border: 2.6px solid var(--glass-border);
-      box-shadow: var(--card-shadow), 0 0 40px 0 #ff00de33, 0 0 18px 0 #19fff766;
-      backdrop-filter: blur(22px) saturate(200%);
-      -webkit-backdrop-filter: blur(22px) saturate(200%);
+      box-shadow: var(--card-shadow), 0 0 18px 0 #ff00de22, 0 0 7px 0 #19fff733;
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
       text-align: center;
       margin-top: 8vh;
-      border-top: 4px solid var(--neon-pink);
-      border-bottom: 4px solid var(--neon-blue);
       box-sizing: border-box;
       animation: flicker 3.2s infinite alternate;
+      overflow: visible;
+    }
+    .main-glass::before {
+      content: "";
+      position: absolute;
+      inset: -5.5px;
+      z-index: 1;
+      border-radius: 44px;
+      padding: 0;
+      background: conic-gradient(from 0deg, #ff00de 0%, #19fff7 25%, #fff800 45%, #00ff9c 65%, #ff003c 85%, #ff00de 100%);
+      filter: blur(3.2px) brightness(1.03);
+      opacity: 0.35;
+      pointer-events: none;
+      animation: border-spin 5.2s linear infinite;
+    }
+    .main-glass::after {
+      content: "";
+      position: absolute;
+      inset: -2.5px;
+      z-index: 2;
+      border-radius: 40px;
+      border: 2.7px solid rgba(255,255,255,0.10);
+      background: linear-gradient(135deg, rgba(36,15,70,0.11), rgba(22,10,40,0.13) 100%);
+      pointer-events: none;
+      box-shadow: 0 0 14px 2px #ff00de14, 0 0 19px 5px #19fff717;
+      opacity: 0.67;
+    }
+    @keyframes border-spin {
+      0% { filter: hue-rotate(0deg);}
+      100% { filter: hue-rotate(360deg);}
     }
     @media (max-width: 600px) {
       .main-glass {
@@ -72,6 +122,12 @@
         padding: 13px 2vw 22px 2vw;
         border-radius: 18px;
         margin-top: 2.5vh;
+      }
+      .main-glass::before {
+        border-radius: 22px;
+      }
+      .main-glass::after {
+        border-radius: 18px;
       }
     }
     .logo-img-wrap {
@@ -82,20 +138,21 @@
       background: conic-gradient(from 0deg, #ff00de 0%, #00ffe5 30%, #fff800 50%, #00ff9c 70%, #ff003c 90%, #ff00de 100%);
       box-shadow:
         0 0 0 7px #1b003399,
-        0 0 24px 5px #ff00de88,
-        0 0 0 2px #fff4,
-        0 0 8px 1px #19fff777;
+        0 0 16px 2px #ff00de44,
+        0 0 0 2px #fff3,
+        0 0 7px 1px #19fff755;
       position: relative;
       overflow: hidden;
       transition: box-shadow 0.18s;
       animation: gradient-rotate 3.5s linear infinite;
+      z-index: 5;
     }
     @keyframes gradient-rotate {
       0% { filter: hue-rotate(0deg);}
       100% { filter: hue-rotate(360deg);}
     }
     .logo-img-wrap:hover {
-      box-shadow: 0 0 0 13px #fff80099, 0 0 36px 14px #ff00decc, 0 0 0 2px #19fff7bb;
+      box-shadow: 0 0 0 13px #fff80077, 0 0 26px 8px #ff00de77, 0 0 0 2px #19fff7bb;
     }
     .logo-img {
       width: 92px;
@@ -106,72 +163,80 @@
       user-select: none;
       pointer-events: none;
       background: #191828;
-      border: 3px solid #fff8;
-      filter: drop-shadow(0 1px 6px #fff8);
+      border: 3px solid #fff6;
+      filter: drop-shadow(0 1px 6px #fff5);
       transition: filter 0.15s;
       display:block;
     }
+    /* BUY BUTTON - make it more "button-like" */
     .buy-btn {
-      background: linear-gradient(100deg,
-        var(--neon-pink) 2%,
-        var(--neon-yellow) 23%,
-        var(--neon-blue) 49%,
-        var(--neon-orange) 71%,
-        var(--neon-green) 85%,
-        var(--neon-red) 100%);
+      background: linear-gradient(
+        90deg,
+        var(--neon-blue) 0%,
+        var(--neon-pink) 22%,
+        var(--neon-yellow) 58%,
+        var(--neon-green) 76%,
+        var(--neon-red) 100%
+      );
       color: #fff;
-      font-size: 1.5rem;
+      font-size: 1.55rem;
       font-family: var(--font-main);
       font-weight: 900;
-      border: none;
-      border-radius: 13px 42px 13px 42px / 42px 13px 42px 13px;
-      padding: 1.13em 2.9em 1.13em 2.6em;
-      margin: 0 auto 32px auto;
+      border: 0;
+      border-radius: 100px;
+      padding: 1.15em 3.4em;
+      margin: 0 auto 22px auto;
       box-shadow:
-        0 0 0 0 var(--neon-blue),
-        0 0 42px 0 #ff00de99,
-        0 0 20px 0 #fff80044,
-        0 0 0 3px #fff1;
+        0 3px 10px 0 #ff00de44,
+        0 0 0 1.7px #19fff733,
+        0 2px 8px #fff80018,
+        0 0 0 1px #fff2;
       letter-spacing: 2.2px;
-      text-shadow: 0 1.5px 8px #fff, 0 1.5px 18px #ff00de77;
-      transition: transform 0.14s, box-shadow 0.14s, background 0.25s;
+      text-shadow: 0 1.5px 8px #fff, 0 1.5px 18px #ff00de44;
+      transition:
+        transform 0.14s,
+        box-shadow 0.14s,
+        background 0.25s,
+        filter 0.18s;
       cursor: pointer;
       outline: none;
       display: block;
       position: relative;
       z-index: 2;
-      filter: drop-shadow(0 0 0px #fff800cc);
-      animation: btn-glow 2.2s infinite alternate, border-flow 3s linear infinite;
+      filter: drop-shadow(0 0 0px #fff80088);
+      animation: btn-glow 2.2s infinite alternate, border-flow 2.4s linear infinite;
       border-top: 4px solid var(--neon-yellow);
       border-bottom: 4px solid var(--neon-purple);
-      border-left: 2.5px solid var(--neon-cyan);
-      border-right: 2.5px solid var(--neon-lime);
+      border-left: 3.5px solid var(--neon-cyan);
+      border-right: 3.5px solid var(--neon-lime);
       overflow: hidden;
+      min-width: 220px;
     }
     .buy-btn:active {
       transform: scale(0.97);
       box-shadow: 0 0 0 0 transparent;
       background: linear-gradient(100deg, var(--neon-orange), var(--neon-pink), var(--neon-blue), var(--neon-green));
+      filter: brightness(0.95) contrast(1.12);
     }
     .buy-btn::after {
       content: "";
       position: absolute;
-      left: -30%; top: -30%; width: 160%; height: 160%;
+      left: 0; top: 0; width: 100%; height: 100%;
+      border-radius: 100px;
       background: conic-gradient(from 0deg, #ff00de, #19fff7, #fff800, #00ff9c, #ff003c, #ff00de);
-      opacity: 0.18;
+      opacity: 0.11;
       z-index: 1;
       pointer-events: none;
       animation: btn-bg-spin 4.5s linear infinite;
-      border-radius: 60%;
-      filter: blur(7px);
+      filter: blur(4px);
     }
     @keyframes btn-bg-spin {
       0% { transform: rotate(0deg);}
       100% { transform: rotate(360deg);}
     }
     @keyframes btn-glow {
-      0% { box-shadow: 0 0 0 0 var(--neon-blue), 0 0 32px 0 #ff00de77, 0 0 10px 2px #fff80022; }
-      100% { box-shadow: 0 0 0 16px var(--neon-blue), 0 0 90px 8px #ff00decc, 0 0 30px 2px #fff800bb; }
+      0% { box-shadow: 0 0 0 0 var(--neon-blue), 0 0 14px 0 #ff00de33, 0 0 5px 2px #fff80010; }
+      100% { box-shadow: 0 0 0 5px var(--neon-blue), 0 0 22px 2px #ff00de77, 0 0 13px 2px #fff80033; }
     }
     @keyframes border-flow {
       0% { filter: hue-rotate(0deg);}
@@ -180,9 +245,166 @@
     /* Flicker animation for main card */
     @keyframes flicker {
       0%, 100% { filter: brightness(1) drop-shadow(0 0 0 #fff800); }
-      97% { filter: brightness(1.1) drop-shadow(0 0 22px #fff80099); }
-      98% { filter: brightness(1.22) drop-shadow(0 0 38px #ff00decc); }
-      99% { filter: brightness(1.11) drop-shadow(0 0 25px #19fff7cc); }
+      97% { filter: brightness(1.06) drop-shadow(0 0 8px #fff80033); }
+      98% { filter: brightness(1.11) drop-shadow(0 0 13px #ff00de44); }
+      99% { filter: brightness(1.08) drop-shadow(0 0 9px #19fff733); }
+    }
+
+    /* --- RATE SECTION --- */
+    .rate-section {
+      margin: 0 auto 18px auto;
+      margin-top: -7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      user-select: none;
+      z-index: 4;
+      position: relative;
+    }
+    .rate-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-family: var(--font-main);
+      font-weight: 900;
+      font-size: 1.12em;
+      color: var(--neon-yellow);
+      background: linear-gradient(90deg,#ff00de11 0%,#19fff711 100%);
+      border-radius: 13px;
+      padding: 7px 20px 7px 17px;
+      text-shadow: 0 2px 11px #fff80022, 0 1px 6px #ff00de11;
+      border: 1.5px solid #fff2;
+      box-shadow: 0 1px 10px #ff00de14;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 2px;
+    }
+    .rate-row .icon-pulse {
+      width: 32px;
+      height: 32px;
+      margin: 0 2px;
+      vertical-align: middle;
+      border-radius: 50%;
+      box-shadow: 0 0 7px #fff80044;
+      position: relative;
+      z-index: 1;
+      animation: icon-pulse-glow 1.4s infinite cubic-bezier(.65,0,.35,1) alternate;
+    }
+    .rate-row .icon-pulse.nftfan {
+      animation-delay: 0.7s;
+    }
+    @keyframes icon-pulse-glow {
+      0% {
+        box-shadow: 0 0 7px #fff80044, 0 0 0 0 #ff00de44;
+        filter: brightness(1.11) drop-shadow(0 0 0 #ff00de44);
+        transform: scale(1);
+      }
+      60% {
+        box-shadow: 0 0 15px #ff00de66, 0 0 0 11px #19fff711;
+        filter: brightness(1.19) drop-shadow(0 0 8px #fff80066);
+        transform: scale(1.10);
+      }
+      100% {
+        box-shadow: 0 0 11px #19fff766, 0 0 0 15px #ff00de22;
+        filter: brightness(1.18) drop-shadow(0 0 11px #fff80099);
+        transform: scale(1.18);
+      }
+    }
+    .rate-row .rate-eq {
+      font-size: 0.93em;
+      color: #fff;
+      margin: 0 6px;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-shadow: 0 1px 7px #ff00de22;
+    }
+    .rate-row .rate-val {
+      color: var(--neon-yellow);
+      font-size: 1.04em;
+      font-family: var(--font-main);
+      font-weight: 900;
+      margin: 0 2px;
+      text-shadow: 0 2px 11px #fff80022, 0 1px 6px #ff00de11;
+    }
+    .rate-row .rate-unit {
+      color: var(--neon-blue);
+      font-size: 1em;
+      font-family: var(--font-main);
+      font-weight: 900;
+      margin: 0 2px 0 2px;
+      text-shadow: 0 1px 8px #19fff733;
+      letter-spacing: 0.01em;
+    }
+
+    /* --- TOGGLE RAIN --- */
+    .rain-toggle-wrap {
+      margin: 0 auto 18px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+    }
+    .rain-toggle-label {
+      font-family: var(--font-main);
+      font-size: 1.06em;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      letter-spacing: 0.04em;
+      text-shadow: 0 2px 10px #19fff799, 0 1px 10px #ff00de66;
+      margin-bottom: 2px;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 0.32em;
+    }
+    .rain-toggle-btn {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 57px;
+      height: 32px;
+      background: linear-gradient(90deg, #191828 20%, #19fff7 80%);
+      border-radius: 24px;
+      border: 1.6px solid #fff4;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.18s, border 0.12s;
+      box-shadow: 0 0 8px #19fff733, 0 0 0 1px #ff00de33;
+    }
+    .rain-toggle-btn:checked {
+      background: linear-gradient(90deg, #ff00de 10%, #fff800 60%, #19fff7 100%);
+      border: 2.2px solid #fff800;
+      box-shadow: 0 0 15px #ff00de66, 0 0 0 2px #fff80022;
+    }
+    .rain-toggle-btn::before {
+      content: "";
+      position: absolute;
+      top: 5px; left: 6px;
+      width: 22px; height: 22px;
+      background: linear-gradient(135deg, #fff 60%, #19fff7 100%);
+      border-radius: 50%;
+      box-shadow: 0 1px 10px #fff80088, 0 0 7px #ff00de77;
+      transition: left 0.22s, background 0.15s;
+      border: 2px solid #fff;
+      z-index: 3;
+    }
+    .rain-toggle-btn:checked::before {
+      left: 29px;
+      background: linear-gradient(135deg, #fff800 30%, #ff00de 80%);
+      box-shadow: 0 1px 13px #19fff788, 0 0 10px #fff80099;
+      border-color: #ff00de;
+    }
+    .rain-toggle-desc {
+      color: #fff;
+      font-size: 0.98em;
+      margin-top: 1px;
+      margin-bottom: 6px;
+      text-shadow: 0 1px 7px #19fff755;
+      opacity: 0.77;
+      font-family: var(--font-body);
+      font-weight: 700;
     }
 
     /* POPUP ANIMATION with animated border */
@@ -218,7 +440,7 @@
       margin-top: 18px;
       background: linear-gradient(135deg, #2a1c3e99 0%, #19184a88 100%);
       border-radius: 26px;
-      box-shadow: 0 2px 32px 0 #ff00de33, 0 0 0 2px #fff2;
+      box-shadow: 0 2px 12px 0 #ff00de13, 0 0 0 1px #fff1;
       border: 4px solid transparent;
       padding: 24px 20px 12px 20px;
       max-width: 400px;
@@ -226,8 +448,8 @@
       position: relative;
       font-size: 1.09rem;
       color: #fff;
-      backdrop-filter: blur(10px) saturate(200%);
-      -webkit-backdrop-filter: blur(10px) saturate(200%);
+      backdrop-filter: blur(10px) saturate(150%);
+      -webkit-backdrop-filter: blur(10px) saturate(150%);
       z-index: 3;
       font-family: var(--font-body);
       overflow: hidden;
@@ -246,7 +468,8 @@
       z-index: 0;
       pointer-events: none;
       animation: popup-border-spin 3.3s linear infinite;
-      filter: blur(3.2px) brightness(1.12);
+      filter: blur(1.8px) brightness(1.05);
+      opacity: 0.28;
     }
     .popup-sheet::after {
       content: "";
@@ -257,7 +480,8 @@
       z-index: 1;
       pointer-events: none;
       border: 1.6px solid #fff2;
-      box-shadow: 0 0 28px 3px #ff00de33, 0 0 44px 9px #19fff755;
+      box-shadow: 0 0 13px 3px #ff00de11, 0 0 14px 4px #19fff722;
+      opacity: 0.69;
     }
     @keyframes popup-border-spin {
       0% { filter: hue-rotate(0deg);}
@@ -366,19 +590,19 @@
       font-weight: 900;
       margin-left: 4px;
       cursor: pointer;
-      box-shadow: 0 0.7px 4px #19fff733, 0 0 6px #ff00de55, 0 0 12px #fff80044;
+      box-shadow: 0 0.7px 4px #19fff733, 0 0 6px #ff00de55, 0 0 12px #fff80022;
       transition: background 0.15s, color 0.13s, box-shadow 0.15s;
       outline: none;
       font-family: var(--font-main);
-      text-shadow: 0 1px 8px #fff8;
-      border-top: 1.2px solid #fff8;
+      text-shadow: 0 1px 8px #fff5;
+      border-top: 1.2px solid #fff7;
       position: relative;
       z-index: 2;
     }
     .copy-btn.copied {
       background: linear-gradient(90deg, var(--neon-blue), var(--neon-yellow) 80%, var(--neon-lime));
       color: #000;
-      box-shadow: 0 0 18px #fff80077, 0 0 8px #19fff7bb;
+      box-shadow: 0 0 8px #fff80044, 0 0 4px #19fff766;
     }
     .note {
       color: #fff;
@@ -389,7 +613,7 @@
       margin-top: 6px;
       margin-bottom: 15px;
       font-weight: 700;
-      box-shadow: 0 1.5px 12px #ff00de22;
+      box-shadow: 0 1.5px 7px #ff00de11;
       text-shadow: 0 1px 6px #fff;
       border: 1px solid #fff2;
     }
@@ -401,7 +625,7 @@
     .popup-sheet li {
       margin-bottom: 8px;
       line-height: 1.55;
-      text-shadow: 0 1px 7px #fff4;
+      text-shadow: 0 1px 7px #fff2;
     }
     .wallet-addr {
       font-size: 10px !important;
@@ -414,7 +638,7 @@
       user-select: all;
       word-break: break-all;
       border: 1.1px solid #fff2;
-      box-shadow: 0 0 10px #fff80044;
+      box-shadow: 0 0 7px #fff80022;
     }
     @media (max-width: 600px) {
       .popup-sheet, .main-glass {
@@ -422,16 +646,39 @@
       }
       .popup-sheet h2 { font-size: 1em; }
       .step { font-size: 0.98em; }
+      .rate-row .icon-pulse { width: 19px; height: 19px;}
     }
   </style>
 </head>
 <body>
   <canvas class="coins-bg" id="coins-bg"></canvas>
+  <canvas id="laser-show"></canvas>
   <div class="main-glass">
     <div class="logo-img-wrap">
       <img class="logo-img" src="https://i.imgur.com/qVnwL4N.png" alt="NFTFAN Logo" draggable="false" />
     </div>
     <button class="buy-btn" id="buyBtn">BUY $NFTFAN</button>
+    <section class="rate-section">
+      <div class="rate-row">
+        <!-- ICONS REVERSED: NFTFAN icon left, POL icon right -->
+        <img class="icon-pulse" src="https://i.imgur.com/RwdMFUB.png" alt="NFTFAN Icon" />
+        <span class="rate-val">1</span>
+        <span class="rate-unit">$POL</span>
+        <span class="rate-eq">=</span>
+        <span class="rate-val">1KT</span>
+        <span class="rate-unit">$NFTFAN</span>
+        <img class="icon-pulse nftfan" src="https://i.imgur.com/qVnwL4N.png" alt="POL Icon" />
+      </div>
+    </section>
+    <div class="rain-toggle-wrap">
+      <label class="rain-toggle-label" for="rainToggle">
+        <span>🌈 Token Rain</span>
+        <input type="checkbox" id="rainToggle" class="rain-toggle-btn" />
+      </label>
+      <span class="rain-toggle-desc">
+        Turn on <b>TOKEN RAIN</b> for an extra shower of $NFTFAN coins!
+      </span>
+    </div>
     <div class="popup-anim popup-sheet" id="buyPopup" style="display:none;">
       <button class="close-x" id="closePopup" title="Close">&times;</button>
       <h2>How to Buy NFTFAN</h2>
@@ -486,10 +733,12 @@
 
     // Coins Animation (falling, bouncing, rotating, CIRCULAR CLIP)
     const coinImages = [
-      "https://i.imgur.com/qVnwL4N.png", // logo
-      "https://i.imgur.com/RwdMFUB.png"  // alt coin
+      "https://i.imgur.com/qVnwL4N.png", // logo (POL)
+      "https://i.imgur.com/RwdMFUB.png"  // NFTFAN
     ];
-    const coinsCount = window.innerWidth < 600 ? 12 : 28;
+    let coinsCountBase = window.innerWidth < 600 ? 12 : 28;
+    let coinsCountRain = window.innerWidth < 600 ? 28 : 62;
+    let coinsCount = coinsCountBase;
     const gravitys = [0.23, 0.34, 0.17, 0.3, 0.27, 0.21, 0.26, 0.38]; // random gravitys
     const coinMinSize = window.innerWidth < 600 ? 18 : 32;
     const coinMaxSize = window.innerWidth < 600 ? 38 : 60;
@@ -502,7 +751,11 @@
       canvas.height = window.innerHeight;
     }
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      setTimeout(spawnCoins, 400);
+      resizeLaserShow();
+    });
 
     function randomCoin() {
       const imgIdx = Math.random() < 0.7 ? 0 : 1;
@@ -557,10 +810,10 @@
       ctx.beginPath();
       ctx.arc(0, 0, coin.size/2 + 2.5, 0, Math.PI*2);
       ctx.shadowColor = coin.borderColor;
-      ctx.shadowBlur = 14 + coin.size * 0.19;
+      ctx.shadowBlur = 7 + coin.size * 0.08;
       ctx.strokeStyle = coin.borderColor;
-      ctx.globalAlpha = 0.7 * coin.borderGlow;
-      ctx.lineWidth = 4.7;
+      ctx.globalAlpha = 0.45 * coin.borderGlow;
+      ctx.lineWidth = 3.4;
       ctx.stroke();
       ctx.restore();
 
@@ -569,7 +822,7 @@
       ctx.arc(0, 0, coin.size/2, 0, Math.PI*2);
       ctx.closePath();
       ctx.clip();
-      ctx.globalAlpha = 0.96;
+      ctx.globalAlpha = 0.94;
       ctx.drawImage(loadedImgs[coin.imgIdx], -coin.size/2, -coin.size/2, coin.size, coin.size);
       ctx.restore();
     }
@@ -611,8 +864,138 @@
     setTimeout(() => {
       if (loaded === coinImages.length) animateCoins();
     }, 400);
-    window.addEventListener('resize', () => {
-      setTimeout(spawnCoins, 400);
+
+    // --- TOKEN RAIN + LASER SHOW ---
+    const rainToggle = document.getElementById('rainToggle');
+    const laserShow = document.getElementById('laser-show');
+    let laserAnimationActive = false;
+    let laserFrameId;
+
+    function resizeLaserShow() {
+      laserShow.width = window.innerWidth;
+      laserShow.height = window.innerHeight;
+    }
+    resizeLaserShow();
+
+    function randomColor() {
+      const colors = [
+        "#ff00de", "#19fff7", "#fff800", "#00ff9c",
+        "#ff003c", "#00ffe5", "#a900ff", "#ff9900", "#b6ff00"
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function drawLaserShow(ctx) {
+      ctx.clearRect(0, 0, laserShow.width, laserShow.height);
+      const w = laserShow.width;
+      const h = laserShow.height;
+      const time = Date.now() * 0.001;
+
+      // Main LASERS: criss-cross, neon, cyberpunk!
+      for (let i = 0; i < 12; i++) {
+        const angle = (time * 0.7 + i * 0.41) % (2 * Math.PI);
+        const x1 = w / 2 + Math.cos(angle + time * 0.13 + i) * w * 0.5 * (0.3 + 0.7 * Math.sin(angle + time * 0.22));
+        const y1 = h / 2 + Math.sin(angle * 1.1 + time * 0.1 - i) * h * 0.5 * (0.3 + 0.7 * Math.cos(angle - time * 0.21));
+        const x2 = w / 2 + Math.cos(angle + time * 1.03 - i) * w * 0.52;
+        const y2 = h / 2 + Math.sin(angle * 0.9 - time * 1.07 + i * 0.32) * h * 0.52;
+        ctx.save();
+        ctx.strokeStyle = randomColor();
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 20 + 25 * Math.abs(Math.sin(angle + time));
+        ctx.globalAlpha = 0.29 + Math.abs(Math.sin(time + i)) * 0.55;
+        ctx.lineWidth = 8.5 + 7 * Math.abs(Math.cos(angle + time * 0.23));
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        // Inner white laser
+        ctx.strokeStyle = "#fff";
+        ctx.shadowColor = "#fff";
+        ctx.shadowBlur = 8 + 7 * Math.abs(Math.cos(angle + time * 1.7));
+        ctx.globalAlpha = 0.23 + Math.abs(Math.sin(time * 1.3 + i * 0.77)) * 0.25;
+        ctx.lineWidth = 2.1 + 2.5 * Math.abs(Math.sin(angle * 2 + time));
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Pulsing circles in the center
+      for (let r = 0; r < 3; r++) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, (90 + 60*r) + 20 * Math.sin(time*3 + r), 0, Math.PI*2);
+        ctx.strokeStyle = randomColor();
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 32;
+        ctx.globalAlpha = 0.09 + 0.08 * r + Math.abs(Math.sin(time + r));
+        ctx.lineWidth = 5.5 + 3.5 * Math.abs(Math.sin(time*1.2 + r));
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // "Random shots"
+      for (let i = 0; i < 8; i++) {
+        ctx.save();
+        let angle = time * 0.7 + i * Math.PI / 4 + Math.sin(time * (i+1) * 0.2);
+        let x1 = w/2, y1 = h/2;
+        let x2 = w/2 + Math.cos(angle) * w * 0.8;
+        let y2 = h/2 + Math.sin(angle) * h * 0.8;
+        ctx.strokeStyle = randomColor();
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 40;
+        ctx.globalAlpha = 0.11 + 0.16 * Math.abs(Math.sin(time*0.7 + i));
+        ctx.lineWidth = 8 + 6 * Math.abs(Math.cos(time*0.7 + i));
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function animateLaserShow() {
+      if (!laserAnimationActive) return;
+      const ctx = laserShow.getContext('2d');
+      drawLaserShow(ctx);
+      laserFrameId = requestAnimationFrame(animateLaserShow);
+    }
+
+    function startLaserShow() {
+      laserAnimationActive = true;
+      laserShow.classList.add('laser-active');
+      animateLaserShow();
+    }
+
+    function stopLaserShow() {
+      laserAnimationActive = false;
+      laserShow.classList.remove('laser-active');
+      if (laserFrameId) cancelAnimationFrame(laserFrameId);
+      const ctx = laserShow.getContext('2d');
+      ctx.clearRect(0, 0, laserShow.width, laserShow.height);
+    }
+
+    // --- Toggle logic
+    rainToggle.addEventListener('change', function() {
+      if (rainToggle.checked) {
+        coinsCount = coinsCountRain;
+        startLaserShow();
+      } else {
+        coinsCount = coinsCountBase;
+        stopLaserShow();
+      }
+      spawnCoins();
+    });
+
+    // Resize laser show on window resize
+    window.addEventListener('resize', resizeLaserShow);
+
+    // Auto stop laser show if user navigates away
+    window.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopLaserShow();
+      else if (rainToggle.checked) startLaserShow();
     });
   </script>
 </body>
