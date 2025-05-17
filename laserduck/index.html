@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFan Duck Trader - Only Enemies Kill Duck</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020; font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px; background-image: radial-gradient(circle, #23243a 2%, #15162b 100%), url("https://www.transparenttextures.com/patterns/stardust.png"); background-size: cover, 400px 400px;}
+    .container { display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start; }
+    .graph-box { position: relative; margin-top: 25px; background: linear-gradient(135deg, #181b39 0%, #2c1976 100%); border: 3px solid #26ffe6; border-radius: 1em; box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3; width: 96vw; max-width: 480px; height: 44vw; max-height: 210px; min-height: 120px; overflow: hidden;}
+    .power-bar-bg { position: absolute; left: 7px; right: 7px; top: 7px; height: 18px; background: #23243a; border: 2px solid #ffd700; border-radius: 12px; box-shadow: 0 0 11px 2px #ffd70077, 0 0 7px 2px #26ffe6; z-index: 20; display: flex; align-items: center; overflow: hidden;}
+    .power-bar { height: 100%; border-radius: 12px; background: linear-gradient(90deg, #26ffe6 10%, #ffd700 85%); box-shadow: 0 0 8px #26ffe6cc, 0 0 20px #ffd700; transition: width 0.1s;}
+    .power-label { position: absolute; left: 20px; top: 5px; z-index: 25; font-size: 1em; font-family: 'Orbitron', Arial, sans-serif; color: #ffd700; text-shadow: 0 0 5px #26ffe6, 0 0 6px #fff; pointer-events: none; user-select: none;}
+    .powers-panel { position: absolute; right: 13px; top: 4px; z-index: 21; display: flex; flex-direction: row; gap: 9px; }
+    .score-panel { margin-top: 9px; color: #26ffe6; background: rgba(25,28,43,0.95); border-radius: 11px; border: 1.5px solid #ffd700; box-shadow: 0 0 6px #26ffe6bb, 0 0 19px #fff5 inset; font-size: 1.12em; padding: 6px 22px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 90px;}
+    .balance-panel { margin-top: 18px; color: #ffd700; background: rgba(21,22,43,0.92); border-radius: 13px; border: 1.5px solid #26ffe6; box-shadow: 0 0 6px #26ffe650, 0 0 50px #181b39 inset; font-size: 1.15em; padding: 8px 33px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; }
+    .controls { margin-top: 16px; display: flex; flex-direction: row; gap: 38px; justify-content: center;}
+    .btn { border: none; border-radius: 50%; width: 64px; height: 64px; background: #181b39; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px 6px #26ffe688, 0 0 0 2px #ffd700, 0 0 44px 8px #ff5cfa55 inset; cursor: pointer; transition: background 0.18s, box-shadow 0.18s, transform 0.09s; outline: none; user-select: none; position: relative; z-index: 2; animation: neonBtnPulse 1.4s infinite alternate; overflow: visible; border: 3px solid transparent;}
+    .btn-green { background: radial-gradient(circle at 60% 30%, #4affb1 80%, #26ffe6 100%); box-shadow: 0 0 32px 8px #26ffe6bb, 0 0 0 2px #1ec0e9, 0 0 44px 10px #fff8 inset; border-color: #1ec0e9;}
+    .btn-red { background: radial-gradient(circle at 40% 60%, #fd3c49 78%, #ffd700 100%); box-shadow: 0 0 32px 8px #ffd700bb, 0 0 0 2px #ffd700, 0 0 44px 10px #ff5cfa88 inset; border-color: #ffd700;}
+    .btn:active, .btn.pressed { filter: brightness(1.22) drop-shadow(0 0 13px #fff); transform: scale(0.97); box-shadow: 0 0 60px 12px #ffd700cc, 0 0 28px #26ffe6cc; border-width: 5px;}
+    .btn-green:active, .btn-green.pressed { background: radial-gradient(circle at 60% 20%, #85ffc9 85%, #26ffe6 100%);}
+    .btn-red:active, .btn-red.pressed { background: radial-gradient(circle at 30% 70%, #ff7c7c 85%, #ffd700 100%);}
+    .btn-icon { font-size: 2.3em; display: block; width: 100%; text-align: center; line-height: 1; text-shadow: 0 0 13px #fff, 0 0 36px #ffd700; pointer-events: none; user-select: none; filter: drop-shadow(0 0 14px #ffd70088) drop-shadow(0 0 14px #ff5cfa88);}
+    .duck-img { position: absolute; width: 46px; height: 46px; z-index: 20; pointer-events: none; user-select: none; filter: drop-shadow(0 0 19px #ffd700cc) drop-shadow(0 0 28px #26ffe6cc); transition: filter 0.07s; will-change: top, filter; animation: duckNeonFloat 1.2s ease-in-out infinite alternate;}
+    @keyframes duckNeonFloat { 0% { filter: drop-shadow(0 0 19px #ffd700cc) drop-shadow(0 0 28px #26ffe6cc);} 50% { filter: drop-shadow(0 0 32px #ff5cfa) drop-shadow(0 0 38px #ffd700);} 100% { filter: drop-shadow(0 0 19px #ffd700cc) drop-shadow(0 0 28px #26ffe6cc);} }
+    .duck-hp { position: absolute; right: 12px; top: 10px; z-index: 26; font-size: 1.1em; color: #f25a5a; text-shadow: 0 0 8px #ff5cfa, 0 0 14px #ffd700; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 2px; background: rgba(30,15,45,0.85); border-radius: 10px; padding: 4px 12px; border: 1px solid #ffd700aa; box-shadow: 0 0 4px #26ffe6; user-select: none; pointer-events: none;}
+    .gameover-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(20,20,40,0.97); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-family: 'Orbitron', Arial, sans-serif; font-size: 10px; animation: fadein 0.3s;}
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+    .gameover-title { font-size: 2em; color: #ffd700; text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6; font-weight: bold; margin-bottom: 16px;}
+    .gameover-score { font-size: 1.15em; color: #fff; margin-bottom: 18px; text-shadow: 0 0 4px #26ffe6;}
+    .restart-btn { font-size: 1.1em; background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%); color: #15162b; border: none; border-radius: 16px; padding: 11px 31px; font-family: 'Orbitron', Arial, sans-serif; font-weight: bold; letter-spacing: 1px; margin-top: 6px; box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6; cursor: pointer; transition: background 0.2s, color 0.2s; outline: none; touch-action: manipulation; animation: neonBtnPulse 1.1s infinite alternate; text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;}
+    .restart-btn:active { filter: brightness(1.2);}
+    @media (max-width: 600px) {
+      html, body { font-size: 10px;}
+      .graph-box { width: 99vw; height: 36vw; min-height: 90px; max-height: 120px;}
+      .balance-panel { font-size: 1em; padding: 7px 7vw;}
+      .score-panel { font-size: 1em; padding: 4px 9vw;}
+      .btn { width: 48px; height: 48px; font-size: 1.1em; }
+      .duck-hp { font-size: 1em; right: 6px; top: 6px; padding: 2px 7px;}
+      .btn-icon { font-size: 1.7em; }
+      .power-bar-bg { height: 13px; }
+      .powers-panel { gap: 5px; }
+      .power-refill { width: 15px; height: 15px; font-size: 0.9em;}
+    }
+    .demo-number { font-family: 'Orbitron', Arial, sans-serif; font-size: 1.05em; color: #ffd700; text-shadow: 0 0 9px #26ffe6, 0 0 5px #fff; position: absolute; user-select: none; pointer-events: none; opacity: 0.7; z-index: 5; pointer-events: none;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="graph-box" id="graphBox">
+      <div class="power-bar-bg" id="powerBarBg">
+        <div class="power-bar" id="powerBar"></div>
+      </div>
+      <div class="power-label" id="powerLabel">POWER</div>
+      <div class="powers-panel" id="powersPanel"></div>
+      <canvas id="graphCanvas" width="480" height="210"></canvas>
+      <img src="https://i.imgur.com/Z6cWbza.png" alt="duck" class="duck-img" id="duckImg" style="display:none;">
+      <div class="duck-hp" id="duckHP" style="display:none;">HP: 3</div>
+      <div id="demoNum1" class="demo-number" style="left:22px;top:13px;"></div>
+      <div id="demoNum2" class="demo-number" style="left:70px;top:36px;"></div>
+      <div id="demoNum3" class="demo-number" style="left:180px;top:22px;"></div>
+      <div id="demoNum4" class="demo-number" style="right:14px;bottom:10px;"></div>
+    </div>
+    <div class="score-panel" id="scorePanel">
+      Score: <span id="scoreVal">0</span>
+    </div>
+    <div class="balance-panel">
+      Balance: <span id="balanceVal">10000</span> $NFTFan
+    </div>
+    <div class="controls">
+      <button class="btn btn-green" id="buyBtn" title="UP"><span class="btn-icon">&#9650;</span></button>
+      <button class="btn btn-red" id="sellBtn" title="DOWN"><span class="btn-icon">&#9660;</span></button>
+    </div>
+    <div id="gameOverModal" style="display:none"></div>
+  </div>
+  <script>
+    // Utility
+    function hexToRgba(hex, alpha) {
+      let c = hex.replace('#','');
+      if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+      if (c.length !== 6) return hex; // fallback
+      const num = parseInt(c,16);
+      return `rgba(${(num>>16)&255},${(num>>8)&255},${num&255},${alpha})`;
+    }
+    function bulletHitsGraph(bullet, graphPoints) {
+      let bx = bullet.x + bullet.type.w/2;
+      let step = width / (historyLen-1);
+      let idx = Math.floor(bx / step);
+      if (idx < 0) idx = 0;
+      if (idx >= graphPoints.length-1) idx = graphPoints.length-2;
+      let x0 = graphPoints[idx].x, y0 = graphPoints[idx].y;
+      let x1 = graphPoints[idx+1].x, y1 = graphPoints[idx+1].y;
+      let t = (bx-x0)/(x1-x0);
+      t = Math.max(0, Math.min(1, t));
+      let gy = y0 + (y1-y0)*t;
+      return bullet.y+bullet.type.h/2 > gy;
+    }
+    function bulletHitsDuck(bullet) {
+      let bx = bullet.x + bullet.type.w/2;
+      let by = bullet.y + bullet.type.h/2;
+      let dx = width - DUCK_SIZE/2 - bx;
+      let dy = duckY - by;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      return dist < (Math.max(7, Math.max(bullet.type.h, bullet.type.w)/2) + DUCK_SIZE/2 - 6);
+    }
+
+    // ---- Game constants ----
+    const GRAPH_BG = "#181b39";
+    const GRAPH_LINE = "#26ffe6";
+    const GRAPH_FILL = "rgba(38,255,230,0.10)";
+    const GRAPH_BORDER = "#ffd700";
+    const DUCK_IMG_SRC = "https://i.imgur.com/Z6cWbza.png";
+    const DUCK_SIZE = 46;
+    const DUCK_HITS = 3;
+    const BULLET_TYPES = [
+      { color: "#26ffe6", neon: "#ffd700", w: 23, h: 3, speed: [6.8, 11], neonBlur: 19, neonAlpha: 0.72, neon2: "#ff5cfa" },
+      { color: "#ff5cfa", neon: "#ffd700", w: 10, h: 10, speed: [8, 14], neonBlur: 16, neonAlpha: 0.62, neon2: "#26ffe6" },
+      { color: "#1ec0e9", neon: "#26ffe6", w: 18, h: 3, speed: [9, 15], neonBlur: 21, neonAlpha: 0.77, neon2: "#fff" }
+    ];
+    const BULLET_NEON = { color: "#fff", neon: "#26ffe6", w: 23, h: 4, speed: [10, 16], neonBlur: 30, neonAlpha: 0.99, neon2: "#ffd700" };
+    const BULLET_SPAWN_MIN = 23, BULLET_SPAWN_MAX = 88;
+    const NUM_STARS = 48;
+    const MAX_POWER = 1.0;
+    const POWER_DRAIN_PER_TICK = 0.015;
+    const POWER_REFILL_AMOUNT = 0.4;
+    const POWER_REFILL_MAX = 3;
+    // --- Power Packet constants ---
+    const POWER_PACKET_WIDTH = 28;
+    const POWER_PACKET_HEIGHT = 28;
+    const POWER_PACKET_SPEED = 4.2;
+    const POWER_PACKET_INTERVAL = 420; // ticks between packets
+
+    // --- Game state ---
+    let price, priceHistory, historyLen, direction, tick, running;
+    let duckY, duckDead, duckFlash, duckFlashTick, duckHP;
+    let bullets, bulletSpawnTimer, stars;
+    let powerPackets, powerPacketTimer;
+    let frameRequest = null;
+    let score = 0, maxScore = 0;
+    let duckMoveDir = 0;
+    let power = MAX_POWER;
+    let powerRefills = POWER_REFILL_MAX;
+    let powerBar = document.getElementById("powerBar");
+    let powersPanel = document.getElementById("powersPanel");
+    let demoNum1 = document.getElementById('demoNum1');
+    let demoNum2 = document.getElementById('demoNum2');
+    let demoNum3 = document.getElementById('demoNum3');
+    let demoNum4 = document.getElementById('demoNum4');
+    let scoreVal = document.getElementById('scoreVal');
+    const graphBox = document.getElementById("graphBox");
+    const graphCanvas = document.getElementById("graphCanvas");
+    const duckImg = document.getElementById("duckImg");
+    const balanceVal = document.getElementById("balanceVal");
+    const buyBtn = document.getElementById("buyBtn");
+    const sellBtn = document.getElementById("sellBtn");
+    const gameOverModal = document.getElementById("gameOverModal");
+    const duckHPDiv = document.getElementById("duckHP");
+    let width = 480, height = 210;
+    let refillClickBlock = false;
+
+    function resize() {
+      width = graphBox.offsetWidth;
+      height = graphBox.offsetHeight;
+      graphCanvas.width = width;
+      graphCanvas.height = height;
+      if (stars && stars.length) {
+        for (let i = 0; i < stars.length; ++i) {
+          stars[i].x = Math.random()*width;
+          stars[i].y = Math.random()*height;
+        }
+      }
+    }
+    window.addEventListener("resize", resize);
+
+    function resetGame() {
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+      price = 2.5; direction = 0; tick = 0; duckDead = false;
+      duckFlash = false; duckFlashTick = 0; duckHP = DUCK_HITS;
+      historyLen = 70;
+      priceHistory = [];
+      for (let i = 0; i < historyLen; ++i) priceHistory.push(price);
+      duckImg.style.display = "block";
+      duckHPDiv.textContent = "HP: " + duckHP;
+      duckHPDiv.style.display = "block";
+      gameOverModal.style.display = "none";
+      running = true;
+      bullets = [];
+      bulletSpawnTimer = 0;
+      duckMoveDir = 0;
+      score = 0;
+      scoreVal.textContent = score;
+      stars = [];
+      for (let i = 0; i < NUM_STARS; ++i) {
+        stars.push({
+          x: Math.random()*width,
+          y: Math.random()*height,
+          r: 0.8+Math.random()*1.6,
+          s: 0.15+Math.random()*0.35,
+          neon: Math.random()>0.8
+        });
+      }
+      // Power
+      power = MAX_POWER;
+      powerRefills = POWER_REFILL_MAX;
+      updatePowerBar();
+      updatePowersPanel();
+      resize();
+      updateBalance();
+      frameRequest = requestAnimationFrame(animate);
+      updateDemoNumbers();
+
+      // Power packets
+      powerPackets = [];
+      powerPacketTimer = 180;
+    }
+
+    function updateBalance() {
+      balanceVal.textContent = (score * 10).toString();
+    }
+    function getDuckYFromPrice(priceVal) {
+      let minY = DUCK_SIZE/2, maxY = height - DUCK_SIZE/2;
+      let norm = (5.0 - priceVal)/4.0;
+      return minY + norm * (maxY - minY);
+    }
+    function updateDuckPosition() {
+      duckY = getDuckYFromPrice(price);
+      duckImg.style.left = (width - DUCK_SIZE - 4) + "px";
+      duckImg.style.top = (duckY - DUCK_SIZE/2) + "px";
+      duckHPDiv.style.top = (duckY - DUCK_SIZE/2 - 20) + "px";
+    }
+    function nextPrice() {
+      let baseMove = (Math.random() - 0.5) * 0.06;
+      if (duckMoveDir !== 0 && power > 0) {
+        baseMove += duckMoveDir * 0.13;
+      }
+      let np = price + baseMove;
+      np = Math.max(1.0, Math.min(5.0, np));
+      return np;
+    }
+    function drawGraph(ctx) {
+      ctx.fillStyle = GRAPH_BG;
+      ctx.fillRect(0,0,width,height);
+      ctx.save();
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = GRAPH_BORDER;
+      ctx.lineWidth = 2.8;
+      ctx.strokeRect(1.5, 1.5, width-3, height-3);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      let step = width / (historyLen-1);
+      let graphPoints = [];
+      for (let i = 0; i < priceHistory.length; ++i) {
+        let p = priceHistory[i];
+        let y = getDuckYFromPrice(p);
+        let x = i * step;
+        graphPoints.push({x, y});
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 11;
+      ctx.strokeStyle = GRAPH_LINE;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.lineTo(width, height-2);
+      ctx.lineTo(0, height-2);
+      ctx.closePath();
+      ctx.globalAlpha = 0.34;
+      ctx.fillStyle = GRAPH_FILL;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+      return graphPoints;
+    }
+    function spawnBullet() {
+      let kind;
+      if (Math.random() > 0.88) kind = BULLET_NEON;
+      else kind = BULLET_TYPES[Math.floor(Math.random()*BULLET_TYPES.length)];
+      let y = Math.random() * (height-15) + 7;
+      let speed = kind.speed[0] + Math.random()*(kind.speed[1]-kind.speed[0]);
+      let bullet = {
+        type: kind,
+        x: -kind.w-4,
+        y: y,
+        speed: speed,
+        alive: true,
+        neonAnim: 1,
+        hitAnim: 0
+      };
+      bullets.push(bullet);
+    }
+    // ---- Power Packets ----
+    function spawnPowerPacket() {
+      let y = Math.random() * (height - POWER_PACKET_HEIGHT - 16) + 8;
+      powerPackets.push({
+        x: -POWER_PACKET_WIDTH,
+        y: y,
+        speed: POWER_PACKET_SPEED + Math.random()*1.1,
+        flashTick: 0,
+        caught: false
+      });
+    }
+    function drawPowerPacket(ctx, packet) {
+      // Outer neon
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(packet.x+POWER_PACKET_WIDTH/2, packet.y+POWER_PACKET_HEIGHT/2, POWER_PACKET_WIDTH/2, 0, Math.PI*2);
+      ctx.fillStyle = "#ffd700";
+      ctx.globalAlpha = 0.13;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // Main circle
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(packet.x+POWER_PACKET_WIDTH/2, packet.y+POWER_PACKET_HEIGHT/2, POWER_PACKET_WIDTH/2-2, 0, Math.PI*2);
+      ctx.fillStyle = "#fffde6";
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 9;
+      ctx.fill();
+      ctx.restore();
+
+      // Flash sign
+      ctx.save();
+      ctx.font = "bold 1.5em Orbitron, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = "#ffd700";
+      ctx.globalAlpha = 0.98;
+      ctx.fillText("⚡", packet.x+POWER_PACKET_WIDTH/2, packet.y+POWER_PACKET_HEIGHT/2+1);
+      ctx.restore();
+
+      // Animate flash when caught
+      if(packet.caught && packet.flashTick > 0) {
+        ctx.save();
+        ctx.globalAlpha = packet.flashTick / 10;
+        ctx.beginPath();
+        ctx.arc(packet.x+POWER_PACKET_WIDTH/2, packet.y+POWER_PACKET_HEIGHT/2, POWER_PACKET_WIDTH*0.75, 0, Math.PI*2);
+        ctx.fillStyle = "#ffd700";
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 18;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    function checkDuckCatchesPowerPacket(packet) {
+      const duckRect = {
+        x: width - DUCK_SIZE - 4,
+        y: duckY - DUCK_SIZE/2,
+        w: DUCK_SIZE,
+        h: DUCK_SIZE
+      };
+      const packetRect = {
+        x: packet.x,
+        y: packet.y,
+        w: POWER_PACKET_WIDTH,
+        h: POWER_PACKET_HEIGHT
+      };
+      return (
+        duckRect.x < packetRect.x + packetRect.w &&
+        duckRect.x + duckRect.w > packetRect.x &&
+        duckRect.y < packetRect.y + packetRect.h &&
+        duckRect.y + duckRect.h > packetRect.y
+      );
+    }
+    function animate() {
+      frameRequest = requestAnimationFrame(animate);
+      try {
+        if (!running) return;
+        tick++;
+
+        // Power drain
+        if (duckMoveDir !== 0 && power > 0) {
+          power = Math.max(0, power - POWER_DRAIN_PER_TICK);
+          updatePowerBar();
+          if (power <= 0) {
+            duckMoveDir = 0;
+            buyBtn.classList.remove("pressed");
+            sellBtn.classList.remove("pressed");
+          }
+        }
+
+        // Price always moves
+        if (tick%2 === 0 || tick<2) {
+          price = nextPrice();
+          priceHistory.push(price);
+          if (priceHistory.length > historyLen) priceHistory.shift();
+          // NO killDuck here! Duck cannot die from boundaries.
+          score++;
+          scoreVal.textContent = score;
+          updateBalance();
+          if (score > maxScore) maxScore = score;
+        }
+        updateDuckPosition();
+        bulletSpawnTimer--;
+        if (bulletSpawnTimer <= 0 && running && !duckDead) {
+          spawnBullet();
+          bulletSpawnTimer = Math.floor(BULLET_SPAWN_MIN + Math.random()*(BULLET_SPAWN_MAX-BULLET_SPAWN_MIN));
+        }
+
+        // --- Power Packets logic ---
+        powerPacketTimer--;
+        if(powerPacketTimer <= 0) {
+          spawnPowerPacket();
+          powerPacketTimer = POWER_PACKET_INTERVAL + Math.floor(Math.random()*200);
+        }
+        for (let packet of powerPackets) {
+          if(!packet.caught) packet.x += packet.speed;
+        }
+
+        // --- Power Packets: collision with duck ---
+        for (let packet of powerPackets) {
+          if (!packet.caught && checkDuckCatchesPowerPacket(packet)) {
+            packet.caught = true;
+            packet.flashTick = 10;
+            power = Math.min(1.0, power + 0.5);
+            updatePowerBar();
+          }
+          if (packet.caught && packet.flashTick > 0) {
+            packet.flashTick--;
+          }
+        }
+        // Remove packets that have been caught and their flash animation finished, or off the right edge
+        for(let i=powerPackets.length-1; i>=0; --i){
+          if ((powerPackets[i].caught && powerPackets[i].flashTick<=0) || powerPackets[i].x > width+40)
+            powerPackets.splice(i,1);
+        }
+
+        // --- Drawing ---
+        const ctx = graphCanvas.getContext("2d");
+        ctx.clearRect(0,0,width,height);
+
+        for (let i = 0; i < stars.length; ++i) {
+          let s = stars[i];
+          s.x += s.s;
+          if (s.x > width) {
+            s.x = -3; s.y = Math.random()*height;
+          }
+          ctx.save();
+          if (s.neon) {
+            ctx.shadowColor = "#fff";
+            ctx.shadowBlur = 8 + Math.random()*8;
+            ctx.globalAlpha = .32 + Math.random()*0.26;
+          } else {
+            ctx.globalAlpha = .18 + Math.random()*0.32;
+          }
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+          ctx.fillStyle = "#fff";
+          ctx.fill();
+          ctx.restore();
+        }
+        updateDemoNumbers();
+
+        let graphPoints = drawGraph(ctx);
+
+        // --- Draw Power Packets ---
+        for (let packet of powerPackets) {
+          drawPowerPacket(ctx, packet);
+        }
+
+        // --- Bullets ---
+        for (let bullet of bullets) {
+          if (!bullet.alive && bullet.hitAnim<=0) continue;
+          if (bullet.alive) bullet.x += bullet.speed;
+          if (bullet.hitAnim > 0) bullet.hitAnim--;
+          if (bullet.x > width+40) bullet.alive = false;
+          if (bullet.alive && bulletHitsGraph(bullet, graphPoints)) {
+            bullet.alive = false;
+            bullet.hitAnim = 6 + Math.floor(Math.random()*7);
+            drawBulletNeon(ctx, bullet.x, bullet.y, bullet.type, "#26ffe6", "#ffd700", .83, 1.5);
+            continue;
+          }
+          if (!duckDead && bulletHitsDuck(bullet) && bullet.alive) {
+            bullet.alive = false;
+            bullet.hitAnim = 12 + Math.floor(Math.random()*7);
+            duckHP--;
+            duckHPDiv.textContent = "HP: " + duckHP;
+            duckFlash = true;
+            duckFlashTick = 13;
+            if (duckHP <= 0) killDuck();
+          }
+        }
+        for(let i=bullets.length-1; i>=0; --i){
+          if(!bullets[i].alive && bullets[i].hitAnim<=0) bullets.splice(i,1);
+        }
+        for (let bullet of bullets) {
+          if (bullet.alive || bullet.hitAnim > 0) {
+            drawBullet(ctx, bullet);
+          }
+        }
+        if (duckFlash) {
+          duckImg.style.filter = "brightness(10) drop-shadow(0 0 38px #ff5cfa) drop-shadow(0 0 61px #ffd700)";
+          if (--duckFlashTick<0) {
+            duckFlash = false;
+            duckImg.style.filter = "";
+          }
+        }
+        if (duckDead && duckFlashTick<=0) {
+          duckImg.style.display = "none";
+          duckHPDiv.style.display = "none";
+          setTimeout(showGameOver, 600);
+          running = false;
+        }
+      } catch (e) {
+        running = false;
+        if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+        gameOverModal.innerHTML = `<div class="gameover-modal"><div class="gameover-title">Crashed</div><div class="gameover-score">Please restart the game.<br>Error: ${e.message}</div><button class="restart-btn" onclick="restartGame()">Restart</button></div>`;
+        gameOverModal.style.display = "flex";
+      }
+    }
+    function updatePowerBar() {
+      powerBar.style.width = Math.max(0, Math.min(1, power)) * 100 + "%";
+      powerBar.style.opacity = power > 0 ? "1" : "0.45";
+    }
+    function updatePowersPanel() {
+      powersPanel.innerHTML = "";
+    }
+    function drawBullet(ctx, bullet) {
+      ctx.save();
+      drawBulletNeon(ctx, bullet.x, bullet.y, bullet.type, bullet.type.neon, bullet.type.neon2, bullet.type.neonAlpha, (bullet.hitAnim>0?1.8:1));
+      if (bullet.hitAnim > 0) {
+        drawBulletNeon(ctx, bullet.x, bullet.y, bullet.type, "#ffd700", "#ff5cfa", 0.23+0.09*bullet.hitAnim, 2+(bullet.hitAnim/4));
+      }
+      ctx.globalAlpha = 0.95;
+      ctx.beginPath();
+      if (bullet.type.h <= 4) {
+        ctx.strokeStyle = bullet.type.color;
+        ctx.lineWidth = bullet.type.h;
+        ctx.shadowColor = bullet.type.neon2;
+        ctx.shadowBlur = 4+Math.random()*6;
+        ctx.moveTo(bullet.x, bullet.y+bullet.type.h/2);
+        ctx.lineTo(bullet.x+bullet.type.w, bullet.y+bullet.type.h/2);
+        ctx.stroke();
+      } else {
+        ctx.arc(bullet.x+bullet.type.w/2, bullet.y+bullet.type.h/2, bullet.type.w/2, 0, Math.PI*2);
+        ctx.fillStyle = bullet.type.color;
+        ctx.shadowColor = bullet.type.neon2;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    function drawBulletNeon(ctx, x, y, type, color1, color2, alpha, scale=1) {
+      let w = type.w*scale, h = type.h*scale;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (h <= 4) {
+        let gradient = ctx.createLinearGradient(x, y+h/2, x+w, y+h/2);
+        gradient.addColorStop(0, hexToRgba(color1, 0.93));
+        gradient.addColorStop(1, hexToRgba(color2, 0.53));
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = h+2;
+        ctx.shadowColor = color1;
+        ctx.shadowBlur = type.neonBlur*scale;
+        ctx.beginPath();
+        ctx.moveTo(x, y+h/2);
+        ctx.lineTo(x+w, y+h/2);
+        ctx.stroke();
+      } else {
+        let g = ctx.createRadialGradient(x+w/2, y+h/2, h/3, x+w/2, y+h/2, w*1.1);
+        g.addColorStop(0, hexToRgba(color1, 0.73));
+        g.addColorStop(0.6, hexToRgba(color2, 0.53));
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.beginPath();
+        ctx.arc(x+w/2, y+h/2, w, 0, Math.PI*2);
+        ctx.fillStyle = g;
+        ctx.shadowColor = color2;
+        ctx.shadowBlur = type.neonBlur*scale;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    function buttonHoldSetup(btn, dir) {
+      let down = false;
+      btn.addEventListener("mousedown", e => {
+        e.preventDefault();
+        if (power > 0) { duckMoveDir = dir; down = true; btn.classList.add("pressed"); }
+      });
+      btn.addEventListener("touchstart", e => {
+        e.preventDefault();
+        if (power > 0) { duckMoveDir = dir; down = true; btn.classList.add("pressed"); }
+      }, {passive:false});
+      window.addEventListener("mouseup", () => { if(down) { duckMoveDir = 0; down=false; btn.classList.remove("pressed"); }});
+      window.addEventListener("touchend", () => { duckMoveDir = 0; down=false; btn.classList.remove("pressed"); });
+      btn.addEventListener("mouseleave", () => { if(down) { duckMoveDir = 0; down=false; btn.classList.remove("pressed"); }});
+    }
+    buttonHoldSetup(buyBtn, 1);
+    buttonHoldSetup(sellBtn, -1);
+
+    function killDuck() {
+      duckDead = true;
+      duckFlash = true;
+      duckFlashTick = 23;
+      duckHPDiv.textContent = "HP: 0";
+    }
+    function showGameOver() {
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="gameover-title">Game Over</div>
+          <div class="gameover-score">
+            Final Score: ${score} <br>
+            Max Survived: ${maxScore} <br>
+            Balance: ${(score * 10)} $NFTFan <br>
+            Price: ${price.toFixed(2)}
+          </div>
+          <button class="restart-btn" onclick="restartGame()">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+    }
+    window.restartGame = resetGame;
+
+    function updateDemoNumbers() {
+      if (!running) return;
+      let t = performance.now()/900;
+      demoNum1.textContent = (3.54 + Math.sin(t)*0.04).toFixed(3);
+      demoNum2.textContent = (2.14 + Math.cos(t*1.23)*0.06).toFixed(3);
+      demoNum3.textContent = (4.88 + Math.cos(t*0.71)*0.09).toFixed(3);
+      demoNum4.textContent = (price + Math.sin(t*0.6)*0.012).toFixed(3);
+    }
+
+    duckImg.src = DUCK_IMG_SRC;
+    duckImg.style.display = "block";
+    resetGame();
+  </script>
+</body>
+</html>
