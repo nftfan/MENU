@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Duck Dodge - $NFTFAN Tokens</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100vh;
+      background: #10132a;
+      font-family: 'Orbitron', Arial, sans-serif;
+      overflow: hidden;
+      font-size: 11px;
+      background-image:
+        radial-gradient(circle, #23243a 2%, #15162b 100%),
+        url("https://www.transparenttextures.com/patterns/stardust.png");
+      background-size: cover, 400px 400px;
+    }
+    .container {
+      display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start;
+    }
+    .game-box {
+      position: relative;
+      margin-top: 28px;
+      background: linear-gradient(135deg, #181b39 0%, #2c1976 100%);
+      border: 3px solid #26ffe6;
+      border-radius: 1em;
+      box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3;
+      width: 99vw;
+      max-width: 440px;
+      height: 440px;
+      min-height: 260px;
+      max-height: 98vw;
+      overflow: hidden;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .token-panel {
+      margin-top: 8px;
+      color: #ffd700;
+      background: rgba(21,22,43,0.92);
+      border-radius: 13px;
+      border: 1.5px solid #26ffe6;
+      box-shadow: 0 0 6px #26ffe650, 0 0 50px #181b39 inset;
+      font-size: 1.18em;
+      padding: 10px 28px;
+      text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif;
+      letter-spacing: 1px;
+      user-select: none;
+      display: inline-block;
+      min-width: 130px;
+    }
+    .controls-outer {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .controls-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .controls-center {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .btn {
+      border: none;
+      border-radius: 14px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(145deg, #23243a 60%, #15162b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 14px 0 #26ffe650, 0 0 0 2px #1ec0e9, 0 0 30px 4px #ff5cfa33 inset;
+      cursor: pointer;
+      transition: background 0.18s, box-shadow 0.18s, transform 0.09s;
+      outline: none;
+      user-select: none;
+      position: relative;
+      z-index: 2;
+      font-size: 2em;
+      color: #ffd700;
+      border: 2.5px solid #26ffe6;
+      margin: 0 13px;
+      letter-spacing: 1px;
+      filter: drop-shadow(0 0 8px #26ffe6bb);
+    }
+    .btn:active, .btn.pressed {
+      filter: brightness(1.22) drop-shadow(0 0 13px #fff);
+      transform: scale(0.95);
+      box-shadow: 0 0 60px 12px #ffd700cc, 0 0 28px #26ffe6cc;
+      border-width: 4px;
+      background: linear-gradient(145deg, #23243a 40%, #15162b 100%);
+    }
+    .btn-fire {
+      background: linear-gradient(135deg, #ff5cfa 60%, #ffd700 100%);
+      box-shadow: 0 0 32px 8px #ffd700bb, 0 0 0 2px #ffd700, 0 0 38px 5px #26ffe6bb inset;
+      color: #181b39;
+      border-color: #ffd700;
+      font-size: 2.2em;
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      margin: 0 20px;
+    }
+    .btn:focus {
+      outline: 2px solid #26ffe6;
+    }
+    .gameover-modal, .welcome-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(20,20,40,0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 11px;
+      animation: fadein 0.3s;
+    }
+    @keyframes fadein {
+      from { opacity: 0;}
+      to   { opacity: 1;}
+    }
+    .gameover-title, .welcome-title {
+      font-size: 2.2em;
+      color: #ffd700;
+      text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6;
+      font-weight: bold;
+      margin-bottom: 18px;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+    .welcome-duck {
+      width: 78px;
+      height: 78px;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 28px #ffd700cc) drop-shadow(0 0 36px #26ffe6cc);
+      animation: duckNeonFloat 1.2s ease-in-out infinite alternate;
+      display: block;
+    }
+    @keyframes duckNeonFloat {
+      0% { filter: drop-shadow(0 0 19px #ffd700cc) drop-shadow(0 0 28px #26ffe6cc);}
+      50% { filter: drop-shadow(0 0 32px #ff5cfa) drop-shadow(0 0 38px #ffd700);}
+      100% { filter: drop-shadow(0 0 19px #ffd700cc) drop-shadow(0 0 28px #26ffe6cc);}
+    }
+    .welcome-instructions {
+      color: #fff;
+      background: rgba(30,30,60,0.9);
+      border-radius: 15px;
+      border: 1.5px solid #26ffe6;
+      box-shadow: 0 0 8px #26ffe6bb, 0 0 24px #ff5cfa55 inset;
+      font-size: 1.13em;
+      padding: 19px 28px 15px 28px;
+      margin-bottom: 22px;
+      max-width: 370px;
+      text-align: center;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+    }
+    .welcome-start-btn {
+      font-size: 1.18em;
+      background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%);
+      color: #15162b;
+      border: none;
+      border-radius: 18px;
+      padding: 13px 38px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-top: 8px;
+      box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, filter 0.18s;
+      outline: none;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;
+    }
+    .welcome-start-btn:active { filter: brightness(1.2);}
+    .gameover-score {
+      font-size: 1.25em;
+      color: #ffd700;
+      margin-bottom: 18px;
+      text-shadow: 0 0 8px #26ffe6;
+      letter-spacing: 1px;
+    }
+    .restart-btn {
+      font-size: 1.1em;
+      background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%);
+      color: #15162b;
+      border: none;
+      border-radius: 16px;
+      padding: 11px 31px;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-top: 6px;
+      box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      outline: none;
+      touch-action: manipulation;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;
+    }
+    .restart-btn:active { filter: brightness(1.2);}
+    @media (max-width: 600px) {
+      html, body { font-size: 9px;}
+      .game-box { width: 99vw; height: 99vw; min-height: 180px; max-height: 99vw;}
+      .btn { width: 38px; height: 38px; font-size: 1.3em; margin: 0 8px; }
+      .btn-fire { width: 50px; height: 50px; font-size: 1.4em; margin: 0 10px; }
+      .token-panel { font-size: 1em; padding: 7px 7vw;}
+      .welcome-duck { width: 54px; height: 54px; }
+    }
+    .token-img {
+      width: 30px;
+      height: 30px;
+      filter: drop-shadow(0 0 12px #ffd700bb) drop-shadow(0 0 12px #26ffe6bb);
+      vertical-align: middle;
+      margin-right: 2px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .token-amount {
+      font-size: 1.02em;
+      color: #ffd700;
+      text-shadow: 0 0 6px #26ffe6;
+      font-family: 'Orbitron', Arial, sans-serif;
+      margin-left: 1px;
+      vertical-align: middle;
+      pointer-events: none;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-box" id="gameBox">
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+    </div>
+    <div class="token-panel">
+      <img class="token-img" src="https://i.imgur.com/ODP45iQ.png" alt="Token">$NFTFAN: <span id="tokenVal">0</span>
+    </div>
+    <div class="controls-outer">
+      <div class="controls-row">
+        <button class="btn" id="upBtn" title="UP">&#8593;</button>
+      </div>
+      <div class="controls-center">
+        <button class="btn" id="leftBtn" title="LEFT">&#8592;</button>
+        <button class="btn btn-fire" id="fireBtn" title="FIRE">&#9889;</button>
+        <button class="btn" id="rightBtn" title="RIGHT">&#8594;</button>
+      </div>
+      <div class="controls-row">
+        <button class="btn" id="downBtn" title="DOWN">&#8595;</button>
+      </div>
+    </div>
+    <div id="gameOverModal" style="display:none"></div>
+    <div id="welcomeModal" class="welcome-modal" style="display:flex">
+      <img class="welcome-duck" src="https://i.imgur.com/Z6cWbza.png" alt="Duck">
+      <div class="welcome-title">NEON DUCK DODGE</div>
+      <div class="welcome-instructions">
+        <b>How to Play:</b><br>
+        <ul style="text-align:left; margin:10px 0 0 18px; color:#ffd700; font-size:1em; padding-left:0; list-style:disc;">
+          <li>Move the neon duck around the 5x5 grid using <span style="color:#26ffe6">arrow buttons</span>.</li>
+          <li>Press <span style="color:#ff5cfa">⚡</span> to fire a neon laser from a random direction.</li>
+          <li>If the laser hits the duck, it's game over! All token prizes are lost.</li>
+          <li><img class="token-img" src="https://i.imgur.com/ODP45iQ.png" style="width:22px;height:22px;"> Collect <span style="color:#ffd700">$NFTFAN</span> tokens by moving the duck onto them. Survive the round to keep the prize!</li>
+          <li>If duck is on <b>1T</b> token, <span style="color:#ff5cfa">TWO</span> lasers will be fired at once!</li>
+        </ul>
+        <br>
+        <span style="color:#26ffe6;">How many $NFTFAN tokens can you collect?</span>
+      </div>
+      <button class="welcome-start-btn" id="startGameBtn">START</button>
+    </div>
+  </div>
+  <script>
+    // ---- Game Constants ----
+    const GRID_SIZE = 5;
+    let CIRCLE_SIZE = 60; // px, will be adjusted responsively for fit
+    const GRID_PADDING_RATIO = 0.12;
+    const LASER_WIDTH = 14;
+    const LASER_DURATION = 38;
+    const NEON_COLORS = ["#26ffe6","#ffd700","#ff5cfa","#1ec0e9"];
+    const DUCK_IMG_SRC = "https://i.imgur.com/Z6cWbza.png";
+    const TOKEN_IMG_SRC = "https://i.imgur.com/ODP45iQ.png";
+    const TOKEN_PRIZES = [
+      { label: "5B", value: 5_000_000_000 },
+      { label: "100B", value: 100_000_000_000 },
+      { label: "1T", value: 1_000_000_000_000 }
+    ];
+    // ---- State ----
+    let duckRow = 2, duckCol = 2;
+    let nftfanTokens = 0;
+    let running = false;
+    let lasers = []; // support multiple lasers!
+    let frameRequest = null;
+    let gameOver = false;
+    let laserFlash = null; // {lasers: [...], flashFrame, totalFrames}
+    let gridPositions = []; // [{x,y}]
+    let welcomeScreen = true;
+    let tokensOnGrid = []; // [{row,col,label,value,claimed:boolean, justClaimed:boolean}]
+    let tokensCollectedThisRound = [];
+    // ---- DOM ----
+    const gameBox = document.getElementById("gameBox");
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const upBtn = document.getElementById("upBtn");
+    const downBtn = document.getElementById("downBtn");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const fireBtn = document.getElementById("fireBtn");
+    const tokenVal = document.getElementById("tokenVal");
+    const gameOverModal = document.getElementById("gameOverModal");
+    const welcomeModal = document.getElementById("welcomeModal");
+    const startGameBtn = document.getElementById("startGameBtn");
+    const duckImg = new window.Image();
+    const tokenImg = new window.Image();
+    duckImg.src = DUCK_IMG_SRC;
+    tokenImg.src = TOKEN_IMG_SRC;
+
+    // ---- Responsive ----
+    let width = 400, height = 400;
+    function resize() {
+      width = Math.min(gameBox.offsetWidth, gameBox.offsetHeight);
+      height = width;
+      canvas.width = width;
+      canvas.height = height;
+      // Adjust circle size for grid fit
+      let gridPad = Math.min(width,height) * GRID_PADDING_RATIO;
+      // circle size to fit all with some space for label
+      CIRCLE_SIZE = Math.min(
+        (width-2*gridPad)/(GRID_SIZE-1),
+        (height-2*gridPad)/(GRID_SIZE-1), 70
+      );
+      // Precompute grid positions
+      gridPositions = [];
+      const gapX = (width - 2*gridPad) / (GRID_SIZE-1);
+      const gapY = (height - 2*gridPad) / (GRID_SIZE-1);
+      for(let r=0; r<GRID_SIZE; ++r) {
+        for(let c=0; c<GRID_SIZE; ++c) {
+          gridPositions.push({
+            x: gridPad + c * gapX,
+            y: gridPad + r * gapY
+          });
+        }
+      }
+    }
+    window.addEventListener('resize', resize);
+
+    // ---- Token Logic ----
+    function randomTokenPositions() {
+      // Pick 5 unique random spots not at duck position
+      let spots = [];
+      for(let r=0;r<GRID_SIZE;++r)for(let c=0;c<GRID_SIZE;++c)
+        if(!(r===duckRow&&c===duckCol)) spots.push({r, c});
+      let picked = [];
+      while(picked.length < 5 && spots.length > 0) {
+        const idx = Math.floor(Math.random()*spots.length);
+        const {r, c} = spots.splice(idx,1)[0];
+        picked.push({row:r, col:c});
+      }
+      // Assign random prizes to each
+      return picked.map(pos=>{
+        const prize = TOKEN_PRIZES[Math.floor(Math.random()*TOKEN_PRIZES.length)];
+        return {row:pos.row, col:pos.col, label:prize.label, value:prize.value, claimed: false, justClaimed: false};
+      });
+    }
+
+    function resetTokensOnGrid() {
+      tokensOnGrid = randomTokenPositions();
+      tokensCollectedThisRound = [];
+    }
+
+    function claimTokenAtDuck() {
+      for(let token of tokensOnGrid) {
+        if(!token.claimed && token.row===duckRow && token.col===duckCol) {
+          // Only mark as justClaimed, do not set claimed yet until after lasers
+          if (!token.justClaimed) {
+            token.justClaimed = true;
+            tokensCollectedThisRound.push(token);
+          }
+          return token;
+        }
+      }
+      return null;
+    }
+
+    function finalizeTokenPrizes() {
+      let sum = 0;
+      for(let t of tokensCollectedThisRound) {
+        t.claimed = true;
+        t.justClaimed = false;
+        sum += Number(t.value) || 0;
+      }
+      nftfanTokens += sum;
+      tokenVal.textContent = nftfanTokens.toLocaleString();
+      tokensCollectedThisRound = [];
+    }
+
+    // ---- Game Logic ----
+    function resetGame() {
+      running = true;
+      gameOver = false;
+      duckRow = 2;
+      duckCol = 2;
+      nftfanTokens = 0;
+      lasers = [];
+      laserFlash = null;
+      tokenVal.textContent = nftfanTokens.toLocaleString();
+      gameOverModal.style.display = "none";
+      resetTokensOnGrid();
+      resize();
+      loop();
+    }
+
+    function fireLaser() {
+      if (!running || lasers.length > 0 || laserFlash) return;
+      // check if on 1T: if so, fire 2 lasers
+      let on1T = tokensOnGrid.some(t => !t.claimed && t.row === duckRow && t.col === duckCol && t.label === "1T" && t.justClaimed);
+      let numLasers = on1T ? 2 : 1;
+      let newLasers = [];
+      for(let i=0;i<numLasers;i++) {
+        let dir = Math.floor(Math.random()*4);
+        let targetRow = 0, targetCol = 0;
+        if(dir === 0) { targetCol = Math.floor(Math.random()*GRID_SIZE); targetRow = 0;}
+        else if(dir === 1) { targetCol = Math.floor(Math.random()*GRID_SIZE); targetRow = GRID_SIZE-1;}
+        else if(dir === 2) { targetRow = Math.floor(Math.random()*GRID_SIZE); targetCol = 0;}
+        else { targetRow = Math.floor(Math.random()*GRID_SIZE); targetCol = GRID_SIZE-1;}
+        let hit = false;
+        if(dir === 0 && duckCol === targetCol) hit = true;
+        if(dir === 1 && duckCol === targetCol) hit = true;
+        if(dir === 2 && duckRow === targetRow) hit = true;
+        if(dir === 3 && duckRow === targetRow) hit = true;
+        // ensure lasers are not identical if two
+        if(i === 1 && numLasers === 2) {
+          let tries = 0;
+          while (tries < 8 && newLasers[0].dir === dir && newLasers[0].targetCol === targetCol && newLasers[0].targetRow === targetRow) {
+            dir = Math.floor(Math.random()*4);
+            if(dir === 0) { targetCol = Math.floor(Math.random()*GRID_SIZE); targetRow = 0;}
+            else if(dir === 1) { targetCol = Math.floor(Math.random()*GRID_SIZE); targetRow = GRID_SIZE-1;}
+            else if(dir === 2) { targetRow = Math.floor(Math.random()*GRID_SIZE); targetCol = 0;}
+            else { targetRow = Math.floor(Math.random()*GRID_SIZE); targetCol = GRID_SIZE-1;}
+            hit = false;
+            if(dir === 0 && duckCol === targetCol) hit = true;
+            if(dir === 1 && duckCol === targetCol) hit = true;
+            if(dir === 2 && duckRow === targetRow) hit = true;
+            if(dir === 3 && duckRow === targetRow) hit = true;
+            tries++;
+          }
+        }
+        newLasers.push({
+          dir, targetRow, targetCol,
+          progress: 0,
+          hit: hit,
+          color: NEON_COLORS[Math.floor(Math.random()*NEON_COLORS.length)]
+        });
+      }
+      lasers = newLasers;
+    }
+
+    function moveDuck(dr, dc) {
+      if (!running || laserFlash) return;
+      let nextR = duckRow + dr;
+      let nextC = duckCol + dc;
+      if(nextR<0) nextR = 0;
+      if(nextR>=GRID_SIZE) nextR = GRID_SIZE-1;
+      if(nextC<0) nextC = 0;
+      if(nextC>=GRID_SIZE) nextC = GRID_SIZE-1;
+      duckRow = nextR;
+      duckCol = nextC;
+      claimTokenAtDuck(); // mark as justClaimed if any
+    }
+
+    // ---- Draw ----
+    function drawNeonLaserGrid(laser) {
+      ctx.save();
+      ctx.globalAlpha = 0.83;
+      ctx.shadowColor = laser.color;
+      ctx.shadowBlur = 36;
+      ctx.strokeStyle = laser.color;
+      ctx.lineWidth = LASER_WIDTH;
+      let t = Math.min(laser.progress, 1);
+      let from, to;
+      let gridPad = Math.min(width,height) * GRID_PADDING_RATIO;
+      let gapX = (width - 2*gridPad) / (GRID_SIZE-1);
+      let gapY = (height - 2*gridPad) / (GRID_SIZE-1);
+      if(laser.dir === 0) { // from top
+        let x = gridPad + laser.targetCol*gapX;
+        from = {x: x, y: 0};
+        to = {x: x, y: gridPad + (GRID_SIZE-1)*gapY};
+        to.y = from.y + (to.y-from.y)*t;
+      } else if(laser.dir === 1) { // bottom
+        let x = gridPad + laser.targetCol*gapX;
+        from = {x: x, y: height};
+        to = {x: x, y: gridPad};
+        to.y = from.y + (to.y-from.y)*t;
+      } else if(laser.dir === 2) { // left
+        let y = gridPad + laser.targetRow*gapY;
+        from = {x: 0, y: y};
+        to = {x: gridPad + (GRID_SIZE-1)*gapX, y: y};
+        to.x = from.x + (to.x-from.x)*t;
+      } else { // right
+        let y = gridPad + laser.targetRow*gapY;
+        from = {x: width, y: y};
+        to = {x: gridPad, y: y};
+        to.x = from.x + (to.x-from.x)*t;
+      }
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      // Neon core
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = Math.max(7, LASER_WIDTH*0.65);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawNeonLaserFullFlashGrid(lasers, flashFrame, totalFrames) {
+      let gridPad = Math.min(width,height) * GRID_PADDING_RATIO;
+      let gapX = (width - 2*gridPad) / (GRID_SIZE-1);
+      let gapY = (height - 2*gridPad) / (GRID_SIZE-1);
+      for (let laserFlash of lasers) {
+        ctx.save();
+        ctx.shadowColor = laserFlash.color;
+        ctx.shadowBlur = 80;
+        ctx.globalAlpha = 0.7 + 0.3*Math.abs(Math.sin(flashFrame/totalFrames*Math.PI));
+        ctx.strokeStyle = laserFlash.color;
+        ctx.lineWidth = LASER_WIDTH + 14*Math.abs(Math.sin(flashFrame/totalFrames*Math.PI));
+        if(laserFlash.dir === 0) { // from top
+          let x = gridPad + laserFlash.targetCol*gapX;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        } else if(laserFlash.dir === 1) { // bottom
+          let x = gridPad + laserFlash.targetCol*gapX;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        } else if(laserFlash.dir === 2) { // left
+          let y = gridPad + laserFlash.targetRow*gapY;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        } else { // right
+          let y = gridPad + laserFlash.targetRow*gapY;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        // White core
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = LASER_WIDTH-4;
+        if(laserFlash.dir === 0 || laserFlash.dir === 1) {
+          let x = gridPad + laserFlash.targetCol*gapX;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        } else {
+          let y = gridPad + laserFlash.targetRow*gapY;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      // Flash at duck (only one flash at duck)
+      let duckX = gridPad + duckCol*gapX;
+      let duckY = gridPad + duckRow*gapY;
+      ctx.save();
+      ctx.globalAlpha = 0.33 + 0.34*Math.abs(Math.sin(flashFrame/totalFrames*Math.PI));
+      ctx.beginPath();
+      ctx.arc(duckX, duckY, CIRCLE_SIZE/2 + 16 + 14 * Math.sin(flashFrame/totalFrames * Math.PI), 0, Math.PI*2);
+      ctx.fillStyle = "#fffde6";
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 70;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawGrid() {
+      ctx.save();
+      for(let r=0; r<GRID_SIZE; ++r) {
+        for(let c=0; c<GRID_SIZE; ++c) {
+          let idx = r*GRID_SIZE + c;
+          let {x, y} = gridPositions[idx];
+          // Neon circle
+          let isDuck = (r===duckRow && c===duckCol);
+          let token = tokensOnGrid.find(t => t.row===r && t.col===c && !t.claimed);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, CIRCLE_SIZE/2, 0, Math.PI*2);
+          ctx.shadowColor = isDuck ? "#ffd700" : "#26ffe6";
+          ctx.shadowBlur = isDuck ? 24 : 10;
+          ctx.globalAlpha = isDuck ? 0.43 : (token ? 0.25 : 0.16);
+          ctx.strokeStyle = isDuck ? "#ffd700" : "#26ffe6";
+          ctx.lineWidth = 7;
+          ctx.stroke();
+          ctx.restore();
+          // Fill circle with token image if this is a token
+          if(token){
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, CIRCLE_SIZE/2-2, 0, Math.PI*2);
+            ctx.clip();
+            ctx.globalAlpha = 0.98;
+            if(tokenImg.complete)
+              ctx.drawImage(tokenImg, x-(CIRCLE_SIZE/2-2), y-(CIRCLE_SIZE/2-2), CIRCLE_SIZE-4, CIRCLE_SIZE-4);
+            ctx.restore();
+          }
+          // Draw prize label ON the border (super small, always visible)
+          if(token){
+            ctx.save();
+            const angle = Math.PI/2 + 0.18; // bottom border: pi/2, offset up a bit
+            const labelRadius = CIRCLE_SIZE/2 + 1;
+            const tx = x + Math.cos(angle) * labelRadius;
+            const ty = y + Math.sin(angle) * labelRadius;
+            ctx.font = "600 0.82em Orbitron, Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000";
+            ctx.shadowBlur = 7;
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "#ffd700";
+            ctx.strokeStyle = "#181b39";
+            ctx.lineWidth = 3;
+            // Stroke for contrast
+            ctx.strokeText(token.label, tx, ty);
+            ctx.fillText(token.label, tx, ty);
+            ctx.restore();
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawDuck() {
+      let idx = duckRow*GRID_SIZE + duckCol;
+      let {x, y} = gridPositions[idx];
+      // Neon shadow
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.arc(x, y, CIRCLE_SIZE/2-7, 0, Math.PI*2);
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = "#ffd700";
+      ctx.fill();
+      ctx.restore();
+      // Duck image
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.drawImage(
+        duckImg,
+        x-(CIRCLE_SIZE/2-7),
+        y-(CIRCLE_SIZE/2-7),
+        CIRCLE_SIZE-14,
+        CIRCLE_SIZE-14
+      );
+      ctx.restore();
+    }
+
+    function drawNeonBGStars() {
+      if (!window._stars) {
+        window._stars = [];
+        for(let i=0;i<40;++i)
+          window._stars.push({
+            x: Math.random()*width,
+            y: Math.random()*height,
+            r: 0.7+Math.random()*1.9,
+            s: 0.12+Math.random()*0.34,
+            neon: Math.random()>0.7
+          });
+      }
+      for(let s of window._stars) {
+        s.x += s.s;
+        if (s.x > width) { s.x = -3; s.y = Math.random()*height; }
+        ctx.save();
+        if (s.neon) {
+          ctx.shadowColor = "#fff";
+          ctx.shadowBlur = 11 + Math.random()*11;
+          ctx.globalAlpha = .24 + Math.random()*0.23;
+        } else {
+          ctx.globalAlpha = .13 + Math.random()*0.17;
+        }
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function loop() {
+      if (!running && welcomeScreen) return;
+      frameRequest = requestAnimationFrame(loop);
+      ctx.clearRect(0,0,width,height);
+      drawNeonBGStars();
+      drawGrid();
+      drawDuck();
+
+      // Lasers
+      if (lasers && lasers.length > 0 && !laserFlash) {
+        let hitAny = false;
+        for(let laser of lasers) {
+          laser.progress += 1/LASER_DURATION;
+          drawNeonLaserGrid(laser);
+        }
+        // Wait for all lasers to finish
+        if (lasers.every(l => l.progress >= 1)) {
+          // Any hit?
+          hitAny = lasers.some(l => l.hit);
+          if (hitAny) {
+            tokensOnGrid = [];
+            tokensCollectedThisRound = [];
+            laserFlash = {
+              lasers: lasers,
+              flashFrame: 0,
+              totalFrames: 18
+            };
+            lasers = [];
+          } else {
+            finalizeTokenPrizes();
+            setTimeout(()=>{
+              lasers = [];
+              resetTokensOnGrid();
+            }, 340);
+          }
+        }
+      }
+      if (laserFlash) {
+        drawNeonLaserFullFlashGrid(laserFlash.lasers, laserFlash.flashFrame, laserFlash.totalFrames);
+        laserFlash.flashFrame++;
+        if (laserFlash.flashFrame > laserFlash.totalFrames) {
+          setTimeout(showGameOver, 200);
+          running = false;
+          laserFlash = null;
+        }
+      }
+    }
+
+    // ---- Controls ----
+    leftBtn.addEventListener("mousedown", ()=>{moveDuck(0,-1); leftBtn.classList.add("pressed");});
+    rightBtn.addEventListener("mousedown", ()=>{moveDuck(0,1); rightBtn.classList.add("pressed");});
+    upBtn.addEventListener("mousedown", ()=>{moveDuck(-1,0); upBtn.classList.add("pressed");});
+    downBtn.addEventListener("mousedown", ()=>{moveDuck(1,0); downBtn.classList.add("pressed");});
+    leftBtn.addEventListener("touchstart", e=>{e.preventDefault();moveDuck(0,-1); leftBtn.classList.add("pressed");});
+    rightBtn.addEventListener("touchstart", e=>{e.preventDefault();moveDuck(0,1); rightBtn.classList.add("pressed");});
+    upBtn.addEventListener("touchstart", e=>{e.preventDefault();moveDuck(-1,0); upBtn.classList.add("pressed");});
+    downBtn.addEventListener("touchstart", e=>{e.preventDefault();moveDuck(1,0); downBtn.classList.add("pressed");});
+    fireBtn.addEventListener("mousedown", ()=>{fireLaser(); fireBtn.classList.add("pressed");});
+    fireBtn.addEventListener("touchstart", e=>{e.preventDefault();fireLaser(); fireBtn.classList.add("pressed");});
+    ["mouseup","mouseleave","touchend"].forEach(ev=>{
+      leftBtn.addEventListener(ev, ()=>leftBtn.classList.remove("pressed"));
+      rightBtn.addEventListener(ev, ()=>rightBtn.classList.remove("pressed"));
+      upBtn.addEventListener(ev, ()=>upBtn.classList.remove("pressed"));
+      downBtn.addEventListener(ev, ()=>downBtn.classList.remove("pressed"));
+      fireBtn.addEventListener(ev, ()=>fireBtn.classList.remove("pressed"));
+    });
+    window.addEventListener("keydown", e=>{
+      if (!running || laserFlash) return;
+      if (e.code === "ArrowLeft") moveDuck(0,-1);
+      if (e.code === "ArrowRight") moveDuck(0,1);
+      if (e.code === "ArrowUp") moveDuck(-1,0);
+      if (e.code === "ArrowDown") moveDuck(1,0);
+      if (e.code === "Space") fireLaser();
+    });
+
+    // ---- Welcome Screen ----
+    startGameBtn.addEventListener("click", () => {
+      welcomeScreen = false;
+      welcomeModal.style.display = "none";
+      resetGame();
+    });
+
+    // ---- Game Over ----
+    function showGameOver() {
+      running = false;
+      gameOver = true;
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="gameover-title">Game Over</div>
+          <div class="gameover-score">
+            $NFTFAN Tokens: ${nftfanTokens.toLocaleString()}
+          </div>
+          <button class="restart-btn" onclick="window.restartGame()">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+    }
+    window.restartGame = function() {
+      gameOverModal.style.display = "none";
+      resetGame();
+    }
+
+    duckImg.onload = ()=>{ resize(); };
+    tokenImg.onload = ()=>{};
+    if (duckImg.complete) resize();
+  </script>
+</body>
+</html>
