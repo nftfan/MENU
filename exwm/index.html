@@ -172,7 +172,8 @@
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@1.0.0-beta.3/dist/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.9.0/dist/umd/index.min.js"></script>
 </head>
 <body>
     <h2>NFT Fans Token Wallets Extractor</h2>
@@ -222,6 +223,7 @@
         let currentBatchIndex = 0;
         const walletsPerBatch = 50;
         let walletConnectProvider;
+        let ethereumProvider;
 
         // Extract wallets from text
         function extractWallets() {
@@ -272,37 +274,50 @@
         async function connectWithWalletConnect() {
             showNotification("Preparing QR code...", "pending");
             
-            // Initialize WalletConnect
-            walletConnectProvider = new WalletConnectProvider.default({
-                infuraId: "27e484dcd9e3efcfd25a83a78777cdf1", // Replace with your Infura ID
-                qrcodeModalOptions: {
-                    mobileLinks: ["metamask", "trust", "rainbow", "argent", "imtoken"],
-                },
-            });
-            
             try {
-                // Display QR code modal
-                openQrModal();
-                
-                // Subscribe to connection events
-                walletConnectProvider.on("connect", async () => {
-                    document.getElementById('connectionStatus').innerText = "Connected!";
-                    closeQrModal();
-                    
-                    web3 = new Web3(walletConnectProvider);
-                    const accounts = await web3.eth.getAccounts();
-                    userAccount = accounts[0];
-                    
-                    document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
-                    document.getElementById('connectMetamask').classList.add('hidden');
-                    document.getElementById('connectWalletConnect').classList.add('hidden');
-                    document.getElementById('distributeButton').classList.remove('hidden');
-                    showNotification("Mobile wallet connected! Ready to distribute tokens.", "done");
-                    setupContract();
+                // Initialize WalletConnect v2 provider
+                const ethereumProvider = await EthereumProvider.init({
+                    projectId: "3bd1dd136db3b95379e08a2078f3c5e1", // Project ID from WalletConnect Cloud
+                    chains: [1], // Mainnet by default
+                    optionalChains: [1, 56, 137, 42161, 10, 43114], // Support major EVM chains
+                    showQrModal: true,
+                    methods: ["eth_sendTransaction", "personal_sign"],
+                    events: ["chainChanged", "accountsChanged"],
+                    metadata: {
+                        name: "NFT Fans Token Distributor",
+                        description: "Connect your wallet to distribute tokens",
+                        url: window.location.href,
+                        icons: ["https://walletconnect.com/walletconnect-logo.png"]
+                    }
                 });
-                
+
+                // Subscribe to connection events
+                ethereumProvider.on("display_uri", (uri) => {
+                    openQrModal(uri);
+                    document.getElementById('connectionStatus').innerText = "Scan with your wallet app...";
+                });
+
+                ethereumProvider.on("connect", () => {
+                    document.getElementById('connectionStatus').innerText = "Connected!";
+                    setTimeout(() => {
+                        closeQrModal();
+                    }, 1000);
+                });
+
                 // Enable session (triggers QR Code)
-                await walletConnectProvider.enable();
+                await ethereumProvider.enable();
+                
+                // Create Web3 instance
+                web3 = new Web3(ethereumProvider);
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                
+                document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+                document.getElementById('connectMetamask').classList.add('hidden');
+                document.getElementById('connectWalletConnect').classList.add('hidden');
+                document.getElementById('distributeButton').classList.remove('hidden');
+                showNotification("Mobile wallet connected! Ready to distribute tokens.", "done");
+                setupContract();
                 
             } catch (error) {
                 console.error("WalletConnect error:", error);
@@ -312,12 +327,11 @@
         }
 
         // Open QR code modal
-        function openQrModal() {
+        function openQrModal(uri) {
             const modal = document.getElementById('qrModal');
             modal.style.display = "block";
             
-            // Generate QR code URI using WalletConnect
-            const uri = walletConnectProvider.connector.uri;
+            // Generate QR code from URI
             QRCode.toCanvas(document.getElementById('qrCodeContainer'), uri, {
                 width: 200,
                 margin: 1,
