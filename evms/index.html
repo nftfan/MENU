@@ -21,6 +21,9 @@
             --score-text: #f3f5fa;
             --score-accent1: #71f5c6;
             --score-accent2: #5b84e8;
+            --progress-bg: #23252a;
+            --progress-bar: linear-gradient(90deg, #39ff14 0%, #00ffe7 100%);
+            --progress-remain: #232932;
         }
         html, body {
             height: 100%;
@@ -254,8 +257,47 @@
         .scores-row span#totalWallets { color: var(--score-accent1); border-color: var(--score-accent1);}
         .scores-row span#doneWallets { color: var(--score-accent2); border-color: var(--score-accent2);}
         .scores-row span#remainingWallets { color: #e67e22; border-color: #e67e22;}
-        #notification {
-            display: none;
+        /* Progress Bar Styling */
+        .progress-wrapper {
+            width: 100%;
+            margin: 14px 0 10px 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-bar-bg {
+            width: 90%;
+            height: 14px;
+            background: var(--progress-bg);
+            border-radius: 9px;
+            border: 1.5px solid #3c4066;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--progress-bar);
+            border-radius: 9px 0 0 9px;
+            transition: width 0.7s cubic-bezier(.61,-0.12,.41,1.15);
+            min-width: 0;
+            max-width: 100%;
+        }
+        .progress-bar-text {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 10px;
+            color: #fff;
+            font-family: var(--font-main);
+            font-weight: 700;
+            text-align: center;
+            transform: translateX(-50%);
+            line-height: 14px;
+            pointer-events: none;
+            text-shadow: 0 1px 2px #000b;
         }
         .notif-one-line {
             width: 100%;
@@ -296,9 +338,30 @@
         .notif-status-none {
             color: #bdbdbd;
         }
-        .refresh-reminder {
+        .good-job-animated {
             margin: 24px auto 0 auto;
-            font-size: 1.15em;
+            font-size: 2em;
+            text-align: center;
+            color: #39ff14;
+            font-family: var(--font-main);
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            background: linear-gradient(90deg, #39ff14, #00ffe7, #fff, #ff0099, #39ff14);
+            background-size: 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow-text 2.5s ease-in-out 0s 2;
+            filter: drop-shadow(0 0 4px #39ff14);
+        }
+        @keyframes rainbow-text {
+            0% {background-position:0%;}
+            40% {background-position:100%;}
+            60% {background-position:120%;}
+            100% {background-position:0%;}
+        }
+        .refresh-reminder {
+            margin: 18px auto 0 auto;
+            font-size: 1.12em;
             text-align: center;
             color: #fff;
             letter-spacing: 0.04em;
@@ -320,6 +383,7 @@
             .btn-distribute img { width: 24px; height: 24px;}
             .btn-paste img { width: 22px; height: 22px;}
             .btn-connect { font-size: 10px; padding: 4px 8px;}
+            .good-job-animated { font-size: 1.25em;}
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
@@ -351,6 +415,12 @@
             <span id="doneWallets">Sent: 0</span>
             <span id="remainingWallets">Remain: 0</span>
         </div>
+        <div class="progress-wrapper" id="progressWrapper" style="display:none;">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div>
+                <div class="progress-bar-text" id="progressBarText">0%</div>
+            </div>
+        </div>
         <table class="notif-table" id="notifTable">
             <thead>
                 <tr>
@@ -361,7 +431,7 @@
             <tbody id="notifRows"></tbody>
         </table>
     </div>
-    <div id="notification"></div>
+    <div id="goodJob" class="good-job-animated" style="display:none;">GOOD JOB!</div>
     <div id="refreshReminder" class="refresh-reminder" style="display:none;">
         refresh this page to start new NFTFAN AIRDROP
     </div>
@@ -380,7 +450,6 @@
             const notif = document.getElementById('notifOneLine');
             notif.innerHTML = `<span class="notif-status-${status}">${text}</span>`;
         }
-
         function clearNotifStatus() {
             const notif = document.getElementById('notifOneLine');
             notif.innerHTML = "";
@@ -390,6 +459,23 @@
             document.getElementById('totalWallets').textContent = "Total: " + extractedWallets.length;
             document.getElementById('doneWallets').textContent = "Sent: " + walletsSent;
             document.getElementById('remainingWallets').textContent = "Remain: " + (extractedWallets.length - walletsSent);
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const total = extractedWallets.length;
+            const sent = walletsSent;
+            const percent = total > 0 ? Math.round((sent / total) * 100) : 0;
+            const fill = document.getElementById('progressBarFill');
+            const text = document.getElementById('progressBarText');
+            const wrap = document.getElementById('progressWrapper');
+            if (total > 0) {
+                wrap.style.display = "flex";
+                fill.style.width = percent + "%";
+                text.textContent = percent + "%";
+            } else {
+                wrap.style.display = "none";
+            }
         }
 
         function showWalletsInBox() {
@@ -398,6 +484,7 @@
                 box.textContent = '';
                 document.getElementById('distributeButton').style.display = 'none';
                 document.getElementById('nextBatchLabel').style.display = 'none';
+                updateProgressBar();
                 return;
             }
             const batch = extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch);
@@ -413,6 +500,7 @@
             } else {
                 document.getElementById('nextBatchLabel').style.display = 'none';
             }
+            updateProgressBar();
         }
 
         // Paste button logic (append new wallets, keep previous)
@@ -602,16 +690,17 @@
                     gas: 2000000 // Adjust as needed
                 });
                 // Show done status with blink effect
-                showNotifStatus('Tokens sent: done', 'done');
+                showNotifStatus('Tokens sent: <span class="notif-status-done">done</span>', 'done');
                 walletsSent += wallets.length;
                 currentBatchIndex += walletsPerBatch;
                 updateWalletStats();
                 showWalletsInBox();
 
-                // If airdrop is finished, show refresh reminder
+                // If airdrop is finished, show refresh reminder + animated GOOD JOB!
                 if (walletsSent >= extractedWallets.length) {
                     setTimeout(() => {
                         clearNotifStatus();
+                        document.getElementById('goodJob').style.display = 'block';
                         document.getElementById('refreshReminder').style.display = 'block';
                     }, 1400);
                 }
