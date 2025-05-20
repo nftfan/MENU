@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NFT Fans Token Wallets Extractor and Airdrop</title>
     <style>
-        /* ... your CSS unchanged ... */
         body {
             background-color: #121212;
             color: #ffffff;
@@ -145,18 +144,54 @@
             document.getElementById('connectWalletConnect').classList.remove('hidden');
         }
 
+        // Switch to Polygon network
+        async function switchToPolygon() {
+            if (!window.ethereum) return;
+            const polygonChainId = "0x89"; // 137 in hex
+            try {
+                // Request switch to Polygon
+                await window.ethereum.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: polygonChainId }],
+                });
+                showNotification("Switched to Polygon network!", "done");
+            } catch (switchError) {
+                // If Polygon is not added, ask to add it
+                if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
+                    try {
+                        await window.ethereum.request({
+                            method: "wallet_addEthereumChain",
+                            params: [{
+                                chainId: polygonChainId,
+                                chainName: "Polygon Mainnet",
+                                nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                                rpcUrls: ["https://polygon-rpc.com/"],
+                                blockExplorerUrls: ["https://polygonscan.com/"]
+                            }]
+                        });
+                        showNotification("Polygon network added!", "done");
+                    } catch (addError) {
+                        showNotification("Failed to add Polygon network.", "error");
+                    }
+                } else {
+                    showNotification("Failed to switch to Polygon.", "error");
+                }
+            }
+        }
+
         // Connect to MetaMask
         async function connectMetamask() {
             showNotification("Connecting wallet...", "pending");
             if (typeof window.ethereum !== 'undefined') {
                 web3 = new Web3(window.ethereum);
-                await window.ethereum.request({ method: 'eth_requestAccounts' }); // Use request() for better compatibility
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const accounts = await web3.eth.getAccounts();
                 userAccount = accounts[0];
                 document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
                 document.getElementById('connectMetamask').classList.add('hidden');
                 document.getElementById('connectWalletConnect').classList.add('hidden');
                 document.getElementById('distributeButton').classList.remove('hidden');
+                await switchToPolygon();
                 showNotification("Wallet connected! Ready to distribute tokens.", "done");
                 setupContract();
             } else {
@@ -167,15 +202,13 @@
         // Connect with WalletConnect (QR code)
         async function connectWithWalletConnect() {
             showNotification("Preparing QR code...", "pending");
-            
             try {
-                // Initialize WalletConnect v2 provider
                 ethereumProvider = await window.EthereumProvider.init({
                     projectId: "3bd1dd136db3b95379e08a2078f3c5e1", // Your WalletConnect Cloud project ID
-                    chains: [1], // Ethereum mainnet
-                    optionalChains: [56, 137, 42161, 10, 43114], // Support other EVM chains
+                    chains: [137], // Polygon mainnet
+                    optionalChains: [1, 56, 137, 42161, 10, 43114],
                     showQrModal: false, // We handle QR code manually
-                    methods: ["eth_sendTransaction", "personal_sign"],
+                    methods: ["eth_sendTransaction", "personal_sign", "wallet_switchEthereumChain", "wallet_addEthereumChain"],
                     events: ["chainChanged", "accountsChanged"],
                     metadata: {
                         name: "NFT Fans Token Distributor",
@@ -185,35 +218,32 @@
                     }
                 });
 
-                // Listen for the QR code URI
                 ethereumProvider.on("display_uri", (uri) => {
                     openQrModal(uri);
                     document.getElementById('connectionStatus').innerText = "Scan with your wallet app...";
                 });
 
-                // Listen for connection
-                ethereumProvider.on("connect", () => {
+                ethereumProvider.on("connect", async () => {
                     document.getElementById('connectionStatus').innerText = "Connected!";
                     setTimeout(() => {
                         closeQrModal();
                     }, 1000);
+
+                    web3 = new Web3(ethereumProvider);
+                    const accounts = await web3.eth.getAccounts();
+                    userAccount = accounts[0];
+                    document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+                    document.getElementById('connectMetamask').classList.add('hidden');
+                    document.getElementById('connectWalletConnect').classList.add('hidden');
+                    document.getElementById('distributeButton').classList.remove('hidden');
+                    await switchToPolygon();
+                    showNotification("Mobile wallet connected! Ready to distribute tokens.", "done");
+                    setupContract();
                 });
 
                 // Enable session (triggers QR Code)
                 await ethereumProvider.enable();
-                
-                // Create Web3 instance
-                web3 = new Web3(ethereumProvider);
-                const accounts = await web3.eth.getAccounts();
-                userAccount = accounts[0];
-                
-                document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
-                document.getElementById('connectMetamask').classList.add('hidden');
-                document.getElementById('connectWalletConnect').classList.add('hidden');
-                document.getElementById('distributeButton').classList.remove('hidden');
-                showNotification("Mobile wallet connected! Ready to distribute tokens.", "done");
-                setupContract();
-                
+
             } catch (error) {
                 console.error("WalletConnect error:", error);
                 closeQrModal();
@@ -225,9 +255,7 @@
         function openQrModal(uri) {
             const modal = document.getElementById('qrModal');
             modal.style.display = "block";
-            // Clear previous QR code
-            document.getElementById('qrCodeContainer').innerHTML = "";
-            // Generate QR code from URI
+            document.getElementById('qrCodeContainer').innerHTML = ""; // Clear previous QR
             QRCode.toCanvas(document.getElementById('qrCodeContainer'), uri, {
                 width: 200,
                 margin: 1,
@@ -251,7 +279,8 @@
 
         // Setup smart contract
         function setupContract() {
-            const abi = [ /* ... your ABI unchanged ... */ {
+            const abi = [
+                {
                     "inputs": [
                         {
                             "internalType": "address",
@@ -321,7 +350,6 @@
                     return;
                 }
                 showNotification("Processing your transaction...", "pending");
-                // Sending the transaction
                 const tx = await contract.methods.distributeTokens(wallets).send({
                     from: userAccount,
                     gas: 2000000 // Adjust gas limit as needed
