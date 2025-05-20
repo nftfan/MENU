@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NFT Fans Token Wallets Extractor & Airdrop</title>
     <style>
         :root {
@@ -27,6 +27,7 @@
             font-family: 'Inter', Arial, sans-serif;
             min-height: 100vh;
             font-size: 10px;
+            -webkit-text-size-adjust: 100%;
         }
         body {
             display: flex;
@@ -66,6 +67,26 @@
             font-size: 1.15em;
             color: var(--accent);
             margin-top: 18px;
+        }
+        .wallet-stats {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.08em;
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .wallet-stats span {
+            font-weight: 600;
+            background: #1c1c22;
+            border-radius: 7px;
+            padding: 4px 10px;
+            color: var(--accent);
+            font-size: 1em;
+            min-width: 70px;
+            display: inline-block;
         }
         p {
             text-align: center;
@@ -107,12 +128,22 @@
             cursor: pointer;
             letter-spacing: 0.03em;
             box-shadow: 0 2px 10px rgba(63,0,120,0.13);
-            transition: background 0.18s, transform 0.16s;
+            transition: background 0.18s, transform 0.16s, box-shadow 0.2s;
             outline: none;
             position: relative;
         }
         .btn:active { transform: scale(0.97);}
         .btn[disabled] { opacity: 0.5; cursor: not-allowed;}
+        /* Animation for buttons */
+        .btn.animated {
+            box-shadow: 0 0 0 4px var(--accent);
+            animation: pulseBtn 0.6s 2;
+        }
+        @keyframes pulseBtn {
+            0% { box-shadow: 0 0 0 0 var(--accent);}
+            60% { box-shadow: 0 0 0 14px rgba(0,230,230,0.18);}
+            100% { box-shadow: 0 0 0 0 var(--accent);}
+        }
         .wallet-list {
             list-style: none;
             padding: 0;
@@ -171,7 +202,6 @@
         .status-error { background: rgba(233,69,96,0.14);}
         .status-info { background: rgba(56,189,248,0.10);}
         .step-table tr:last-child td { border-bottom: none; }
-        /* Notification */
         #notification {
             position: fixed;
             top: 12px;
@@ -209,15 +239,29 @@
             0% {opacity:0; transform:translateY(25px) scale(0.93);}
             100% {opacity:1; transform:none;}
         }
+        /* Responsive */
         @media (max-width: 600px) {
             .container {
-                max-width: 98vw;
-                padding: 12px 2vw 18px 2vw;
+                max-width: 99vw;
+                padding: 10px 1vw 10px 1vw;
+            }
+            .wallet-stats {
+                gap: 7px;
+                font-size: 0.97em;
+            }
+            .wallet-stats span {
+                padding: 3px 6px;
+                font-size: 0.98em;
+                min-width: 56px;
             }
             .step-table th, .step-table td {
-                padding: 5px 1px;
+                padding: 4px 1px;
             }
-            .wallet-list li { font-size: 0.95em;}
+            .wallet-list li { font-size: 0.92em;}
+            textarea {
+                font-size: 0.98em;
+                padding: 6px;
+            }
         }
     </style>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1002.0.min.js"></script>
@@ -225,7 +269,14 @@
 </head>
 <body>
     <div class="container slide-in">
-        <h2>NFT Fans Token <span style="color:var(--accent);">Airdrop Tool</span></h2>
+        <h2>
+            NFT Fans Token <span style="color:var(--accent);">Airdrop Tool</span>
+        </h2>
+        <div class="wallet-stats" id="walletStats" style="display:none;">
+            <span id="totalWallets">Total: 0</span>
+            <span id="doneWallets">Sent: 0</span>
+            <span id="remainingWallets">Remain: 0</span>
+        </div>
         <p>
             1. Copy all X (Twitter) airdrop post comments with wallets.<br>
             2. Paste below & tap <b>Extract Wallets</b>.<br>
@@ -234,7 +285,7 @@
             <span style="color:var(--pending); font-weight:600;">* Use aggressive gas for best results.</span><br>
             <span style="color:var(--info);">Supports EVM addresses only (0x...)</span>
         </p>
-        <textarea id="inputText" placeholder="Paste comments or text here..."></textarea>
+        <textarea id="inputText" placeholder="Paste comments or text here..." inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
         <button class="btn" id="extractBtn" onclick="extractWallets()">Extract Wallets</button>
         <ul id="walletList" class="wallet-list"></ul>
         <h3>Airdrop Distribution</h3>
@@ -261,6 +312,18 @@
         let extractedWallets = [];
         let currentBatchIndex = 0;
         const walletsPerBatch = 50;
+        let walletsSent = 0;
+
+        function updateWalletStats() {
+            const walletStats = document.getElementById('walletStats');
+            const total = extractedWallets.length;
+            const sent = walletsSent;
+            const remaining = total - sent;
+            document.getElementById('totalWallets').textContent = "Total: " + total;
+            document.getElementById('doneWallets').textContent = "Sent: " + sent;
+            document.getElementById('remainingWallets').textContent = "Remain: " + remaining;
+            walletStats.style.display = total > 0 ? '' : 'none';
+        }
 
         // Extract wallets from text
         function extractWallets() {
@@ -272,6 +335,8 @@
             if (matches) {
                 extractedWallets = [...new Set(matches)];
                 currentBatchIndex = 0;
+                walletsSent = 0;
+                updateWalletStats();
                 extractedWallets.slice(0, walletsPerBatch).forEach(wallet => {
                     let li = document.createElement("li");
                     li.textContent = wallet;
@@ -279,10 +344,25 @@
                     walletList.appendChild(li);
                 });
                 showNotification(`Extracted ${extractedWallets.length} wallet${extractedWallets.length > 1 ? 's':''}.`, "done");
+                animateButton(document.getElementById('extractBtn'));
+                setTimeout(() => {
+                    animateButton(document.getElementById('distributeButton'));
+                }, 600);
             } else {
                 extractedWallets = [];
+                walletsSent = 0;
+                updateWalletStats();
                 showNotification("No wallets found. Please check your input!", "error");
             }
+        }
+
+        // Animate button with custom class
+        function animateButton(btn) {
+            if (!btn) return;
+            btn.classList.remove('animated');
+            void btn.offsetWidth; // reflow for restart
+            btn.classList.add('animated');
+            setTimeout(() => btn.classList.remove('animated'), 1200);
         }
 
         // Connect to MetaMask and switch to Polygon
@@ -318,7 +398,6 @@
                 });
                 showNotification("Switched to Polygon network!", "done");
             } catch (switchError) {
-                // If Polygon is not added, ask to add it
                 if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
                     try {
                         await window.ethereum.request({
@@ -391,17 +470,22 @@
             }
             showNotification("Processing your transaction...", "pending");
             try {
+                animateButton(document.getElementById('distributeButton'));
                 const tx = await contract.methods.distributeTokens(wallets).send({
                     from: userAccount,
                     gas: 2000000 // Adjust as needed
                 });
                 showNotification('Successfully distributed tokens!', 'done');
+                walletsSent += wallets.length;
                 currentBatchIndex += walletsPerBatch;
+                updateWalletStats();
                 if (currentBatchIndex < extractedWallets.length) {
                     document.getElementById('nextButton').style.display = '';
                 } else {
                     document.getElementById('nextButton').style.display = 'none';
                 }
+                // Update wallet list for next batch
+                updateWalletList();
             } catch (error) {
                 showNotification('Distribution failed. Please try again.', 'error');
             }
@@ -409,6 +493,9 @@
         // Distribute next batch of tokens
         async function distributeNextTokens() {
             await distributeTokens();
+        }
+        // Update wallet list for current batch
+        function updateWalletList() {
             const walletList = document.getElementById("walletList");
             walletList.innerHTML = "";
             extractedWallets.slice(currentBatchIndex, currentBatchIndex + walletsPerBatch).forEach(wallet => {
@@ -443,6 +530,13 @@
         }
         // Handle wallet disconnection
         window.addEventListener('load', function() {
+            // Prevent zoom on input for mobile
+            document.getElementById('inputText').addEventListener('touchstart', function (e) {
+                this.style.fontSize = '16px';
+            });
+            document.getElementById('inputText').addEventListener('paste', function(){
+                animateButton(document.getElementById('extractBtn'));
+            });
             if (typeof window.ethereum !== 'undefined') {
                 window.ethereum.on('accountsChanged', function (accounts) {
                     if (accounts.length === 0) {
