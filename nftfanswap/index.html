@@ -50,6 +50,7 @@
         .balance-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; background: rgba(0,255,65,0.07); padding: 8px 10px; border-radius: 7px; border-left: 3px solid #00ff41; margin-bottom: 0; }
         .balance-label { color: #00ccff; font-weight: bold; display: flex; align-items: center; gap: 5px; }
         .balance-value { color: #ff0080; font-weight: bold; font-family: 'Courier New', monospace; font-size: 13px; letter-spacing: 0.5px; }
+        #nftfanBalance { font-size: 7px !important; }
         .swap-btn { margin-top: 20px; width: 100%; padding: 12px 0; background: #00ff41; color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; letter-spacing: 1px; cursor: pointer; transition: background 0.2s, color 0.2s; box-shadow: 0 0 10px #00ff41, 0 0 30px #00ff4155; }
         .swap-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
         .swap-rate { font-size: 11px; color: #ffaa00; margin-bottom: 10px; text-align: center; letter-spacing: 0.5px; }
@@ -70,6 +71,7 @@
             .swap-btn { font-size: 13px; padding: 9px 0; }
             .raining-token { width: 34px; height: 34px; }
             .balance-item { font-size: 12px; }
+            #nftfanBalance { font-size: 7px !important; }
         }
         @keyframes dropToken {
             0% { transform: translateY(-60px) scale(1) rotate(0deg); opacity: 0.9; }
@@ -233,7 +235,7 @@
             try {
                 const polBalanceWei = await web3.eth.getBalance(userAccount);
                 const polBalance = parseFloat(web3.utils.fromWei(polBalanceWei, 'ether'));
-                polBalanceEl.textContent = Math.floor(polBalance).toLocaleString('en-US') + ' T';
+                polBalanceEl.textContent = polBalance.toFixed(4) + ' POL';
             } catch (e) { /* don't clear */ }
             // NFTFan balance
             try {
@@ -242,9 +244,9 @@
                         nftfanDecimals = await tokenContract.methods.decimals().call();
                     }
                     const balanceRaw = await tokenContract.methods.balanceOf(userAccount).call();
-                    const divisor = BigInt('1' + '0'.repeat(Number(nftfanDecimals) - 12));
-                    const trillions = BigInt(balanceRaw) / divisor;
-                    nftfanBalanceEl.textContent = trillions.toLocaleString('en-US') + ' T';
+                    const divisor = BigInt('1' + '0'.repeat(Number(nftfanDecimals)));
+                    const balance = (BigInt(balanceRaw) * 1000000000000n) / divisor; // show in units, no decimals
+                    nftfanBalanceEl.textContent = balance.toLocaleString('en-US');
                 } else {
                     nftfanBalanceEl.textContent = '-';
                 }
@@ -260,7 +262,7 @@
                 swapBtn.disabled = true;
                 return;
             }
-            nftfanAmountInput.value = Math.floor(pol * NFTFAN_PER_POL).toLocaleString('en') + ' T';
+            nftfanAmountInput.value = Math.floor(pol * NFTFAN_PER_POL).toLocaleString('en');
             swapBtn.disabled = false;
         }
 
