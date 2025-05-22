@@ -81,7 +81,6 @@
     </style>
 </head>
 <body>
-    <!-- Wallet Connect Button -->
     <button id="walletBtn" class="wallet-btn">Connect</button>
     <div class="swap-root">
         <div class="swap-card">
@@ -123,10 +122,8 @@
             <div id="statusMsg" class="status-message"></div>
         </div>
     </div>
-    <!-- Raining tokens effect -->
     <div id="rainingTokens" class="raining-tokens-container"></div>
     <script>
-        // Config
         const CONTRACT_ADDRESS = '0xaf2d132C8773bca3821C24EcF64e844E202A12e8';
         const NFTFAN_TOKEN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
         const POLYGON_CHAIN_ID = '0x89'; // 137
@@ -138,7 +135,6 @@
         let balancePoller = null;
         let nftfanDecimals = null;
 
-        // DOM
         const walletBtn = document.getElementById('walletBtn');
         const polAmountInput = document.getElementById('polAmount');
         const nftfanAmountInput = document.getElementById('nftfanAmount');
@@ -237,7 +233,7 @@
             try {
                 const polBalanceWei = await web3.eth.getBalance(userAccount);
                 const polBalance = parseFloat(web3.utils.fromWei(polBalanceWei, 'ether'));
-                polBalanceEl.textContent = (polBalance.toFixed(4)) + ' POL';
+                polBalanceEl.textContent = Math.floor(polBalance).toLocaleString('en-US') + ' T';
             } catch (e) { /* don't clear */ }
             // NFTFan balance
             try {
@@ -246,17 +242,9 @@
                         nftfanDecimals = await tokenContract.methods.decimals().call();
                     }
                     const balanceRaw = await tokenContract.methods.balanceOf(userAccount).call();
-                    // Use BigInt for large balances
                     const divisor = BigInt('1' + '0'.repeat(Number(nftfanDecimals) - 12));
                     const trillions = BigInt(balanceRaw) / divisor;
-                    const trillionsRem = BigInt(balanceRaw) % divisor;
-                    // Trillions with 3 decimal places
-                    let frac = '';
-                    if (trillionsRem > 0n) {
-                        let dec = (Number(trillionsRem * 1000n / divisor)).toString().padStart(3, '0');
-                        frac = '.' + dec;
-                    }
-                    nftfanBalanceEl.textContent = trillions.toLocaleString('en-US') + frac + ' T';
+                    nftfanBalanceEl.textContent = trillions.toLocaleString('en-US') + ' T';
                 } else {
                     nftfanBalanceEl.textContent = '-';
                 }
@@ -272,7 +260,7 @@
                 swapBtn.disabled = true;
                 return;
             }
-            nftfanAmountInput.value = (pol * NFTFAN_PER_POL).toLocaleString('en');
+            nftfanAmountInput.value = Math.floor(pol * NFTFAN_PER_POL).toLocaleString('en') + ' T';
             swapBtn.disabled = false;
         }
 
