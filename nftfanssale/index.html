@@ -168,10 +168,16 @@
             box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
         }
 
-        .purchase-btn {
+        .send-btn {
             color: #00ff41;
             border-color: #00ff41;
             box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .refresh-btn {
+            color: #ffaa00;
+            border-color: #ffaa00;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.3);
         }
 
         .input-group {
@@ -211,7 +217,7 @@
             box-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
         }
 
-        .rate-info {
+        .contract-info {
             text-align: center;
             background: rgba(0, 204, 255, 0.1);
             border: 1px solid #00ccff;
@@ -220,6 +226,15 @@
             margin-bottom: 10px;
             font-size: 9px;
             color: #00ccff;
+        }
+
+        .contract-address {
+            font-family: 'Courier New', monospace;
+            color: #ff0080;
+            font-weight: bold;
+            word-break: break-all;
+            margin: 5px 0;
+            text-shadow: 0 0 5px #ff0080;
         }
 
         .status {
@@ -407,6 +422,17 @@
             }
         }
 
+        .rate-display {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 9px;
+        }
+
         @media (max-width: 360px) {
             .container {
                 padding: 8px;
@@ -425,7 +451,7 @@
 <body>
     <div class="container">
         <h1 class="title glitch" data-text="NFTFan Token Sale">NFTFan Token Sale</h1>
-        <p class="subtitle">// Get your NFTFan tokens with POL //</p>
+        <p class="subtitle">// Send POL to receive NFTFan tokens //</p>
 
         <div id="status" class="status hidden"></div>
 
@@ -462,17 +488,27 @@
                 <span class="balance-label">NFTFan Balance:</span>
                 <span id="nftfanBalance" class="balance-value">0.00</span>
             </div>
+            <button id="refreshBalances" class="button refresh-btn">
+                > Refresh Balances
+            </button>
         </div>
 
-        <!-- Purchase Section -->
-        <div id="purchaseSection" class="card hidden">
-            <div class="section-title">TOKEN EXCHANGE</div>
-            <div class="rate-info">
-                <strong>RATE:</strong> 1 POL = 1,000,000,000,000,000 NFTFan
+        <!-- Transfer Section -->
+        <div id="transferSection" class="card hidden">
+            <div class="section-title">SEND POL FOR NFTFAN</div>
+            
+            <div class="contract-info">
+                <strong>Contract Address:</strong>
+                <div class="contract-address">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</div>
+            </div>
+
+            <div class="rate-display">
+                <strong>AUTOMATIC EXCHANGE:</strong><br>
+                Send POL → Receive NFTFan tokens instantly
             </div>
             
             <div class="input-group">
-                <label class="input-label" for="polAmount">POL Amount:</label>
+                <label class="input-label" for="polAmount">POL Amount to Send:</label>
                 <input 
                     type="number" 
                     id="polAmount" 
@@ -483,13 +519,8 @@
                 >
             </div>
             
-            <div class="balance-item">
-                <span class="balance-label">You Receive:</span>
-                <span id="tokensToReceive" class="balance-value">0 NFTFan</span>
-            </div>
-            
-            <button id="purchaseTokens" class="button purchase-btn" disabled>
-                > Execute Trade
+            <button id="sendPol" class="button send-btn" disabled>
+                > Send POL
             </button>
         </div>
     </div>
@@ -499,7 +530,7 @@
         <div class="processing-content">
             <div class="processing-spinner"></div>
             <h3>PROCESSING TRANSACTION</h3>
-            <p>// Executing blockchain operation... //</p>
+            <p>// Sending POL to contract... //</p>
         </div>
     </div>
 
@@ -508,23 +539,8 @@
         const CONTRACT_ADDRESS = '0xaf2d132C8773bca3821C24EcF64e844E202A12e8';
         const TOKEN_ADDRESS = '0x YOUR_TOKEN_ADDRESS'; // Replace with actual NFTFan token address
         const POLYGON_CHAIN_ID = '0x89'; // 137 in decimal
-        const RATE = 1000000000000000; // 1 POL = 1,000,000,000,000,000 tokens
 
         // Contract ABIs (simplified)
-        const TOKEN_SALE_ABI = [
-            {
-                "inputs": [],
-                "name": "RATE",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "stateMutability": "payable",
-                "type": "receive"
-            }
-        ];
-
         const ERC20_ABI = [
             {
                 "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
@@ -550,12 +566,13 @@
         // DOM elements
         const connectWalletBtn = document.getElementById('connectWallet');
         const switchNetworkBtn = document.getElementById('switchNetwork');
-        const purchaseTokensBtn = document.getElementById('purchaseTokens');
+        const sendPolBtn = document.getElementById('sendPol');
+        const refreshBalancesBtn = document.getElementById('refreshBalances');
         const polAmountInput = document.getElementById('polAmount');
         const walletInfo = document.getElementById('walletInfo');
         const networkSection = document.getElementById('networkSection');
         const balanceSection = document.getElementById('balanceSection');
-        const purchaseSection = document.getElementById('purchaseSection');
+        const transferSection = document.getElementById('transferSection');
         const processingOverlay = document.getElementById('processingOverlay');
 
         // Initialize
@@ -653,7 +670,7 @@
         async function handleCorrectNetwork() {
             networkSection.classList.add('hidden');
             balanceSection.classList.remove('hidden');
-            purchaseSection.classList.remove('hidden');
+            transferSection.classList.remove('hidden');
             
             // Initialize token contract if address is provided
             if (TOKEN_ADDRESS !== '0x YOUR_TOKEN_ADDRESS') {
@@ -661,12 +678,14 @@
             }
             
             await updateBalances();
-            showStatus('// System ready - Trading enabled //', 'success');
+            showStatus('// System ready - Send POL to receive NFTFan //', 'success');
         }
 
         // Update balances
         async function updateBalances() {
             try {
+                showStatus('// Updating balances... //', 'info');
+                
                 // Get POL balance
                 const polBalance = await web3.eth.getBalance(userAccount);
                 const polFormatted = web3.utils.fromWei(polBalance, 'ether');
@@ -681,30 +700,24 @@
                     document.getElementById('nftfanBalance').textContent = 
                         tokenFormatted + ' NFTFan';
                 } else {
-                    document.getElementById('nftfanBalance').textContent = 'N/A';
+                    document.getElementById('nftfanBalance').textContent = 'Connect token contract';
                 }
+                
+                showStatus('// Balances updated successfully //', 'success');
             } catch (error) {
                 console.error('Error updating balances:', error);
+                showStatus('// Balance update failed //', 'error');
             }
         }
 
-        // Calculate tokens to receive
-        function calculateTokens() {
+        // Validate POL amount
+        function validatePolAmount() {
             const polAmount = parseFloat(polAmountInput.value) || 0;
-            const tokensToReceive = polAmount * RATE;
-            
-            if (tokensToReceive > 0) {
-                document.getElementById('tokensToReceive').textContent = 
-                    tokensToReceive.toLocaleString() + ' NFTFan';
-                purchaseTokensBtn.disabled = false;
-            } else {
-                document.getElementById('tokensToReceive').textContent = '0 NFTFan';
-                purchaseTokensBtn.disabled = true;
-            }
+            sendPolBtn.disabled = polAmount <= 0;
         }
 
-        // Purchase tokens
-        async function purchaseTokens() {
+        // Send POL to contract
+        async function sendPol() {
             const polAmount = parseFloat(polAmountInput.value);
             
             if (!polAmount || polAmount <= 0) {
@@ -714,7 +727,7 @@
 
             try {
                 showProcessing(true);
-                showStatus('// Executing transaction... //', 'info');
+                showStatus('// Sending POL to contract... //', 'info');
 
                 const amountWei = web3.utils.toWei(polAmount.toString(), 'ether');
                 
@@ -725,19 +738,20 @@
                     gas: 200000
                 });
 
-                showStatus('// Transaction executed successfully //', 'success');
+                showStatus('// POL sent successfully - NFTFan tokens received //', 'success');
                 
-                // Wait a moment then update balances
+                // Clear input and update balances after delay
+                polAmountInput.value = '';
+                validatePolAmount();
+                
                 setTimeout(async () => {
                     await updateBalances();
-                    polAmountInput.value = '';
-                    calculateTokens();
                     showProcessing(false);
-                }, 2000);
+                }, 3000);
 
             } catch (error) {
                 console.error('Transaction error:', error);
-                showStatus('// Transaction failed: ' + error.message.substring(0, 50) + '... //', 'error');
+                showStatus('// Transaction failed: ' + error.message.substring(0, 40) + '... //', 'error');
                 showProcessing(false);
             }
         }
@@ -769,8 +783,9 @@
         // Event listeners
         connectWalletBtn.addEventListener('click', connectWallet);
         switchNetworkBtn.addEventListener('click', switchToPolygon);
-        purchaseTokensBtn.addEventListener('click', purchaseTokens);
-        polAmountInput.addEventListener('input', calculateTokens);
+        sendPolBtn.addEventListener('click', sendPol);
+        refreshBalancesBtn.addEventListener('click', updateBalances);
+        polAmountInput.addEventListener('input', validatePolAmount);
 
         // Listen for account changes
         if (window.ethereum) {
