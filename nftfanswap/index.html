@@ -253,7 +253,6 @@
             .raining-token { width: 34px; height: 34px; }
             .balance-item { font-size: 12px; }
         }
-        /* Animate tokens falling */
         @keyframes dropToken {
             0% {
                 transform: translateY(-60px) scale(1) rotate(0deg);
@@ -272,7 +271,6 @@
                 filter: brightness(0.7);
             }
         }
-        /* Prevent iOS blue highlight */
         input, button { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
@@ -344,7 +342,6 @@
         const polBalanceEl = document.getElementById('polBalance');
         const nftfanBalanceEl = document.getElementById('nftfanBalance');
 
-        // Helper: Show status
         function showStatus(msg, type = 'info') {
             statusMsg.textContent = msg;
             statusMsg.className = 'status-message status-' + type;
@@ -357,7 +354,6 @@
             statusMsg.style.display = 'none';
         }
 
-        // Wallet Connect - on click, always try connect (first click)
         async function connectWallet() {
             if (walletConnecting) return;
             walletConnecting = true;
@@ -367,7 +363,6 @@
                 return;
             }
             try {
-                // Use eth_requestAccounts on every click for mobile reliability
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 userAccount = accounts[0];
                 walletBtn.classList.add('connected');
@@ -384,7 +379,6 @@
             walletConnecting = false;
         }
 
-        // Check network
         async function checkNetwork() {
             if (!window.ethereum) return;
             let chainId = await window.ethereum.request({ method: 'eth_chainId' });
@@ -396,7 +390,6 @@
                     });
                 } catch (switchError) {
                     if (switchError.code === 4902) {
-                        // Add Polygon
                         try {
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
@@ -437,7 +430,6 @@
             ], NFTFAN_TOKEN_ADDRESS);
         }
 
-        // Update POL and NFTFan balances in trillions
         async function updateBalances() {
             if (!web3 || !userAccount) {
                 polBalanceEl.textContent = '-';
@@ -452,10 +444,12 @@
 
                 // NFTFan balance in trillions
                 if (tokenContract) {
-                    const balance = await tokenContract.methods.balanceOf(userAccount).call();
-                    const decimals = await tokenContract.methods.decimals().call();
-                    let trillionDivisor = Math.pow(10, decimals - 12); // 1 trillion = 1e12
-                    let trillions = (Number(balance) / trillionDivisor) / 1e6; // trillions = balance / 1e18 * 1e6 = / 1e12
+                    const [balance, decimals] = await Promise.all([
+                        tokenContract.methods.balanceOf(userAccount).call(),
+                        tokenContract.methods.decimals().call()
+                    ]);
+                    // Show in trillions: value / 1e12
+                    let trillions = parseFloat(balance) / Math.pow(10, decimals - 12);
                     nftfanBalanceEl.textContent = trillions.toLocaleString('en-US', {maximumFractionDigits: 3}) + ' T';
                 } else {
                     nftfanBalanceEl.textContent = '-';
@@ -466,7 +460,6 @@
             }
         }
 
-        // Update NFTFan output
         function updateNFTFanOutput() {
             let pol = parseFloat(polAmountInput.value);
             if (!isFinite(pol) || pol <= 0) {
@@ -478,13 +471,11 @@
             swapBtn.disabled = false;
         }
 
-        // Rain NFTFan tokens
         function rainNFTFan(count = 24) {
             for (let i = 0; i < count; i++) {
                 const token = document.createElement('img');
                 token.src = 'https://i.imgur.com/ODP45iQ.png';
                 token.className = 'raining-token';
-                // Randomize left position (0-100vw), duration (1.8s-2.8s), delay (0-0.7s), size
                 let left = Math.random() * 95;
                 let animDur = (1.8 + Math.random() * 1.0).toFixed(2);
                 let delay = (Math.random() * 0.7).toFixed(2);
@@ -495,14 +486,12 @@
                 token.style.animationDuration = animDur + 's, ' + animDur + 's';
                 token.style.animationDelay = delay + 's, ' + delay + 's';
                 rainingTokens.appendChild(token);
-                // Remove after animation
                 setTimeout(() => {
                     token.remove();
                 }, (parseFloat(animDur) + parseFloat(delay)) * 1000 + 600);
             }
         }
 
-        // Swap
         async function swapPol() {
             hideStatus();
             if (!userAccount || !web3) {
@@ -528,25 +517,22 @@
                 polAmountInput.value = '';
                 nftfanAmountInput.value = '';
                 rainNFTFan();
-                setTimeout(updateBalances, 5000); // Update balances after swap
+                setTimeout(updateBalances, 5000);
             } catch (e) {
                 showStatus('Swap failed: ' + (e.message || e), 'error');
             }
             swapBtn.disabled = false;
         }
 
-        // Events
         walletBtn.onclick = connectWallet;
         polAmountInput.oninput = updateNFTFanOutput;
         swapBtn.onclick = swapPol;
 
-        // On wallet connect, update balances
         if (window.ethereum) {
             window.ethereum.on('accountsChanged', () => location.reload());
             window.ethereum.on('chainChanged', () => location.reload());
         }
 
-        // Mobile input no zoom hack
         polAmountInput.addEventListener('touchstart', function(e) {
             if(document.activeElement !== polAmountInput) {
                 e.preventDefault();
