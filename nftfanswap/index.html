@@ -331,6 +331,7 @@
         let userAccount;
         let walletConnecting = false;
         let tokenContract;
+        let balancePoller;
 
         // DOM
         const walletBtn = document.getElementById('walletBtn');
@@ -372,7 +373,10 @@
                     '</span>';
                 showStatus('Wallet connected.', 'success');
                 await checkNetwork();
-                await updateBalances();
+                updateBalances(); // Always call once
+                // Set up polling for balances every 10s while connected
+                if (balancePoller) clearInterval(balancePoller);
+                balancePoller = setInterval(updateBalances, 10000);
             } catch (e) {
                 showStatus('Wallet connection denied.', 'error');
             }
@@ -431,31 +435,27 @@
         }
 
         async function updateBalances() {
-            if (!web3 || !userAccount) {
-                polBalanceEl.textContent = '-';
-                nftfanBalanceEl.textContent = '-';
-                return;
-            }
+            // Don't clear balances on error, just leave them as-is if something fails.
+            if (!web3 || !userAccount) return;
             try {
                 // POL balance
                 const polBalanceWei = await web3.eth.getBalance(userAccount);
                 const polBalance = parseFloat(web3.utils.fromWei(polBalanceWei, 'ether'));
                 polBalanceEl.textContent = (polBalance.toFixed(4)) + ' POL';
-
-                // NFTFan balance in trillions
+            } catch (e) {
+                polBalanceEl.textContent = '-';
+            }
+            try {
                 if (tokenContract) {
-                    const [balance, decimals] = await Promise.all([
-                        tokenContract.methods.balanceOf(userAccount).call(),
-                        tokenContract.methods.decimals().call()
-                    ]);
-                    // Show in trillions: value / 1e12
+                    const balance = await tokenContract.methods.balanceOf(userAccount).call();
+                    const decimals = await tokenContract.methods.decimals().call();
+                    // trillions = (balance / 10**decimals) * 1e12 = balance / 10**(decimals-12)
                     let trillions = parseFloat(balance) / Math.pow(10, decimals - 12);
                     nftfanBalanceEl.textContent = trillions.toLocaleString('en-US', {maximumFractionDigits: 3}) + ' T';
                 } else {
                     nftfanBalanceEl.textContent = '-';
                 }
             } catch (e) {
-                polBalanceEl.textContent = '-';
                 nftfanBalanceEl.textContent = '-';
             }
         }
