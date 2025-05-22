@@ -1,3 +1,10 @@
+Copilot
+
+Type / to search
+Copilot navigation
+Copilot Chat
+New conversation
+You said: <!DOCTYPE html> <html lang="en"> <head> <meta
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -205,17 +212,6 @@
             transform: translateY(-1px);
         }
 
-        .btn-debug {
-            background: linear-gradient(45deg, #ffff00, #ff8000);
-            color: #000;
-            border: 1px solid #ffff00;
-        }
-
-        .btn-debug:hover:not(:disabled) {
-            box-shadow: 0 0 20px rgba(255, 255, 0, 0.6);
-            transform: translateY(-1px);
-        }
-
         .button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -228,7 +224,6 @@
             border-radius: 5px;
             margin: 10px 0;
             font-size: 9px;
-            word-break: break-word;
         }
 
         .status-success {
@@ -247,12 +242,6 @@
             background: rgba(0, 255, 255, 0.2);
             border: 1px solid #00ffff;
             color: #00ffff;
-        }
-
-        .status-warning {
-            background: rgba(255, 255, 0, 0.2);
-            border: 1px solid #ffff00;
-            color: #ffff00;
         }
 
         .balances {
@@ -316,21 +305,6 @@
             font-family: monospace;
         }
 
-        .debug-info {
-            background: rgba(255, 255, 0, 0.1);
-            border: 1px solid #ffff00;
-            border-radius: 5px;
-            padding: 8px;
-            margin-top: 10px;
-        }
-
-        .debug-text {
-            font-size: 8px;
-            color: #ffff00;
-            word-break: break-all;
-            line-height: 1.3;
-        }
-
         @media (max-width: 320px) {
             .container {
                 padding: 15px 10px;
@@ -375,19 +349,6 @@
         </div>
 
         <div class="card">
-            <div class="balances">
-                <div class="balance-item">
-                    <div class="balance-label">Contract POL</div>
-                    <div class="balance-value" id="contractPOLBalance">0</div>
-                </div>
-                <div class="balance-item">
-                    <div class="balance-label">Contract NFTFAN</div>
-                    <div class="balance-value" id="contractTokenBalance">0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
             <div class="form-group">
                 <label class="label">Amount to Sell (NFTFAN)</label>
                 <div class="input-container">
@@ -411,90 +372,66 @@
             <button class="button btn-primary" id="sellBtn" onclick="sellTokens()" style="display: none;" disabled>
                 Step 2: Sell Tokens
             </button>
-            <button class="button btn-debug" id="debugBtn" onclick="debugContract()" style="display: none;">
-                Debug Contract
-            </button>
         </div>
 
         <div id="statusMessage"></div>
 
-        <div id="debugInfo" class="debug-info" style="display: none;">
-            <div class="contract-label">Debug Information:</div>
-            <div class="debug-text" id="debugText"></div>
-        </div>
-
         <div class="contract-info">
-            <div class="contract-label">Sell Contract Address:</div>
+            <div class="contract-label">Contract Address:</div>
             <div class="contract-address">0x6e9a59eCEfA30468c0dB4c1A963Ff82A7f270B56</div>
-        </div>
-
-        <div class="contract-info">
-            <div class="contract-label">Token Contract Address:</div>
-            <div class="contract-address">0x2017Fcaea540d2925430586DC92818035Bfc2F50</div>
         </div>
     </div>
 
     <script>
+        // === CONFIG ===
         const CONTRACT_ADDRESS = "0x6e9a59eCEfA30468c0dB4c1A963Ff82A7f270B56";
-        const TOKEN_ADDRESS = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
-        const RATE = 10000000000000; // 1 token = 0.00001 POL in wei
+        const TOKEN_ADDRESS = "0x2017Fcaea540d2925430586DC92818035Bfc2F50"; // Replace with actual NFTFan token address
+        const RATE = 0.00001; // 1 token = 0.00001 POL (for UI only)
 
+        // === GLOBALS ===
         let provider;
         let signer;
         let contract;
         let tokenContract;
         let userAddress;
+        let tokenDecimals = 18;
 
-        // Extended ABI with more functions for debugging
         const contractABI = [
             "function sell(uint256 _tokenAmount) external",
             "function getPOLBalance() external view returns (uint256)",
-            "function getTokenBalance() external view returns (uint256)",
-            "function owner() external view returns (address)",
-            "function tokenAddress() external view returns (address)",
-            "function sellRate() external view returns (uint256)",
-            "function paused() external view returns (bool)",
-            "function withdrawPOL(uint256 amount) external",
-            "function withdrawTokens(uint256 amount) external",
-            "function updateSellRate(uint256 newRate) external",
-            "function pause() external",
-            "function unpause() external",
-            "event TokensSold(address indexed seller, uint256 tokenAmount, uint256 polAmount)"
+            "function getTokenBalance() external view returns (uint256)"
         ];
 
         const tokenABI = [
             "function balanceOf(address owner) view returns (uint256)",
             "function approve(address spender, uint256 amount) returns (bool)",
             "function allowance(address owner, address spender) view returns (uint256)",
-            "function decimals() view returns (uint8)",
-            "function name() view returns (string)",
-            "function symbol() view returns (string)",
-            "function totalSupply() view returns (uint256)"
+            "function decimals() view returns (uint8)"
         ];
 
+        // === CONNECT WALLET ===
         async function connectWallet() {
             try {
                 if (typeof window.ethereum !== 'undefined') {
                     showStatus('Connecting wallet...', 'info');
-                    
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
                     provider = new ethers.BrowserProvider(window.ethereum);
                     signer = await provider.getSigner();
                     userAddress = await signer.getAddress();
 
-                    // Check if we're on Polygon
+                    // Check Polygon network
                     const network = await provider.getNetwork();
                     if (network.chainId !== 137n) {
                         try {
                             await window.ethereum.request({
                                 method: 'wallet_switchEthereumChain',
-                                params: [{ chainId: '0x89' }], // Polygon chainId
+                                params: [{ chainId: '0x89' }],
                             });
-                            // Refresh provider after network switch
-                            provider = new ethers.BrowserProvider(window.ethereum);
-                            signer = await provider.getSigner();
-                        } catch (switchError) {
-                            showStatus('Please switch to Polygon network manually', 'error');
+                            // After switching, reload for new provider
+                            location.reload();
+                            return;
+                        } catch {
+                            showStatus('Please switch to Polygon network', 'error');
                             return;
                         }
                     }
@@ -502,10 +439,12 @@
                     contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
                     tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenABI, signer);
 
+                    // Fetch token decimals for accurate conversions
+                    tokenDecimals = await tokenContract.decimals();
+
                     document.getElementById('connectBtn').style.display = 'none';
                     document.getElementById('approveBtn').style.display = 'block';
                     document.getElementById('sellBtn').style.display = 'block';
-                    document.getElementById('debugBtn').style.display = 'block';
 
                     await updateBalances();
                     showStatus(`Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`, 'success');
@@ -518,174 +457,51 @@
             }
         }
 
+        // === UPDATE BALANCES ===
         async function updateBalances() {
             try {
-                if (!tokenContract || !userAddress || !contract) return;
+                if (!tokenContract || !userAddress) return;
 
-                // User balances
-                const tokenBalance = await tokenContract.balanceOf(userAddress);
-                const polBalance = await provider.getBalance(userAddress);
+                const [tokenBalanceRaw, polBalanceRaw] = await Promise.all([
+                    tokenContract.balanceOf(userAddress),
+                    provider.getBalance(userAddress)
+                ]);
 
-                // Contract balances
-                let contractPOLBalance = "N/A";
-                let contractTokenBalance = "N/A";
+                document.getElementById('tokenBalance').textContent =
+                    ethers.formatUnits(tokenBalanceRaw, tokenDecimals).replace(/\.?0+$/, '').toLocaleString();
 
-                try {
-                    const contractPOL = await provider.getBalance(CONTRACT_ADDRESS);
-                    contractPOLBalance = parseFloat(ethers.formatEther(contractPOL)).toFixed(6);
-                } catch (e) {
-                    console.log("Could not fetch contract POL balance");
-                }
-
-                try {
-                    const contractTokens = await tokenContract.balanceOf(CONTRACT_ADDRESS);
-                    contractTokenBalance = parseFloat(ethers.formatEther(contractTokens)).toLocaleString();
-                } catch (e) {
-                    console.log("Could not fetch contract token balance");
-                }
-
-                document.getElementById('tokenBalance').textContent = 
-                    parseFloat(ethers.formatEther(tokenBalance)).toLocaleString();
-                document.getElementById('polBalance').textContent = 
-                    parseFloat(ethers.formatEther(polBalance)).toFixed(4);
-                document.getElementById('contractPOLBalance').textContent = contractPOLBalance;
-                document.getElementById('contractTokenBalance').textContent = contractTokenBalance;
+                document.getElementById('polBalance').textContent =
+                    ethers.formatUnits(polBalanceRaw, 18).replace(/\.?0+$/, '').toLocaleString(undefined, {maximumFractionDigits: 4});
 
                 checkApprovalStatus();
             } catch (error) {
                 console.error('Balance update error:', error);
-                showStatus(`Balance update error: ${error.message}`, 'warning');
             }
         }
 
+        // === CHECK APPROVAL STATUS ===
         async function checkApprovalStatus() {
             try {
                 if (!tokenContract || !userAddress) return;
-
-                const allowance = await tokenContract.allowance(userAddress, CONTRACT_ADDRESS);
                 const tokenAmount = document.getElementById('tokenAmount').value;
-                
-                if (tokenAmount && parseFloat(tokenAmount) > 0) {
-                    const amountWei = ethers.parseEther(tokenAmount.toString());
-                    const isApproved = allowance >= amountWei;
-                    
-                    document.getElementById('approveBtn').disabled = isApproved;
-                    document.getElementById('sellBtn').disabled = !isApproved || !tokenAmount;
-                    
-                    if (isApproved) {
-                        document.getElementById('approveBtn').textContent = '✓ Tokens Approved';
-                    } else {
-                        document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
-                    }
+                if (!tokenAmount || isNaN(tokenAmount) || parseFloat(tokenAmount) <= 0) {
+                    document.getElementById('approveBtn').disabled = true;
+                    document.getElementById('sellBtn').disabled = true;
+                    document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
+                    return;
                 }
+                const allowance = await tokenContract.allowance(userAddress, CONTRACT_ADDRESS);
+                const amountWei = ethers.parseUnits(tokenAmount.toString(), tokenDecimals);
+                const isApproved = allowance >= amountWei;
+                document.getElementById('approveBtn').disabled = isApproved;
+                document.getElementById('sellBtn').disabled = !isApproved;
+                document.getElementById('approveBtn').textContent = isApproved ? '✓ Tokens Approved' : 'Step 1: Approve Tokens';
             } catch (error) {
                 console.error('Approval check error:', error);
             }
         }
 
-        async function debugContract() {
-            let debugText = "=== CONTRACT DEBUG INFO ===\n\n";
-            
-            try {
-                // Check if contract exists
-                const code = await provider.getCode(CONTRACT_ADDRESS);
-                debugText += `Contract exists: ${code !== '0x' ? 'YES' : 'NO'}\n`;
-                debugText += `Contract code length: ${code.length}\n\n`;
-
-                if (code === '0x') {
-                    debugText += "ERROR: No contract found at this address!\n";
-                    document.getElementById('debugText').textContent = debugText;
-                    document.getElementById('debugInfo').style.display = 'block';
-                    return;
-                }
-
-                // Try to call view functions
-                try {
-                    const owner = await contract.owner();
-                    debugText += `Contract Owner: ${owner}\n`;
-                } catch (e) {
-                    debugText += `Owner call failed: ${e.message}\n`;
-                }
-
-                try {
-                    const tokenAddr = await contract.tokenAddress();
-                    debugText += `Token Address in contract: ${tokenAddr}\n`;
-                    debugText += `Expected Token Address: ${TOKEN_ADDRESS}\n`;
-                    debugText += `Token addresses match: ${tokenAddr.toLowerCase() === TOKEN_ADDRESS.toLowerCase()}\n`;
-                } catch (e) {
-                    debugText += `Token address call failed: ${e.message}\n`;
-                }
-
-                try {
-                    const rate = await contract.sellRate();
-                    debugText += `Sell Rate: ${rate.toString()}\n`;
-                } catch (e) {
-                    debugText += `Sell rate call failed: ${e.message}\n`;
-                }
-
-                try {
-                    const paused = await contract.paused();
-                    debugText += `Contract Paused: ${paused}\n`;
-                } catch (e) {
-                    debugText += `Paused status call failed: ${e.message}\n`;
-                }
-
-                // Check balances
-                try {
-                    const contractPOL = await provider.getBalance(CONTRACT_ADDRESS);
-                    debugText += `Contract POL Balance: ${ethers.formatEther(contractPOL)} POL\n`;
-                } catch (e) {
-                    debugText += `Contract POL balance check failed: ${e.message}\n`;
-                }
-
-                // Check token info
-                try {
-                    const tokenName = await tokenContract.name();
-                    const tokenSymbol = await tokenContract.symbol();
-                    const tokenDecimals = await tokenContract.decimals();
-                    debugText += `Token Name: ${tokenName}\n`;
-                    debugText += `Token Symbol: ${tokenSymbol}\n`;
-                    debugText += `Token Decimals: ${tokenDecimals}\n`;
-                } catch (e) {
-                    debugText += `Token info call failed: ${e.message}\n`;
-                }
-
-                // Check user allowance
-                try {
-                    const allowance = await tokenContract.allowance(userAddress, CONTRACT_ADDRESS);
-                    debugText += `Current Allowance: ${ethers.formatEther(allowance)} tokens\n`;
-                } catch (e) {
-                    debugText += `Allowance check failed: ${e.message}\n`;
-                }
-
-                // Test gas estimation for a small amount
-                const testAmount = ethers.parseEther("1");
-                try {
-                    const gasEstimate = await contract.sell.estimateGas(testAmount);
-                    debugText += `Gas estimate for 1 token: ${gasEstimate.toString()}\n`;
-                } catch (e) {
-                    debugText += `Gas estimation failed: ${e.reason || e.message}\n`;
-                    
-                    // More detailed error analysis
-                    if (e.message.includes('insufficient funds')) {
-                        debugText += "ERROR: Contract has insufficient POL to pay out!\n";
-                    } else if (e.message.includes('paused')) {
-                        debugText += "ERROR: Contract is paused!\n";
-                    } else if (e.message.includes('allowance')) {
-                        debugText += "ERROR: Insufficient token allowance!\n";
-                    } else {
-                        debugText += "ERROR: Unknown contract error - contract may be broken!\n";
-                    }
-                }
-
-            } catch (error) {
-                debugText += `\nDEBUG ERROR: ${error.message}\n`;
-            }
-
-            document.getElementById('debugText').textContent = debugText;
-            document.getElementById('debugInfo').style.display = 'block';
-        }
-
+        // === MAX AMOUNT BUTTON ===
         function setMaxAmount() {
             const balance = document.getElementById('tokenBalance').textContent.replace(/,/g, '');
             document.getElementById('tokenAmount').value = balance;
@@ -693,10 +509,11 @@
             checkApprovalStatus();
         }
 
+        // === CALCULATE POL ===
         function calculatePOL() {
             const tokenAmount = document.getElementById('tokenAmount').value;
             if (tokenAmount && parseFloat(tokenAmount) > 0) {
-                const polAmount = parseFloat(tokenAmount) * 0.00001;
+                const polAmount = parseFloat(tokenAmount) * RATE;
                 document.getElementById('polReceive').textContent = polAmount.toFixed(8);
                 document.getElementById('calculation').style.display = 'block';
             } else {
@@ -704,6 +521,7 @@
             }
         }
 
+        // === APPROVE TOKENS ===
         async function approveTokens() {
             try {
                 const tokenAmount = document.getElementById('tokenAmount').value;
@@ -711,91 +529,127 @@
                     showStatus('Please enter a valid amount', 'error');
                     return;
                 }
-
-                // Check if contract exists first
-                const code = await provider.getCode(CONTRACT_ADDRESS);
-                if (code === '0x') {
-                    showStatus('Error: Sell contract not found at specified address!', 'error');
-                    return;
-                }
-
                 showStatus('Approving tokens...', 'info');
                 document.getElementById('approveBtn').innerHTML = '<span class="loading"></span> Approving...';
-                
-                const amountWei = ethers.parseEther(tokenAmount.toString());
-                
-                // Estimate gas first
-                try {
-                    const gasEstimate = await tokenContract.approve.estimateGas(CONTRACT_ADDRESS, amountWei);
-                    console.log(`Approval gas estimate: ${gasEstimate.toString()}`);
-                } catch (gasError) {
-                    console.error('Gas estimation failed:', gasError);
-                    showStatus(`Gas estimation failed: ${gasError.message}`, 'error');
-                    document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
-                    return;
-                }
-
+                const amountWei = ethers.parseUnits(tokenAmount.toString(), tokenDecimals);
                 const tx = await tokenContract.approve(CONTRACT_ADDRESS, amountWei);
-                
                 showStatus('Approval transaction sent. Waiting for confirmation...', 'info');
                 await tx.wait();
-                
                 showStatus('Tokens approved successfully!', 'success');
                 document.getElementById('approveBtn').textContent = '✓ Tokens Approved';
                 document.getElementById('approveBtn').disabled = true;
                 document.getElementById('sellBtn').disabled = false;
-                
             } catch (error) {
                 console.error('Approval error:', error);
-                let errorMsg = error.message;
-                if (error.reason) errorMsg = error.reason;
-                if (error.data?.message) errorMsg = error.data.message;
-                
-                showStatus(`Approval failed: ${errorMsg}`, 'error');
+                showStatus(`Approval failed: ${error.message}`, 'error');
                 document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
             }
         }
 
+        // === SELL TOKENS ===
         async function sellTokens() {
             try {
                 const tokenAmount = document.getElementById('tokenAmount').value;
-                if (!tokenAmount || parseFloat(tokenAmount) <= 0) {
+                if (!tokenAmount || isNaN(tokenAmount) || parseFloat(tokenAmount) <= 0) {
                     showStatus('Please enter a valid amount', 'error');
                     return;
                 }
 
-                // Pre-flight checks
-                const code = await provider.getCode(CONTRACT_ADDRESS);
-                if (code === '0x') {
-                    showStatus('Error: Sell contract not found!', 'error');
-                    return;
-                }
-
-                const contractPOLBalance = await provider.getBalance(CONTRACT_ADDRESS);
-                const expectedPayout = parseFloat(tokenAmount) * 0.00001;
-                const payoutWei = ethers.parseEther(expectedPayout.toString());
-
-                if (contractPOLBalance < payoutWei) {
-                    showStatus(`Error: Contract has insufficient POL (has ${ethers.formatEther(contractPOLBalance)}, needs ${expectedPayout})`, 'error');
+                // Check contract POL balance before selling
+                const polBalance = await provider.getBalance(CONTRACT_ADDRESS);
+                const sellPOL = parseFloat(tokenAmount) * RATE;
+                const sellPOLWei = ethers.parseUnits(sellPOL.toString(), 18);
+                if (polBalance < sellPOLWei) {
+                    showStatus('Contract has insufficient POL for this sale. Try a lower amount.', 'error');
+                    document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
                     return;
                 }
 
                 showStatus('Selling tokens...', 'info');
                 document.getElementById('sellBtn').innerHTML = '<span class="loading"></span> Selling...';
-                
-                const amountWei = ethers.parseEther(tokenAmount.toString());
-                
-                // Estimate gas first with detailed error handling
+                const amountWei = ethers.parseUnits(tokenAmount.toString(), tokenDecimals);
+
+                // Estimate gas to catch errors before sending
                 try {
-                    const gasEstimate = await contract.sell.estimateGas(amountWei);
-                    console.log(`Sell gas estimate: ${gasEstimate.toString()}`);
-                } catch (gasError) {
-                    console.error('Gas estimation failed:', gasError);
-                    
-                    let errorMsg = 'Unknown error';
-                    if (gasError.reason) {
-                        errorMsg = gasError.reason;
-                    } else if (gasError.message.includes('insufficient funds')) {
-                        errorMsg = 'Contract has insufficient POL balance';
-                    } else if (gasError.message.includes('execution reverted')) {
-                        errorMsg = 'Transaction would revert - check contract conditions';
+                    await contract.sell.staticCall(amountWei);
+                } catch (estimateError) {
+                    // Try to parse revert reason if any
+                    let message = 'Sell failed: ';
+                    if (estimateError.reason) {
+                        message += estimateError.reason;
+                    } else if (estimateError.data && estimateError.data.message) {
+                        message += estimateError.data.message;
+                    } else {
+                        message += 'Transaction likely to fail. Check approval, balance, and contract status.';
+                    }
+                    showStatus(message, 'error');
+                    document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
+                    return;
+                }
+
+                // Send the transaction
+                const tx = await contract.sell(amountWei);
+                showStatus('Sell transaction sent. Waiting for confirmation...', 'info');
+                await tx.wait();
+                showStatus('Tokens sold successfully! POL received.', 'success');
+                document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
+                document.getElementById('tokenAmount').value = '';
+                document.getElementById('calculation').style.display = 'none';
+                await updateBalances();
+            } catch (error) {
+                console.error('Sell error:', error);
+                // Try to parse and show revert reason
+                let message = 'Sell failed: ';
+                if (error.code === 'CALL_EXCEPTION' && error.data && error.data.message) {
+                    message += error.data.message;
+                } else if (error.reason) {
+                    message += error.reason;
+                } else {
+                    message += error.message;
+                }
+                showStatus(message, 'error');
+                document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
+            }
+        }
+
+        // === STATUS MESSAGES ===
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status status-${type}`;
+            statusEl.style.display = 'block';
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // === EVENT LISTENERS ===
+        document.getElementById('tokenAmount').addEventListener('input', function() {
+            calculatePOL();
+            checkApprovalStatus();
+        });
+
+        // Auto-connect if already connected
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    connectWallet();
+                }
+            }
+        });
+
+        // Listen for account and chain changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                location.reload();
+            });
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
