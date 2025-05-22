@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTFan Token Sell Back</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 50%, #0a1a1a 100%);
+            color: #00ff88;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 70%, rgba(255, 255, 0, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 360px;
+            margin: 0 auto;
+            padding: 20px 15px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border: 1px solid #ff0080;
+            border-radius: 10px;
+            padding: 15px;
+            background: linear-gradient(45deg, rgba(255, 0, 128, 0.1), rgba(0, 255, 255, 0.1));
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 8px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .title {
+            font-size: 14px;
+            color: #ff0080;
+            text-shadow: 0 0 10px rgba(255, 0, 128, 0.8);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            font-size: 9px;
+            color: #00ffff;
+            opacity: 0.8;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .rate-display {
+            text-align: center;
+            border: 1px dashed #ffff00;
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 0, 0.05);
+        }
+
+        .rate-text {
+            color: #ffff00;
+            font-size: 11px;
+            text-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+            font-size: 10px;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            color: #00ff88;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #ff0080;
+            box-shadow: 0 0 15px rgba(255, 0, 128, 0.4);
+        }
+
+        .max-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(45deg, #ff0080, #00ffff);
+            border: none;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .max-btn:hover {
+            box-shadow: 0 0 10px rgba(255, 0, 128, 0.8);
+        }
+
+        .calculation {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffff00;
+            border-radius: 5px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        .calc-text {
+            color: #ffff00;
+            font-size: 9px;
+            text-align: center;
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff0080, #8000ff);
+            color: #fff;
+            border: 1px solid #ff0080;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #00ff88, #00ffff);
+            color: #000;
+            border: 1px solid #00ff88;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 9px;
+        }
+
+        .status-success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .status-error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+
+        .status-info {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+        }
+
+        .balances {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .balance-item {
+            text-align: center;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+        }
+
+        .balance-label {
+            font-size: 8px;
+            color: #00ffff;
+            margin-bottom: 3px;
+        }
+
+        .balance-value {
+            font-size: 10px;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 0, 128, 0.3);
+            border-radius: 50%;
+            border-top-color: #ff0080;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .contract-info {
+            background: rgba(128, 0, 255, 0.1);
+            border: 1px solid #8000ff;
+            border-radius: 5px;
+            padding: 8px;
+            margin-top: 15px;
+        }
+
+        .contract-label {
+            font-size: 8px;
+            color: #8000ff;
+            margin-bottom: 3px;
+        }
+
+        .contract-address {
+            font-size: 9px;
+            color: #ff0080;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        @media (max-width: 320px) {
+            .container {
+                padding: 15px 10px;
+            }
+            
+            .header {
+                padding: 12px;
+            }
+            
+            .card {
+                padding: 12px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://i.imgur.com/ODP45iQ.png" alt="NFTFan Logo" class="logo">
+            <div class="title">NFTFan Token Sell Back</div>
+            <div class="subtitle">Exchange NFTFAN for POL</div>
+        </div>
+
+        <div class="card">
+            <div class="rate-display">
+                <div class="rate-text">1 NFTFAN = 0.00001 POL</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="balances">
+                <div class="balance-item">
+                    <div class="balance-label">NFTFAN Balance</div>
+                    <div class="balance-value" id="tokenBalance">0</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">POL Balance</div>
+                    <div class="balance-value" id="polBalance">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label class="label">Amount to Sell (NFTFAN)</label>
+                <div class="input-container">
+                    <input type="number" class="input" id="tokenAmount" placeholder="Enter amount..." step="any">
+                    <button class="max-btn" onclick="setMaxAmount()">MAX</button>
+                </div>
+            </div>
+
+            <div class="calculation" id="calculation" style="display: none;">
+                <div class="calc-text">You will receive: <span id="polReceive">0</span> POL</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <button class="button btn-primary" id="connectBtn" onclick="connectWallet()">
+                Connect Wallet
+            </button>
+            <button class="button btn-secondary" id="approveBtn" onclick="approveTokens()" style="display: none;" disabled>
+                Step 1: Approve Tokens
+            </button>
+            <button class="button btn-primary" id="sellBtn" onclick="sellTokens()" style="display: none;" disabled>
+                Step 2: Sell Tokens
+            </button>
+        </div>
+
+        <div id="statusMessage"></div>
+
+        <div class="contract-info">
+            <div class="contract-label">Contract Address:</div>
+            <div class="contract-address">0x6e9a59eCEfA30468c0dB4c1A963Ff82A7f270B56</div>
+        </div>
+    </div>
+
+    <script>
+        const CONTRACT_ADDRESS = "0x6e9a59eCEfA30468c0dB4c1A963Ff82A7f270B56";
+        const TOKEN_ADDRESS = "0x2017Fcaea540d2925430586DC92818035Bfc2F50"; // Replace with actual NFTFan token address
+        const RATE = 10000000000000; // 1 token = 0.00001 POL in wei
+
+        let provider;
+        let signer;
+        let contract;
+        let tokenContract;
+        let userAddress;
+
+        const contractABI = [
+            "function sell(uint256 _tokenAmount) external",
+            "function getPOLBalance() external view returns (uint256)",
+            "function getTokenBalance() external view returns (uint256)"
+        ];
+
+        const tokenABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function decimals() view returns (uint8)"
+        ];
+
+        async function connectWallet() {
+            try {
+                if (typeof window.ethereum !== 'undefined') {
+                    showStatus('Connecting wallet...', 'info');
+                    
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    signer = await provider.getSigner();
+                    userAddress = await signer.getAddress();
+
+                    // Check if we're on Polygon
+                    const network = await provider.getNetwork();
+                    if (network.chainId !== 137n) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: '0x89' }], // Polygon chainId
+                            });
+                        } catch (switchError) {
+                            showStatus('Please switch to Polygon network', 'error');
+                            return;
+                        }
+                    }
+
+                    contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+                    tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenABI, signer);
+
+                    document.getElementById('connectBtn').style.display = 'none';
+                    document.getElementById('approveBtn').style.display = 'block';
+                    document.getElementById('sellBtn').style.display = 'block';
+
+                    await updateBalances();
+                    showStatus(`Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`, 'success');
+                } else {
+                    showStatus('Please install MetaMask or compatible wallet', 'error');
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                showStatus(`Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function updateBalances() {
+            try {
+                if (!tokenContract || !userAddress) return;
+
+                const tokenBalance = await tokenContract.balanceOf(userAddress);
+                const polBalance = await provider.getBalance(userAddress);
+
+                document.getElementById('tokenBalance').textContent = 
+                    parseFloat(ethers.formatEther(tokenBalance)).toLocaleString();
+                document.getElementById('polBalance').textContent = 
+                    parseFloat(ethers.formatEther(polBalance)).toFixed(4);
+
+                checkApprovalStatus();
+            } catch (error) {
+                console.error('Balance update error:', error);
+            }
+        }
+
+        async function checkApprovalStatus() {
+            try {
+                const allowance = await tokenContract.allowance(userAddress, CONTRACT_ADDRESS);
+                const tokenAmount = document.getElementById('tokenAmount').value;
+                
+                if (tokenAmount && parseFloat(tokenAmount) > 0) {
+                    const amountWei = ethers.parseEther(tokenAmount.toString());
+                    const isApproved = allowance >= amountWei;
+                    
+                    document.getElementById('approveBtn').disabled = isApproved;
+                    document.getElementById('sellBtn').disabled = !isApproved || !tokenAmount;
+                    
+                    if (isApproved) {
+                        document.getElementById('approveBtn').textContent = '✓ Tokens Approved';
+                    } else {
+                        document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
+                    }
+                }
+            } catch (error) {
+                console.error('Approval check error:', error);
+            }
+        }
+
+        function setMaxAmount() {
+            const balance = document.getElementById('tokenBalance').textContent.replace(/,/g, '');
+            document.getElementById('tokenAmount').value = balance;
+            calculatePOL();
+            checkApprovalStatus();
+        }
+
+        function calculatePOL() {
+            const tokenAmount = document.getElementById('tokenAmount').value;
+            if (tokenAmount && parseFloat(tokenAmount) > 0) {
+                const polAmount = parseFloat(tokenAmount) * 0.00001;
+                document.getElementById('polReceive').textContent = polAmount.toFixed(8);
+                document.getElementById('calculation').style.display = 'block';
+            } else {
+                document.getElementById('calculation').style.display = 'none';
+            }
+        }
+
+        async function approveTokens() {
+            try {
+                const tokenAmount = document.getElementById('tokenAmount').value;
+                if (!tokenAmount || parseFloat(tokenAmount) <= 0) {
+                    showStatus('Please enter a valid amount', 'error');
+                    return;
+                }
+
+                showStatus('Approving tokens...', 'info');
+                document.getElementById('approveBtn').innerHTML = '<span class="loading"></span> Approving...';
+                
+                const amountWei = ethers.parseEther(tokenAmount.toString());
+                const tx = await tokenContract.approve(CONTRACT_ADDRESS, amountWei);
+                
+                showStatus('Approval transaction sent. Waiting for confirmation...', 'info');
+                await tx.wait();
+                
+                showStatus('Tokens approved successfully!', 'success');
+                document.getElementById('approveBtn').textContent = '✓ Tokens Approved';
+                document.getElementById('approveBtn').disabled = true;
+                document.getElementById('sellBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Approval error:', error);
+                showStatus(`Approval failed: ${error.message}`, 'error');
+                document.getElementById('approveBtn').textContent = 'Step 1: Approve Tokens';
+            }
+        }
+
+        async function sellTokens() {
+            try {
+                const tokenAmount = document.getElementById('tokenAmount').value;
+                if (!tokenAmount || parseFloat(tokenAmount) <= 0) {
+                    showStatus('Please enter a valid amount', 'error');
+                    return;
+                }
+
+                showStatus('Selling tokens...', 'info');
+                document.getElementById('sellBtn').innerHTML = '<span class="loading"></span> Selling...';
+                
+                const amountWei = ethers.parseEther(tokenAmount.toString());
+                const tx = await contract.sell(amountWei);
+                
+                showStatus('Sell transaction sent. Waiting for confirmation...', 'info');
+                await tx.wait();
+                
+                showStatus('Tokens sold successfully! POL received.', 'success');
+                document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
+                document.getElementById('tokenAmount').value = '';
+                document.getElementById('calculation').style.display = 'none';
+                
+                await updateBalances();
+                
+            } catch (error) {
+                console.error('Sell error:', error);
+                showStatus(`Sell failed: ${error.message}`, 'error');
+                document.getElementById('sellBtn').textContent = 'Step 2: Sell Tokens';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status status-${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('tokenAmount').addEventListener('input', function() {
+            calculatePOL();
+            checkApprovalStatus();
+        });
+
+        // Auto-connect if already connected
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    connectWallet();
+                }
+            }
+        });
+
+        // Listen for account changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    location.reload();
+                } else {
+                    connectWallet();
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
