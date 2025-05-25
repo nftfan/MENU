@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NFT Fans Airdrop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
+            --border-color: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-primary: #6366f1;
+            --accent-hover: #5855eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --radius: 8px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-primary);
+            font-family: var(--font-main);
+            color: var(--text-primary);
+            font-size: 14px;
+            min-height: 100vh;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .app-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .wallet-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            text-align: center;
+            word-break: break-all;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            display: none;
+            max-width: 400px;
+        }
+        .wallet-info.connected { display: block; }
+        .btn-connect {
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-connect:hover { background: var(--accent-hover); }
+        .main-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .textarea-container { margin-bottom: 20px; }
+        .textarea-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .wallet-textarea {
+            width: 100%;
+            min-height: 120px;
+            max-height: 200px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: var(--text-primary);
+            resize: vertical;
+            outline: none;
+        }
+        .wallet-textarea:focus { border-color: var(--accent-primary); }
+        .wallet-textarea::placeholder { color: var(--text-muted); }
+        .organize-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .organize-btn:hover { background: var(--accent-hover); }
+        .organize-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        .wallet-list {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            line-height: 1.4;
+            display: none;
+        }
+        .batch-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .distribute-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .distribute-btn:hover { background: #059669; }
+        .distribute-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin-bottom: 20px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: var(--radius);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .notification {
+            padding: 12px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            display: none;
+        }
+        .notification.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .notification.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .notification.info {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .notification.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .completion-message {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .completion-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 8px;
+        }
+        .completion-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .main-container { padding: 20px; }
+            .app-title { font-size: 20px; }
+            .stats-grid { gap: 8px; }
+            .stat-card { padding: 10px; }
+            .stat-value { font-size: 16px; }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+    <div class="app-title">NFT Fans Airdrop</div>
+    <div class="app-subtitle">
+        Distribute <b>5,000,000,000 NFTFAN</b> tokens to each wallet address.<br>
+        Distributor CA: <code style="font-size:12px;">0x06Be8C1A142b3F48d0bc27dB8Dfbe5B7AF733043</code><br>
+        NFTFAN Token CA: <code style="font-size:12px;">0x2017Fcaea540d2925430586DC92818035Bfc2F50</code>
+    </div>
+    <button class="btn-connect" id="connectButton" onclick="connectMetamask()">Connect Wallet</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <div class="main-container">
+        <div class="textarea-container">
+            <label class="textarea-label" for="walletInput">Paste wallet addresses here:</label>
+            <textarea 
+                id="walletInput" 
+                class="wallet-textarea" 
+                placeholder="Paste text containing wallet addresses here...&#10;&#10;The app will automatically extract 0x addresses from your text."
+                oninput="handleTextInput()"
+            ></textarea>
+        </div>
+        <button class="organize-btn" id="organizeBtn" onclick="organizeWallets()">
+            Organize Wallets
+        </button>
+        <div class="notification" id="notification"></div>
+        <div class="wallet-list" id="walletList"></div>
+        <div class="batch-info" id="batchInfo"></div>
+        <button class="distribute-btn" id="distributeBtn" onclick="distributeTokens()">
+            Send Tokens to Current Batch
+        </button>
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0% Complete</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalWallets">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sentWallets">0</div>
+                <div class="stat-label">Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="remainingWallets">0</div>
+                <div class="stat-label">Remaining</div>
+            </div>
+        </div>
+        <div class="completion-message" id="completionMessage">
+            <div class="completion-title">Airdrop Complete! 🎉</div>
+            <div class="completion-subtitle">All tokens have been distributed successfully</div>
+        </div>
+    </div>
+    <script>
+        // Updated contract addresses
+        const distributorAddress = "0x06Be8C1A142b3F48d0bc27dB8Dfbe5B7AF733043";
+        const tokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+        const STORAGE_KEY = 'airdrop_wallets';
+        let web3;
+        let contract;
+        let userAccount;
+        let pendingWallets = [];
+        let currentBatchIndex = 0;
+        let walletsPerBatch = 100; // Default, will try to read from contract
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWalletsFromStorage();
+            updateUI();
+        });
+
+        function handleTextInput() {
+            const textarea = document.getElementById('walletInput');
+            const organizeBtn = document.getElementById('organizeBtn');
+            if (textarea.value.trim().length > 0) {
+                organizeBtn.style.display = 'block';
+            } else {
+                organizeBtn.style.display = 'none';
+            }
+        }
+
+        function loadWalletsFromStorage() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    pendingWallets = JSON.parse(stored);
+                } catch (e) {
+                    pendingWallets = [];
+                }
+            }
+        }
+
+        function saveWalletsToStorage() {
+            if (pendingWallets.length > 0) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingWallets));
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+
+        function organizeWallets() {
+            const textarea = document.getElementById('walletInput');
+            const text = textarea.value.trim();
+            if (!text) {
+                showNotification('Please paste some text first', 'error');
+                return;
+            }
+            const regex = /0x[a-fA-F0-9]{40}/g;
+            const matches = text.match(regex);
+            if (!matches || matches.length === 0) {
+                showNotification('No valid wallet addresses found in the text', 'error');
+                return;
+            }
+            // Add new wallets to existing ones (avoid duplicates)
+            const existingSet = new Set(pendingWallets);
+            let newWallets = 0;
+            matches.forEach(wallet => {
+                if (!existingSet.has(wallet)) {
+                    pendingWallets.push(wallet);
+                    existingSet.add(wallet);
+                    newWallets++;
+                }
+            });
+            saveWalletsToStorage();
+            textarea.value = '';
+            document.getElementById('organizeBtn').style.display = 'none';
+            if (newWallets > 0) {
+                showNotification(`Added ${newWallets} new wallet address${newWallets > 1 ? 'es' : ''}`, 'success');
+            } else {
+                showNotification('No new wallet addresses found', 'warning');
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            const totalWallets = pendingWallets.length;
+            const totalSent = getTotalSentWallets();
+            const remaining = totalWallets;
+            document.getElementById('totalWallets').textContent = totalWallets + totalSent;
+            document.getElementById('sentWallets').textContent = totalSent;
+            document.getElementById('remainingWallets').textContent = remaining;
+            const totalOriginal = totalWallets + totalSent;
+            const progressPercent = totalOriginal > 0 ? Math.round((totalSent / totalOriginal) * 100) : 0;
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+            document.getElementById('progressText').textContent = progressPercent + '% Complete';
+            if (totalWallets > 0) {
+                document.getElementById('progressContainer').style.display = 'block';
+                showCurrentBatch();
+            } else {
+                document.getElementById('walletList').style.display = 'none';
+                document.getElementById('batchInfo').style.display = 'none';
+                document.getElementById('distributeBtn').style.display = 'none';
+                if (totalSent > 0) {
+                    document.getElementById('completionMessage').style.display = 'block';
+                    document.getElementById('progressContainer').style.display = 'block';
+                } else {
+                    document.getElementById('progressContainer').style.display = 'none';
+                }
+            }
+        }
+
+        function getTotalSentWallets() {
+            const history = localStorage.getItem('airdrop_history');
+            if (history) {
+                try {
+                    return JSON.parse(history).totalSent || 0;
+                } catch (e) {
+                    return 0;
+                }
+            }
+            return 0;
+        }
+
+        function updateSentHistory(count) {
+            const history = localStorage.getItem('airdrop_history');
+            let historyData = { totalSent: 0 };
+            if (history) {
+                try {
+                    historyData = JSON.parse(history);
+                } catch (e) {
+                    historyData = { totalSent: 0 };
+                }
+            }
+            historyData.totalSent = (historyData.totalSent || 0) + count;
+            localStorage.setItem('airdrop_history', JSON.stringify(historyData));
+        }
+
+        function showCurrentBatch() {
+            const batchStart = currentBatchIndex;
+            const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
+            const currentBatch = pendingWallets.slice(batchStart, batchEnd);
+            if (currentBatch.length > 0) {
+                document.getElementById('walletList').style.display = 'block';
+                document.getElementById('walletList').textContent = currentBatch.join('\n');
+                document.getElementById('batchInfo').style.display = 'block';
+                document.getElementById('batchInfo').textContent = 
+                    `Batch ${Math.floor(batchStart / walletsPerBatch) + 1} - Wallets ${batchStart + 1} to ${batchEnd} (${currentBatch.length} addresses)`;
+                document.getElementById('distributeBtn').style.display = 'block';
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        async function connectMetamask() {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    userAccount = accounts[0];
+                    document.getElementById('walletAddress').innerHTML = 
+                        `<strong>Connected:</strong> ${userAccount}`;
+                    document.getElementById('walletAddress').classList.add('connected');
+                    document.getElementById('connectButton').style.display = 'none';
+                    await switchToPolygon();
+                    await setupContract();
+                    showNotification('Wallet connected successfully!', 'success');
+                } catch (err) {
+                    showNotification('Failed to connect wallet', 'error');
+                }
+            } else {
+                showNotification('Please install MetaMask wallet', 'error');
+            }
+        }
+
+        async function switchToPolygon() {
+            const polygonChainId = "0x89";
+            try {
+                await window.ethereum.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: polygonChainId }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: "wallet_addEthereumChain",
+                        params: [{
+                            chainId: polygonChainId,
+                            chainName: "Polygon Mainnet",
+                            nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                            rpcUrls: ["https://polygon-rpc.com/"],
+                            blockExplorerUrls: ["https://polygonscan.com/"]
+                        }]
+                    });
+                }
+            }
+        }
+
+        async function setupContract() {
+            const abi = [
+                {
+                    "inputs": [
+                        {"internalType": "address", "name": "_tokenAddress", "type": "address"}
+                    ], "stateMutability": "nonpayable", "type": "constructor"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {"indexed": true, "internalType": "address", "name": "sender", "type": "address"},
+                        {"indexed": true, "internalType": "address", "name": "recipient", "type": "address"},
+                        {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+                    ],
+                    "name": "TokensDistributed",
+                    "type": "event"
+                },
+                {
+                    "inputs": [
+                        {"internalType": "address[]", "name": "recipients", "type": "address[]"}
+                    ],
+                    "name": "distributeTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "config",
+                    "outputs": [
+                        { "internalType": "uint128", "name": "batchSize", "type": "uint128" },
+                        { "internalType": "bool", "name": "publicDistributionEnabled", "type": "bool" },
+                        { "internalType": "bool", "name": "paused", "type": "bool" }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                }
+            ];
+            contract = new web3.eth.Contract(abi, distributorAddress);
+            // Try to get batch size from contract
+            try {
+                const config = await contract.methods.config().call();
+                walletsPerBatch = Number(config.batchSize) || 100;
+            } catch (e) {
+                walletsPerBatch = 100;
+            }
+        }
+
+        async function distributeTokens() {
+            if (!userAccount || !contract) {
+                showNotification('Please connect your wallet first', 'error');
+                return;
+            }
+            const batchStart = currentBatchIndex;
+            const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
+            const currentBatch = pendingWallets.slice(batchStart, batchEnd);
+            if (currentBatch.length === 0) {
+                showNotification('No wallets to process', 'error');
+                return;
+            }
+            const distributeBtn = document.getElementById('distributeBtn');
+            distributeBtn.disabled = true;
+            distributeBtn.textContent = 'Sending...';
+            try {
+                showNotification('Transaction pending... Please confirm in your wallet', 'info');
+                const tx = await contract.methods.distributeTokens(currentBatch).send({
+                    from: userAccount,
+                    gas: 5000000
+                });
+                pendingWallets.splice(batchStart, currentBatch.length);
+                saveWalletsToStorage();
+                updateSentHistory(currentBatch.length);
+                if (currentBatchIndex >= pendingWallets.length) {
+                    currentBatchIndex = 0;
+                }
+                showNotification(`Successfully sent tokens to ${currentBatch.length} wallets!`, 'success');
+                updateUI();
+            } catch (error) {
+                console.error('Distribution failed:', error);
+                showNotification('Transaction failed. Please try again.', 'error');
+            } finally {
+                distributeBtn.disabled = false;
+                distributeBtn.textContent = 'Send Tokens to Current Batch';
+            }
+        }
+
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', function (accounts) {
+                if (accounts.length === 0) {
+                    userAccount = null;
+                    document.getElementById('walletAddress').classList.remove('connected');
+                    document.getElementById('connectButton').style.display = 'block';
+                    showNotification('Wallet disconnected', 'warning');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
