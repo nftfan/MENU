@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NFT Fans Airdrop</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+   <style>
         :root {
             --bg-primary: #0f0f0f;
             --bg-secondary: #1a1a1a;
@@ -375,6 +375,12 @@
         <div class="wallet-list" id="walletList"></div>
         
         <div class="batch-info" id="batchInfo"></div>
+
+        <!-- Approve Button and Info -->
+        <div style="margin-bottom:20px;">
+            <button class="organize-btn" id="approveBtn" style="background:var(--accent-hover);" onclick="approveTokens()">Approve Tokens</button>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;" id="approveInfo"></div>
+        </div>
         
         <button class="distribute-btn" id="distributeBtn" onclick="distributeTokens()">
             Send Tokens to Current Batch
@@ -409,76 +415,103 @@
     </div>
 
     <script>
-        const contractAddress = "0x01a6058D4b1Ff61686eAA3A18741C573167c0d2d";
+        // --- Configuration ---
+        const contractAddress = "0x01a6058D4b1Ff61686eAA3A18741C573167c0d2d"; // Distributor contract
+        const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50"; // NFTFAN token contract
+
+        const TOKEN_AMOUNT = web3 ? web3.utils.toWei("5000000000", "ether") : "5000000000000000000000000000";
+        const walletsPerBatch = 50;
         const STORAGE_KEY = 'airdrop_wallets';
+
         let web3;
         let contract;
+        let tokenContract;
         let userAccount;
         let pendingWallets = [];
         let currentBatchIndex = 0;
-        const walletsPerBatch = 50;
 
-        // Initialize app
+        // --- Minimal ERC20 ABI (approve and allowance) ---
+        const tokenAbi = [
+            {"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+            {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
+        ];
+
+        // --- Distributor ABI ---
+        const distributorAbi = [
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "_tokenAddress", "type": "address"}
+                ], "stateMutability": "nonpayable", "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    { "indexed": true, "internalType": "address", "name": "sender", "type": "address" },
+                    { "indexed": true, "internalType": "address", "name": "recipient", "type": "address" },
+                    { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+                ],
+                "name": "TokensDistributed",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address[]", "name": "recipients", "type": "address[]"}
+                ],
+                "name": "distributeTokens",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "amount", "type": "uint256"}
+                ],
+                "name": "withdrawTokens",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        // --- Initialize app ---
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletsFromStorage();
             updateUI();
         });
 
-        // Handle text input
         function handleTextInput() {
             const textarea = document.getElementById('walletInput');
             const organizeBtn = document.getElementById('organizeBtn');
-            
-            if (textarea.value.trim().length > 0) {
-                organizeBtn.style.display = 'block';
-            } else {
-                organizeBtn.style.display = 'none';
-            }
+            if (textarea.value.trim().length > 0) organizeBtn.style.display = 'block';
+            else organizeBtn.style.display = 'none';
         }
 
-        // Load wallets from localStorage
         function loadWalletsFromStorage() {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
-                try {
-                    pendingWallets = JSON.parse(stored);
-                } catch (e) {
-                    pendingWallets = [];
-                }
+                try { pendingWallets = JSON.parse(stored); }
+                catch (e) { pendingWallets = []; }
             }
         }
-
-        // Save wallets to localStorage
         function saveWalletsToStorage() {
-            if (pendingWallets.length > 0) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingWallets));
-            } else {
-                localStorage.removeItem(STORAGE_KEY);
-            }
+            if (pendingWallets.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingWallets));
+            else localStorage.removeItem(STORAGE_KEY);
         }
 
-        // Extract and organize wallets
         function organizeWallets() {
             const textarea = document.getElementById('walletInput');
             const text = textarea.value.trim();
-            
-            if (!text) {
-                showNotification('Please paste some text first', 'error');
-                return;
-            }
-
+            if (!text) { showNotification('Please paste some text first', 'error'); return; }
             const regex = /0x[a-fA-F0-9]{40}/g;
             const matches = text.match(regex);
-            
             if (!matches || matches.length === 0) {
                 showNotification('No valid wallet addresses found in the text', 'error');
                 return;
             }
-
-            // Add new wallets to existing ones (avoid duplicates)
             const existingSet = new Set(pendingWallets);
             let newWallets = 0;
-            
             matches.forEach(wallet => {
                 if (!existingSet.has(wallet)) {
                     pendingWallets.push(wallet);
@@ -486,38 +519,25 @@
                     newWallets++;
                 }
             });
-
             saveWalletsToStorage();
             textarea.value = '';
             document.getElementById('organizeBtn').style.display = 'none';
-            
-            if (newWallets > 0) {
-                showNotification(`Added ${newWallets} new wallet address${newWallets > 1 ? 'es' : ''}`, 'success');
-            } else {
-                showNotification('No new wallet addresses found', 'warning');
-            }
-            
+            if (newWallets > 0) showNotification(`Added ${newWallets} new wallet address${newWallets > 1 ? 'es' : ''}`, 'success');
+            else showNotification('No new wallet addresses found', 'warning');
             updateUI();
         }
 
-        // Update UI elements
         function updateUI() {
             const totalWallets = pendingWallets.length;
             const totalSent = getTotalSentWallets();
             const remaining = totalWallets;
-            
-            // Update stats
             document.getElementById('totalWallets').textContent = totalWallets + totalSent;
             document.getElementById('sentWallets').textContent = totalSent;
             document.getElementById('remainingWallets').textContent = remaining;
-            
-            // Update progress
             const totalOriginal = totalWallets + totalSent;
             const progressPercent = totalOriginal > 0 ? Math.round((totalSent / totalOriginal) * 100) : 0;
             document.getElementById('progressFill').style.width = progressPercent + '%';
             document.getElementById('progressText').textContent = progressPercent + '% Complete';
-            
-            // Show/hide elements based on state
             if (totalWallets > 0) {
                 document.getElementById('progressContainer').style.display = 'block';
                 showCurrentBatch();
@@ -525,7 +545,8 @@
                 document.getElementById('walletList').style.display = 'none';
                 document.getElementById('batchInfo').style.display = 'none';
                 document.getElementById('distributeBtn').style.display = 'none';
-                
+                document.getElementById('approveBtn').style.display = 'none';
+                document.getElementById('approveInfo').textContent = '';
                 if (totalSent > 0) {
                     document.getElementById('completionMessage').style.display = 'block';
                     document.getElementById('progressContainer').style.display = 'block';
@@ -535,67 +556,54 @@
             }
         }
 
-        // Get total sent wallets from the difference in localStorage history
         function getTotalSentWallets() {
             const history = localStorage.getItem('airdrop_history');
             if (history) {
-                try {
-                    return JSON.parse(history).totalSent || 0;
-                } catch (e) {
-                    return 0;
-                }
+                try { return JSON.parse(history).totalSent || 0; }
+                catch (e) { return 0; }
             }
             return 0;
         }
-
-        // Update sent wallets history
         function updateSentHistory(count) {
             const history = localStorage.getItem('airdrop_history');
             let historyData = { totalSent: 0 };
-            
             if (history) {
-                try {
-                    historyData = JSON.parse(history);
-                } catch (e) {
-                    historyData = { totalSent: 0 };
-                }
+                try { historyData = JSON.parse(history); }
+                catch (e) { historyData = { totalSent: 0 }; }
             }
-            
             historyData.totalSent = (historyData.totalSent || 0) + count;
             localStorage.setItem('airdrop_history', JSON.stringify(historyData));
         }
 
-        // Show current batch of wallets
         function showCurrentBatch() {
             const batchStart = currentBatchIndex;
             const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
             const currentBatch = pendingWallets.slice(batchStart, batchEnd);
-            
-            if (currentBatch.length > 0) {
+            const numWallets = currentBatch.length;
+            // Show wallets in batch
+            if (numWallets > 0) {
                 document.getElementById('walletList').style.display = 'block';
                 document.getElementById('walletList').textContent = currentBatch.join('\n');
-                
                 document.getElementById('batchInfo').style.display = 'block';
-                document.getElementById('batchInfo').textContent = 
-                    `Batch ${Math.floor(batchStart / walletsPerBatch) + 1} - Wallets ${batchStart + 1} to ${batchEnd} (${currentBatch.length} addresses)`;
-                
+                document.getElementById('batchInfo').innerHTML = 
+                    `Batch ${Math.floor(batchStart / walletsPerBatch) + 1} - Wallets ${batchStart + 1} to ${batchEnd} (${numWallets} addresses)<br>
+                     Each gets <b>5,000,000,000 NFTFAN</b>.<br>
+                     <b>Total needed for batch:</b> ${numWallets * 5000000000} NFTFAN`;
                 document.getElementById('distributeBtn').style.display = 'block';
+                document.getElementById('approveBtn').style.display = 'block';
+                if (userAccount && tokenContract) checkAllowance(numWallets);
             }
         }
 
-        // Show notification
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.className = `notification ${type}`;
             notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 5000);
+            setTimeout(() => { notification.style.display = 'none'; }, 5000);
         }
 
-        // Connect to MetaMask
+        // --- MetaMask and Web3 setup ---
         async function connectMetamask() {
             if (typeof window.ethereum !== 'undefined') {
                 web3 = new Web3(window.ethereum);
@@ -603,15 +611,12 @@
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
                     const accounts = await web3.eth.getAccounts();
                     userAccount = accounts[0];
-                    
                     document.getElementById('walletAddress').innerHTML = 
                         `<strong>Connected:</strong> ${userAccount}`;
                     document.getElementById('walletAddress').classList.add('connected');
                     document.getElementById('connectButton').style.display = 'none';
-                    
                     await switchToPolygon();
-                    setupContract();
-                    
+                    setupContracts();
                     showNotification('Wallet connected successfully!', 'success');
                 } catch (err) {
                     showNotification('Failed to connect wallet', 'error');
@@ -621,7 +626,6 @@
             }
         }
 
-        // Switch to Polygon network
         async function switchToPolygon() {
             const polygonChainId = "0x89";
             try {
@@ -645,91 +649,87 @@
             }
         }
 
-        // Setup smart contract
-        function setupContract() {
-            const abi = [
-                {
-                    "inputs": [
-                        {"internalType": "address", "name": "_tokenAddress", "type": "address"}
-                    ], "stateMutability": "nonpayable", "type": "constructor"
-                },
-                {
-                    "anonymous": false,
-                    "inputs": [
-                        {"indexed": true, "internalType": "address", "name": "recipient", "type": "address"},
-                        {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
-                    ],
-                    "name": "TokensDistributed",
-                    "type": "event"
-                },
-                {
-                    "inputs": [
-                        {"internalType": "address[]", "name": "recipients", "type": "address[]"}
-                    ],
-                    "name": "distributeTokens",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [
-                        {"internalType": "uint256", "name": "amount", "type": "uint256"}
-                    ],
-                    "name": "withdrawTokens",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                }
-            ];
-            contract = new web3.eth.Contract(abi, contractAddress);
+        function setupContracts() {
+            contract = new web3.eth.Contract(distributorAbi, contractAddress);
+            tokenContract = new web3.eth.Contract(tokenAbi, nftFanTokenAddress);
+            // Check allowance for the first batch
+            if (pendingWallets.length > 0) checkAllowance(Math.min(walletsPerBatch, pendingWallets.length));
         }
 
-        // Distribute tokens to current batch
+        // --- Token Approval Workflow ---
+        async function checkAllowance(numWallets) {
+            const totalRequired = web3.utils.toBN(TOKEN_AMOUNT).mul(web3.utils.toBN(numWallets));
+            tokenContract.methods.allowance(userAccount, contractAddress).call().then(allowance => {
+                const allowanceBN = web3.utils.toBN(allowance);
+                if (allowanceBN.gte(totalRequired)) {
+                    document.getElementById('approveInfo').innerHTML = '<span style="color:var(--success)">Allowance sufficient ✔</span>';
+                    document.getElementById('approveBtn').disabled = true;
+                    document.getElementById('distributeBtn').disabled = false;
+                } else {
+                    document.getElementById('approveInfo').innerHTML = 
+                        `Insufficient allowance. You must approve at least <b>${web3.utils.fromWei(totalRequired.toString(), "ether")}</b> NFTFAN.<br>
+                        <span style="color:var(--warning)">Please click "Approve Tokens" first.</span>`;
+                    document.getElementById('approveBtn').disabled = false;
+                    document.getElementById('distributeBtn').disabled = true;
+                }
+            });
+        }
+
+        async function approveTokens() {
+            if (!userAccount || !tokenContract) {
+                showNotification('Please connect your wallet first', 'error');
+                return;
+            }
+            const batchStart = currentBatchIndex;
+            const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
+            const currentBatch = pendingWallets.slice(batchStart, batchEnd);
+            const numWallets = currentBatch.length;
+            if (numWallets === 0) {
+                showNotification('No wallets to approve for', 'error');
+                return;
+            }
+            const totalRequired = web3.utils.toBN(TOKEN_AMOUNT).mul(web3.utils.toBN(numWallets));
+            try {
+                showNotification('Approval transaction pending... Please confirm in your wallet', 'info');
+                await tokenContract.methods.approve(contractAddress, totalRequired.toString()).send({ from: userAccount });
+                showNotification('Token approval successful!', 'success');
+                checkAllowance(numWallets);
+            } catch (e) {
+                showNotification('Approval failed or rejected.', 'error');
+            }
+        }
+
+        // --- Distribute tokens to current batch ---
         async function distributeTokens() {
             if (!userAccount || !contract) {
                 showNotification('Please connect your wallet first', 'error');
                 return;
             }
-
             const batchStart = currentBatchIndex;
             const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
             const currentBatch = pendingWallets.slice(batchStart, batchEnd);
-
             if (currentBatch.length === 0) {
                 showNotification('No wallets to process', 'error');
                 return;
             }
-
             const distributeBtn = document.getElementById('distributeBtn');
             distributeBtn.disabled = true;
             distributeBtn.textContent = 'Sending...';
-
             try {
                 showNotification('Transaction pending... Please confirm in your wallet', 'info');
-                
                 const tx = await contract.methods.distributeTokens(currentBatch).send({
                     from: userAccount,
                     gas: 2000000
                 });
-
-                // Remove sent wallets from storage
                 pendingWallets.splice(batchStart, currentBatch.length);
                 saveWalletsToStorage();
-                
-                // Update sent history
                 updateSentHistory(currentBatch.length);
-
-                // Reset batch index if needed
-                if (currentBatchIndex >= pendingWallets.length) {
-                    currentBatchIndex = 0;
-                }
-
+                if (currentBatchIndex >= pendingWallets.length) currentBatchIndex = 0;
                 showNotification(`Successfully sent tokens to ${currentBatch.length} wallets!`, 'success');
                 updateUI();
-
             } catch (error) {
                 console.error('Distribution failed:', error);
-                showNotification('Transaction failed. Please try again.', 'error');
+                showNotification('Transaction failed. Please check your allowance and balance, then try again.', 'error');
             } finally {
                 distributeBtn.disabled = false;
                 distributeBtn.textContent = 'Send Tokens to Current Batch';
