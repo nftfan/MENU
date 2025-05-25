@@ -857,14 +857,16 @@
             }
         }
 
-        // Setup smart contracts
+       // Setup smart contracts
         function setupContracts() {
-            // Distributor contract ABI
+            // Distributor contract ABI (add method for batch distribution)
             const distributorAbi = [
                 {
                     "inputs": [
                         {"internalType": "address", "name": "_tokenAddress", "type": "address"}
-                    ], "stateMutability": "nonpayable", "type": "constructor"
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
                 },
                 {
                     "anonymous": false,
@@ -878,4 +880,54 @@
                 },
                 {
                     "inputs": [
-                        {"internalType": "address
+                        {"internalType": "address[]", "name": "recipients", "type": "address[]"},
+                        {"internalType": "uint256", "name": "amount", "type": "uint256"}
+                    ],
+                    "name": "distributeTokens",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            contract = new web3.eth.Contract(distributorAbi, contractAddress);
+            tokenContract = new web3.eth.Contract(tokenAbi, tokenAddress);
+        }
+
+        // Distribute tokens to current batch
+        async function distributeTokens() {
+            if (!contract || !userAccount) return;
+            const batchStart = currentBatchIndex;
+            const batchEnd = Math.min(batchStart + walletsPerBatch, pendingWallets.length);
+            const currentBatch = pendingWallets.slice(batchStart, batchEnd);
+            if (currentBatch.length === 0) {
+                showNotification('No wallet addresses in current batch', 'warning');
+                return;
+            }
+
+            document.getElementById('distributeBtn').disabled = true;
+            showNotification('Transaction sent! Please confirm in your wallet...', 'info');
+
+            try {
+                await contract.methods
+                    .distributeTokens(currentBatch, TOKEN_AMOUNT)
+                    .send({ from: userAccount });
+
+                // Remove sent wallets from pendingWallets
+                pendingWallets.splice(batchStart, currentBatch.length);
+                saveWalletsToStorage();
+                updateSentHistory(currentBatch.length);
+                currentBatchIndex = 0;
+
+                showNotification(`Successfully sent tokens to ${currentBatch.length} wallets!`, 'success');
+                updateUI();
+                checkApprovalStatus();
+            } catch (err) {
+                console.error('Airdrop failed:', err);
+                showNotification('Airdrop transaction failed. Please try again.', 'error');
+            } finally {
+                document.getElementById('distributeBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
