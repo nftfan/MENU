@@ -6,7 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <style>
-    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020; font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px; background-image: radial-gradient(circle, #23243a 2%, #15162b 100%), url("https://www.transparenttextures.com/patterns/stardust.png"); background-size: cover, 400px 400px;}
+  
+  
+    /* ... (same CSS as before) ... */
+	
+	html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020; font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px; background-image: radial-gradient(circle, #23243a 2%, #15162b 100%), url("https://www.transparenttextures.com/patterns/stardust.png"); background-size: cover, 400px 400px;}
     .container { display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start; }
     .graph-box { position: relative; margin-top: 25px; background: linear-gradient(135deg, #181b39 0%, #2c1976 100%); border: 3px solid #26ffe6; border-radius: 1em; box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3; width: 96vw; max-width: 480px; height: 44vw; max-height: 480px; min-height: 240px; overflow: hidden;}
     .score-panel { margin-top: 9px; color: #26ffe6; background: rgba(25,28,43,0.95); border-radius: 11px; border: 1.5px solid #ffd700; box-shadow: 0 0 6px #26ffe6bb, 0 0 19px #fff5 inset; font-size: 1.12em; padding: 6px 22px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 90px;}
@@ -41,12 +45,35 @@
       0% { filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 24px #ff5cfa);}
       100% { filter: drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 36px #26ffe6);}
     }
+    /* Add laser beam effect */
+    .laser-warning {
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%; transform: translateY(-50%);
+      color: #ff5cfa;
+      text-align: center;
+      font-size: 1.3em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      text-shadow: 0 0 12px #ff5cfa, 0 0 36px #26ffe6;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.8;
+      animation: laserWarnFade 0.65s linear alternate infinite;
+      letter-spacing: 1.5px;
+      user-select: none;
+      width: 100vw;
+    }
+    @keyframes laserWarnFade {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="graph-box" id="gameBox">
+    <div class="graph-box" id="gameBox" style="position:relative;">
       <canvas id="gameCanvas" width="480" height="480"></canvas>
+      <div id="laserWarning" class="laser-warning" style="display:none">LASER INCOMING!</div>
     </div>
     <div class="score-panel" id="scorePanel">
       Score: <span id="scoreVal">0</span>
@@ -63,6 +90,7 @@
     <div id="gameOverModal" style="display:none"></div>
   </div>
   <audio id="fireSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-8-bit-explosion-gun-2779.wav" preload="auto"></audio>
+  <audio id="laserSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-laser-gun-819.wav" preload="auto"></audio>
   <script>
     // ---- Constants ----
     const DUCK_SIZE = 46;
@@ -81,6 +109,17 @@
     const DIFFICULTY_SPAWN_INC = 0.92; // ducks spawn more frequently over time (multiplier)
     const SPAWN_DIFFICULTY_EVERY = 15000; // ms, every 15 seconds, increase difficulty
 
+    // Laser constants
+    const LASER_APPEAR_MIN_MS = 6500;
+    const LASER_APPEAR_MAX_MS = 12000;
+    const LASER_HP = 20;
+    const LASER_WARNING_TIME = 1200; // ms before laser appears
+    const LASER_WIDTH = 12;
+    const LASER_HEIGHT = 28; // for collision
+    const LASER_COLOR = "#ff5cfa";
+    const LASER_GLOW = "#ffd700";
+    const LASER_LINE_ALPHA = 0.93;
+
     // ---- State ----
     let width = 480, height = 480;
     let ducks = [], bullets = [];
@@ -92,6 +131,7 @@
     iconImg.src = ICON_IMG_SRC;
     duckImg.src = DUCK_IMG_SRC;
     const fireSound = document.getElementById("fireSound");
+    const laserSound = document.getElementById("laserSound");
 
     let duckMinSpeed = BASE_DUCK_MIN_SPEED;
     let duckMaxSpeed = BASE_DUCK_MAX_SPEED;
@@ -109,6 +149,12 @@
     const escapedVal = document.getElementById("escapedVal");
     const firesVal = document.getElementById("firesVal");
     const gameOverModal = document.getElementById("gameOverModal");
+    const laserWarningDiv = document.getElementById("laserWarning");
+
+    // Laser state
+    let laser = null; // null or {hp, active, y, timer}
+    let laserTimeout = null;
+    let laserWarningTimeout = null;
 
     function resize() {
       width = gameBox.offsetWidth;
@@ -118,9 +164,45 @@
     }
     window.addEventListener("resize", resize);
 
+    function resetLaser() {
+      if (laserTimeout) clearTimeout(laserTimeout);
+      if (laserWarningTimeout) clearTimeout(laserWarningTimeout);
+      laser = null;
+      laserWarningDiv.style.display = "none";
+      scheduleLaser();
+    }
+
+    function scheduleLaser() {
+      // Show warning, then after warning spawn laser
+      const nextLaserMs = Math.random() * (LASER_APPEAR_MAX_MS-LASER_APPEAR_MIN_MS) + LASER_APPEAR_MIN_MS;
+      laserWarningTimeout = setTimeout(() => {
+        laserWarningDiv.style.display = "block";
+        // Sound effect (optional)
+        setTimeout(() => {
+          spawnLaser();
+          laserWarningDiv.style.display = "none";
+        }, LASER_WARNING_TIME);
+      }, nextLaserMs - LASER_WARNING_TIME);
+    }
+
+    function spawnLaser() {
+      laser = {
+        hp: LASER_HP,
+        active: true,
+        y: Math.floor(height/2 - LASER_HEIGHT/2),
+        dying: false, // for animation
+        dyingAnim: 0
+      };
+      if (laserSound) {
+        try { laserSound.currentTime = 0; laserSound.play(); } catch (e){}
+      }
+    }
+
     function resetGame() {
       if (frameRequest !== null) cancelAnimationFrame(frameRequest);
       if (difficultyInterval !== null) clearInterval(difficultyInterval);
+      if (laserTimeout) clearTimeout(laserTimeout);
+      if (laserWarningTimeout) clearTimeout(laserWarningTimeout);
       ducks = [];
       bullets = [];
       score = 0;
@@ -141,6 +223,9 @@
       gameOverModal.style.display = "none";
       gameStartTime = Date.now();
       difficultyInterval = setInterval(increaseDifficulty, SPAWN_DIFFICULTY_EVERY);
+      laser = null;
+      laserWarningDiv.style.display = "none";
+      scheduleLaser();
     }
 
     function increaseDifficulty() {
@@ -262,6 +347,33 @@
     function animate() {
       frameRequest = requestAnimationFrame(animate);
       if (!running) return;
+
+      // --- Laser logic ---
+      if (laser && laser.active && !laser.dying) {
+        for (let bullet of bullets) {
+          if (!bullet.alive) continue;
+          // Laser is a wide horizontal bar in the middle of screen
+          if (
+            bullet.y < (laser.y + LASER_HEIGHT) &&
+            bullet.y + BULLET_H > laser.y &&
+            bullet.x + BULLET_W > 0 && bullet.x < width // horizontal laser, always covers whole width
+          ) {
+            laser.hp--;
+            bullet.alive = false;
+            // Quick flash effect
+            if (laser.hp <= 0) {
+              laser.active = false;
+              laser.dying = true;
+              laser.dyingAnim = 21; // frames for dissolve
+              setTimeout(() => {
+                laser = null;
+                scheduleLaser();
+              }, 650);
+            }
+          }
+        }
+      }
+
       // --- Logic ---
       duckSpawnTimer--;
       if (duckSpawnTimer <= 0) {
@@ -285,7 +397,7 @@
         if (bullet.y < -BULLET_H) bullet.alive = false;
       }
 
-      // --- Collision ---
+      // --- Collision with ducks ---
       for (let duck of ducks) {
         if (!duck.alive) continue;
         for (let bullet of bullets) {
@@ -378,6 +490,62 @@
           ctx.restore();
         }
         ctx.restore();
+      }
+
+      // --- Draw laser ---
+      if (laser && (laser.active || laser.dying)) {
+        ctx.save();
+        let alpha = LASER_LINE_ALPHA;
+        if (laser.dying) {
+          alpha *= (laser.dyingAnim/21);
+        }
+        ctx.globalAlpha = alpha;
+        // Draw laser glow
+        ctx.shadowColor = LASER_GLOW;
+        ctx.shadowBlur = 36;
+        ctx.beginPath();
+        ctx.rect(0, laser.y, width, LASER_HEIGHT);
+        ctx.fillStyle = LASER_COLOR;
+        ctx.fill();
+        // Draw core line
+        ctx.shadowColor = "";
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = Math.min(alpha+0.05,1);
+        ctx.beginPath();
+        ctx.rect(0, laser.y + LASER_HEIGHT/2 - LASER_WIDTH/2, width, LASER_WIDTH);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.restore();
+        // Draw laser HP bar on top
+        ctx.save();
+        ctx.globalAlpha = 0.98;
+        let hpPerc = laser.hp / LASER_HP;
+        let barW = Math.max(60, width * 0.35);
+        let barH = 12;
+        let barX = width/2 - barW/2;
+        let barY = laser.y-24;
+        ctx.fillStyle = "#1b0833";
+        ctx.fillRect(barX, barY, barW, barH);
+        let grad = ctx.createLinearGradient(barX, barY, barX+barW, barY);
+        grad.addColorStop(0, "#ffd700");
+        grad.addColorStop(1, "#ff5cfa");
+        ctx.fillStyle = grad;
+        ctx.shadowColor = "#ffd700";
+        ctx.shadowBlur = 14;
+        ctx.fillRect(barX, barY, barW*hpPerc, barH);
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(barX, barY, barW, barH);
+        ctx.restore();
+
+        // Animate dying
+        if (laser.dying) {
+          laser.dyingAnim--;
+          if (laser.dyingAnim <= 0) {
+            laser.dying = false;
+          }
+        }
       }
 
       // Draw bullets
