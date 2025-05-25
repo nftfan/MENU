@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFan Shooter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020; font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px; background-image: radial-gradient(circle, #23243a 2%, #15162b 100%), url("https://www.transparenttextures.com/patterns/stardust.png"); background-size: cover, 400px 400px;}
+    .container { display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start; }
+    .graph-box { position: relative; margin-top: 25px; background: linear-gradient(135deg, #181b39 0%, #2c1976 100%); border: 3px solid #26ffe6; border-radius: 1em; box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3; width: 96vw; max-width: 480px; height: 44vw; max-height: 480px; min-height: 240px; overflow: hidden;}
+    .score-panel { margin-top: 9px; color: #26ffe6; background: rgba(25,28,43,0.95); border-radius: 11px; border: 1.5px solid #ffd700; box-shadow: 0 0 6px #26ffe6bb, 0 0 19px #fff5 inset; font-size: 1.12em; padding: 6px 22px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 90px;}
+    .balance-panel { margin-top: 18px; color: #ffd700; background: rgba(21,22,43,0.92); border-radius: 13px; border: 1.5px solid #26ffe6; box-shadow: 0 0 6px #26ffe650, 0 0 50px #181b39 inset; font-size: 1.15em; padding: 8px 33px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; }
+    .fires-panel { margin-top: 11px; color: #ff5cfa; background: rgba(38,255,230,0.12); border-radius: 13px; border: 1.5px solid #ff5cfa; box-shadow: 0 0 6px #ff5cfa88, 0 0 8px #ffd70022 inset; font-size: 1.18em; padding: 7px 37px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; }
+    .controls { margin-top: 16px; display: flex; flex-direction: row; gap: 38px; justify-content: center;}
+    .btn-shoot { border: none; border-radius: 40px; width: 90vw; max-width: 250px; height: 60px; background: radial-gradient(circle at 60% 30%, #ff5cfa 80%, #26ffe6 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 32px 8px #26ffe6bb, 0 0 0 2px #ffd700, 0 0 44px 10px #fff8 inset; cursor: pointer; transition: background 0.18s, box-shadow 0.18s, transform 0.09s; outline: none; user-select: none; position: relative; z-index: 2; animation: neonBtnPulse 1.4s infinite alternate; overflow: visible; border: 3px solid #ffd700; font-size: 1.5em; color: #15162b; font-weight: bold; letter-spacing: 2px;}
+    .btn-shoot:active { filter: brightness(1.22) drop-shadow(0 0 13px #fff); transform: scale(0.97); box-shadow: 0 0 60px 12px #ffd700cc, 0 0 28px #26ffe6cc; border-width: 5px;}
+    .gameover-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(20,20,40,0.97); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-family: 'Orbitron', Arial, sans-serif; font-size: 10px; animation: fadein 0.3s;}
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+    .gameover-title { font-size: 2em; color: #ffd700; text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6; font-weight: bold; margin-bottom: 16px;}
+    .gameover-score { font-size: 1.15em; color: #fff; margin-bottom: 18px; text-shadow: 0 0 4px #26ffe6;}
+    .restart-btn { font-size: 1.1em; background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%); color: #15162b; border: none; border-radius: 16px; padding: 11px 31px; font-family: 'Orbitron', Arial, sans-serif; font-weight: bold; letter-spacing: 1px; margin-top: 6px; box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6; cursor: pointer; transition: background 0.2s, color 0.2s; outline: none; touch-action: manipulation; animation: neonBtnPulse 1.1s infinite alternate; text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;}
+    .restart-btn:active { filter: brightness(1.2);}
+    @media (max-width: 600px) {
+      html, body { font-size: 10px;}
+      .graph-box { width: 99vw; height: 300px; min-height: 240px; max-height: 360px;}
+      .balance-panel { font-size: 1em; padding: 7px 7vw;}
+      .score-panel { font-size: 1em; padding: 4px 9vw;}
+      .fires-panel { font-size: 1em; padding: 5px 9vw;}
+      .btn-shoot { width: 92vw; max-width: 99vw; height: 44px; font-size: 1.1em; }
+    }
+    @keyframes neonBtnPulse {
+      0% { box-shadow: 0 0 18px 6px #26ffe688, 0 0 0 2px #ffd700, 0 0 44px 8px #ff5cfa55 inset; }
+      100% { box-shadow: 0 0 38px 15px #ffd70044, 0 0 0 4px #26ffe6, 0 0 62px 22px #ff5cfa22 inset; }
+    }
+    .neon-glow {
+      filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 24px #ff5cfa);
+      animation: blinkGlow 1s steps(1) infinite alternate;
+    }
+    @keyframes blinkGlow {
+      0% { filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 24px #ff5cfa);}
+      100% { filter: drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 36px #26ffe6);}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="graph-box" id="gameBox">
+      <canvas id="gameCanvas" width="480" height="480"></canvas>
+    </div>
+    <div class="score-panel" id="scorePanel">
+      Score: <span id="scoreVal">0</span>
+    </div>
+    <div class="fires-panel">
+      Fires Left: <span id="firesVal">100</span>
+    </div>
+    <div class="balance-panel">
+      Escaped: <span id="escapedVal">0</span> / 10
+    </div>
+    <div class="controls">
+      <button class="btn-shoot" id="shootBtn">FIRE!</button>
+    </div>
+    <div id="gameOverModal" style="display:none"></div>
+  </div>
+  <audio id="fireSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-8-bit-explosion-gun-2779.wav" preload="auto"></audio>
+  <script>
+    // ---- Constants ----
+    const DUCK_SIZE = 46;
+    const ICON_IMG_SRC = "https://i.imgur.com/ODP45iQ.png";
+    const DUCK_IMG_SRC = "https://i.imgur.com/Z6cWbza.png"; // For rare/bonus
+    const BULLET_W = 10, BULLET_H = 22, BULLET_SPEED = 10;
+    const BASE_DUCK_MIN_SPEED = 2.2, BASE_DUCK_MAX_SPEED = 5.4;
+    const DUCK_SPAWN_MIN = 12; // More frequent ducks (lower min/max)
+    const DUCK_SPAWN_MAX = 40;
+    const MAX_ESCAPED = 10;
+    const MAX_FIRES = 100;
+    const BONUS_DUCK_CHANCE = 0.09; // More frequent bonus ducks
+    const BONUS_DUCK_BASE_SPEED = 13.5;
+    const BONUS_AWARD = 20;
+    const DIFFICULTY_SPEED_INC = 0.13; // increase in speed per 15 seconds
+    const DIFFICULTY_SPAWN_INC = 0.92; // ducks spawn more frequently over time (multiplier)
+    const SPAWN_DIFFICULTY_EVERY = 15000; // ms, every 15 seconds, increase difficulty
+
+    // ---- State ----
+    let width = 480, height = 480;
+    let ducks = [], bullets = [];
+    let score = 0, escaped = 0, fires = MAX_FIRES;
+    let running = true, frameRequest = null;
+    let duckSpawnTimer = DUCK_SPAWN_MIN;
+    let iconImg = new window.Image();
+    let duckImg = new window.Image();
+    iconImg.src = ICON_IMG_SRC;
+    duckImg.src = DUCK_IMG_SRC;
+    const fireSound = document.getElementById("fireSound");
+
+    let duckMinSpeed = BASE_DUCK_MIN_SPEED;
+    let duckMaxSpeed = BASE_DUCK_MAX_SPEED;
+    let bonusDuckSpeed = BONUS_DUCK_BASE_SPEED;
+    let spawnMin = DUCK_SPAWN_MIN;
+    let spawnMax = DUCK_SPAWN_MAX;
+    let difficultyInterval = null;
+    let gameStartTime = null;
+
+    const gameBox = document.getElementById("gameBox");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const ctx = gameCanvas.getContext("2d");
+    const shootBtn = document.getElementById("shootBtn");
+    const scoreVal = document.getElementById("scoreVal");
+    const escapedVal = document.getElementById("escapedVal");
+    const firesVal = document.getElementById("firesVal");
+    const gameOverModal = document.getElementById("gameOverModal");
+
+    function resize() {
+      width = gameBox.offsetWidth;
+      height = gameBox.offsetHeight;
+      gameCanvas.width = width;
+      gameCanvas.height = height;
+    }
+    window.addEventListener("resize", resize);
+
+    function resetGame() {
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+      if (difficultyInterval !== null) clearInterval(difficultyInterval);
+      ducks = [];
+      bullets = [];
+      score = 0;
+      escaped = 0;
+      fires = MAX_FIRES;
+      running = true;
+      duckSpawnTimer = DUCK_SPAWN_MIN;
+      scoreVal.textContent = score;
+      escapedVal.textContent = escaped;
+      firesVal.textContent = fires;
+      duckMinSpeed = BASE_DUCK_MIN_SPEED;
+      duckMaxSpeed = BASE_DUCK_MAX_SPEED;
+      bonusDuckSpeed = BONUS_DUCK_BASE_SPEED;
+      spawnMin = DUCK_SPAWN_MIN;
+      spawnMax = DUCK_SPAWN_MAX;
+      resize();
+      frameRequest = requestAnimationFrame(animate);
+      gameOverModal.style.display = "none";
+      gameStartTime = Date.now();
+      difficultyInterval = setInterval(increaseDifficulty, SPAWN_DIFFICULTY_EVERY);
+    }
+
+    function increaseDifficulty() {
+      // Increase duck and bonus duck speeds
+      duckMinSpeed += DIFFICULTY_SPEED_INC;
+      duckMaxSpeed += DIFFICULTY_SPEED_INC;
+      bonusDuckSpeed += DIFFICULTY_SPEED_INC * 2;
+      // Ducks spawn more frequently (lower minimum/maximum)
+      spawnMin = Math.max(5, Math.floor(spawnMin * DIFFICULTY_SPAWN_INC));
+      spawnMax = Math.max(spawnMin + 1, Math.floor(spawnMax * DIFFICULTY_SPAWN_INC));
+    }
+
+    function spawnDuck() {
+      // Randomly spawn from left or right
+      let fromLeft = Math.random() < 0.5;
+      let y = Math.random() * (height - DUCK_SIZE - 40) + 20;
+      let speed, isBonus = false, img = iconImg;
+
+      // Chance for bonus duck
+      if (Math.random() < BONUS_DUCK_CHANCE) {
+        // very quick duck (bonus)
+        speed = bonusDuckSpeed;
+        isBonus = true;
+        img = duckImg;
+      } else {
+        speed = duckMinSpeed + Math.random() * (duckMaxSpeed - duckMinSpeed);
+      }
+
+      // Add speed profile for dodges/breaks/fast
+      let profileType = Math.random();
+      let speedProfile;
+      if (isBonus) {
+        // bonus ducks: mostly fast, little dodge
+        speedProfile = [
+          { t: 0, speed: speed },
+          { t: 1, speed: speed }
+        ];
+      } else if (profileType < 0.33) {
+        // normal: constant speed
+        speedProfile = [
+          { t: 0, speed: speed },
+          { t: 1, speed: speed }
+        ];
+      } else if (profileType < 0.66) {
+        // dodge: start fast, slow down for a moment, speed up again
+        speedProfile = [
+          { t: 0.00, speed: speed*1.2 },
+          { t: 0.25, speed: speed*0.6 },
+          { t: 0.35, speed: speed*0.6 },
+          { t: 0.6, speed: speed*1.4 },
+          { t: 1.0, speed: speed }
+        ];
+      } else {
+        // break, then dash
+        speedProfile = [
+          { t: 0, speed: speed*0.5 },
+          { t: 0.35, speed: speed*0.7 },
+          { t: 0.5, speed: speed*1.5 },
+          { t: 1, speed: speed }
+        ];
+      }
+
+      ducks.push({
+        x: fromLeft ? -DUCK_SIZE : width + DUCK_SIZE,
+        y,
+        dir: fromLeft ? 1 : -1,
+        baseSpeed: speed,
+        alive: true,
+        hitAnim: 0,
+        isBonus,
+        img,
+        distance: 0, // how far has it moved (to compute profile progress)
+        speedProfile,
+        profileProgress: 0 // from 0 to 1 (start to finish)
+      });
+    }
+
+    function getDuckSpeed(duck) {
+      // Compute progress (from 0 to 1) as fraction of distance
+      let maxDist = width + DUCK_SIZE*2;
+      let progress = Math.min(Math.max((duck.x + (duck.dir === 1 ? 0 : DUCK_SIZE)) / maxDist, 0), 1);
+      duck.profileProgress = progress;
+      let prof = duck.speedProfile;
+      // Find which segment we're in
+      for (let i = 0; i < prof.length-1; ++i) {
+        if (progress >= prof[i].t && progress <= prof[i+1].t) {
+          let segP = (progress - prof[i].t) / (prof[i+1].t - prof[i].t);
+          return prof[i].speed + segP*(prof[i+1].speed - prof[i].speed);
+        }
+      }
+      return prof[prof.length-1].speed;
+    }
+
+    function shootBullet() {
+      if (!running) return;
+      if (fires <= 0) return;
+      fires--;
+      firesVal.textContent = fires;
+      // Play fire sound (restart if already playing)
+      try {
+        fireSound.currentTime = 0;
+        fireSound.play();
+      } catch (e) {}
+      // Shoots upward from center-bottom
+      bullets.push({
+        x: width/2 - BULLET_W/2,
+        y: height - BULLET_H - 8,
+        alive: true
+      });
+      if (fires <= 0) {
+        running = false;
+        setTimeout(showGameOver, 500);
+      }
+    }
+
+    shootBtn.addEventListener("click", shootBullet);
+    shootBtn.addEventListener("touchstart", function(e) { e.preventDefault(); shootBullet(); }, {passive:false});
+
+    function animate() {
+      frameRequest = requestAnimationFrame(animate);
+      if (!running) return;
+      // --- Logic ---
+      duckSpawnTimer--;
+      if (duckSpawnTimer <= 0) {
+        // Increase amount of ducks as time goes on
+        let now = Date.now();
+        let elapsed = (now - gameStartTime) / 1000;
+        let ducksThisFrame = 1 + Math.min(2, Math.floor(elapsed / 30)); // +1 duck every 30 seconds, max 3 per spawn
+        for (let i = 0; i < ducksThisFrame; ++i) spawnDuck();
+        duckSpawnTimer = spawnMin + Math.floor(Math.random() * (spawnMax - spawnMin));
+      }
+
+      for (let duck of ducks) {
+        if (duck.alive) {
+          let currentSpeed = getDuckSpeed(duck);
+          duck.x += duck.dir * currentSpeed;
+          duck.distance += Math.abs(currentSpeed);
+        }
+      }
+      for (let bullet of bullets) {
+        if (bullet.alive) bullet.y -= BULLET_SPEED;
+        if (bullet.y < -BULLET_H) bullet.alive = false;
+      }
+
+      // --- Collision ---
+      for (let duck of ducks) {
+        if (!duck.alive) continue;
+        for (let bullet of bullets) {
+          if (!bullet.alive) continue;
+          if (
+            bullet.x + BULLET_W > duck.x &&
+            bullet.x < duck.x + DUCK_SIZE &&
+            bullet.y + BULLET_H > duck.y &&
+            bullet.y < duck.y + DUCK_SIZE
+          ) {
+            // Hit!
+            duck.alive = false;
+            bullet.alive = false;
+            duck.hitAnim = 12;
+            if (duck.isBonus) {
+              fires = Math.min(fires + BONUS_AWARD, MAX_FIRES);
+              firesVal.textContent = fires;
+              firesVal.parentElement.style.boxShadow = "0 0 30px 10px #ffd700, 0 0 28px #26ffe6";
+              setTimeout(() => firesVal.parentElement.style.boxShadow = "", 400);
+            } else {
+              score++;
+              scoreVal.textContent = score;
+            }
+          }
+        }
+      }
+
+      // --- Remove offscreen ducks, update escaped ---
+      for (let duck of ducks) {
+        if (!duck.alive && duck.hitAnim > 0) duck.hitAnim--;
+        if (duck.alive && ((duck.dir === 1 && duck.x > width + DUCK_SIZE) || (duck.dir === -1 && duck.x < -DUCK_SIZE))) {
+          duck.alive = false;
+          if (duck.isBonus) {
+            // No penalty for missing rare duck
+          } else {
+            escaped++;
+            escapedVal.textContent = escaped;
+            if (escaped >= MAX_ESCAPED) {
+              running = false;
+              setTimeout(showGameOver, 800);
+            }
+          }
+        }
+      }
+      ducks = ducks.filter(d => d.alive || d.hitAnim > 0);
+      bullets = bullets.filter(b => b.alive);
+
+      // --- Draw ---
+      ctx.clearRect(0,0,width,height);
+      // Background neon border
+      ctx.save();
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = "#ffd700";
+      ctx.lineWidth = 2.8;
+      ctx.strokeRect(1.5, 1.5, width-3, height-3);
+      ctx.restore();
+
+      // Draw ducks (as icons or rare duck)
+      for (let duck of ducks) {
+        ctx.save();
+        if (duck.hitAnim > 0) {
+          ctx.globalAlpha = duck.hitAnim / 12;
+          ctx.filter = "brightness(2) drop-shadow(0 0 20px #ff5cfa)";
+        } else {
+          ctx.globalAlpha = 1;
+          if (duck.dir === -1) {
+            ctx.translate(duck.x + DUCK_SIZE/2, duck.y + DUCK_SIZE/2);
+            ctx.scale(-1, 1);
+            ctx.translate(-(duck.x + DUCK_SIZE/2), -(duck.y + DUCK_SIZE/2));
+          }
+        }
+        if (duck.isBonus) {
+          // Draw rare duck with quick flash effect
+          let flash = Math.random() < 0.3;
+          if (flash) ctx.globalAlpha *= 0.4;
+          ctx.drawImage(duck.img, duck.x, duck.y, DUCK_SIZE, DUCK_SIZE);
+        } else {
+          // Draw icon with blinking neon border
+          ctx.save();
+          let borderGlow = Math.floor(Date.now()/180)%2 === 0;
+          if (borderGlow) {
+            ctx.shadowColor = "#26ffe6";
+            ctx.shadowBlur = 18;
+          } else {
+            ctx.shadowColor = "#ffd700";
+            ctx.shadowBlur = 26;
+          }
+          ctx.drawImage(duck.img, duck.x, duck.y, DUCK_SIZE, DUCK_SIZE);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      // Draw bullets
+      for (let bullet of bullets) {
+        ctx.save();
+        ctx.globalAlpha = 0.98;
+        let grad = ctx.createLinearGradient(bullet.x, bullet.y, bullet.x, bullet.y + BULLET_H);
+        grad.addColorStop(0, "#fffde6");
+        grad.addColorStop(1, "#ffd700");
+        ctx.fillStyle = grad;
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 10;
+        ctx.fillRect(bullet.x, bullet.y, BULLET_W, BULLET_H);
+        ctx.restore();
+      }
+    }
+
+    function showGameOver() {
+      let reason = (fires <= 0) ? "No Fires Left" : "Game Over";
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="gameover-title">${reason}</div>
+          <div class="gameover-score">
+            Final Score: ${score} <br>
+            Ducks Escaped: ${escaped} <br>
+            Fires Left: ${fires} <br>
+          </div>
+          <button class="restart-btn" onclick="resetGame()">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+    }
+    window.resetGame = resetGame;
+
+    // Wait for both images to load before starting
+    let imagesLoaded = 0;
+    function onImgLoad() {
+      imagesLoaded++;
+      if (imagesLoaded === 2) resetGame();
+    }
+    iconImg.onload = onImgLoad;
+    duckImg.onload = onImgLoad;
+    if (iconImg.complete) onImgLoad();
+    if (duckImg.complete) onImgLoad();
+  </script>
+</body>
+</html>
