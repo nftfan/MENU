@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFan Bucket Catch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020; font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px; background-image: radial-gradient(circle, #23243a 2%, #15162b 100%), url("https://www.transparenttextures.com/patterns/stardust.png"); background-size: cover, 400px 400px;}
+    .container { display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start; }
+    .graph-box { position: relative; margin-top: 25px; background: linear-gradient(135deg, #181b39 0%, #2c1976 100%); border: 3px solid #26ffe6; border-radius: 1em; box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3; width: 96vw; max-width: 480px; height: 44vw; max-height: 480px; min-height: 240px; overflow: hidden;}
+    .score-panel { margin-top: 9px; color: #26ffe6; background: rgba(25,28,43,0.95); border-radius: 11px; border: 1.5px solid #ffd700; box-shadow: 0 0 6px #26ffe6bb, 0 0 19px #fff5 inset; font-size: 1.12em; padding: 6px 22px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 90px;}
+    .missed-panel { margin-top: 18px; color: #ffd700; background: rgba(21,22,43,0.92); border-radius: 13px; border: 1.5px solid #26ffe6; box-shadow: 0 0 6px #26ffe650, 0 0 50px #181b39 inset; font-size: 1.15em; padding: 8px 33px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; }
+    .hits-panel { margin-top: 11px; color: #ff5cfa; background: rgba(38,255,230,0.12); border-radius: 13px; border: 1.5px solid #ff5cfa; box-shadow: 0 0 6px #ff5cfa88, 0 0 8px #ffd70022 inset; font-size: 1.18em; padding: 7px 37px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; }
+    .gameover-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(20,20,40,0.97); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-family: 'Orbitron', Arial, sans-serif; font-size: 10px; animation: fadein 0.3s;}
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+    .gameover-title { font-size: 2em; color: #ffd700; text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6; font-weight: bold; margin-bottom: 16px;}
+    .gameover-score { font-size: 1.15em; color: #fff; margin-bottom: 18px; text-shadow: 0 0 4px #26ffe6;}
+    .restart-btn { font-size: 1.1em; background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%); color: #15162b; border: none; border-radius: 16px; padding: 11px 31px; font-family: 'Orbitron', Arial, sans-serif; font-weight: bold; letter-spacing: 1px; margin-top: 6px; box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6; cursor: pointer; transition: background 0.2s, color 0.2s; outline: none; touch-action: manipulation; animation: neonBtnPulse 1.1s infinite alternate; text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;}
+    .restart-btn:active { filter: brightness(1.2);}
+    @media (max-width: 600px) {
+      html, body { font-size: 10px;}
+      .graph-box { width: 99vw; height: 300px; min-height: 240px; max-height: 360px;}
+      .missed-panel { font-size: 1em; padding: 7px 7vw;}
+      .score-panel { font-size: 1em; padding: 4px 9vw;}
+    }
+    @keyframes neonBtnPulse {
+      0% { box-shadow: 0 0 18px 6px #26ffe688, 0 0 0 2px #ffd700, 0 0 44px 8px #ff5cfa55 inset; }
+      100% { box-shadow: 0 0 38px 15px #ffd70044, 0 0 0 4px #26ffe6, 0 0 62px 22px #ff5cfa22 inset; }
+    }
+    .touch-area {
+      position:absolute;
+      left:0; right:0; bottom:0; height:50%;
+      z-index:20;
+      cursor: pointer;
+      touch-action: pan-x;
+    }
+    .neon-token {
+      filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 22px #ff5cfa);
+      animation: tokenGlow 1.2s steps(1) infinite alternate;
+    }
+    @keyframes tokenGlow {
+      0% { filter: drop-shadow(0 0 8px #26ffe6) drop-shadow(0 0 20px #ff5cfa);}
+      100% { filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 0 28px #26ffe6);}
+    }
+    .slider-bar-wrap {
+      width: 96vw; max-width: 480px; margin: 8px auto 0 auto; display: flex; flex-direction: row; align-items: center; justify-content: center;
+      user-select: none;
+      height: 40px;
+      position: relative;
+    }
+    .slider-bar {
+      width: 85%; height: 16px; background: linear-gradient(90deg, #ff5cfa33 0%, #26ffe677 100%);
+      border-radius: 8px; margin: 0 0px; box-shadow: 0 0 10px #26ffe6, 0 0 20px #ff5cfa44 inset;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    .slider-dial {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #181b39 0%, #2c1976 100%);
+      border: 3px solid #ffd700;
+      box-shadow: 0 0 18px #26ffe6, 0 0 30px #ff5cfa inset, 0 0 34px 6px #fff4;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2em;
+      color: #26ffe6;
+      cursor: pointer;
+      transition: background 0.18s, box-shadow 0.18s, transform 0.09s;
+      z-index: 2;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      user-select: none;
+      touch-action: pan-x;
+    }
+    .slider-dial:active {
+      filter: brightness(1.2) drop-shadow(0 0 13px #fff);
+      box-shadow: 0 0 30px 12px #ffd700cc, 0 0 18px #26ffe6cc;
+      border-width: 4px;
+    }
+    .slider-icon {
+      font-size: 1.1em;
+      color: #ffd700;
+      pointer-events: none;
+      user-select: none;
+    }
+    .laser-warning {
+      position: absolute;
+      left: 0; right: 0;
+      top: 9px;
+      color: #ff5cfa;
+      text-align: center;
+      font-size: 1.3em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      text-shadow: 0 0 12px #ff5cfa, 0 0 36px #26ffe6;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.8;
+      animation: laserWarnFade 0.65s linear alternate infinite;
+      letter-spacing: 1.5px;
+      user-select: none;
+      width: 100vw;
+    }
+    @keyframes laserWarnFade {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="graph-box" id="gameBox" style="position:relative;">
+      <canvas id="gameCanvas" width="480" height="480"></canvas>
+      <div class="touch-area" id="touchArea"></div>
+      <div id="laserWarning" class="laser-warning" style="display:none">LASER INCOMING!</div>
+    </div>
+    <div class="score-panel" id="scorePanel">
+      Score: <span id="scoreVal">0</span>
+    </div>
+    <div class="missed-panel">
+      Missed: <span id="missedVal">0</span> / 10
+    </div>
+    <div class="hits-panel">
+      Laser Hits: <span id="hitsVal">0</span> / 3
+    </div>
+    <div class="slider-bar-wrap">
+      <div class="slider-bar" id="sliderBar">
+        <div class="slider-dial" id="sliderDial">
+          <span class="slider-icon">&#x25CF;</span>
+        </div>
+      </div>
+    </div>
+    <div id="gameOverModal" style="display:none"></div>
+  </div>
+  <audio id="catchSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-game-ball-tap-2073.wav" preload="auto"></audio>
+  <audio id="bonusSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-arcade-bonus-229.wav" preload="auto"></audio>
+  <audio id="missSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-arcade-game-jump-coin-216.wav" preload="auto"></audio>
+  <audio id="laserSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-laser-gun-819.wav" preload="auto"></audio>
+  <script>
+    // ---- Constants ----
+    const BUCKET_IMG_SRC = "https://i.imgur.com/TqDdqmu.png";
+    const TOKEN_IMG_SRC = "https://i.imgur.com/ODP45iQ.png";
+    const BONUS_IMG_SRC = "https://i.imgur.com/RwdMFUB.png";
+    const BUCKET_WIDTH = 70, BUCKET_HEIGHT = 54;
+    const TOKEN_SIZE = 46;
+    const TOKEN_FALL_SPEED_MIN = 1.1, TOKEN_FALL_SPEED_MAX = 2.2;
+    const TOKEN_SPAWN_MIN = 10, TOKEN_SPAWN_MAX = 22;
+    const BONUS_SIZE = 38;
+    const BONUS_FALL_SPEED_MIN = 6.5, BONUS_FALL_SPEED_MAX = 8.5;
+    const BONUS_CHANCE = 0.18;
+
+    const MAX_MISSED = 10;
+    const MAX_HITS = 3;
+
+    // Laser
+    const LASER_WIDTH = 15;
+    const LASER_COLOR = "#ff5cfa";
+    const LASER_GLOW = "#ffd700";
+    const LASER_APPEAR_MIN_MS = 3800;
+    const LASER_APPEAR_MAX_MS = 6900;
+    const LASER_DURATION_MIN = 1000;
+    const LASER_DURATION_MAX = 2000;
+
+    // ---- State ----
+    let width = 480, height = 480;
+    let tokens = [];
+    let score = 0, missed = 0, hits = 0;
+    let running = true, frameRequest = null;
+    let tokenSpawnTimer = TOKEN_SPAWN_MIN;
+    let bucketImg = new window.Image();
+    let tokenImg = new window.Image();
+    let bonusImg = new window.Image();
+    bucketImg.src = BUCKET_IMG_SRC;
+    tokenImg.src = TOKEN_IMG_SRC;
+    bonusImg.src = BONUS_IMG_SRC;
+    const catchSound = document.getElementById("catchSound");
+    const bonusSound = document.getElementById("bonusSound");
+    const missSound = document.getElementById("missSound");
+    const laserSound = document.getElementById("laserSound");
+
+    const gameBox = document.getElementById("gameBox");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const ctx = gameCanvas.getContext("2d");
+    const scoreVal = document.getElementById("scoreVal");
+    const missedVal = document.getElementById("missedVal");
+    const hitsVal = document.getElementById("hitsVal");
+    const gameOverModal = document.getElementById("gameOverModal");
+    const touchArea = document.getElementById("touchArea");
+    const sliderBar = document.getElementById("sliderBar");
+    const sliderDial = document.getElementById("sliderDial");
+    const laserWarningDiv = document.getElementById("laserWarning");
+
+    // Bucket state
+    let bucketX = 205, bucketY = 0, bucketTargetX = 205;
+    let dragging = false;
+    // Laser state
+    let laser = null;
+    let laserTimeout = null;
+    let laserWarningTimeout = null;
+
+    function resize() {
+      width = gameBox.offsetWidth;
+      height = gameBox.offsetHeight;
+      gameCanvas.width = width;
+      gameCanvas.height = height;
+      bucketY = height - BUCKET_HEIGHT - 10;
+      bucketTargetX = Math.max(0, Math.min(bucketTargetX, width - BUCKET_WIDTH));
+      bucketX = Math.max(0, Math.min(bucketX, width - BUCKET_WIDTH));
+      updateSliderDialPosition();
+    }
+    window.addEventListener("resize", resize);
+
+    function resetGame() {
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+      if (laserTimeout) clearTimeout(laserTimeout);
+      if (laserWarningTimeout) clearTimeout(laserWarningTimeout);
+      tokens = [];
+      laser = null;
+      score = 0;
+      missed = 0;
+      hits = 0;
+      running = true;
+      tokenSpawnTimer = TOKEN_SPAWN_MIN;
+      scoreVal.textContent = score;
+      missedVal.textContent = missed;
+      hitsVal.textContent = hits;
+      resize();
+      bucketX = width/2 - BUCKET_WIDTH/2;
+      bucketTargetX = bucketX;
+      updateSliderDialPosition();
+      frameRequest = requestAnimationFrame(animate);
+      gameOverModal.style.display = "none";
+      laserWarningDiv.style.display = "none";
+      scheduleLaser();
+    }
+
+    function spawnToken() {
+      let isBonus = Math.random() < BONUS_CHANCE;
+      let x = Math.random() * (width - (isBonus ? BONUS_SIZE : TOKEN_SIZE) - 18) + 9;
+      let speed = isBonus
+        ? BONUS_FALL_SPEED_MIN + Math.random() * (BONUS_FALL_SPEED_MAX - BONUS_FALL_SPEED_MIN)
+        : TOKEN_FALL_SPEED_MIN + Math.random() * (TOKEN_FALL_SPEED_MAX - TOKEN_FALL_SPEED_MIN);
+      tokens.push({
+        x,
+        y: isBonus ? -BONUS_SIZE : -TOKEN_SIZE,
+        speed,
+        alive: true,
+        caught: false,
+        isBonus
+      });
+    }
+
+    // --- Laser Logic ---
+    function scheduleLaser() {
+      if (!running) return;
+      if (laser) return; // Only one laser at a time
+      const nextLaserMs = Math.random() * (LASER_APPEAR_MAX_MS-LASER_APPEAR_MIN_MS) + LASER_APPEAR_MIN_MS;
+      laserWarningTimeout = setTimeout(() => {
+        laserWarningDiv.style.display = "block";
+        setTimeout(() => {
+          spawnLaser();
+          laserWarningDiv.style.display = "none";
+        }, 900);
+      }, nextLaserMs - 900);
+    }
+    function spawnLaser() {
+      if (!running) return;
+      if (laser) return; // Only one laser at a time
+      let x = Math.random() * (width - LASER_WIDTH - 16) + 8;
+      let duration = Math.random() * (LASER_DURATION_MAX - LASER_DURATION_MIN) + LASER_DURATION_MIN;
+      laser = {
+        x: x,
+        active: true,
+        startTime: performance.now(),
+        duration: duration,
+        hit: false
+      };
+      if (laserSound) {
+        try { laserSound.currentTime = 0; laserSound.play(); } catch (e) {}
+      }
+    }
+
+    // Touch/mouse drag logic for game area
+    function setBucketXFromClient(x) {
+      let boxRect = gameBox.getBoundingClientRect();
+      let rel = x - boxRect.left;
+      bucketTargetX = Math.max(0, Math.min(rel - BUCKET_WIDTH/2, width - BUCKET_WIDTH));
+      updateSliderDialPosition();
+    }
+
+    // Touch support for game area
+    touchArea.addEventListener("touchstart", function(e){
+      if (!running) return;
+      dragging = true;
+      setBucketXFromClient(e.touches[0].clientX);
+    });
+    touchArea.addEventListener("touchmove", function(e){
+      if (!running || !dragging) return;
+      setBucketXFromClient(e.touches[0].clientX);
+    });
+    touchArea.addEventListener("touchend", function(e){
+      dragging = false;
+    });
+
+    // Mouse support for game area
+    touchArea.addEventListener("mousedown", function(e){
+      if (!running) return;
+      dragging = true;
+      setBucketXFromClient(e.clientX);
+    });
+    touchArea.addEventListener("mousemove", function(e){
+      if (!running || !dragging) return;
+      setBucketXFromClient(e.clientX);
+    });
+    window.addEventListener("mouseup", function(e){
+      dragging = false;
+    });
+
+    // --- Dial slider logic ---
+    let dialDragging = false;
+    let sliderBarRect = null;
+
+    function updateSliderDialPosition() {
+      sliderBarRect = sliderBar.getBoundingClientRect();
+      let max = width - BUCKET_WIDTH;
+      let perc = max ? bucketTargetX / max : 0.5;
+      let sliderWidth = sliderBar.offsetWidth;
+      let minX = 0, maxX = sliderWidth - sliderDial.offsetWidth;
+      let dialX = minX + perc * (maxX - minX);
+      sliderDial.style.left = `${dialX}px`;
+    }
+
+    function setBucketFromDial(clientX) {
+      sliderBarRect = sliderBar.getBoundingClientRect();
+      let x = clientX - sliderBarRect.left;
+      let sliderWidth = sliderBar.offsetWidth;
+      let max = width - BUCKET_WIDTH;
+      let minX = 0, maxX = sliderWidth - sliderDial.offsetWidth;
+      x = Math.max(minX, Math.min(x, maxX));
+      let perc = (sliderWidth <= sliderDial.offsetWidth) ? 0 : x / (sliderWidth - sliderDial.offsetWidth);
+      bucketTargetX = max * perc;
+      updateSliderDialPosition();
+    }
+
+    // Touch support for dial
+    sliderDial.addEventListener("touchstart", function(e){
+      if (!running) return;
+      dialDragging = true;
+      setBucketFromDial(e.touches[0].clientX);
+      e.preventDefault();
+    }, {passive: false});
+    window.addEventListener("touchmove", function(e){
+      if (!dialDragging || !running) return;
+      setBucketFromDial(e.touches[0].clientX);
+    }, {passive: false});
+    window.addEventListener("touchend", function(e){
+      dialDragging = false;
+    }, {passive: false});
+
+    // Mouse support for dial
+    sliderDial.addEventListener("mousedown", function(e){
+      if (!running) return;
+      dialDragging = true;
+      setBucketFromDial(e.clientX);
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", function(e){
+      if (!dialDragging || !running) return;
+      setBucketFromDial(e.clientX);
+    });
+    window.addEventListener("mouseup", function(e){
+      dialDragging = false;
+    });
+
+    // Also allow clicking on slider bar to jump dial
+    sliderBar.addEventListener("mousedown", function(e) {
+      if (!running) return;
+      setBucketFromDial(e.clientX);
+      dialDragging = true;
+      e.preventDefault();
+    });
+    sliderBar.addEventListener("touchstart", function(e){
+      if (!running) return;
+      setBucketFromDial(e.touches[0].clientX);
+      dialDragging = true;
+      e.preventDefault();
+    }, {passive: false});
+
+    // --- Animation and Game Loop ---
+    function animate(now) {
+      frameRequest = requestAnimationFrame(animate);
+
+      if (!running) return;
+
+      // Token spawn logic
+      tokenSpawnTimer -= 0.85;
+      if (tokenSpawnTimer <= 0) {
+        spawnToken();
+        tokenSpawnTimer = TOKEN_SPAWN_MIN + Math.random() * (TOKEN_SPAWN_MAX - TOKEN_SPAWN_MIN);
+      }
+
+      // Move tokens (smoothly)
+      for (let token of tokens) {
+        if (token.alive) {
+          token.y += token.speed * 1.23;
+        }
+      }
+
+      // Handle laser
+      if (laser && laser.active) {
+        if (now - laser.startTime > laser.duration) {
+          laser.active = false;
+          laser = null;
+          scheduleLaser();
+        }
+      }
+
+      // Move bucket toward targetX for smoothness
+      bucketX += (bucketTargetX - bucketX) * 0.35;
+      bucketY = height - BUCKET_HEIGHT - 10;
+
+      // Collision detection for tokens
+      for (let token of tokens) {
+        if (!token.alive || token.caught) continue;
+        let tsize = token.isBonus ? BONUS_SIZE : TOKEN_SIZE;
+        if (
+          token.x + tsize > bucketX &&
+          token.x < bucketX + BUCKET_WIDTH &&
+          token.y + tsize > bucketY + 10 &&
+          token.y < bucketY + BUCKET_HEIGHT
+        ) {
+          token.caught = true;
+          setTimeout(() => { token.alive = false; }, 1);
+          if (token.isBonus) {
+            score += 10;
+            if (bonusSound) { try { bonusSound.currentTime = 0; bonusSound.play(); } catch(e){} }
+          } else {
+            score += 1;
+            if (catchSound) { try { catchSound.currentTime = 0; catchSound.play(); } catch(e){} }
+          }
+          scoreVal.textContent = score;
+        }
+      }
+
+      // Missed logic for tokens
+      for (let token of tokens) {
+        let tsize = token.isBonus ? BONUS_SIZE : TOKEN_SIZE;
+        if (token.alive && token.y > height && !token.caught) {
+          token.alive = false;
+          missed += 1;
+          missedVal.textContent = missed;
+          if (missSound) { try { missSound.currentTime = 0; missSound.play(); } catch(e){} }
+          if (missed >= MAX_MISSED) {
+            running = false;
+            setTimeout(showGameOver, 600);
+          }
+        }
+      }
+
+      // Laser collision with bucket (die on touch)
+      if (laser && laser.active) {
+        if (
+          laser.x + LASER_WIDTH > bucketX + 7 &&
+          laser.x < bucketX + BUCKET_WIDTH - 7
+        ) {
+          if (!laser.hit) {
+            laser.hit = true;
+            hits += 1;
+            hitsVal.textContent = hits;
+            if (hits >= MAX_HITS) {
+              running = false;
+              setTimeout(showGameOver, 600);
+            }
+          }
+        }
+      }
+
+      // Remove offscreen/inactive tokens
+      tokens = tokens.filter(t => t.alive);
+
+      // --- Draw ---
+      ctx.clearRect(0,0,width,height);
+
+      // Background neon border
+      ctx.save();
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = "#ffd700";
+      ctx.lineWidth = 2.8;
+      ctx.strokeRect(1.5, 1.5, width-3, height-3);
+      ctx.restore();
+
+      // Draw tokens
+      for (let token of tokens) {
+        let tsize = token.isBonus ? BONUS_SIZE : TOKEN_SIZE;
+        ctx.save();
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 14;
+        ctx.globalAlpha = 0.97;
+        ctx.drawImage(token.isBonus ? bonusImg : tokenImg, token.x, token.y, tsize, tsize);
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.filter = "drop-shadow(0 0 10px #26ffe6) drop-shadow(0 0 20px #ff5cfa)";
+        ctx.drawImage(token.isBonus ? bonusImg : tokenImg, token.x, token.y, tsize, tsize);
+        ctx.restore();
+      }
+
+      // Draw laser
+      if (laser && laser.active) {
+        ctx.save();
+        let alpha = laser.hit ? 0.3 : 0.93;
+        ctx.globalAlpha = alpha;
+        ctx.shadowColor = LASER_GLOW;
+        ctx.shadowBlur = 26;
+        ctx.fillStyle = LASER_COLOR;
+        ctx.fillRect(laser.x, 0, LASER_WIDTH, height);
+        ctx.restore();
+
+        // Center white core
+        ctx.save();
+        ctx.globalAlpha = Math.min(alpha+0.05,1);
+        ctx.fillStyle = "#fff";
+        ctx.shadowBlur = 0;
+        ctx.fillRect(laser.x+LASER_WIDTH/4, 0, LASER_WIDTH/2, height);
+        ctx.restore();
+      }
+
+      // Draw bucket
+      ctx.save();
+      let borderGlow = Math.floor(Date.now()/180)%2 === 0;
+      if (borderGlow) {
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 18;
+      } else {
+        ctx.shadowColor = "#ffd700";
+        ctx.shadowBlur = 26;
+      }
+      ctx.drawImage(bucketImg, bucketX, bucketY, BUCKET_WIDTH, BUCKET_HEIGHT);
+      ctx.restore();
+    }
+
+    function showGameOver() {
+      let reason;
+      if (missed >= MAX_MISSED) {
+        reason = "Game Over (Missed Tokens)";
+      } else if (hits >= MAX_HITS) {
+        reason = "Game Over (Laser Destroyed)";
+      } else {
+        reason = "You Win!";
+      }
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="gameover-title">${reason}</div>
+          <div class="gameover-score">
+            Final Score: ${score} <br>
+            Tokens Missed: ${missed} <br>
+            Laser Hits: ${hits} <br>
+          </div>
+          <button class="restart-btn" onclick="resetGame()">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+    }
+    window.resetGame = resetGame;
+
+    // Wait for all images to load before starting
+    let imagesLoaded = 0;
+    function onImgLoad() {
+      imagesLoaded++;
+      if (imagesLoaded === 3) resetGame();
+    }
+    bucketImg.onload = onImgLoad;
+    tokenImg.onload = onImgLoad;
+    bonusImg.onload = onImgLoad;
+    if (bucketImg.complete) onImgLoad();
+    if (tokenImg.complete) onImgLoad();
+    if (bonusImg.complete) onImgLoad();
+  </script>
+</body>
+</html>
