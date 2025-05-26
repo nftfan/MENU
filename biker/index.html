@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Road Boss Box Mode - Responsive & Mobile Tuning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020;
+      font-family: 'Orbitron', Arial, sans-serif; overflow: hidden; font-size: 10px;
+    }
+    .container { display: flex; flex-direction: column; align-items: center; width: 100vw; height: 100vh; justify-content: flex-start; }
+    .graph-box {
+      position: relative; margin-top: 20px;
+      background: linear-gradient(135deg, #090c2a 0%, #20105a 100%);
+      border: 3px solid #26ffe6; border-radius: 1em;
+      box-shadow: 0 0 18px #26ffe6, 0 0 24px #ff5cfa inset, 0 0 90px #fff3;
+      width: 99vw; max-width: 760px; height: 78vw; max-height: 640px; min-height: 240px; overflow: hidden;
+      touch-action: manipulation;
+    }
+    .score-panel { margin-top: 9px; color: #26ffe6; background: rgba(25,28,43,0.95); border-radius: 11px; border: 1.5px solid #ffd700;
+      box-shadow: 0 0 6px #26ffe6bb, 0 0 19px #fff5 inset; font-size: 1.1em; padding: 7px 19px; text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 88px;
+    }
+    .fail-panel { margin-top: 10px; color: #ff4141; background: rgba(255,65,65,0.07); border-radius: 13px; border: 1.5px solid #ff4141;
+      box-shadow: 0 0 6px #ff414188, 0 0 8px #ffd70022 inset; font-size: 1.1em;
+      padding: 7px 31px; text-align: center; font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none;
+    }
+    .controls-row {
+      margin-top: 16px; display: flex; flex-direction: row; gap: 13px; justify-content: center; align-items: center;
+      width: 100%;
+    }
+    .jump-btn, .fire-btn {
+      font-size: 1.1em; font-family: 'Orbitron', Arial, sans-serif; font-weight: bold; letter-spacing: 1.5px;
+      background: linear-gradient(90deg,#26ffe6 0%,#ff5cfa 100%);
+      color: #181b39; border-radius: 18px; border: 2.5px solid #ffd700;
+      box-shadow: 0 0 12px #26ffe6, 0 0 8px #ff5cfa;
+      padding: 10px 32px; cursor: pointer; transition: filter 0.16s;
+      outline: none; animation: neonBtnPulse 1.1s infinite alternate; user-select: none;
+      min-width: 74px;
+    }
+    .jump-btn:active, .fire-btn:active { filter: brightness(1.2);}
+    .gameover-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(20,20,40,0.97);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+      font-family: 'Orbitron', Arial, sans-serif; font-size: 10px; animation: fadein 0.3s;
+    }
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+    .gameover-title { font-size: 2.1em; color: #ffd700; text-shadow: 0 0 8px #ff5cfa, 0 0 14px #26ffe6; font-weight: bold; margin-bottom: 16px;}
+    .gameover-score { font-size: 1.22em; color: #fff; margin-bottom: 18px; text-shadow: 0 0 4px #26ffe6;}
+    .restart-btn { font-size: 1.18em; background: linear-gradient(90deg,#ff5cfa,#26ffe6 85%); color: #15162b; border: none; border-radius: 16px; padding: 13px 36px; font-family: 'Orbitron', Arial, sans-serif; font-weight: bold; letter-spacing: 1px; margin-top: 6px; box-shadow: 0 0 8px #ffd700, 0 0 15px #26ffe6; cursor: pointer; transition: background 0.2s, color 0.2s; outline: none; touch-action: manipulation; animation: neonBtnPulse 1.1s infinite alternate; text-shadow: 0 0 6px #fff7, 0 0 8px #26ffe6;}
+    .restart-btn:active { filter: brightness(1.2);}
+    @media (max-width: 600px) {
+      html, body { font-size: 9px; }
+      .graph-box { min-height: 210px; }
+      .score-panel { font-size: 0.96em; padding: 5px 4vw;}
+      .fail-panel { font-size: 0.96em; padding: 5px 4vw;}
+      .controls-row { gap: 7px;}
+      .jump-btn, .fire-btn { padding: 8px 14vw; font-size: 0.97em;}
+    }
+    @keyframes neonBtnPulse {
+      0% { box-shadow: 0 0 18px 6px #26ffe688, 0 0 0 2px #ffd700, 0 0 44px 8px #ff5cfa55 inset; }
+      100% { box-shadow: 0 0 38px 15px #ffd70044, 0 0 0 4px #26ffe6, 0 0 62px 22px #ff5cfa22 inset; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="graph-box" id="gameBox" style="position:relative;">
+      <canvas id="gameCanvas" width="760" height="640"></canvas>
+    </div>
+    <div class="score-panel" id="scorePanel">
+      Score: <span id="scoreVal">0</span>
+    </div>
+    <div class="fail-panel" id="failPanel">
+      Laser Hits: <span id="failVal">0</span> / 3
+    </div>
+    <div class="controls-row">
+      <button class="jump-btn" id="jumpBtn">JUMP</button>
+      <button class="fire-btn" id="fireBtn">FIRE</button>
+    </div>
+    <div id="gameOverModal" style="display:none"></div>
+  </div>
+  <audio id="jumpSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-arcade-bonus-229.wav" preload="auto"></audio>
+  <audio id="scoreSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-game-ball-tap-2073.wav" preload="auto"></audio>
+  <audio id="fireSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-laser-gun-819.wav" preload="auto"></audio>
+  <audio id="killSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-arcade-bonus-229.wav" preload="auto"></audio>
+  <audio id="failSound" src="https://github.com/nftfan/nftfansbot/raw/refs/heads/main/mixkit-retro-arcade-lose-2027.wav" preload="auto"></audio>
+  <script>
+    // Assets
+    const RIDER_IMG_SRC = "https://i.imgur.com/BFTnmvH.png";
+    const BOX_IMG_SRC = "https://i.imgur.com/0upABKs.png";
+    const TOKEN_IMG_SRC = "https://i.imgur.com/ODP45iQ.png";
+    const LASER_COLOR = "#f0f";
+    const LASER_WIDTH = 18;
+    const BLAST_DURATION = 19;
+    const BULLET_SPEED = 9.5;
+    const TOKEN_SPEED_BASE = 2.7;
+
+    // Default sizes (desktop)
+    let TOKEN_SIZE = 46;
+    let BOX_SIZE = 110;
+    let RIDER_W = 46, RIDER_H = 54;
+    let ROAD_WIDTH = 70;
+    let JUMP_HEIGHT = 80;
+    let JUMP_TIME = 370;
+    const FAIL_LIMIT = 3;
+
+    let width = 760, height = 640;
+    let roadY = 0;
+
+    // State
+    let running = true, score = 0, fails = 0, frameRequest = null;
+    let tokens = [];
+    let boxLaser = null;
+    let laserTimer = 0, laserCooldown = 0;
+    let boxX = 0, boxY = 0;
+    let boxVibrate = 0, boxVibrateFrame = 0;
+    let tokenTimer = 0;
+    let roadOffset = 0, bgOffset = 0;
+    let jumpY = 0, jumping = false, jumpStart = 0;
+    let firesLeft = Infinity; // unlimited
+    let bullets = [];
+    let blasts = [];
+    let frames = 0;
+
+    // Rider fixed position
+    let riderX = 30;
+
+    // DOM
+    const gameBox = document.getElementById("gameBox");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const ctx = gameCanvas.getContext("2d");
+    const scoreVal = document.getElementById("scoreVal");
+    const failVal = document.getElementById("failVal");
+    const gameOverModal = document.getElementById("gameOverModal");
+    const jumpBtn = document.getElementById("jumpBtn");
+    const fireBtn = document.getElementById("fireBtn");
+    const jumpSound = document.getElementById("jumpSound");
+    const scoreSound = document.getElementById("scoreSound");
+    const fireSound = document.getElementById("fireSound");
+    const killSound = document.getElementById("killSound");
+    const failSound = document.getElementById("failSound");
+
+    let riderImg = new window.Image();
+    let boxImg = new window.Image();
+    let tokenImg = new window.Image();
+    riderImg.src = RIDER_IMG_SRC;
+    boxImg.src = BOX_IMG_SRC;
+    tokenImg.src = TOKEN_IMG_SRC;
+
+    function setResponsiveSizes() {
+      // Set smaller sizes on mobile screens
+      let mobile = window.innerWidth < 600 || window.innerHeight < 500;
+      if (mobile) {
+        const vh = Math.max(window.innerHeight, 300);
+        BOX_SIZE = Math.max(60, Math.floor(vh * 0.13));
+        TOKEN_SIZE = Math.max(26, Math.floor(vh * 0.045));
+        RIDER_H = Math.max(28, Math.floor(vh * 0.054));
+        RIDER_W = Math.max(22, Math.floor(RIDER_H * 0.86));
+        ROAD_WIDTH = Math.max(30, Math.floor(vh * 0.10));
+        JUMP_HEIGHT = Math.max(32, Math.floor(vh * 0.08));
+        JUMP_TIME = 260;
+        riderX = 12;
+      } else {
+        BOX_SIZE = 110;
+        TOKEN_SIZE = 46;
+        RIDER_W = 46; RIDER_H = 54;
+        ROAD_WIDTH = 70;
+        JUMP_HEIGHT = 80;
+        JUMP_TIME = 370;
+        riderX = 30;
+      }
+    }
+
+    function resize() {
+      setResponsiveSizes();
+      width = gameBox.offsetWidth;
+      height = gameBox.offsetHeight;
+      gameCanvas.width = width;
+      gameCanvas.height = height;
+      roadY = Math.floor(height/2) - ROAD_WIDTH/2;
+      boxX = width - BOX_SIZE - 12;
+      boxY = roadY + ROAD_WIDTH/2 - BOX_SIZE/2;
+    }
+    window.addEventListener("resize", resize);
+
+    function resetGame() {
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+      resize();
+      score = 0;
+      fails = 0;
+      tokens = [];
+      tokenTimer = 0;
+      bgOffset = 0;
+      roadOffset = 0;
+      running = true;
+      jumpY = 0;
+      jumping = false;
+      bullets = [];
+      blasts = [];
+      boxLaser = null;
+      laserTimer = 0;
+      laserCooldown = 0;
+      boxVibrate = 0;
+      boxVibrateFrame = 0;
+      frames = 0;
+      scoreVal.textContent = score;
+      failVal.textContent = fails;
+      gameOverModal.style.display = "none";
+      frameRequest = requestAnimationFrame(animate);
+    }
+
+    function doJump() {
+      if (!running || jumping) return;
+      jumping = true;
+      jumpStart = performance.now();
+      if (jumpSound) try { jumpSound.currentTime = 0; jumpSound.play(); } catch(e){}
+    }
+    jumpBtn.onclick = doJump;
+    jumpBtn.ontouchstart = function(e){ e.preventDefault(); doJump(); };
+    window.addEventListener("keydown", function(e){
+      if (e.code === "Space" || e.key === " ") doJump();
+      if (e.code === "KeyF" || e.key === "f") doFire();
+    });
+
+    function doFire() {
+      if (!running) return;
+      const riderY = roadY - Math.floor(RIDER_H/2) + ROAD_WIDTH/2 + jumpY + RIDER_H/2;
+      bullets.push({x: riderX + RIDER_W + 4, y: riderY, vy: 0});
+      if (fireSound) try { fireSound.currentTime = 0; fireSound.play(); } catch(e){}
+    }
+    fireBtn.onclick = doFire;
+    fireBtn.ontouchstart = function(e){ e.preventDefault(); doFire(); };
+
+    function maybeBoxLaser() {
+      if (boxLaser || laserCooldown > 0) return;
+      if (Math.random() < 0.012) {
+        boxLaser = {
+          x: boxX,
+          y: boxY + BOX_SIZE/2,
+          active: true,
+          timer: Math.floor(60 + Math.random()*60), // 1-2s
+          fireY: boxY + BOX_SIZE/2 + (Math.random()-0.5)*Math.max(20, BOX_SIZE/4),
+          fired: false
+        };
+      }
+    }
+
+    function emitTokenFromBox() {
+      let tY = boxY + BOX_SIZE/2 + Math.sin(frames*0.05) * (BOX_SIZE/3 - 11);
+      tokens.push({
+        x: boxX - 8,
+        y: tY - TOKEN_SIZE/2,
+        vx: -TOKEN_SPEED_BASE - Math.random()*0.8,
+        vy: (Math.random()-0.5)*1.1,
+        scored: false,
+        failed: false
+      });
+    }
+
+    function animate(now) {
+      frameRequest = requestAnimationFrame(animate);
+      if (!running) return;
+
+      frames++;
+      bgOffset += 2.2;
+      if (bgOffset > height*2) bgOffset -= height*2;
+      roadOffset += 2.1;
+      if (roadOffset > width) roadOffset -= width;
+
+      maybeBoxLaser();
+      if (boxLaser && boxLaser.active) {
+        boxLaser.timer--;
+        if (!boxLaser.fired && boxLaser.timer <= Math.floor((boxLaser.timer+LASER_WIDTH)/2)) {
+          boxLaser.fired = true;
+          tokens.push({
+            x: boxX - 8,
+            y: boxLaser.fireY - TOKEN_SIZE/2,
+            vx: -TOKEN_SPEED_BASE*1.48,
+            vy: 0,
+            isLaserFire: true,
+            scored: false,
+            failed: false,
+            age: 0
+          });
+        }
+        if (boxLaser.timer <= 0) {
+          boxLaser.active = false;
+          boxLaser = null;
+          laserCooldown = Math.floor(60 + Math.random()*70);
+        }
+      }
+      if (laserCooldown > 0) laserCooldown--;
+
+      tokenTimer--;
+      if (tokenTimer <= 0 && !(boxLaser && boxLaser.active)) {
+        emitTokenFromBox();
+        tokenTimer = 40 + Math.floor(Math.random()*20);
+      }
+
+      for (let t of tokens) {
+        t.x += t.vx;
+        t.y += t.vy;
+        t.vy *= 0.98;
+        if (!t.isLaserFire) t.y += Math.sin(frames*0.04 + t.x*0.02) * 0.5;
+        if (t.isLaserFire) t.age = (t.age || 0) + 1;
+      }
+      tokens = tokens.filter(t => t.x > -TOKEN_SIZE && !t.failed);
+
+      for (let b of bullets) b.x += BULLET_SPEED;
+      bullets = bullets.filter(b => b.x < width + 50);
+
+      for (let b of blasts) b.age++;
+      blasts = blasts.filter(b => b.age < BLAST_DURATION);
+
+      if (jumping) {
+        let t = Math.min((performance.now()-jumpStart)/JUMP_TIME, 1.0);
+        jumpY = -Math.sin(t * Math.PI) * JUMP_HEIGHT;
+        if (t >= 1) {
+          jumping = false;
+          jumpY = 0;
+        }
+      }
+
+      for (let b of bullets) {
+        let boxCenterX = boxX + BOX_SIZE/2, boxCenterY = boxY + BOX_SIZE/2;
+        let dx = boxCenterX - b.x;
+        let dy = boxCenterY - b.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < BOX_SIZE/2 - 10) {
+          boxVibrate = 8;
+          boxVibrateFrame = 0;
+          emitTokenFromBox();
+          score++;
+          scoreVal.textContent = score;
+          blasts.push({x: boxCenterX, y: boxCenterY, age: 0});
+          if (scoreSound) try { scoreSound.currentTime = 0; scoreSound.play(); } catch(e){}
+          b.x = width + 5000;
+        }
+      }
+
+      for (let b of bullets) {
+        for (let t of tokens) {
+          if (!t.failed && !t.isLaserFire) {
+            let dx = (t.x + TOKEN_SIZE/2) - b.x;
+            let dy = (t.y + TOKEN_SIZE/2) - b.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < TOKEN_SIZE/2 - 6) {
+              t.failed = true;
+              blasts.push({x: t.x + TOKEN_SIZE/2, y: t.y + TOKEN_SIZE/2, age: 0});
+              if (killSound) try { killSound.currentTime = 0; killSound.play(); } catch(e){}
+              b.x = width + 5000;
+            }
+          }
+        }
+      }
+
+      for (let t of tokens) {
+        if (t.isLaserFire && !t.failed) {
+          let riderY = roadY - Math.floor(RIDER_H/2) + ROAD_WIDTH/2 + jumpY;
+          if (
+            t.x < riderX + RIDER_W - 6 &&
+            t.x + TOKEN_SIZE > riderX + 8 &&
+            t.y + TOKEN_SIZE > riderY + 8 &&
+            t.y < riderY + RIDER_H - 8
+          ) {
+            if (!jumping) {
+              t.failed = true;
+              fails++;
+              failVal.textContent = fails;
+              blasts.push({x: t.x + TOKEN_SIZE/2, y: t.y + TOKEN_SIZE/2, age: 0});
+              if (failSound) try { failSound.currentTime = 0; failSound.play(); } catch(e){}
+              if (fails >= FAIL_LIMIT) {
+                running = false;
+                setTimeout(showGameOver, 500);
+              }
+            } else {
+              t.failed = true;
+              blasts.push({x: t.x + TOKEN_SIZE/2, y: t.y + TOKEN_SIZE/2, age: 0});
+            }
+          }
+        }
+      }
+
+      draw();
+    }
+
+    function drawBackground() {
+      ctx.save();
+      let spacing = 36, lineW = 1.5;
+      ctx.globalAlpha = 0.16;
+      for (let i=-spacing; i<width+height; i+=spacing) {
+        ctx.beginPath();
+        ctx.moveTo(i-bgOffset, 0);
+        ctx.lineTo(i+height-bgOffset, height);
+        ctx.strokeStyle = "#26ffe6";
+        ctx.lineWidth = lineW;
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 7;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.12;
+      for (let y = -24; y < height+24; y += 24) {
+        ctx.beginPath();
+        ctx.moveTo(0, (y + bgOffset/2) % height);
+        ctx.lineTo(width, (y + bgOffset/2) % height);
+        ctx.strokeStyle = "#ff5cfa";
+        ctx.lineWidth = 1.1;
+        ctx.shadowColor = "#ff5cfa";
+        ctx.shadowBlur = 5;
+        ctx.stroke();
+      }
+      for (let x = -24; x < width+24; x += 24) {
+        ctx.beginPath();
+        ctx.moveTo((x + bgOffset/4) % width, 0);
+        ctx.lineTo((x + bgOffset/4) % width, height);
+        ctx.strokeStyle = "#ffd700";
+        ctx.lineWidth = 0.7;
+        ctx.shadowColor = "#ffd700";
+        ctx.shadowBlur = 2;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,width,height);
+      drawBackground();
+
+      // Road
+      ctx.save();
+      ctx.shadowColor = "#26ffe6";
+      ctx.shadowBlur = 13;
+      ctx.fillStyle = "#1b213d";
+      ctx.fillRect(-roadOffset % width, roadY, width*2, ROAD_WIDTH);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // Centerline
+      ctx.save();
+      ctx.setLineDash([9, 14]);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "#ffd700";
+      ctx.beginPath();
+      let startX = -roadOffset % width;
+      ctx.moveTo(startX, roadY + ROAD_WIDTH/2);
+      ctx.lineTo(startX + width*2, roadY + ROAD_WIDTH/2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // Draw boss box (with vibration if hit)
+      let boxDrawX = boxX, boxDrawY = boxY;
+      if (boxVibrate > 0) {
+        boxDrawX += Math.sin(boxVibrateFrame*9) * 4;
+        boxDrawY += Math.cos(boxVibrateFrame*13) * 4;
+        boxVibrate--;
+        boxVibrateFrame++;
+      }
+      ctx.save();
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = 0.97;
+      ctx.drawImage(boxImg, boxDrawX, boxDrawY, BOX_SIZE, BOX_SIZE);
+      ctx.restore();
+
+      // Tokens (score tokens and laser fire projectiles)
+      for (let t of tokens) {
+        if (!t.failed) {
+          ctx.save();
+          if (t.isLaserFire) {
+            ctx.shadowColor = LASER_COLOR;
+            ctx.shadowBlur = 16;
+            ctx.globalAlpha = 0.98;
+            ctx.save();
+            ctx.translate(t.x + TOKEN_SIZE/2, t.y + TOKEN_SIZE/2);
+            ctx.rotate(frames * 0.15);
+            ctx.beginPath();
+            ctx.arc(0, 0, TOKEN_SIZE/2, 0, Math.PI*2);
+            ctx.fillStyle = '#f0f';
+            ctx.globalAlpha = 0.45;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.drawImage(tokenImg, -TOKEN_SIZE/2, -TOKEN_SIZE/2, TOKEN_SIZE, TOKEN_SIZE);
+            ctx.restore();
+          } else {
+            ctx.shadowColor = "#ffd700";
+            ctx.shadowBlur = 8;
+            ctx.globalAlpha = 0.98;
+            ctx.drawImage(tokenImg, t.x, t.y, TOKEN_SIZE, TOKEN_SIZE);
+          }
+          ctx.restore();
+        }
+      }
+
+      // Neon Blasts
+      for (let b of blasts) {
+        let r = 10 + b.age * 2.1;
+        let alpha = 0.17 * (1 - b.age / BLAST_DURATION);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        let grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+        grad.addColorStop(0, "#fff");
+        grad.addColorStop(0.5, "#26ffe6");
+        grad.addColorStop(1, "rgba(38,255,230,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Bullets
+      for (let b of bullets) {
+        ctx.save();
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 12;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "#26ffe6";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 7, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Rider
+      let riderY = roadY - Math.floor(RIDER_H/2) + ROAD_WIDTH/2;
+      ctx.save();
+      ctx.shadowColor = "#ff5cfa";
+      ctx.shadowBlur = 10;
+      ctx.drawImage(riderImg, riderX, riderY + jumpY, RIDER_W, RIDER_H);
+      ctx.restore();
+    }
+
+    function showGameOver() {
+      gameOverModal.innerHTML = `
+        <div class="gameover-modal">
+          <div class="gameover-title">Game Over</div>
+          <div class="gameover-score">
+            Score: ${score} <br>
+            Laser Hits: ${fails} / ${FAIL_LIMIT} <br>
+          </div>
+          <button class="restart-btn" id="restartBtn">Restart</button>
+        </div>
+      `;
+      gameOverModal.style.display = "flex";
+      setTimeout(() => {
+        const btn = document.getElementById("restartBtn");
+        if (btn) btn.onclick = resetGame;
+      }, 0);
+    }
+    window.resetGame = resetGame;
+
+    // Wait for images to load before starting
+    let imagesLoaded = 0;
+    function onImgLoad() {
+      imagesLoaded++;
+      if (imagesLoaded === 3) resetGame();
+    }
+    riderImg.onload = onImgLoad;
+    boxImg.onload = onImgLoad;
+    tokenImg.onload = onImgLoad;
+    if (riderImg.complete) onImgLoad();
+    if (boxImg.complete) onImgLoad();
+    if (tokenImg.complete) onImgLoad();
+
+    // Responsive sizes on load as well
+    window.addEventListener('DOMContentLoaded', setResponsiveSizes);
+  </script>
+</body>
+</html>
