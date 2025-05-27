@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Address Extractor with History</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .instructions {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        .storage-info {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            font-size: 14px;
+        }
+        
+        .storage-info .highlight {
+            color: #00e6e6;
+            font-weight: bold;
+        }
+        
+        textarea {
+            width: 90%;
+            max-width: 600px;
+            height: 200px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 10px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        textarea::placeholder {
+            color: #888;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background: #3700b3;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        .danger-button {
+            background: #d32f2f;
+        }
+        
+        .danger-button:hover {
+            background: #b71c1c;
+        }
+        
+        .wallet-stats {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
+            color: #00e6e6;
+        }
+        
+        .extraction-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00e6e6;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .new-wallets {
+            color: #4caf50;
+        }
+        
+        .duplicate-wallets {
+            color: #ff9800;
+        }
+        
+        .wallet-container {
+            width: 90%;
+            max-width: 600px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .wallet-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .wallet-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #333;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            background: transparent;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .wallet-item:hover {
+            background: #2a2a2a;
+        }
+        
+        .wallet-item:last-child {
+            border-bottom: none;
+        }
+        
+        .wallet-item.new-wallet {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .wallet-item.duplicate-wallet {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .wallet-number {
+            color: #888;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .wallet-status {
+            margin-left: auto;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-new {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-duplicate {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .tab-button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .tab-button.active {
+            background: #6200ea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+        }
+        
+        #notification.show {
+            display: block;
+            animation: fadeInOut 3s forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .history-search {
+            width: 90%;
+            max-width: 600px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .clickable {
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.3s;
+        }
+        
+        .clickable:hover {
+            color: #66d9ef;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: #1e1e1e;
+            margin: 2% auto;
+            padding: 0;
+            border: 1px solid #333;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #00e6e6;
+        }
+        
+        .close {
+            color: #888;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close:hover {
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .modal-search {
+            width: 100%;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .modal-search::placeholder {
+            color: #888;
+        }
+        
+        .modal-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .modal-stat {
+            flex: 1;
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .modal-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00e6e6;
+        }
+        
+        .modal-stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .modal-wallet-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        
+        .modal-wallet-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #444;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            transition: background-color 0.2s;
+        }
+        
+        .modal-wallet-item:hover {
+            background: #333;
+        }
+        
+        .modal-wallet-item:last-child {
+            border-bottom: none;
+        }
+        
+        .extraction-summary {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .summary-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00e6e6;
+            margin-bottom: 15px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-stat {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        
+        .summary-stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .summary-stat-label {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .summary-new {
+            color: #4caf50;
+        }
+        
+        .summary-duplicate {
+            color: #ff9800;
+        }
+        
+        .summary-total {
+            color: #00e6e6;
+        }
+    </style>
+</head>
+<body>
+    <h2>🔗 Enhanced Wallet Address Extractor</h2>
+    
+    <div class="storage-info">
+        📊 Database Status: <span id="dbStatus" class="highlight clickable" onclick="showDatabaseModal()" title="Click to view all stored wallets">Loading...</span> | 
+        Last Updated: <span id="lastUpdated" class="highlight">Never</span>
+    </div>
+    
+    <div class="instructions">
+        <p><strong>🆕 NEW: Persistent Wallet Database!</strong></p>
+        <p>This tool now remembers ALL wallet addresses you've ever extracted. It will only show you NEW wallets that haven't been seen before, helping you avoid duplicates across multiple extractions.</p>
+        <hr style="border-color: #333; margin: 15px 0;">
+        <p><strong>How to use:</strong></p>
+        <p>1. Go to any airdrop post on X (Twitter) and open the comments</p>
+        <p>2. Zoom out your browser to 25% and select all text with Ctrl+A</p>
+        <p>3. Paste the text below and click "Extract New Wallets"</p>
+        <p>4. Only NEW unique wallets will be highlighted and can be copied</p>
+    </div>
+    
+    <textarea id="inputText" placeholder="Paste your text here... The tool will find all wallet addresses and show only NEW ones not in your database"></textarea>
+    
+    <div class="button-group">
+        <button onclick="extractWallets()">🔍 Extract New Wallets</button>
+        <button id="copyNewButton" onclick="copyNewWallets()" disabled>📋 Copy New Wallets</button>
+        <button id="copyAllButton" onclick="copyAllWallets()" disabled>📋 Copy All Current</button>
+        <button onclick="clearCurrent()">🗑️ Clear Current</button>
+        <button class="danger-button" onclick="clearDatabase()">⚠️ Clear Database</button>
+    </div>
+    
+    <div id="extractionStats" class="extraction-stats" style="display: none;"></div>
+    
+    <div class="tabs">
+        <button class="tab-button active" onclick="switchTab('current')">Current Extraction</button>
+        <button class="tab-button" onclick="switchTab('history')">Database History (<span id="historyCount">0</span>)</button>
+    </div>
+    
+    <div id="currentTab" class="tab-content active">
+        <div id="currentContainer" class="wallet-container" style="display: none;">
+            <ul id="currentList" class="wallet-list"></ul>
+        </div>
+    </div>
+    
+    <div id="historyTab" class="tab-content">
+        <input type="text" id="historySearch" class="history-search" placeholder="Search wallet addresses..." oninput="filterHistory()">
+        <div id="historyContainer" class="wallet-container">
+            <ul id="historyList" class="wallet-list"></ul>
+        </div>
+    </div>
+    
+    <div id="notification"></div>
+
+    <script>
+        let currentWallets = [];
+        let newWallets = [];
+        let duplicateWallets = [];
+        let walletDatabase = new Set();
+
+        // Initialize the application
+        function init() {
+            loadDatabase();
+            updateDatabaseStatus();
+            displayHistory();
+        }
+
+        // Load wallet database from localStorage
+        function loadDatabase() {
+            const saved = localStorage.getItem('walletDatabase');
+            const lastUpdated = localStorage.getItem('walletDatabaseLastUpdated');
+            
+            if (saved) {
+                walletDatabase = new Set(JSON.parse(saved));
+                document.getElementById('lastUpdated').textContent = lastUpdated || 'Unknown';
+            } else {
+                walletDatabase = new Set();
+                document.getElementById('lastUpdated').textContent = 'Never';
+            }
+        }
+
+        // Save wallet database to localStorage
+        function saveDatabase() {
+            localStorage.setItem('walletDatabase', JSON.stringify([...walletDatabase]));
+            localStorage.setItem('walletDatabaseLastUpdated', new Date().toLocaleString());
+            updateDatabaseStatus();
+        }
+
+        // Update database status display
+        function updateDatabaseStatus() {
+            document.getElementById('dbStatus').textContent = `${walletDatabase.size} unique wallets stored`;
+            document.getElementById('historyCount').textContent = walletDatabase.size;
+            document.getElementById('lastUpdated').textContent = localStorage.getItem('walletDatabaseLastUpdated') || 'Never';
+        }
+
+        function extractWallets() {
+            const text = document.getElementById("inputText").value.trim();
+            
+            if (!text) {
+                showNotification("Please paste some text first!", "error");
+                return;
+            }
+
+            // Regex to match Ethereum addresses (0x followed by 40 hexadecimal characters)
+            const regex = /0x[a-fA-F0-9]{40}/g;
+            const matches = text.match(regex);
+            
+            if (!matches || matches.length === 0) {
+                showNotification("No wallet addresses found in the text", "error");
+                displayEmptyState();
+                return;
+            }
+
+            // Remove duplicates from current extraction
+            const uniqueMatches = [...new Set(matches)];
+            
+            // Separate new wallets from duplicates
+            newWallets = [];
+            duplicateWallets = [];
+            
+            uniqueMatches.forEach(wallet => {
+                if (walletDatabase.has(wallet)) {
+                    duplicateWallets.push(wallet);
+                } else {
+                    newWallets.push(wallet);
+                    walletDatabase.add(wallet); // Add to database immediately
+                }
+            });
+
+            currentWallets = [...newWallets, ...duplicateWallets];
+            
+            // Save updated database
+            saveDatabase();
+            
+            // Display results
+            displayCurrentExtraction();
+            displayHistory(); // Update history display
+            
+            // Show notification
+            if (newWallets.length > 0) {
+                showNotification(`Found ${newWallets.length} NEW wallet addresses! (${duplicateWallets.length} were already in database)`, "success");
+            } else {
+                showNotification(`No new wallets found. All ${duplicateWallets.length} addresses were already in your database.`, "info");
+            }
+        }
+
+        function displayCurrentExtraction() {
+            const currentList = document.getElementById("currentList");
+            const currentContainer = document.getElementById("currentContainer");
+            const extractionStats = document.getElementById("extractionStats");
+            
+            currentList.innerHTML = "";
+            
+            if (currentWallets.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            // Display statistics
+            extractionStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number new-wallets">${newWallets.length}</div>
+                    <div class="stat-label">New Wallets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number duplicate-wallets">${duplicateWallets.length}</div>
+                    <div class="stat-label">Already in Database</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${currentWallets.length}</div>
+                    <div class="stat-label">Total Found</div>
+                </div>
+            `;
+            extractionStats.style.display = "grid";
+            
+            // Display new wallets first, then duplicates
+            let index = 1;
+            
+            // Display new wallets
+            newWallets.forEach(wallet => {
+                const li = document.createElement("li");
+                li.className = "wallet-item new-wallet";
+                li.innerHTML = `
+                    <span class="wallet-number">${index}.</span>
+                    <span>${wallet}</span>
+                    <span class="wallet-status status-new">NEW</span>
+                `;
+                currentList.appendChild(li);
+                index++;
+            });
+            
+            // Display duplicate wallets
+            duplicateWallets.forEach(wallet => {
+                const li = document.createElement("li");
+                li.className = "wallet-item duplicate-wallet";
+                li.innerHTML = `
+                    <span class="wallet-number">${index}.</span>
+                    <span>${wallet}</span>
+                    <span class="wallet-status status-duplicate">DUPLICATE</span>
+                `;
+                currentList.appendChild(li);
+                index++;
+            });
+            
+            currentContainer.style.display = "block";
+            
+            // Enable/disable buttons
+            document.getElementById("copyNewButton").disabled = newWallets.length === 0;
+            document.getElementById("copyAllButton").disabled = currentWallets.length === 0;
+        }
+
+        function displayHistory() {
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = "";
+            
+            if (walletDatabase.size === 0) {
+                const emptyState = document.createElement("div");
+                emptyState.className = "empty-state";
+                emptyState.textContent = "No wallet addresses in database yet. Extract some wallets to build your database!";
+                historyList.appendChild(emptyState);
+                return;
+            }
+
+            const allWallets = [...walletDatabase].sort();
+            allWallets.forEach((wallet, index) => {
+                const li = document.createElement("li");
+                li.className = "wallet-item";
+                li.innerHTML = `<span class="wallet-number">${index + 1}.</span>${wallet}`;
+                historyList.appendChild(li);
+            });
+        }
+
+        function filterHistory() {
+            const searchTerm = document.getElementById("historySearch").value.toLowerCase();
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = "";
+            
+            if (walletDatabase.size === 0) {
+                const emptyState = document.createElement("div");
+                emptyState.className = "empty-state";
+                emptyState.textContent = "No wallet addresses in database yet.";
+                historyList.appendChild(emptyState);
+                return;
+            }
+
+            const allWallets = [...walletDatabase].sort();
+            const filteredWallets = searchTerm ? 
+                allWallets.filter(wallet => wallet.toLowerCase().includes(searchTerm)) : 
+                allWallets;
+
+            if (filteredWallets.length === 0) {
+                const emptyState = document.createElement("div");
+                emptyState.className = "empty-state";
+                emptyState.textContent = `No wallets found matching "${searchTerm}"`;
+                historyList.appendChild(emptyState);
+                return;
+            }
+
+            filteredWallets.forEach((wallet, index) => {
+                const li = document.createElement("li");
+                li.className = "wallet-item";
+                li.innerHTML = `<span class="wallet-number">${index + 1}.</span>${wallet}`;
+                historyList.appendChild(li);
+            });
+        }
+
+        function displayEmptyState() {
+            const currentList = document.getElementById("currentList");
+            const currentContainer = document.getElementById("currentContainer");
+            const extractionStats = document.getElementById("extractionStats");
+            
+            currentList.innerHTML = "";
+            extractionStats.style.display = "none";
+            
+            const emptyState = document.createElement("div");
+            emptyState.className = "empty-state";
+            emptyState.textContent = "No wallet addresses found in the provided text. Make sure the text contains valid Ethereum addresses starting with 0x.";
+            currentList.appendChild(emptyState);
+            currentContainer.style.display = "block";
+            
+            document.getElementById("copyNewButton").disabled = true;
+            document.getElementById("copyAllButton").disabled = true;
+        }
+
+        function copyNewWallets() {
+            if (newWallets.length === 0) {
+                showNotification("No new wallets to copy!", "error");
+                return;
+            }
+
+            const walletsText = newWallets.join('\n');
+            copyToClipboard(walletsText, `Copied ${newWallets.length} NEW wallet addresses to clipboard!`);
+        }
+
+        function copyAllWallets() {
+            if (currentWallets.length === 0) {
+                showNotification("No wallets to copy!", "error");
+                return;
+            }
+
+            const walletsText = currentWallets.join('\n');
+            copyToClipboard(walletsText, `Copied ${currentWallets.length} wallet addresses to clipboard!`);
+        }
+
+        function copyToClipboard(text, successMessage) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(successMessage, "success");
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                showNotification(successMessage, "success");
+            });
+        }
+
+        function clearCurrent() {
+            document.getElementById("inputText").value = "";
+            document.getElementById("currentList").innerHTML = "";
+            document.getElementById("currentContainer").style.display = "none";
+            document.getElementById("extractionStats").style.display = "none";
+            document.getElementById("copyNewButton").disabled = true;
+            document.getElementById("copyAllButton").disabled = true;
+            
+            currentWallets = [];
+            newWallets = [];
+            duplicateWallets = [];
+            
+            showNotification("Cleared current extraction", "success");
+        }
+
+        function clearDatabase() {
+            if (confirm("⚠️ Are you sure you want to clear the entire wallet database? This action cannot be undone!")) {
+                walletDatabase.clear();
+                localStorage.removeItem('walletDatabase');
+                localStorage.removeItem('walletDatabaseLastUpdated');
+                
+                updateDatabaseStatus();
+                displayHistory();
+                clearCurrent();
+                
+                showNotification("Database cleared successfully", "success");
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Add active to selected tab button
+            event.target.classList.add('active');
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            
+            // Set color based on type
+            if (type === 'error') {
+                notification.style.backgroundColor = '#f44336';
+            } else if (type === 'success') {
+                notification.style.backgroundColor = '#4caf50';
+            } else if (type === 'info') {
+                notification.style.backgroundColor = '#2196f3';
+            } else {
+                notification.style.backgroundColor = '#ff9800';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Allow Enter key to trigger extraction
+        document.getElementById('inputText').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                extractWallets();
+            }
+        });
+
+        // Initialize the application when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
