@@ -49,7 +49,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 6px 2px 24px 2px;
+            padding: 6px 0 24px 0;
             position: relative;
         }
         .header {
@@ -57,6 +57,7 @@
             margin-bottom: 6px;
             z-index: 10;
             position: relative;
+            width: 100%;
         }
         .app-title {
             font-size: 18px;
@@ -82,10 +83,11 @@
             letter-spacing: 1px;
             text-shadow: 0 1px 8px #00f5ff40;
         }
+
         /* Tabs styling */
         .score-tabs {
-            width: 98vw;
-            max-width: 500px;
+            width: 100%;
+            max-width: 450px;
             margin: 7px auto 0 auto;
             display: flex;
             justify-content: center;
@@ -119,8 +121,8 @@
             color: var(--accent-yellow);
         }
         .score-content {
-            width: 98vw;
-            max-width: 500px;
+            width: 100%;
+            max-width: 450px;
             background: var(--bg-card);
             border: 1.2px solid var(--border-primary);
             border-radius: var(--radius);
@@ -159,10 +161,10 @@
             color: var(--accent-pink);
             font-size: 10px;
         }
-        /* Timer bar */
+
         .timer-section {
-            width: 100vw;
-            max-width: 100vw;
+            width: 100%;
+            max-width: 450px;
             text-align: center;
             margin-bottom: 8px;
             margin-top: 3px;
@@ -176,6 +178,8 @@
             padding: 6px 0 3px 0;
             border: 1px solid var(--accent-yellow);
             display: none;
+            margin-left: auto;
+            margin-right: auto;
         }
         .wallet-section {
             margin-bottom: 5px;
@@ -183,6 +187,8 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
+            width: 100%;
+            max-width: 450px;
         }
         .btn-connect {
             padding: 6px 10px;
@@ -224,8 +230,8 @@
             background: linear-gradient(90deg, #0f0f1a 0%, #1a1a2e 100%);
         }
         .main-container {
-            width: 100vw;
-            max-width: 100vw;
+            width: 100%;
+            max-width: 450px;
             background: var(--bg-card);
             border: 1.2px solid var(--border-primary);
             border-radius: var(--radius);
@@ -322,7 +328,7 @@
             width: 42px;
             height: 42px;
             position: fixed;
-            top: 48%;
+            top: 67%;
             left: 0;
             z-index: 100;
             animation: moveIcon 2.5s linear infinite alternate;
@@ -539,9 +545,50 @@
         .notification.error { border-color: var(--error); color: var(--error); box-shadow: var(--glow-error);}
         .notification.info { border-color: var(--accent-neon); color: var(--accent-neon);}
         .notification.warning { border-color: var(--warning); color: var(--warning);}
+        /* 50wallets bar */
+        #wallets50Bar {
+            width: 100vw;
+            background: var(--bg-tertiary);
+            border-top: 1.5px solid var(--border-neon);
+            box-shadow: 0 0 10px #00f5ff44;
+            padding: 11px 0 7px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            left: 0;
+            bottom: 52px;
+            z-index: 900;
+        }
+        #wallets50Bar a {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 14px;
+            color: var(--accent-neon);
+            text-decoration: none;
+            font-family: var(--font-main);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #00f5ff22 0%, #8b5cf622 100%);
+            padding: 7px 20px;
+            box-shadow: 0 0 12px #00f5ff44;
+            transition: background 0.18s, color 0.18s;
+        }
+        #wallets50Bar a:hover {
+            background: var(--rainbow);
+            color: #0a0a0f;
+        }
+        #wallets50Bar img {
+            filter: drop-shadow(0 0 8px #00f5ffcc);
+            margin-right: 3px;
+        }
+
         @media (max-width: 480px) {
-            .main-container, .score-tabs, .score-content { max-width: 98vw; }
+            .main-container, .score-tabs, .score-content, .timer-section, .wallet-section { max-width: 99vw; }
             .btn-primary.fixed { width: 96vw; }
+            #wallets50Bar { max-width: 100vw; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
@@ -631,10 +678,20 @@ The system will automatically extract and organize all valid 0x addresses."
             <div class="completion-subtitle">All tokens have been successfully distributed</div>
         </div>
     </div>
+    <!-- New action bar/tab for Get 50 wallets -->
+    <div id="wallets50Bar">
+        <a href="https://www.nftfanstoken.com/50wallets/" 
+           target="_blank" 
+           rel="noopener">
+            <img src="https://i.imgur.com/l3Rkr8X.png" alt="wallets" width="22" height="22">
+            Get 50 wallets
+        </a>
+    </div>
     <div class="notification-footer">
         <span class="notification" id="notification"></span>
     </div>
     <script>
+        // ========== CONFIG ==========================
         const contractAddress = "0x21F84165e0308067404ffD7E1Febe8853731D08b";
         const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
         const STORAGE_KEY = 'airdrop_wallets';
@@ -645,8 +702,17 @@ The system will automatically extract and organize all valid 0x addresses."
         let web3, contract, userAccount, pendingWallets = [];
         let currentBatchIndex = 0, isCooldownActive = false, cooldownTimer = null, cooldownLeft = 0;
         const walletsPerBatch = 50;
-        const abi = [/* ...same as before... */{"inputs":[{"internalType":"address","name":"_tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":true,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensDistributed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"depositor","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensDeposited","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensWithdrawn","type":"event"},{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"depositTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdrawTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"distributeCustomAmount","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"getContractBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"batchSize","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+        const abi = [{"inputs":[{"internalType":"address","name":"_tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":true,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensDistributed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"depositor","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensDeposited","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"TokensWithdrawn","type":"event"},{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"depositTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdrawTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"distributeCustomAmount","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"getContractBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"batchSize","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
 
+        // ========== SCORE TABS LOGIC ================
+        function switchScoreTab(tab) {
+            document.querySelectorAll('.score-tab').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.score-content').forEach(div => div.classList.remove('selected'));
+            document.getElementById('tab-' + tab).classList.add('selected');
+            document.getElementById('scoreContent-' + tab).classList.add('selected');
+        }
+
+        // ========== INIT ============================
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletsFromStorage();
             updateUI();
@@ -654,14 +720,6 @@ The system will automatically extract and organize all valid 0x addresses."
             checkAndRestoreCooldown();
             updateScoreBar();
         });
-
-        // Tabs logic
-        function switchScoreTab(tab) {
-            document.querySelectorAll('.score-tab').forEach(btn => btn.classList.remove('selected'));
-            document.querySelectorAll('.score-content').forEach(div => div.classList.remove('selected'));
-            document.getElementById('tab-' + tab).classList.add('selected');
-            document.getElementById('scoreContent-' + tab).classList.add('selected');
-        }
 
         function handleTextInput() {
             const textarea = document.getElementById('walletInput');
@@ -749,6 +807,7 @@ The system will automatically extract and organize all valid 0x addresses."
             }
         }
         function updateScoreBar() {
+            // Always use localStorage so it persists
             const total = getTotalSentWallets();
             const prevData = JSON.parse(localStorage.getItem(PREV_COMPLETED_KEY) || '{}');
             const today = (new Date()).toISOString().slice(0, 10);
