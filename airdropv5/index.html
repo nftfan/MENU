@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Fans Airdrop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg-glass: rgba(255,255,255,0.08);
+            --bg-glass-blur: blur(14px);
+            --border: rgba(99,102,241,0.08);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
+            --radius: 16px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #23233b 0%, #35357a 100%);
+            font-family: var(--font-main);
+            color: #fff;
+            font-size: 16px;
+        }
+        .wrapper {
+            width: 100%;
+            max-width: 420px;
+            margin: 40px auto;
+            background: var(--bg-glass);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--bg-glass-blur);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+            position: relative;
+        }
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .step {
+            flex: 1;
+            position: relative;
+            text-align: center;
+            color: #a5b4fc;
+            font-weight: 600;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        .step.active {
+            color: var(--primary);
+            opacity: 1;
+        }
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -50%;
+            top: 50%;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #a5b4fc 0%, var(--primary) 100%);
+            z-index: -1;
+            transform: translateY(-50%);
+            opacity: 0.2;
+        }
+        .glass-card {
+            background: var(--bg-glass);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px 22px;
+            margin: 0;
+            border: 1.5px solid var(--border);
+            animation: fadeIn 0.7s;
+        }
+        .glass-card[aria-hidden="true"] {
+            opacity: 0.3;
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+        .main-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(90deg, var(--primary), #a5b4fc 60%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: #c7d2fe;
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+        .connect-btn, .action-btn, .batch-nav-btn {
+            width: 100%;
+            padding: 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+            cursor: pointer;
+            transition: background 0.18s, transform 0.18s;
+            outline: none;
+            margin-top: 10px;
+        }
+        .connect-btn:active, .action-btn:active, .batch-nav-btn:active {
+            background: var(--primary-dark);
+            transform: scale(0.98);
+        }
+        .connect-btn[disabled], .action-btn[disabled] {
+            background: #a5b4fc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .wallet-address {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #d1fae5;
+            background: rgba(16,185,129,0.14);
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #34d39920;
+            animation: fadeIn 0.55s;
+        }
+        .input-label {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .wallet-input {
+            width: 100%;
+            min-height: 90px;
+            max-height: 200px;
+            font-size: 13px;
+            font-family: 'Fira Mono', 'Courier New', monospace;
+            background: rgba(30,41,59,.20);
+            border: 1.5px solid #a5b4fc50;
+            border-radius: 10px;
+            padding: 12px 9px;
+            color: #fff;
+            margin-bottom: 10px;
+            resize: vertical;
+            transition: border 0.18s;
+        }
+        .wallet-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        .wallet-list-preview {
+            background: rgba(99,102,241,0.08);
+            border: 1.2px solid #a5b4fc30;
+            border-radius: 10px;
+            font-size: 12px;
+            font-family: 'Fira Mono', 'Courier New', monospace;
+            color: #a5b4fc;
+            padding: 10px 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .batch-controls {
+            display: flex;
+            gap: 12px;
+            margin: 10px 0;
+        }
+        .batch-nav-btn {
+            background: rgba(99,102,241,0.28);
+            color: #fff;
+            font-size: 13px;
+            width: auto;
+            flex: 1;
+            padding: 10px 0;
+        }
+        .notification {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 14px 0 0 0;
+            opacity: 0;
+            pointer-events: none;
+            min-height: 40px;
+            transition: opacity 0.6s;
+        }
+        .notification.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .notification.success { background: rgba(16,185,129,0.15); color: var(--success);}
+        .notification.error { background: rgba(239,68,68,0.15); color: var(--error);}
+        .notification.info { background: rgba(99,102,241,0.10); color: var(--primary);}
+        .notification svg { width: 20px; height: 20px; }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 10px 0 0 0;
+        }
+        .stat-block {
+            flex: 1;
+            background: rgba(99,102,241,0.10);
+            padding: 12px 0;
+            border-radius: 9px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #a5b4fc;
+            letter-spacing: 0.5px;
+        }
+        .progress-bar-outer {
+            width: 100%;
+            background: rgba(99,102,241,0.08);
+            border-radius: 8px;
+            height: 11px;
+            margin: 16px 0 0 0;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--primary) 100%);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.7s cubic-bezier(.82,0,.07,1);
+        }
+        .completion-message {
+            text-align: center;
+            margin: 20px 0 0 0;
+            animation: fadeInUp 1s;
+        }
+        .completion-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--success);
+        }
+        .completion-subtitle {
+            font-size: 15px;
+            color: #d1fae5;
+            margin-top: 6px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px);}
+            to { opacity: 1; transform: none;}
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px);}
+            to { opacity: 1; transform: none;}
+        }
+
+        @media (max-width: 600px) {
+            .wrapper { padding: 16px 5vw;}
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+    <!-- Progress Steps -->
+    <div class="progress-steps" id="progressSteps">
+        <div class="step" id="step0">Connect</div>
+        <div class="step" id="step1">Wallets</div>
+        <div class="step" id="step2">Batch</div>
+        <div class="step" id="step3">Airdrop</div>
+    </div>
+
+    <!-- Step 1: Connect Wallet -->
+    <div class="glass-card" id="cardConnect">
+        <div class="main-title">NFT Fans Airdrop</div>
+        <div class="subtitle">Step 1: Connect your wallet to begin</div>
+        <button class="connect-btn" id="connectBtn" onclick="connectMetamask()">Connect MetaMask</button>
+        <div id="connectedWallet" class="wallet-address" style="display:none;"></div>
+    </div>
+
+    <!-- Step 2: Paste Wallets -->
+    <div class="glass-card" id="cardPaste" aria-hidden="true">
+        <div class="subtitle">Step 2: Paste or type wallet addresses (0x...)</div>
+        <label class="input-label" for="walletInput">Wallet addresses (comma, space, or newline separated):</label>
+        <textarea class="wallet-input" id="walletInput" placeholder="0x1234...&#10;0xabcd..."></textarea>
+        <button class="action-btn" id="organizeBtn" onclick="organizeWallets()" disabled>Organize & Validate</button>
+        <div class="wallet-list-preview" id="walletPreview" style="display:none;"></div>
+    </div>
+
+    <!-- Step 3: Review Batch -->
+    <div class="glass-card" id="cardBatch" aria-hidden="true">
+        <div class="subtitle">Step 3: Review & select batch</div>
+        <div class="wallet-list-preview" id="batchPreview"></div>
+        <div class="batch-controls">
+            <button class="batch-nav-btn" id="btnPrevBatch" onclick="prevBatch()">&larr; Prev</button>
+            <button class="batch-nav-btn" id="btnNextBatch" onclick="nextBatch()">Next &rarr;</button>
+        </div>
+        <div style="text-align:center;font-size:13px;color:#a5b4fc;" id="batchInfo"></div>
+    </div>
+
+    <!-- Step 4: Distribute -->
+    <div class="glass-card" id="cardAirdrop" aria-hidden="true">
+        <div class="subtitle">Step 4: Distribute tokens to batch</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+        <button class="action-btn" id="distributeBtn" onclick="distributeTokens()" disabled>Send Tokens</button>
+        <div class="stats">
+            <div class="stat-block"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total</div></div>
+            <div class="stat-block"><div class="stat-value" id="statSent">0</div><div class="stat-label">Sent</div></div>
+            <div class="stat-block"><div class="stat-value" id="statRemain">0</div><div class="stat-label">Remain</div></div>
+        </div>
+        <div class="completion-message" id="completionMsg" style="display:none;">
+            <div class="completion-title">Airdrop Complete! 🎉</div>
+            <div class="completion-subtitle">All tokens have been distributed successfully.</div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification" aria-live="polite"></div>
+</div>
+<script>
+    // ---- CONFIG ----
+    const contractAddress = "0x21F84165e0308067404ffD7E1Febe8853731D08b";
+    const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+    const STORAGE_KEY = 'airdrop_wallets_new';
+    let web3, contract, userAccount;
+    let allWallets = [];
+    let sentWallets = 0;
+    let currentBatchIdx = 0;
+    const walletsPerBatch = 50;
+
+    // ---- STEPS ----
+    let step = 0;
+    function setStep(n) {
+        step = n;
+        for(let i=0;i<4;i++) {
+            document.getElementById('step'+i).classList.toggle('active', i===n);
+            document.getElementById('cardConnect').setAttribute('aria-hidden', n!==0 ? 'true':'false');
+            document.getElementById('cardPaste').setAttribute('aria-hidden', n!==1 ? 'true':'false');
+            document.getElementById('cardBatch').setAttribute('aria-hidden', n!==2 ? 'true':'false');
+            document.getElementById('cardAirdrop').setAttribute('aria-hidden', n!==3 ? 'true':'false');
+        }
+    }
+    setStep(0);
+
+    // ---- WALLET CONNECT ----
+    async function connectMetamask() {
+        showNotif('Connecting...', 'info');
+        if(window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                document.getElementById('connectedWallet').innerHTML = `<b>Connected:</b> ${userAccount}`;
+                document.getElementById('connectedWallet').style.display = "flex";
+                document.getElementById('connectBtn').style.display = "none";
+                await switchToPolygon();
+                setupContract();
+                showNotif('Wallet connected!', 'success');
+                setTimeout(()=>setStep(1),400);
+            } catch (e) {
+                showNotif('Wallet connection failed', 'error');
+            }
+        } else {
+            showNotif('MetaMask not detected', 'error');
+        }
+    }
+    async function switchToPolygon() {
+        const chainId = "0x89";
+        try {
+            await window.ethereum.request({method: "wallet_switchEthereumChain", params: [{chainId}]});
+        } catch(e) {
+            if(e.code===4902) {
+                await window.ethereum.request({
+                    method:"wallet_addEthereumChain",
+                    params:[{
+                        chainId,
+                        chainName: "Polygon Mainnet",
+                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                        rpcUrls: ["https://polygon-rpc.com/"],
+                        blockExplorerUrls: ["https://polygonscan.com/"]
+                    }]
+                });
+            }
+        }
+    }
+    function setupContract() {
+        contract = new web3.eth.Contract([
+            { "inputs": [ {"internalType": "address", "name": "_tokenAddress", "type": "address"} ], "stateMutability": "nonpayable", "type": "constructor" },
+            { "anonymous": false, "inputs": [ {"indexed": true, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": true, "internalType": "address", "name": "recipient", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"} ], "name": "TokensDistributed", "type": "event" },
+            { "anonymous": false, "inputs": [ {"indexed": true, "internalType": "address", "name": "depositor", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"} ], "name": "TokensDeposited", "type": "event" },
+            { "anonymous": false, "inputs": [ {"indexed": true, "internalType": "address", "name": "owner", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"} ], "name": "TokensWithdrawn", "type": "event" },
+            { "inputs": [ { "internalType": "address[]", "name": "recipients", "type": "address[]" } ], "name": "distributeTokens", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [ { "internalType": "uint256", "name": "amount", "type": "uint256" } ], "name": "depositTokens", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [ { "internalType": "uint256", "name": "amount", "type": "uint256" } ], "name": "withdrawTokens", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [ { "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" } ], "name": "distributeCustomAmount", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [], "name": "getContractBalance", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "batchSize", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+        ], contractAddress);
+    }
+
+    // ---- STEP 2: Organize Wallets ----
+    document.getElementById('walletInput').addEventListener('input', function() {
+        let txt = this.value;
+        let matches = (txt.match(/0x[a-fA-F0-9]{40}/g)||[]);
+        let unique = [...new Set(matches)];
+        document.getElementById('organizeBtn').disabled = unique.length===0;
+        document.getElementById('walletPreview').style.display = unique.length>0?'block':'none';
+        document.getElementById('walletPreview').innerText = unique.join('\n');
+    });
+    function organizeWallets() {
+        let txt = document.getElementById('walletInput').value;
+        let matches = (txt.match(/0x[a-fA-F0-9]{40}/g)||[]);
+        let unique = [...new Set(matches.filter(a=>a))];
+        if(unique.length===0){
+            showNotif('No valid wallet addresses found', 'error');
+            return;
+        }
+        allWallets = unique;
+        sentWallets = 0;
+        currentBatchIdx = 0;
+        saveWallets();
+        showNotif('Wallets organized!', 'success');
+        setTimeout(()=>setStep(2),600);
+        updateBatchUI();
+    }
+    function saveWallets() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({all:allWallets,sent:sentWallets}));
+    }
+    function loadWallets() {
+        let d=localStorage.getItem(STORAGE_KEY);
+        if(d) try{
+            let obj=JSON.parse(d);
+            allWallets = obj.all||[];
+            sentWallets = obj.sent||0;
+        }catch(e){}
+    }
+    loadWallets();
+
+    // ---- STEP 3: Batch Navigation ----
+    function updateBatchUI() {
+        let start = currentBatchIdx*walletsPerBatch;
+        let end = Math.min(start+walletsPerBatch, allWallets.length);
+        let batch = allWallets.slice(start, end);
+        document.getElementById('batchPreview').innerText = batch.join('\n') || '';
+        document.getElementById('batchInfo').innerText = batch.length>0
+            ? `Batch ${currentBatchIdx+1} (${batch.length} wallets)`
+            : 'No wallets in this batch';
+        document.getElementById('btnPrevBatch').disabled = currentBatchIdx===0;
+        document.getElementById('btnNextBatch').disabled = end>=allWallets.length;
+        document.getElementById('distributeBtn').disabled = batch.length===0;
+        // Stats
+        document.getElementById('statTotal').innerText = allWallets.length + sentWallets;
+        document.getElementById('statSent').innerText = sentWallets;
+        document.getElementById('statRemain').innerText = allWallets.length;
+        // Progress bar
+        let percent = (sentWallets/(allWallets.length+sentWallets))*100;
+        document.getElementById('progressBar').style.width = percent+'%';
+        // Completion
+        if(allWallets.length===0 && sentWallets>0){
+            document.getElementById('completionMsg').style.display = 'block';
+        }else{
+            document.getElementById('completionMsg').style.display = 'none';
+        }
+    }
+    function prevBatch() {
+        if(currentBatchIdx>0){currentBatchIdx--;updateBatchUI();}
+    }
+    function nextBatch() {
+        let maxBatch = Math.ceil(allWallets.length/walletsPerBatch)-1;
+        if(currentBatchIdx<maxBatch){currentBatchIdx++;updateBatchUI();}
+    }
+
+    // ---- STEP 4: Distribute ----
+    async function distributeTokens() {
+        if(!userAccount||!contract) { showNotif('Connect wallet first','error'); return;}
+        let start = currentBatchIdx*walletsPerBatch;
+        let end = Math.min(start+walletsPerBatch, allWallets.length);
+        let batch = allWallets.slice(start, end);
+        if(batch.length===0){showNotif('No wallets in this batch','error');return;}
+        document.getElementById('distributeBtn').disabled = true;
+        showNotif('Checking contract...','info');
+        try {
+            let contractBalance = await contract.methods.getContractBalance().call();
+            let batchSizeOnChain = await contract.methods.batchSize().call();
+            if(batch.length > parseInt(batchSizeOnChain)){
+                showNotif('Batch too large for contract','error');
+                document.getElementById('distributeBtn').disabled = false;
+                return;
+            }
+            let tokenAmount = BigInt("5000000000") * BigInt("1000000000000000000");
+            let totalNeeded = tokenAmount * BigInt(batch.length);
+            if(BigInt(contractBalance)<totalNeeded){
+                showNotif('Insufficient contract balance for this batch','error');
+                document.getElementById('distributeBtn').disabled = false;
+                return;
+            }
+            showNotif('Confirm transaction in MetaMask...','info');
+            await contract.methods.distributeTokens(batch).send({
+                from:userAccount, gas:3000000
+            });
+            // Remove sent
+            allWallets.splice(start, batch.length);
+            sentWallets += batch.length;
+            saveWallets();
+            showNotif('Tokens sent!','success');
+            updateBatchUI();
+            // Animate progress
+            document.getElementById('progressBar').style.width = ((sentWallets/(allWallets.length+sentWallets))*100)+'%';
+        }catch(e){
+            showNotif('Transaction failed: '+(e && e.message ? e.message : ''),'error');
+        }finally{
+            document.getElementById('distributeBtn').disabled = false;
+        }
+    }
+
+    // ---- Navigation Next/Back ----
+    document.getElementById('btnPrevBatch').onclick = function(){ prevBatch(); }
+    document.getElementById('btnNextBatch').onclick = function(){ nextBatch(); }
+    // Step transitions
+    document.getElementById('organizeBtn').onclick = function(){ organizeWallets(); }
+    document.getElementById('distributeBtn').onclick = function(){ distributeTokens(); }
+    // On step change, update batch UI if needed
+    let oldStep=-1;
+    setInterval(()=>{
+        if(step!==oldStep){
+            if(step===2) updateBatchUI();
+            if(step===3) updateBatchUI();
+            oldStep=step;
+        }
+    },200);
+
+    // ---- Notification System ----
+    function showNotif(msg, type='info'){
+        const notif = document.getElementById('notification');
+        notif.className = `notification show ${type}`;
+        notif.innerHTML = iconForType(type) + msg;
+        notif.setAttribute("aria-live", "polite");
+        setTimeout(()=>notif.className='notification '+type, 3800);
+    }
+    function iconForType(type){
+        if(type==='success') return '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>';
+        if(type==='error') return '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"></path></svg>';
+        return '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"></path></svg>';
+    }
+
+    // ---- Listen wallet changes ----
+    if(window.ethereum){
+        window.ethereum.on('accountsChanged', function (accounts) {
+            if(accounts.length===0){
+                userAccount = null;
+                setStep(0);
+                showNotif('Wallet disconnected', 'error');
+            }
+        });
+    }
+</script>
+</body>
+</html>
