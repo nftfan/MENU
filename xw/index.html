@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Address Extractor</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .instructions {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        textarea {
+            width: 90%;
+            max-width: 600px;
+            height: 200px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 10px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        textarea::placeholder {
+            color: #888;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background: #3700b3;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        .wallet-stats {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
+            color: #00e6e6;
+        }
+        
+        .wallet-container {
+            width: 90%;
+            max-width: 600px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .wallet-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .wallet-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #333;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            background: transparent;
+            transition: background-color 0.2s;
+        }
+        
+        .wallet-item:hover {
+            background: #2a2a2a;
+        }
+        
+        .wallet-item:last-child {
+            border-bottom: none;
+        }
+        
+        .wallet-number {
+            color: #888;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+        }
+        
+        #notification.show {
+            display: block;
+            animation: fadeInOut 3s forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h2>🔗 Wallet Address Extractor</h2>
+    
+    <div class="instructions">
+        <p><strong>How to use this tool:</strong></p>
+        <p>1. Go to any airdrop post on X (Twitter) and open the comments</p>
+        <p>2. Zoom out your browser to 25% and select all text with Ctrl+A</p>
+        <p>3. Paste the text in the box below and click "Extract Wallets"</p>
+        <p>4. All unique EVM wallet addresses (starting with 0x) will be extracted and displayed</p>
+        <p>5. Use "Copy All Wallets" to copy the list to your clipboard</p>
+    </div>
+    
+    <textarea id="inputText" placeholder="Paste your text here... The tool will automatically find all wallet addresses starting with 0x"></textarea>
+    
+    <div class="button-group">
+        <button onclick="extractWallets()">🔍 Extract Wallets</button>
+        <button id="copyButton" onclick="copyAllWallets()" disabled>📋 Copy All Wallets</button>
+        <button id="clearButton" onclick="clearAll()">🗑️ Clear All</button>
+    </div>
+    
+    <div id="walletStats" class="wallet-stats"></div>
+    
+    <div id="walletContainer" class="wallet-container" style="display: none;">
+        <ul id="walletList" class="wallet-list"></ul>
+    </div>
+    
+    <div id="notification"></div>
+
+    <script>
+        let extractedWallets = [];
+
+        function extractWallets() {
+            const text = document.getElementById("inputText").value.trim();
+            
+            if (!text) {
+                showNotification("Please paste some text first!", "error");
+                return;
+            }
+
+            // Regex to match Ethereum addresses (0x followed by 40 hexadecimal characters)
+            const regex = /0x[a-fA-F0-9]{40}/g;
+            const matches = text.match(regex);
+            
+            const walletList = document.getElementById("walletList");
+            const walletContainer = document.getElementById("walletContainer");
+            const walletStats = document.getElementById("walletStats");
+            const copyButton = document.getElementById("copyButton");
+            
+            walletList.innerHTML = "";
+            
+            if (matches && matches.length > 0) {
+                // Remove duplicates and sort
+                extractedWallets = [...new Set(matches)].sort();
+                
+                // Display statistics
+                walletStats.textContent = `Found ${extractedWallets.length} unique wallet addresses`;
+                
+                // Display all wallets
+                extractedWallets.forEach((wallet, index) => {
+                    const li = document.createElement("li");
+                    li.className = "wallet-item";
+                    li.innerHTML = `<span class="wallet-number">${index + 1}.</span>${wallet}`;
+                    walletList.appendChild(li);
+                });
+                
+                walletContainer.style.display = "block";
+                copyButton.disabled = false;
+                
+                showNotification(`Successfully extracted ${extractedWallets.length} unique wallet addresses!`, "success");
+            } else {
+                walletStats.textContent = "No wallet addresses found";
+                walletContainer.style.display = "none";
+                copyButton.disabled = true;
+                
+                // Show empty state
+                const emptyState = document.createElement("div");
+                emptyState.className = "empty-state";
+                emptyState.textContent = "No wallet addresses found in the provided text. Make sure the text contains valid Ethereum addresses starting with 0x.";
+                walletList.appendChild(emptyState);
+                walletContainer.style.display = "block";
+                
+                showNotification("No wallet addresses found in the text", "error");
+            }
+        }
+
+        function copyAllWallets() {
+            if (extractedWallets.length === 0) {
+                showNotification("No wallets to copy!", "error");
+                return;
+            }
+
+            // Create text with each wallet on a new line
+            const walletsText = extractedWallets.join('\n');
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(walletsText).then(() => {
+                showNotification(`Copied ${extractedWallets.length} wallet addresses to clipboard!`, "success");
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = walletsText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                showNotification(`Copied ${extractedWallets.length} wallet addresses to clipboard!`, "success");
+            });
+        }
+
+        function clearAll() {
+            document.getElementById("inputText").value = "";
+            document.getElementById("walletList").innerHTML = "";
+            document.getElementById("walletContainer").style.display = "none";
+            document.getElementById("walletStats").textContent = "";
+            document.getElementById("copyButton").disabled = true;
+            extractedWallets = [];
+            
+            showNotification("Cleared all data", "success");
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            
+            // Set color based on type
+            if (type === 'error') {
+                notification.style.backgroundColor = '#f44336';
+            } else if (type === 'success') {
+                notification.style.backgroundColor = '#4caf50';
+            } else {
+                notification.style.backgroundColor = '#2196f3';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Allow Enter key to trigger extraction
+        document.getElementById('inputText').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                extractWallets();
+            }
+        });
+    </script>
+</body>
+</html>
