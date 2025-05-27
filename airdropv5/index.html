@@ -52,7 +52,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 6px 2px 6px 2px;
+            padding: 6px 2px 38px 2px;
             position: relative;
         }
 
@@ -60,6 +60,7 @@
             text-align: center;
             margin-bottom: 6px;
             z-index: 10;
+            position: relative;
         }
 
         .app-title {
@@ -86,6 +87,24 @@
             opacity: 0.95;
             letter-spacing: 1px;
             text-shadow: 0 1px 8px #00f5ff40;
+        }
+
+        .timer-section {
+            width: 100vw;
+            max-width: 100vw;
+            text-align: center;
+            margin-bottom: 8px;
+            margin-top: 3px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            letter-spacing: 0.8px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            box-shadow: 0 0 10px #ffe70022;
+            padding: 6px 0 3px 0;
+            border: 1px solid var(--accent-yellow);
+            display: none;
         }
 
         .wallet-section {
@@ -222,6 +241,17 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+        .btn-primary.fixed {
+            position: fixed;
+            bottom: 48px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            z-index: 30;
+            opacity: 1;
+            pointer-events: none;
+            filter: grayscale(0.2) brightness(0.95);
         }
         .btn-secondary {
             width: 100%;
@@ -456,6 +486,7 @@
             text-align: center;
             padding: 7px 0;
             display: none;
+            min-height: 80px;
         }
         .completion-icon {
             font-size: 17px;
@@ -472,6 +503,15 @@
             font-size: 7px;
             color: var(--text-secondary);
         }
+        @media (max-width: 480px) {
+            .main-container,
+            .timer-section {
+                max-width: 98vw;
+            }
+            .btn-primary.fixed {
+                width: 96vw;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
 </head>
@@ -479,6 +519,9 @@
     <div class="header">
         <div class="app-title">NFT FANS AIRDROP</div>
         <div class="app-subtitle">Professional Token Distribution System</div>
+    </div>
+    <div class="timer-section" id="timerSection" style="display:none;">
+        <span id="remainingTime">Next drop in: 00:00</span>
     </div>
     <div class="wallet-section">
         <button class="btn-connect" id="connectButton" onclick="connectMetamask()">Connect Wallet</button>
@@ -537,22 +580,25 @@ The system will automatically extract and organize all valid 0x addresses."
             <div class="completion-icon">🎉</div>
             <div class="completion-title">Distribution Complete!</div>
             <div class="completion-subtitle">All tokens have been successfully distributed</div>
+            <!-- Score info will be injected here -->
+            <div id="scoreInfo" style="display:none; margin-top:8px; text-align:center;"></div>
         </div>
     </div>
     <div class="bottom-tabs">
-        <button class="tab-btn selected" onclick="scrollToSection('main-container')">Airdrop</button>
-        <button class="tab-btn" onclick="scrollToSection('progressSection')">Progress</button>
-        <button class="tab-btn" onclick="scrollToSection('stats-grid')">Stats</button>
-        <button class="tab-btn" onclick="scrollToSection('completionSection')">Completed</button>
+        <button class="tab-btn selected" id="airdropTab" onclick="scrollToSection('main-container')">Airdrop</button>
+        <button class="tab-btn" id="completedTab" onclick="showCompletedStats()">Completed</button>
     </div>
     <script>
         // ---- CONFIG ----
         const contractAddress = "0x21F84165e0308067404ffD7E1Febe8853731D08b";
         const nftFanTokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
         const STORAGE_KEY = 'airdrop_wallets';
-        const COOLDOWN_TIME = 10;
+        const HISTORY_KEY = 'airdrop_history';
+        const PREV_COMPLETED_KEY = 'airdrop_prev_completed';
+        const LAST_DROP_KEY = 'airdrop_last_drop_time';
+        const COOLDOWN_TIME = 10; // seconds
         let web3, contract, userAccount, pendingWallets = [];
-        let currentBatchIndex = 0, isCooldownActive = false;
+        let currentBatchIndex = 0, isCooldownActive = false, cooldownTimer = null, cooldownLeft = 0;
         const walletsPerBatch = 50;
         const abi = [
             {"inputs":[{"internalType":"address","name":"_tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
@@ -566,10 +612,14 @@ The system will automatically extract and organize all valid 0x addresses."
             {"inputs":[],"name":"getContractBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"batchSize","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
         ];
+
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletsFromStorage();
             updateUI();
+            savePrevCompletedOnLoad();
+            checkAndRestoreCooldown();
         });
+
         function handleTextInput() {
             const textarea = document.getElementById('walletInput');
             const organizeBtn = document.getElementById('organizeBtn');
@@ -626,16 +676,32 @@ The system will automatically extract and organize all valid 0x addresses."
             }
         }
         function getTotalSentWallets() {
-            const history = localStorage.getItem('airdrop_history');
+            const history = localStorage.getItem(HISTORY_KEY);
             if (history) try { return JSON.parse(history).totalSent || 0; } catch { return 0; }
             return 0;
         }
         function updateSentHistory(count) {
             let historyData = { totalSent: 0 };
-            const history = localStorage.getItem('airdrop_history');
+            const history = localStorage.getItem(HISTORY_KEY);
             if (history) try { historyData = JSON.parse(history); } catch { historyData = { totalSent: 0 }; }
             historyData.totalSent = (historyData.totalSent || 0) + count;
-            localStorage.setItem('airdrop_history', JSON.stringify(historyData));
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(historyData));
+            savePrevCompletedIfNewDay(historyData.totalSent);
+        }
+        function savePrevCompletedOnLoad() {
+            const today = (new Date()).toISOString().slice(0, 10);
+            const prevData = JSON.parse(localStorage.getItem(PREV_COMPLETED_KEY) || '{}');
+            if (prevData.date !== today) {
+                const totalSent = getTotalSentWallets();
+                localStorage.setItem(PREV_COMPLETED_KEY, JSON.stringify({ date: today, completed: totalSent }));
+            }
+        }
+        function savePrevCompletedIfNewDay(currentTotal) {
+            const today = (new Date()).toISOString().slice(0, 10);
+            const prevData = JSON.parse(localStorage.getItem(PREV_COMPLETED_KEY) || '{}');
+            if (prevData.date !== today) {
+                localStorage.setItem(PREV_COMPLETED_KEY, JSON.stringify({ date: today, completed: currentTotal }));
+            }
         }
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
@@ -657,27 +723,73 @@ The system will automatically extract and organize all valid 0x addresses."
                 iconsContainer.appendChild(icon);
             }
         }
-        function startCooldown() {
+        function startCooldown(time) {
             isCooldownActive = true;
+            cooldownLeft = time || COOLDOWN_TIME;
+            localStorage.setItem(LAST_DROP_KEY, String(Date.now()));
+            dropCooldownIcons();
+            showCooldownUI();
+            updateCooldownUI();
+            if (cooldownTimer) clearInterval(cooldownTimer);
+            cooldownTimer = setInterval(() => {
+                cooldownLeft--;
+                updateCooldownUI();
+                if (cooldownLeft <= 0) {
+                    endCooldown();
+                }
+            }, 1000);
+        }
+        function updateCooldownUI() {
+            // Overlay
             const overlay = document.getElementById('cooldownOverlay');
             const text = document.getElementById('cooldownText');
-            const distributeBtn = document.getElementById('distributeBtn');
+            text.textContent = `Please wait ${cooldownLeft}s`;
+            // Top timer
+            const timerSection = document.getElementById('timerSection');
+            const remainingTime = document.getElementById('remainingTime');
+            remainingTime.textContent = `Next drop in: ${formatTime(cooldownLeft)}`;
+            // Show/hide
             overlay.classList.add('active');
+            timerSection.style.display = 'block';
+            // Button fixed
+            const distributeBtn = document.getElementById('distributeBtn');
+            distributeBtn.classList.add('fixed');
             distributeBtn.disabled = true;
-            dropCooldownIcons();
-            let timeLeft = COOLDOWN_TIME;
-            const updateTimer = () => {
-                text.textContent = `Please wait ${timeLeft}s`;
-                timeLeft--;
-                if (timeLeft < 0) {
-                    overlay.classList.remove('active');
-                    distributeBtn.disabled = false;
-                    isCooldownActive = false;
-                } else {
-                    setTimeout(updateTimer, 1000);
+        }
+        function endCooldown() {
+            isCooldownActive = false;
+            cooldownLeft = 0;
+            if (cooldownTimer) {
+                clearInterval(cooldownTimer);
+                cooldownTimer = null;
+            }
+            document.getElementById('cooldownOverlay').classList.remove('active');
+            document.getElementById('timerSection').style.display = 'none';
+            const distributeBtn = document.getElementById('distributeBtn');
+            distributeBtn.classList.remove('fixed');
+            distributeBtn.disabled = false;
+        }
+        function showCooldownUI() {
+            document.getElementById('cooldownOverlay').classList.add('active');
+            document.getElementById('timerSection').style.display = 'block';
+            document.getElementById('distributeBtn').classList.add('fixed');
+            document.getElementById('distributeBtn').disabled = true;
+        }
+        function formatTime(secs) {
+            let m = Math.floor(secs / 60);
+            let s = secs % 60;
+            return (m < 10 ? '0':'') + m + ':' + (s < 10 ? '0':'') + s;
+        }
+        function checkAndRestoreCooldown() {
+            // On reload, restore cooldown if not expired
+            const lastDrop = parseInt(localStorage.getItem(LAST_DROP_KEY) || "0", 10);
+            if (lastDrop > 0) {
+                const elapsed = Math.floor((Date.now() - lastDrop) / 1000);
+                if (elapsed < COOLDOWN_TIME) {
+                    cooldownLeft = COOLDOWN_TIME - elapsed;
+                    startCooldown(cooldownLeft);
                 }
-            };
-            updateTimer();
+            }
         }
         async function connectMetamask() {
             if (typeof window.ethereum !== 'undefined') {
@@ -772,21 +884,38 @@ The system will automatically extract and organize all valid 0x addresses."
                 }
             });
         }
-        // Bottom tab scroll logic
         function scrollToSection(sectionId) {
             const tabBtns = document.querySelectorAll('.tab-btn');
             tabBtns.forEach(btn => btn.classList.remove('selected'));
-            // Determine which button to select
             if (sectionId === 'main-container') tabBtns[0].classList.add('selected');
-            if (sectionId === 'progressSection') tabBtns[1].classList.add('selected');
-            if (sectionId === 'stats-grid') tabBtns[2].classList.add('selected');
-            if (sectionId === 'completionSection') tabBtns[3].classList.add('selected');
+            if (sectionId === 'completionSection') tabBtns[1].classList.add('selected');
             setTimeout(() => {
                 const el = document.getElementsByClassName(sectionId)[0] || document.getElementById(sectionId);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 50);
+        }
+        function showCompletedStats() {
+            scrollToSection('completionSection');
+            document.getElementById('airdropTab').classList.remove('selected');
+            document.getElementById('completedTab').classList.add('selected');
+            const total = getTotalSentWallets();
+            const prevData = JSON.parse(localStorage.getItem(PREV_COMPLETED_KEY) || '{}');
+            const today = (new Date()).toISOString().slice(0, 10);
+            let todayScore = 0;
+            if (prevData.date === today) {
+                todayScore = total - (prevData.completed || 0);
+            } else {
+                todayScore = total;
+            }
+            const scoreInfo = document.getElementById('scoreInfo');
+            scoreInfo.innerHTML = `
+                <div style="margin-top:2px; color:var(--accent-neon); font-size:10px; font-weight:700;">Your total drop score: <span style="color:var(--accent-yellow);">${total}</span></div>
+                <div style="margin-top:2px; color:var(--accent-purple); font-size:10px; font-weight:700;">Your Today's score: <span style="color:var(--accent-yellow);">${todayScore}</span></div>
+                <div style="margin-top:6px; color:var(--text-secondary); font-size:9px; font-weight:600;">Rewards Earn: <span style="color:var(--accent-pink);">coming soon</span></div>
+            `;
+            scoreInfo.style.display = 'block';
         }
     </script>
 </body>
