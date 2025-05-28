@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon BTC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimal-ui">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020;
+      font-family: 'Orbitron', Arial, sans-serif; font-size: 10px;
+      overflow-x: hidden;
+    }
+    .container { display: flex; flex-direction: column; align-items: center; width: 100vw; min-height: 100vh; }
+    .btc-title {
+      color: #ffd700; font-size: 1.1em;
+      margin: 15px 0 2px 0; text-shadow: 0 0 3px #ff5cfa, 0 0 3px #26ffe6;
+      font-weight: bold; letter-spacing: 1px; text-align: center;
+      width: 100vw;
+      background: none;
+    }
+    .btc-price {
+      color: #26ffe6; font-size: 1.01em; margin-bottom: 7px; margin-top: 0;
+      background: none; border-radius: 5px; border: 1px solid #ffd700;
+      box-shadow: none; padding: 4px 10px; text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; user-select: none; min-width: 90px;
+      display: inline-block;
+      transition: color 0.25s;
+    }
+    .balance-box {
+      color: #ffd700;
+      background: #181b39;
+      border: 1px solid #26ffe6;
+      border-radius: 7px;
+      font-size: 1em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 4px 13px;
+      min-width: 110px;
+      text-align: center;
+      margin: 0 0 8px 0;
+      box-shadow: 0 0 7px #26ffe644, 0 0 9px #ffd70022 inset;
+      user-select: none;
+      display: inline-block;
+    }
+    .balance-box.negative { color: #ff2323; border-color: #ff2323; }
+    .countdown-box {
+      margin: 8px 0 0 0;
+      padding: 2px 11px;
+      background: linear-gradient(90deg, #1b213d 77%, #181b39 100%);
+      border: 1px solid #ffd700;
+      border-radius: 7px;
+      box-shadow: 0 0 4px #26ffe622, 0 0 8px #ffd70022 inset;
+      color: #ffd700;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1.09em;
+      min-width: 65px;
+      text-align: center;
+      letter-spacing: 1px;
+      user-select: none;
+      transition: background 0.33s, box-shadow 0.33s;
+      animation: neonPulse 1.6s alternate infinite;
+      position: relative;
+      left: 0;
+      display: inline-block;
+    }
+    .pnl-box {
+      margin: 7px 0 0 0;
+      padding: 6px 14px 6px 14px;
+      border-radius: 8px;
+      font-size: 1.05em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+      min-width: 70px;
+      box-shadow: 0 0 8px #26ffe6aa, 0 0 12px #fff7 inset;
+      border: 1px solid #ffd700;
+      background: linear-gradient(90deg, #181b39 60%, #15162b 100%);
+      transition: background 0.3s, color 0.2s, box-shadow 0.2s, border 0.2s;
+      user-select: none;
+      text-shadow: 0 0 2px #ffd700, 0 0 4px #26ffe655;
+      display: inline-block;
+      position: relative;
+      z-index: 2;
+    }
+    .pnl-box.positive {
+      color: #00ff90;
+      border-color: #00ff90;
+      box-shadow: 0 0 8px #00ff9088, 0 0 12px #26ffe655 inset;
+      text-shadow: 0 0 4px #00ff90, 0 0 1px #fff6;
+    }
+    .pnl-box.negative {
+      color: #ff2323;
+      border-color: #ff2323;
+      box-shadow: 0 0 8px #ff232388, 0 0 12px #ffd7d7cc inset;
+      text-shadow: 0 0 4px #ff2323, 0 0 1px #fff6;
+    }
+    .pnl-box.neutral {
+      color: #ffd700;
+      border-color: #ffd700;
+      box-shadow: 0 0 6px #ffd70055, 0 0 8px #26ffe677 inset;
+      text-shadow: 0 0 4px #ffd700, 0 0 1px #fff6;
+    }
+    .popup-backdrop {
+      position: fixed;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(10,12,22,0.82);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .popup-box {
+      background: linear-gradient(120deg, #181b39 60%, #15162b 100%);
+      border: 1px solid #ffd700;
+      border-radius: 11px;
+      padding: 18px 10vw 12px 10vw;
+      box-shadow: 0 0 12px #ffd70044, 0 0 19px #26ffe655 inset;
+      text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1.03em;
+      color: #ffd700;
+      letter-spacing: 1px;
+      min-width: 120px;
+      max-width: 94vw;
+      position: relative;
+      z-index: 100000;
+      animation: fadein 0.2s;
+    }
+    .popup-box.positive {
+      color: #00ff90;
+      border-color: #00ff90;
+      box-shadow: 0 0 18px #00ff9060, 0 0 20px #26ffe655 inset;
+      text-shadow: 0 0 6px #00ff90, 0 0 2px #fff6;
+    }
+    .popup-box.negative {
+      color: #ff2323;
+      border-color: #ff2323;
+      box-shadow: 0 0 18px #ff232360, 0 0 20px #ffd7d7cc inset;
+      text-shadow: 0 0 6px #ff2323, 0 0 2px #fff6;
+    }
+    .popup-close-btn {
+      margin-top: 18px;
+      padding: 7px 20px;
+      font-size: 1em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border-radius: 7px;
+      border: 1px solid #ffd700;
+      background: linear-gradient(90deg,#26ffe6 0%,#ff5cfa 100%);
+      color: #181b39;
+      box-shadow: 0 0 5px #26ffe6, 0 0 3px #ff5cfa;
+      cursor: pointer;
+      transition: filter 0.18s;
+      outline: none;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      user-select: none;
+    }
+    .popup-close-btn:active { filter: brightness(1.2);}
+    .neon-btn {
+      font-size: 1.01em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1.2px;
+      border: 1px solid #ffd700;
+      border-radius: 9px;
+      padding: 7px 14px;
+      margin: 0 2px;
+      background: linear-gradient(90deg,#26ffe6 0%,#ff5cfa 100%);
+      color: #181b39;
+      box-shadow: 0 0 4px #26ffe6, 0 0 2px #ff5cfa, 0 0 7px #ffd70022 inset;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.18s, color 0.18s, filter 0.16s;
+      user-select: none;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      min-width: 54px;
+      text-shadow: 0 0 2px #fff7, 0 0 4px #26ffe6, 0 0 2px #ff5cfa;
+    }
+    .neon-btn:active { filter: brightness(1.2);}
+    .neon-btn:focus { border: 1px solid #26ffe6; }
+    .max-btn {
+      font-size: 0.93em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border: 1px solid #26ffe6;
+      border-radius: 6px;
+      padding: 5px 10px;
+      margin-left: 3px;
+      background: linear-gradient(90deg,#181b39 0%,#26ffe6 100%);
+      color: #26ffe6;
+      box-shadow: 0 0 3px #26ffe6, 0 0 1px #ff5cfa;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      transition: background 0.16s, color 0.16s;
+    }
+    .max-btn:active { filter: brightness(1.2);}
+    .max-btn:focus { border: 1px solid #ffd700; }
+    .amount-box {
+      background: #181b39;
+      border: 1px solid #26ffe6;
+      color: #ffd700;
+      border-radius: 6px;
+      outline: none;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1em;
+      padding: 5px 8px;
+      width: 60px;
+      margin-right: 2px;
+      box-shadow: 0 0 3px #26ffe644, 0 0 4px #ff5cfa22 inset;
+      transition: border 0.2s;
+    }
+    .amount-box:focus { border: 1px solid #ffd700; }
+    .usdc-label {
+      color: #ffd700; font-size: 1em; margin-left: 2px;
+      text-shadow: 0 0 2px #ff5cfa, 0 0 2px #26ffe6;
+      font-family: 'Orbitron', Arial, sans-serif;
+    }
+    .trade-msg {
+      margin-top: 5px; color: #26ffe6; font-size: 0.98em; text-align: center; min-height: 1.2em;
+      font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; text-shadow: 0 0 3px #ffd70055;
+      width: 98vw; max-width: 440px;
+    }
+    @media (max-width: 600px) {
+      html, body { font-size: 10px; }
+      .btc-title { font-size: 1.12em;}
+      .btc-price { font-size: 0.98em;}
+      .balance-box { font-size: 1em; padding: 4px 3vw;}
+      .chart-box { min-height: 110px; max-width: 99vw; }
+      .neon-btn { padding: 6px 5vw; font-size: 0.98em;}
+      .amount-box { font-size: 0.98em; width: 44px; }
+      .max-btn { padding: 5px 8px; font-size: 0.95em;}
+      .countdown-box { font-size: 1em; min-width: 42px;}
+      .pnl-box { font-size: 0.98em; padding: 5px 4vw 5px 4vw; min-width: 62px;}
+      .popup-box { font-size: 1em; padding: 13px 2vw 10px 2vw; min-width: 60px;}
+    }
+    @keyframes neonBtnPulse {
+      0% { box-shadow: 0 0 4px 2px #26ffe633, 0 0 0 1px #ffd700, 0 0 12px 2px #ff5cfa33 inset; }
+      100% { box-shadow: 0 0 9px 5px #ffd70033, 0 0 0 2px #26ffe6, 0 0 18px 6px #ff5cfa11 inset; }
+    }
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+  </style>
+</head>
+<body>
+  <div class="btc-title">BTC/USDC Neon</div>
+  <div class="btc-price" id="btcPrice">Price: $100,000.00</div>
+  <div id="balanceBox" class="balance-box">Balance: $1,000,000.00</div>
+  <div id="countdownBox" class="countdown-box" style="display:none">15s</div>
+  <div id="pnlBox" class="pnl-box neutral">Profit: $0.00</div>
+  <div class="container">
+    <div class="chart-box" id="chartBox">
+      <canvas id="chartCanvas" width="720" height="210" class="neon-canvas"></canvas>
+      <div class="controls-row">
+        <input type="number" min="1" step="1" value="100" id="tradeAmount" class="amount-box" />
+        <button class="max-btn" id="maxBtn">MAX</button>
+        <span class="usdc-label">USDC</span>
+        <button class="neon-btn" id="buyBtn">BUY</button>
+        <button class="neon-btn" id="sellBtn">SELL</button>
+      </div>
+      <div class="trade-msg" id="tradeMsg"></div>
+    </div>
+    <div id="popupBackdrop" class="popup-backdrop" style="display:none"></div>
+  </div>
+  <script>
+    // Simulation values
+    const MIN_PRICE = 10000;
+    const MAX_PRICE = 500000;
+    const INITIAL_PRICE = 100000;
+    let price = INITIAL_PRICE, smoothPrice = INITIAL_PRICE, targetPrice = INITIAL_PRICE;
+    let priceHistory = [];
+    let animFrame = null;
+    let waveQueue = [];
+    let lastDotY = null;
+    let lastPriceEmit = 0;
+    let chartW = 720, chartH = 210;
+    let simInterval = null;
+    let tick = 0;
+
+    // Balance/game state
+    let balance = 1_000_000.00;
+    let gameOver = false;
+
+    // For trading
+    let position = null; // {amount, entryPrice, time}
+    let tradeOpen = false;
+    let tradeStartTime = 0;
+    let warningShown = false;
+    let countdown = 15;
+    let countdownInterval = null;
+
+    // DOM
+    const chartCanvas = document.getElementById("chartCanvas");
+    const ctx = chartCanvas.getContext("2d");
+    const btcPrice = document.getElementById("btcPrice");
+    const buyBtn = document.getElementById("buyBtn");
+    const sellBtn = document.getElementById("sellBtn");
+    const maxBtn = document.getElementById("maxBtn");
+    const tradeAmount = document.getElementById("tradeAmount");
+    const tradeMsg = document.getElementById("tradeMsg");
+    const pnlBox = document.getElementById("pnlBox");
+    const countdownBox = document.getElementById("countdownBox");
+    const balanceBox = document.getElementById("balanceBox");
+    const popupBackdrop = document.getElementById("popupBackdrop");
+
+    // For realistic but fast price graph, but smooth top box
+    let displayPrice = INITIAL_PRICE; // top box price
+
+    function updateBalanceBox() {
+      balanceBox.textContent = "Balance: $" + balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (balance <= 0) balanceBox.classList.add('negative');
+      else balanceBox.classList.remove('negative');
+    }
+
+    function resizeChart() {
+      const box = document.getElementById("chartBox");
+      let w = Math.min(box.offsetWidth-8, 470);
+      let h = Math.max(90, Math.min(box.offsetHeight * 0.80, 210));
+      chartCanvas.width = w;
+      chartCanvas.height = h;
+      chartW = w;
+      chartH = h;
+    }
+    window.addEventListener('resize', resizeChart);
+
+    // Price simulation: sudden jumps/drops every second (on tick==0), super fast in graph, but smooth in top box
+    function simulatePrice() {
+      // Sudden jump/drop every second
+      let sharpMove = Math.random() < 0.6; // almost every tick is sharp
+      let volatility = (MAX_PRICE - MIN_PRICE) / (sharpMove ? 6 : 14);
+      let randomFactor = (Math.random() - 0.5) * volatility * (sharpMove ? 1.5 : 1);
+      let sudden = (Math.random() < 0.45 ? (Math.random()-0.5)*(MAX_PRICE-MIN_PRICE)/10 : 0);
+      let wave = Math.sin(Date.now() / 500) * (MAX_PRICE - MIN_PRICE) / 25; // fast wave
+      targetPrice = targetPrice + randomFactor + sudden + wave;
+      targetPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, targetPrice));
+    }
+
+    // Animate price in graph (very fast), but animate top price slower
+    function animatePrice() {
+      let diff = targetPrice - smoothPrice;
+      smoothPrice += diff * 0.23; // fast
+      price = smoothPrice;
+
+      // Top price animate slower (only update every 100 ms, stepwise)
+      let dTop = price - displayPrice;
+      displayPrice += dTop * 0.07;
+    }
+
+    function updateHistory() {
+      if (priceHistory.length > 70) priceHistory.shift();
+      priceHistory.push(price);
+    }
+
+    function drawBoxesGrid() {
+      ctx.save();
+      let boxW = chartW / 6, boxH = chartH / 6;
+      ctx.globalAlpha = 0.13;
+      ctx.strokeStyle = "#26ffe6";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 6; ++i) {
+        for (let j = 0; j < 6; ++j) {
+          ctx.beginPath();
+          ctx.rect(Math.round(i*boxW)+0.5, Math.round(j*boxH)+0.5, Math.round(boxW), Math.round(boxH));
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function drawWaveLineAndDot(dotX, dotY, price) {
+      // Line up to dot
+      if (priceHistory.length > 2) {
+        let minP = Math.min(...priceHistory, price);
+        let maxP = Math.max(...priceHistory, price);
+        let pad = (maxP-minP)*0.16 || 1;
+        minP -= pad; maxP += pad;
+        let yRange = maxP - minP;
+
+        let n = priceHistory.length;
+        ctx.save();
+        ctx.shadowColor = "#26ffe6";
+        ctx.shadowBlur = 4;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let i = 0; i < n; ++i) {
+          // Always use CENTER for dot, line to center
+          let x = (chartW / 2) * (i / (n-1));
+          let wave = Math.sin((i + tick/4) * 0.33) * 2 + Math.cos((i + tick/7) * 0.11) * 1;
+          let y = chartH-14-((priceHistory[i] - minP) * ((chartH-28) / yRange)) + wave;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = "#26ffe6";
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Neon blinking dot at center
+      let blink = 0.78 + 0.22 * Math.abs(Math.sin(Date.now()/290));
+      ctx.save();
+      ctx.globalAlpha = blink;
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 2.5 + 2.5 * blink;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 3.6, 0, Math.PI*2);
+      ctx.fillStyle = "#ff5cfa";
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 1.1, 0, Math.PI*2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.restore();
+
+      // Price label at the dot
+      ctx.save();
+      ctx.font = "7px Orbitron,Arial,sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#ffd700";
+      ctx.shadowColor = "#181b39";
+      ctx.shadowBlur = 2;
+      let label = "$" + price.toLocaleString(undefined, {maximumFractionDigits:0});
+      let pricePadX = 8, pricePadY = 1.5;
+      let textWidth = ctx.measureText(label).width;
+      let px = dotX + 8;
+      let py = dotY;
+      ctx.fillRect(px - pricePadX, py - 6, textWidth + 2*pricePadX, 11);
+      ctx.fillStyle = "#181b39";
+      ctx.globalAlpha = 0.76;
+      ctx.fillRect(px - pricePadX, py - 6, textWidth + 2*pricePadX, 11);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffd700";
+      ctx.shadowBlur = 0.5;
+      ctx.fillText(label, px, py+0.5);
+      ctx.restore();
+
+      // Draw expanding neon waves (gentle)
+      for (let wave of waveQueue) {
+        let progress = (Date.now() - wave.time) / 900;
+        if (progress > 1) continue;
+        let r = 5 + 8 * progress;
+        let alpha = 0.13 * (1 - progress);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, r, 0, Math.PI*2);
+        let grad = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, r);
+        grad.addColorStop(0, "#fff");
+        grad.addColorStop(0.7, "#26ffe6");
+        grad.addColorStop(1, "rgba(38,255,230,0)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function animateChart() {
+      tick++;
+      animatePrice();
+      updateHistory();
+      ctx.clearRect(0, 0, chartW, chartH);
+      drawBoxesGrid();
+
+      let n = priceHistory.length;
+      let dotX = chartW / 2; // Always center!
+      let minP = Math.min(...priceHistory, price);
+      let maxP = Math.max(...priceHistory, price);
+      let pad = (maxP-minP)*0.16 || 1;
+      minP -= pad; maxP += pad;
+      let yRange = maxP - minP;
+      let dotY = chartH-14-((price - minP) * ((chartH-28) / yRange));
+      // Emit a wave if dot moves
+      if (lastDotY === null || Math.abs(dotY - lastDotY) > 2.5) {
+        if (Date.now() - lastPriceEmit > 350) {
+          waveQueue.push({time: Date.now()});
+          if (waveQueue.length > 7) waveQueue.shift();
+          lastPriceEmit = Date.now();
+        }
+      }
+      lastDotY = dotY;
+      waveQueue = waveQueue.filter(wave => Date.now() - wave.time < 900);
+
+      drawWaveLineAndDot(dotX, dotY, price);
+
+      // Animate top price smoothly (not too fast)
+      btcPrice.textContent = "Price: $" + displayPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      // PnL box
+      if (position) {
+        let btc_bought = position.amount / position.entryPrice;
+        let curr_val = btc_bought * price;
+        let pnl = curr_val - position.amount;
+        let sign = pnl >= 0 ? "+" : "-";
+        let absPnl = Math.abs(pnl);
+        let percent = ((pnl / position.amount) * 100).toFixed(2);
+        pnlBox.textContent = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+        pnlBox.className = "pnl-box " + (pnl > 0 ? "positive" : (pnl < 0 ? "negative" : "neutral"));
+      } else {
+        pnlBox.textContent = "Profit: $0.00";
+        pnlBox.className = "pnl-box neutral";
+      }
+
+      animFrame = requestAnimationFrame(animateChart);
+    }
+
+    function showPnLPopup(pnl, pnlText, isProfit, isGameOver = false) {
+      let popup = document.getElementById('pnlPopup');
+      if (popup) popup.remove();
+      let backdrop = popupBackdrop;
+      backdrop.style.display = "flex";
+      let box = document.createElement("div");
+      box.className = "popup-box " + (isProfit ? "positive" : "negative");
+      box.id = "pnlPopup";
+      box.innerHTML = `
+        <div style="font-size:1.05em;margin-bottom:8px;">
+          ${isGameOver ? "💸 GAME OVER" : (isProfit ? "🎉 PROFIT!" : "💀 LOSS!")}
+        </div>
+        <div style="font-size:1.19em;margin-bottom:13px;">${pnlText}</div>
+        <button class="popup-close-btn" onclick="document.getElementById('popupBackdrop').style.display='none';document.getElementById('pnlPopup').remove();${isGameOver ? 'window.location.reload()' : ''}">Close</button>
+      `;
+      backdrop.innerHTML = "";
+      backdrop.appendChild(box);
+    }
+
+    function autoSell() {
+      if (!position) return;
+      let btc_bought = position.amount / position.entryPrice;
+      let curr_val = btc_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        "Auto-sold! " +
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+    }
+
+    function updateBalance(newVal) {
+      balance += newVal;
+      if (balance <= 0) {
+        balance = 0;
+        gameOver = true;
+        updateBalanceBox();
+        setTimeout(function() {
+          showPnLPopup(0, "Your balance is $0.00<br>Game Over!", false, true);
+        }, 150);
+        disableTrading();
+      } else {
+        updateBalanceBox();
+      }
+    }
+
+    function disableTrading() {
+      buyBtn.disabled = true;
+      sellBtn.disabled = true;
+      maxBtn.disabled = true;
+      buyBtn.style.opacity = "0.5";
+      sellBtn.style.opacity = "0.5";
+      maxBtn.style.opacity = "0.5";
+      tradeAmount.disabled = true;
+      tradeMsg.textContent = "Game Over. Please reload to play again.";
+      tradeMsg.style.color = "#ff2323";
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+    }
+
+    buyBtn.onclick = function() {
+      if (gameOver) return;
+      let amt = parseFloat(tradeAmount.value);
+      if (isNaN(amt) || amt <= 0) {
+        tradeMsg.textContent = "Enter a valid amount.";
+        tradeMsg.style.color = "#ff4141";
+        return;
+      }
+      if (position) {
+        tradeMsg.textContent = "You already have a position.";
+        tradeMsg.style.color = "#ffd700";
+        return;
+      }
+      if (amt > balance) {
+        tradeMsg.textContent = "Insufficient balance.";
+        tradeMsg.style.color = "#ff4141";
+        return;
+      }
+      position = { amount: amt, entryPrice: price, time: Date.now() };
+      tradeOpen = true;
+      tradeStartTime = Date.now();
+      tradeMsg.textContent = `Bought $${amt} worth of BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+      tradeMsg.style.color = "#26ffe6";
+      balance -= amt;
+      updateBalanceBox();
+      // Show 15s countdown
+      countdown = 15;
+      countdownBox.style.display = "";
+      countdownBox.textContent = countdown + "s";
+      clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (!tradeOpen || !position) { clearInterval(countdownInterval); return; }
+        countdown -= 1;
+        countdownBox.textContent = countdown + "s";
+        if (countdown <= 0) {
+          autoSell();
+        }
+      }, 1000);
+    };
+
+    maxBtn.onclick = function() {
+      if (gameOver) return;
+      tradeAmount.value = Math.floor(balance);
+    };
+
+    sellBtn.onclick = function() {
+      if (!position) {
+        tradeMsg.textContent = "No position to sell.";
+        tradeMsg.style.color = "#ffd700";
+        return;
+      }
+      let btc_bought = position.amount / position.entryPrice;
+      let curr_val = btc_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+    };
+    tradeAmount.onkeydown = function(e) { if(e.key==="Enter") buyBtn.click(); };
+
+    for (let i = 0; i < 70; ++i) priceHistory.push(INITIAL_PRICE);
+
+    window.addEventListener('DOMContentLoaded', function(){
+      resizeChart();
+      animateChart();
+      simulatePrice();
+      simInterval = setInterval(simulatePrice, 320); // fast
+      updateBalanceBox();
+    });
+  </script>
+</body>
+</html>
