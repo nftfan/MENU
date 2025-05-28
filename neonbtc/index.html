@@ -39,6 +39,11 @@
       width: 100vw;
       text-shadow: 0 0 5px #26ffe655, 0 0 5px #ffd70044;
       user-select: none;
+      animation: levelBlink 1.5s infinite alternate;
+    }
+    @keyframes levelBlink {
+      0% { text-shadow: 0 0 10px #ffd700, 0 0 3px #26ffe6; opacity: 1; }
+      100% { text-shadow: 0 0 20px #ff5cfa, 0 0 6px #26ffe6; opacity: 0.77; }
     }
     .countdown-box {
       margin: 8px 0 0 0;
@@ -263,6 +268,41 @@
       box-shadow: 0 0 6px #ffd70055, 0 0 8px #26ffe677 inset;
       text-shadow: 0 0 4px #ffd700, 0 0 1px #fff6;
     }
+    .level-circles {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      margin-bottom: 10px;
+      width: 100vw;
+      flex-wrap: wrap;
+      padding-bottom: 15px;
+    }
+    .circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #15162b;
+      border: 2px solid #333;
+      box-shadow: 0 0 2px #0009;
+      transition: background 0.4s, box-shadow 0.4s, border 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .circle.on {
+      background: linear-gradient(120deg, #ffd700 60%, #26ffe6 100%);
+      box-shadow: 0 0 12px #ffd700, 0 0 24px #26ffe6;
+      border-color: #ff5cfa;
+      animation: circlePulse 0.7s;
+    }
+    @keyframes circlePulse {
+      0% { box-shadow: 0 0 0px #ffd700, 0 0 0px #26ffe6;}
+      60% { box-shadow: 0 0 24px #ffd70088, 0 0 32px #26ffe688;}
+      100% { box-shadow: 0 0 12px #ffd700, 0 0 24px #26ffe6;}
+    }
+
     @media (max-width: 600px) {
       html, body { font-size: 10px; }
       .btc-title { font-size: 1.12em;}
@@ -277,6 +317,8 @@
       .countdown-box { font-size: 1em; min-width: 42px;}
       .pnl-box { font-size: 0.98em; padding: 5px 4vw 5px 4vw; min-width: 62px;}
       .popup-box { font-size: 1em; padding: 13px 2vw 10px 2vw; min-width: 60px;}
+      .level-circles { gap: 4px; }
+      .circle { width: 17px; height: 17px; }
     }
     @keyframes neonBtnPulse {
       0% { box-shadow: 0 0 4px 2px #26ffe633, 0 0 0 1px #ffd700, 0 0 12px 2px #ff5cfa33 inset; }
@@ -305,6 +347,7 @@
         <div id="balanceBox" class="balance-box">Balance: $1,000,000.00</div>
         <div id="pnlBox" class="pnl-box neutral">Profit: $0.00</div>
       </div>
+      <div class="level-circles" id="levelCircles"></div>
     </div>
     <div id="popupBackdrop" class="popup-backdrop" style="display:none"></div>
   </div>
@@ -312,7 +355,13 @@
     // --- GAME LEVEL PROGRESSION ---
     const LEVELS = [
       2_000_000, 5_000_000, 10_000_000, 20_000_000, 50_000_000,
-      75_000_000, 100_000_000, 250_000_000, 500_000_000, 1_000_000_000
+      75_000_000, 100_000_000, 250_000_000, 500_000_000, 1_000_000_000,
+      5_000_000_000, 50_000_000_000, 100_000_000_000, 250_000_000_000,
+      500_000_000_000, 750_000_000_000, 1_000_000_000_000, 10_000_000_000_000
+    ];
+    const LINE_COLORS = [
+      "#26ffe6", "#ffd700", "#ff5cfa", "#00ff90", "#ff2323", "#a0f", "#0ff", "#fa0", "#39f", "#0f0",
+      "#ff8c00", "#00eaff", "#f0f", "#ff0", "#0fa", "#e600ff", "#ff4141", "#00ff91"
     ];
     let currentLevel = 0;
 
@@ -359,17 +408,58 @@
     const balanceBox = document.getElementById("balanceBox");
     const popupBackdrop = document.getElementById("popupBackdrop");
     const levelBox = document.getElementById("levelBox");
+    const levelCircles = document.getElementById("levelCircles");
 
     let displayPrice = INITIAL_PRICE;
 
+    // --- Amount formatting ---
+    function formatAmount(num) {
+      num = Number(num);
+      if (num >= 1_000_000_000_000) return (num / 1_000_000_000_000).toFixed(2) + "T";
+      if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + "B";
+      if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + "M";
+      return num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    // -- LEVEL CIRCLES --
+    function renderLevelCircles() {
+      let total = 18;
+      let html = "";
+      for (let i = 0; i < total; ++i) {
+        html += `<div class="circle${i < currentLevel ? ' on' : ''}"></div>`;
+      }
+      levelCircles.innerHTML = html;
+      // Animate the last one when a new level is reached
+      if (currentLevel > 0) {
+        const last = levelCircles.children[currentLevel - 1];
+        if (last) {
+          last.classList.add("on");
+          last.style.animation = "circlePulse 0.7s";
+        }
+      }
+    }
+
     function updateBalanceBox() {
-      balanceBox.textContent = "Balance: $" + balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+      balanceBox.textContent = "Balance: $" + formatAmount(balance);
       if (balance <= 0) balanceBox.classList.add('negative');
       else balanceBox.classList.remove('negative');
     }
     function updateLevelBox() {
       if (currentLevel < LEVELS.length) {
-        levelBox.textContent = `Level ${currentLevel+1}: Reach $${LEVELS[currentLevel].toLocaleString()} to advance`;
+        let target = LEVELS[currentLevel];
+        let suffix = '';
+        if (target >= 1_000_000_000_000) {
+          suffix = target >= 10_000_000_000_000 ? 'T' : 'T';
+          target = target / 1_000_000_000_000;
+        } else if (target >= 1_000_000_000) {
+          suffix = 'B';
+          target = target / 1_000_000_000;
+        } else if (target >= 1_000_000) {
+          suffix = 'M';
+          target = target / 1_000_000;
+        }
+        let formatted = (Number.isInteger(target) ? target : target.toFixed(2)) + suffix;
+        levelBox.textContent = `Level ${currentLevel+1}: Reach $${formatAmount(LEVELS[currentLevel])} (${formatted}) to advance`;
       } else {
         levelBox.textContent = `🎉 MAX LEVEL COMPLETED!`;
       }
@@ -421,6 +511,10 @@
       ctx.globalAlpha = 1;
       ctx.restore();
     }
+    function getLineColor() {
+      // For each level a different color, repeat or default if levels > colors available
+      return LINE_COLORS[currentLevel % LINE_COLORS.length];
+    }
     function drawWaveLineAndDot(dotX, dotY, price) {
       if (priceHistory.length > 2) {
         let minP = Math.min(...priceHistory, price);
@@ -431,9 +525,9 @@
 
         let n = priceHistory.length;
         ctx.save();
-        ctx.shadowColor = "#26ffe6";
-        ctx.shadowBlur = 4;
-        ctx.lineWidth = 1.2;
+        ctx.shadowColor = getLineColor();
+        ctx.shadowBlur = 6;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         for (let i = 0; i < n; ++i) {
           let x = (chartW / 2) * (i / (n-1));
@@ -442,7 +536,7 @@
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "#26ffe6";
+        ctx.strokeStyle = getLineColor();
         ctx.stroke();
         ctx.restore();
       }
@@ -540,8 +634,9 @@
         let sign = pnl >= 0 ? "+" : "-";
         let absPnl = Math.abs(pnl);
         let percent = ((pnl / position.amount) * 100).toFixed(2);
-        pnlBox.textContent = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+        let pnlAmountStr = "$" + formatAmount(absPnl);
+        pnlBox.textContent = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
         pnlBox.className = "pnl-box " + (pnl > 0 ? "positive" : (pnl < 0 ? "negative" : "neutral"));
       } else {
         pnlBox.textContent = "Profit: $0.00";
@@ -580,7 +675,7 @@
           🎉 Congratulations! Level ${level} Completed!
         </div>
         <div style="font-size:1.05em;margin-bottom:10px;">
-          ${maxed ? `You've reached the highest level!` : `Get to $${LEVELS[level].toLocaleString()} for the next level!`}
+          ${maxed ? `You've reached the highest level!` : `Get to $${formatAmount(LEVELS[level])} for the next level!`}
         </div>
         <button class="popup-close-btn" onclick="document.getElementById('popupBackdrop').style.display='none';document.getElementById('levelPopup').remove();">Close</button>
       `;
@@ -595,8 +690,9 @@
       let sign = pnl >= 0 ? "+" : "-";
       let absPnl = Math.abs(pnl);
       let percent = ((pnl / position.amount) * 100).toFixed(2);
-      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
       updateBalance(curr_val);
       showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
       let amt = position.amount;
@@ -607,8 +703,8 @@
       let enter_at = `${min}:${sec}`;
       tradeMsg.textContent =
         "Auto-sold! " +
-        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
       tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
       position = null;
       tradeOpen = false;
@@ -634,6 +730,7 @@
           showLevelPopup(currentLevel + 1, currentLevel >= LEVELS.length - 1);
           currentLevel++;
           updateLevelBox();
+          renderLevelCircles();
         }
       }
     }
@@ -711,7 +808,7 @@
       position = { amount: amt, entryPrice: price, time: Date.now() };
       tradeOpen = true;
       tradeStartTime = Date.now();
-      tradeMsg.textContent = `Bought $${amt} worth of BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+      tradeMsg.textContent = `Bought $${formatAmount(amt)} worth of BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}`;
       tradeMsg.style.color = "#26ffe6";
       balance -= amt;
       updateBalanceBox();
@@ -748,8 +845,9 @@
       let sign = pnl >= 0 ? "+" : "-";
       let absPnl = Math.abs(pnl);
       let percent = ((pnl / position.amount) * 100).toFixed(2);
-      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
       updateBalance(curr_val);
       showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
       let amt = position.amount;
@@ -759,8 +857,8 @@
       let sec = entryTime.getSeconds().toString().padStart(2, "0");
       let enter_at = `${min}:${sec}`;
       tradeMsg.textContent =
-        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
       tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
       position = null;
       tradeOpen = false;
@@ -780,6 +878,7 @@
       simInterval = setInterval(simulatePrice, 320);
       updateBalanceBox();
       updateLevelBox();
+      renderLevelCircles();
       startMustBuyCountdown();
     });
     // After auto-sell, start mustBuy timer again when done
@@ -791,8 +890,9 @@
       let sign = pnl >= 0 ? "+" : "-";
       let absPnl = Math.abs(pnl);
       let percent = ((pnl / position.amount) * 100).toFixed(2);
-      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
       updateBalance(curr_val);
       showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
       let amt = position.amount;
@@ -803,8 +903,8 @@
       let enter_at = `${min}:${sec}`;
       tradeMsg.textContent =
         "Auto-sold! " +
-        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
-        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
       tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
       position = null;
       tradeOpen = false;
