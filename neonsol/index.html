@@ -396,6 +396,12 @@
     let mustBuyTimer = null;
     let mustBuyActive = false;
 
+    // Adjustable timers for each level:
+    let baseMustBuyTime = 10;        // initial "must buy" time in seconds
+    let baseAutoSellTime = 15;       // initial "auto sell" time in seconds
+    let mustBuyTime = baseMustBuyTime;
+    let autoSellTime = baseAutoSellTime;
+
     // DOM
     const chartCanvas = document.getElementById("chartCanvas");
     const ctx = chartCanvas.getContext("2d");
@@ -670,6 +676,13 @@
       backdrop.innerHTML = "";
       backdrop.appendChild(box);
     }
+
+    // --- Dynamic timer adjustment on level up ---
+    function adjustTimersOnLevelUp() {
+      mustBuyTime = Math.max(1, baseMustBuyTime - 0.5 * currentLevel);
+      autoSellTime = Math.max(1, baseAutoSellTime - 0.5 * currentLevel);
+    }
+
     function autoSell() {
       if (!position) return;
       let sol_bought = position.amount / position.entryPrice;
@@ -717,6 +730,7 @@
         if (currentLevel < LEVELS.length && balance >= LEVELS[currentLevel]) {
           showLevelPopup(currentLevel + 1, currentLevel >= LEVELS.length - 1);
           currentLevel++;
+          adjustTimersOnLevelUp();
           updateLevelBox();
           renderLevelCircles();
         }
@@ -739,13 +753,14 @@
     // --- 10s AUTO-LOSE LOGIC ---
     function startMustBuyCountdown() {
       mustBuyActive = true;
-      mustBuyCountdown = 10;
+      mustBuyCountdown = mustBuyTime;
       countdownBox.style.display = "";
       countdownBox.textContent = mustBuyCountdown + "s";
       countdownBox.style.background = "linear-gradient(90deg,#e6f 80%,#eaf5ff 100%)";
       countdownBox.style.borderColor = "#ff4141";
       countdownBox.style.color = "#ff4141";
       countdownBox.classList.remove('neonPulse');
+      clearInterval(mustBuyTimer);
       mustBuyTimer = setInterval(() => {
         if (gameOver || !mustBuyActive) {
           clearInterval(mustBuyTimer);
@@ -758,7 +773,7 @@
           updateBalanceBox();
           gameOver = true;
           disableTrading();
-          showPnLPopup(0, "You didn't buy within 10s.<br>Your balance is $0.00<br>Game Over!", false, true);
+          showPnLPopup(0, "You didn't buy within " + mustBuyTime + "s.<br>Your balance is $0.00<br>Game Over!", false, true);
           countdownBox.style.display = "none";
           mustBuyActive = false;
           clearInterval(mustBuyTimer);
@@ -800,7 +815,7 @@
       tradeMsg.style.color = "#0ef";
       balance -= amt;
       updateBalanceBox();
-      countdown = 15;
+      countdown = autoSellTime;
       countdownBox.style.display = "";
       countdownBox.textContent = countdown + "s";
       countdownBox.style.background = "";
@@ -867,40 +882,9 @@
       updateBalanceBox();
       updateLevelBox();
       renderLevelCircles();
+      adjustTimersOnLevelUp();
       startMustBuyCountdown();
     });
-    // After auto-sell, start mustBuy timer again when done
-    function autoSell() {
-      if (!position) return;
-      let sol_bought = position.amount / position.entryPrice;
-      let curr_val = sol_bought * price;
-      let pnl = curr_val - position.amount;
-      let sign = pnl >= 0 ? "+" : "-";
-      let absPnl = Math.abs(pnl);
-      let percent = ((pnl / position.amount) * 100).toFixed(2);
-      let pnlAmountStr = "$" + formatAmount(absPnl);
-      let pnlText = sign + pnlAmountStr +
-          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
-      updateBalance(curr_val);
-      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
-      let amt = position.amount;
-      let entry = position.entryPrice;
-      let entryTime = new Date(position.time);
-      let min = entryTime.getMinutes().toString().padStart(2, "0");
-      let sec = entryTime.getSeconds().toString().padStart(2, "0");
-      let enter_at = `${min}:${sec}`;
-      tradeMsg.textContent =
-        "Auto-sold! " +
-        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
-        ` (Sold $${formatAmount(amt)} SOL at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
-      tradeMsg.style.color = pnl >= 0 ? "#0ef" : "#ff4141";
-      position = null;
-      tradeOpen = false;
-      tradeStartTime = 0;
-      countdownBox.style.display = "none";
-      clearInterval(countdownInterval);
-      if (!gameOver) startMustBuyCountdown();
-    }
   </script>
 </body>
 </html>
