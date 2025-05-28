@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimal-ui">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <style>
+    /* (All your existing CSS remains unchanged) */
     html, body {
       margin: 0; padding: 0; width: 100vw; height: 100vh; background: #0d1020;
       font-family: 'Orbitron', Arial, sans-serif; font-size: 10px;
@@ -267,6 +268,8 @@
     <div id="popupBackdrop" class="popup-backdrop" style="display:none"></div>
   </div>
   <script>
+    // --- GAME CHANGE: 5-SECOND AUTO-LOSE IF NO TRADE ---
+
     // Simulation values
     const MIN_PRICE = 10000;
     const MAX_PRICE = 500000;
@@ -292,6 +295,11 @@
     let warningShown = false;
     let countdown = 15;
     let countdownInterval = null;
+
+    // --- NEW: 5 second "buy or lose" timer ---
+    let mustBuyCountdown = 5;
+    let mustBuyTimer = null;
+    let mustBuyActive = false;
 
     // DOM
     const chartCanvas = document.getElementById("chartCanvas");
@@ -327,25 +335,20 @@
     }
     window.addEventListener('resize', resizeChart);
 
-    // Price simulation: sudden jumps/drops every second (on tick==0), super fast in graph, but smooth in top box
     function simulatePrice() {
-      // Sudden jump/drop every second
-      let sharpMove = Math.random() < 0.6; // almost every tick is sharp
+      let sharpMove = Math.random() < 0.6;
       let volatility = (MAX_PRICE - MIN_PRICE) / (sharpMove ? 6 : 14);
       let randomFactor = (Math.random() - 0.5) * volatility * (sharpMove ? 1.5 : 1);
       let sudden = (Math.random() < 0.45 ? (Math.random()-0.5)*(MAX_PRICE-MIN_PRICE)/10 : 0);
-      let wave = Math.sin(Date.now() / 500) * (MAX_PRICE - MIN_PRICE) / 25; // fast wave
+      let wave = Math.sin(Date.now() / 500) * (MAX_PRICE - MIN_PRICE) / 25;
       targetPrice = targetPrice + randomFactor + sudden + wave;
       targetPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, targetPrice));
     }
 
-    // Animate price in graph (very fast), but animate top price slower
     function animatePrice() {
       let diff = targetPrice - smoothPrice;
-      smoothPrice += diff * 0.23; // fast
+      smoothPrice += diff * 0.23;
       price = smoothPrice;
-
-      // Top price animate slower (only update every 100 ms, stepwise)
       let dTop = price - displayPrice;
       displayPrice += dTop * 0.07;
     }
@@ -373,7 +376,6 @@
     }
 
     function drawWaveLineAndDot(dotX, dotY, price) {
-      // Line up to dot
       if (priceHistory.length > 2) {
         let minP = Math.min(...priceHistory, price);
         let maxP = Math.max(...priceHistory, price);
@@ -388,7 +390,6 @@
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         for (let i = 0; i < n; ++i) {
-          // Always use CENTER for dot, line to center
           let x = (chartW / 2) * (i / (n-1));
           let wave = Math.sin((i + tick/4) * 0.33) * 2 + Math.cos((i + tick/7) * 0.11) * 1;
           let y = chartH-14-((priceHistory[i] - minP) * ((chartH-28) / yRange)) + wave;
@@ -400,7 +401,6 @@
         ctx.restore();
       }
 
-      // Neon blinking dot at center
       let blink = 0.78 + 0.22 * Math.abs(Math.sin(Date.now()/290));
       ctx.save();
       ctx.globalAlpha = blink;
@@ -418,7 +418,6 @@
       ctx.fill();
       ctx.restore();
 
-      // Price label at the dot
       ctx.save();
       ctx.font = "7px Orbitron,Arial,sans-serif";
       ctx.textAlign = "left";
@@ -441,7 +440,6 @@
       ctx.fillText(label, px, py+0.5);
       ctx.restore();
 
-      // Draw expanding neon waves (gentle)
       for (let wave of waveQueue) {
         let progress = (Date.now() - wave.time) / 900;
         if (progress > 1) continue;
@@ -469,14 +467,13 @@
       drawBoxesGrid();
 
       let n = priceHistory.length;
-      let dotX = chartW / 2; // Always center!
+      let dotX = chartW / 2;
       let minP = Math.min(...priceHistory, price);
       let maxP = Math.max(...priceHistory, price);
       let pad = (maxP-minP)*0.16 || 1;
       minP -= pad; maxP += pad;
       let yRange = maxP - minP;
       let dotY = chartH-14-((price - minP) * ((chartH-28) / yRange));
-      // Emit a wave if dot moves
       if (lastDotY === null || Math.abs(dotY - lastDotY) > 2.5) {
         if (Date.now() - lastPriceEmit > 350) {
           waveQueue.push({time: Date.now()});
@@ -489,10 +486,8 @@
 
       drawWaveLineAndDot(dotX, dotY, price);
 
-      // Animate top price smoothly (not too fast)
       btcPrice.textContent = "Price: $" + displayPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-      // PnL box
       if (position) {
         let btc_bought = position.amount / position.entryPrice;
         let curr_val = btc_bought * price;
@@ -587,6 +582,48 @@
       tradeMsg.style.color = "#ff2323";
       countdownBox.style.display = "none";
       clearInterval(countdownInterval);
+      clearInterval(mustBuyTimer);
+    }
+
+    // --- 5s AUTO-LOSE LOGIC ---
+    function startMustBuyCountdown() {
+      mustBuyActive = true;
+      mustBuyCountdown = 5;
+      countdownBox.style.display = "";
+      countdownBox.textContent = mustBuyCountdown + "s";
+      countdownBox.style.background = "linear-gradient(90deg,#3d1b2d 77%,#1c0e1b 100%)";
+      countdownBox.style.borderColor = "#ff2323";
+      countdownBox.style.color = "#ff2323";
+      countdownBox.classList.remove('neonPulse');
+      mustBuyTimer = setInterval(() => {
+        if (gameOver || !mustBuyActive) {
+          clearInterval(mustBuyTimer);
+          return;
+        }
+        mustBuyCountdown -= 1;
+        countdownBox.textContent = mustBuyCountdown + "s";
+        if (mustBuyCountdown <= 0) {
+          // Lose all balance, game over
+          balance = 0;
+          updateBalanceBox();
+          gameOver = true;
+          disableTrading();
+          showPnLPopup(0, "You didn't buy within 5s.<br>Your balance is $0.00<br>Game Over!", false, true);
+          countdownBox.style.display = "none";
+          mustBuyActive = false;
+          clearInterval(mustBuyTimer);
+        }
+      }, 1000);
+    }
+
+    function stopMustBuyCountdown() {
+      mustBuyActive = false;
+      clearInterval(mustBuyTimer);
+      countdownBox.style.display = "none";
+      countdownBox.style.background = "";
+      countdownBox.style.borderColor = "#ffd700";
+      countdownBox.style.color = "#ffd700";
+      countdownBox.classList.add('neonPulse');
     }
 
     buyBtn.onclick = function() {
@@ -607,6 +644,9 @@
         tradeMsg.style.color = "#ff4141";
         return;
       }
+      // Stop the must-buy timer!
+      stopMustBuyCountdown();
+
       position = { amount: amt, entryPrice: price, time: Date.now() };
       tradeOpen = true;
       tradeStartTime = Date.now();
@@ -618,6 +658,10 @@
       countdown = 15;
       countdownBox.style.display = "";
       countdownBox.textContent = countdown + "s";
+      countdownBox.style.background = "";
+      countdownBox.style.borderColor = "#ffd700";
+      countdownBox.style.color = "#ffd700";
+      countdownBox.classList.add('neonPulse');
       clearInterval(countdownInterval);
       countdownInterval = setInterval(() => {
         if (!tradeOpen || !position) { clearInterval(countdownInterval); return; }
@@ -665,6 +709,8 @@
       tradeStartTime = 0;
       countdownBox.style.display = "none";
       clearInterval(countdownInterval);
+      // After finishing sell, start the mustBuy timer again
+      if (!gameOver) startMustBuyCountdown();
     };
     tradeAmount.onkeydown = function(e) { if(e.key==="Enter") buyBtn.click(); };
 
@@ -674,9 +720,44 @@
       resizeChart();
       animateChart();
       simulatePrice();
-      simInterval = setInterval(simulatePrice, 320); // fast
+      simInterval = setInterval(simulatePrice, 320);
       updateBalanceBox();
+      // Start 5s must-buy timer at beginning
+      startMustBuyCountdown();
     });
+
+    // If trade is auto-sold, start mustBuy timer again when done
+    function autoSell() {
+      if (!position) return;
+      let btc_bought = position.amount / position.entryPrice;
+      let curr_val = btc_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlText = sign + "$" + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+          + " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        "Auto-sold! " +
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + absPnl.toLocaleString(undefined, {maximumFractionDigits:2})
+        + ` (Sold $${amt} BTC at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#26ffe6" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+      // After auto-sell, start mustBuy timer again (if not game over)
+      if (!gameOver) startMustBuyCountdown();
+    }
   </script>
 </body>
 </html>
