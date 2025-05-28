@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon SOL/USDC Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimal-ui">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100vh;
+      background: #fff;
+      font-family: 'Orbitron', Arial, sans-serif; font-size: 10px;
+      overflow-x: hidden;
+      transition: background 0.5s;
+    }
+    .container {
+      display: flex; flex-direction: column; align-items: center;
+      width: 100vw; min-height: 100vh;
+      background: linear-gradient(120deg, #faffff 60%, #e2f3ff 100%);
+    }
+    .sol-title {
+      color: #0ef; font-size: 1.2em;
+      margin: 18px 0 3px 0; text-shadow: 0 0 7px #0ff, 0 0 2px #9f0;
+      font-weight: bold; letter-spacing: 1.5px; text-align: center; width: 100vw;
+      background: none;
+      text-transform: uppercase;
+    }
+    .sol-price {
+      color: #9e00ff; font-size: 1.05em; margin-bottom: 0; margin-top: 0;
+      background: none; border-radius: 5px; border: 2px solid #0ef;
+      box-shadow: 0 0 6px #0ef9;
+      padding: 5px 15px; text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1.4px; user-select: none; min-width: 90px;
+      display: inline-block;
+      transition: color 0.2s;
+    }
+    .level-box {
+      color: #ff00d7; background: #ebf3fa;
+      font-size: 1.08em; font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold; letter-spacing: 1.1px;
+      margin-top: 5px; margin-bottom: 10px;
+      text-align: center; width: 100vw;
+      text-shadow: 0 0 8px #ff00f055, 0 0 2px #0ef;
+      user-select: none;
+      border-radius: 8px;
+      border: 1.8px solid #ff00d7;
+      box-shadow: 0 0 8px #ff00f022, 0 0 12px #0ef2 inset;
+      animation: levelSoftBlink 1.5s infinite alternate;
+    }
+    @keyframes levelSoftBlink {
+      0% { box-shadow: 0 0 16px #ff00f0cc, 0 0 2px #0ef; opacity: 1; }
+      100% { box-shadow: 0 0 32px #0ef8, 0 0 8px #ff00f088; opacity: 0.84; }
+    }
+    .countdown-box {
+      margin: 8px 0 0 0;
+      padding: 2px 11px;
+      background: linear-gradient(90deg, #e8fffe 80%, #eaf5ff 100%);
+      border: 2px solid #00ffe2;
+      border-radius: 7px;
+      box-shadow: 0 0 7px #0ef4, 0 0 10px #ff00f030 inset;
+      color: #00cfff;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1.11em;
+      min-width: 65px;
+      text-align: center;
+      letter-spacing: 1.1px;
+      user-select: none;
+      transition: background 0.33s, box-shadow 0.33s;
+      animation: neonPulse 1.6s alternate infinite;
+      position: relative;
+      left: 0;
+      display: inline-block;
+    }
+    .chart-box {
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .controls-row {
+      margin: 0 0 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 100vw;
+      flex-wrap: wrap;
+    }
+    .popup-backdrop {
+      position: fixed;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(244,255,255,0.75);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .popup-box {
+      background: linear-gradient(120deg, #e2f3ff 60%, #fff 100%);
+      border: 2px solid #0ef;
+      border-radius: 13px;
+      padding: 18px 10vw 12px 10vw;
+      box-shadow: 0 0 15px #ff00e944, 0 0 23px #0ef5 inset;
+      text-align: center;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1.11em;
+      color: #9e00ff;
+      letter-spacing: 1px;
+      min-width: 140px;
+      max-width: 94vw;
+      position: relative;
+      z-index: 100000;
+      animation: fadein 0.25s;
+    }
+    .popup-box.positive {
+      color: #12d07c;
+      border-color: #80ffe6;
+      box-shadow: 0 0 20px #80ffe6bb, 0 0 24px #9e00ff33;
+      text-shadow: 0 0 7px #0ef, 0 0 2px #fff8;
+    }
+    .popup-box.negative {
+      color: #ff4141;
+      border-color: #ff4141;
+      box-shadow: 0 0 20px #ff414166, 0 0 30px #ffb4e8cc inset;
+      text-shadow: 0 0 6px #ff4141, 0 0 2px #fff6;
+    }
+    .popup-close-btn {
+      margin-top: 18px;
+      padding: 7px 20px;
+      font-size: 1em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border-radius: 8px;
+      border: 2px solid #0ef;
+      background: linear-gradient(90deg,#0ef 0%,#ff00f0 100%);
+      color: #fff;
+      box-shadow: 0 0 5px #0ef, 0 0 3px #ff00f0;
+      cursor: pointer;
+      transition: filter 0.18s;
+      outline: none;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      user-select: none;
+    }
+    .popup-close-btn:active { filter: brightness(1.2);}
+    .neon-btn {
+      font-size: 1.06em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1.2px;
+      border: 2px solid #0ef;
+      border-radius: 10px;
+      padding: 7px 18px;
+      margin: 0 3px;
+      background: linear-gradient(90deg,#0ef 0%,#ff00f0 100%);
+      color: #fff;
+      box-shadow: 0 0 6px #0ef, 0 0 3px #ff00f0, 0 0 12px #9e00ff22 inset;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.18s, color 0.18s, filter 0.16s;
+      user-select: none;
+      animation: neonBtnPulse 1.1s infinite alternate;
+      min-width: 60px;
+      text-shadow: 0 0 2px #fff7, 0 0 4px #0ef, 0 0 2px #ff00f0;
+    }
+    .neon-btn:active { filter: brightness(1.2);}
+    .neon-btn:focus { border: 2px solid #ff00f0; }
+    .max-btn {
+      font-size: 0.95em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border: 2px solid #0ef;
+      border-radius: 6px;
+      padding: 5px 10px;
+      margin-left: 3px;
+      background: linear-gradient(90deg,#fff 0%,#0ef 100%);
+      color: #0ef;
+      box-shadow: 0 0 3px #0ef, 0 0 1px #ff00f0;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      transition: background 0.16s, color 0.16s;
+    }
+    .max-btn:active { filter: brightness(1.2);}
+    .max-btn:focus { border: 2px solid #ff00f0; }
+    .amount-box {
+      background: #f7fcff;
+      border: 2px solid #0ef;
+      color: #9e00ff;
+      border-radius: 7px;
+      outline: none;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-size: 1.05em;
+      padding: 6px 10px;
+      width: 70px;
+      margin-right: 2px;
+      box-shadow: 0 0 3px #0ef44, 0 0 4px #ff00f022 inset;
+      transition: border 0.2s;
+    }
+    .amount-box:focus { border: 2px solid #ff00f0; }
+    .usdc-label {
+      color: #0ef; font-size: 1.07em; margin-left: 2px;
+      text-shadow: 0 0 2px #ff00f0, 0 0 2px #0ef;
+      font-family: 'Orbitron', Arial, sans-serif;
+    }
+    .trade-msg {
+      margin-top: 5px; color: #0ef; font-size: 1.01em; text-align: center; min-height: 1.2em;
+      font-family: 'Orbitron', Arial, sans-serif; letter-spacing: 1px; text-shadow: 0 0 3px #ff00f055;
+      width: 98vw; max-width: 440px;
+    }
+    .balance-pnl-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 30px;
+      margin-top: 14px;
+      margin-bottom: 7px;
+      width: 100vw;
+    }
+    .balance-box {
+      color: #ff00f0;
+      background: #e7f6ff;
+      border: 2px solid #0ef;
+      border-radius: 8px;
+      font-size: 1.05em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 6px 18px;
+      min-width: 120px;
+      text-align: center;
+      margin: 0 0 0 0;
+      box-shadow: 0 0 7px #0ef44, 0 0 9px #ff00f022 inset;
+      user-select: none;
+      display: inline-block;
+    }
+    .balance-box.negative { color: #ff4141; border-color: #ff4141; }
+    .pnl-box {
+      padding: 7px 17px 7px 17px;
+      border-radius: 10px;
+      font-size: 1.09em;
+      font-family: 'Orbitron', Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+      min-width: 80px;
+      box-shadow: 0 0 9px #0efaa, 0 0 14px #fff7 inset;
+      border: 2px solid #0ef;
+      background: linear-gradient(90deg, #eaf9ff 60%, #fff 100%);
+      transition: background 0.3s, color 0.2s, box-shadow 0.2s, border 0.2s;
+      user-select: none;
+      text-shadow: 0 0 3px #0ef, 0 0 7px #ff00f055;
+      display: inline-block;
+      position: relative;
+      z-index: 2;
+    }
+    .pnl-box.positive {
+      color: #12d07c;
+      border-color: #12d07c;
+      box-shadow: 0 0 10px #12d07c88, 0 0 13px #0ef5 inset;
+      text-shadow: 0 0 7px #12d07c, 0 0 1px #fff6;
+    }
+    .pnl-box.negative {
+      color: #ff4141;
+      border-color: #ff4141;
+      box-shadow: 0 0 10px #ff414188, 0 0 13px #ffb4e8cc inset;
+      text-shadow: 0 0 7px #ff4141, 0 0 1px #fff6;
+    }
+    .pnl-box.neutral {
+      color: #0ef;
+      border-color: #0ef;
+      box-shadow: 0 0 8px #0ef55, 0 0 10px #ff00f077 inset;
+      text-shadow: 0 0 4px #0ef, 0 0 1px #fff6;
+    }
+    .level-circles {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      margin-bottom: 10px;
+      width: 100vw;
+      flex-wrap: wrap;
+      padding-bottom: 15px;
+    }
+    .circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #e7f6ff;
+      border: 2px solid #0ef;
+      box-shadow: 0 0 3px #0ef9;
+      transition: background 0.4s, box-shadow 0.4s, border 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .circle.on {
+      background: linear-gradient(120deg, #0ef 60%, #ff00f0 100%);
+      box-shadow: 0 0 14px #0ef, 0 0 29px #ff00f0;
+      border-color: #ff00f0;
+      animation: circlePulse 0.7s;
+    }
+    @keyframes circlePulse {
+      0% { box-shadow: 0 0 0px #0ef, 0 0 0px #ff00f0;}
+      60% { box-shadow: 0 0 29px #0ef88, 0 0 36px #ff00f088;}
+      100% { box-shadow: 0 0 14px #0ef, 0 0 29px #ff00f0;}
+    }
+    @media (max-width: 600px) {
+      html, body { font-size: 10px; }
+      .sol-title { font-size: 1.13em;}
+      .sol-price { font-size: 1em;}
+      .level-box { font-size: 1em; }
+      .balance-pnl-row { gap: 7vw; }
+      .balance-box { font-size: 1em; padding: 4px 3vw;}
+      .chart-box { min-height: 110px; max-width: 99vw; }
+      .neon-btn { padding: 6px 5vw; font-size: 0.99em;}
+      .amount-box { font-size: 0.98em; width: 46px; }
+      .max-btn { padding: 5px 8px; font-size: 0.96em;}
+      .countdown-box { font-size: 1em; min-width: 42px;}
+      .pnl-box { font-size: 1em; padding: 5px 4vw 5px 4vw; min-width: 62px;}
+      .popup-box { font-size: 1em; padding: 13px 2vw 10px 2vw; min-width: 60px;}
+      .level-circles { gap: 4px; }
+      .circle { width: 16px; height: 16px; }
+    }
+    @keyframes neonBtnPulse {
+      0% { box-shadow: 0 0 8px 2px #0ef6, 0 0 0 1px #ff00f0; }
+      100% { box-shadow: 0 0 15px 5px #ff00f07a, 0 0 0 2px #0ef; }
+    }
+    @keyframes fadein { from { opacity: 0;} to   { opacity: 1;} }
+  </style>
+</head>
+<body>
+  <div class="sol-title">SOL/USDC Neon</div>
+  <div class="sol-price" id="solPrice">Price: $20.00</div>
+  <div class="level-box" id="levelBox">Level 1: Reach $2,000 to advance</div>
+  <div id="countdownBox" class="countdown-box" style="display:none">10s</div>
+  <div class="container">
+    <div class="chart-box" id="chartBox">
+      <canvas id="chartCanvas" width="720" height="210" class="neon-canvas"></canvas>
+      <div class="controls-row">
+        <input type="number" min="1" step="1" value="20" id="tradeAmount" class="amount-box" />
+        <button class="max-btn" id="maxBtn">MAX</button>
+        <span class="usdc-label">USDC</span>
+        <button class="neon-btn" id="buyBtn">BUY</button>
+        <button class="neon-btn" id="sellBtn">SELL</button>
+      </div>
+      <div class="trade-msg" id="tradeMsg"></div>
+      <div class="balance-pnl-row" id="balancePnlRow">
+        <div id="balanceBox" class="balance-box">Balance: $1,000.00</div>
+        <div id="pnlBox" class="pnl-box neutral">Profit: $0.00</div>
+      </div>
+      <div class="level-circles" id="levelCircles"></div>
+    </div>
+    <div id="popupBackdrop" class="popup-backdrop" style="display:none"></div>
+  </div>
+  <script>
+    // --- GAME LEVEL PROGRESSION ---
+    const LEVELS = [
+      2000, 5000, 25000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 950000, 1000000
+    ];
+    const LINE_COLORS = [
+      "#0ef", "#ff00f0", "#9e00ff", "#00cfff", "#12d07c", "#ff4141", "#fbff00", "#00f9b9", "#ff8c00",
+      "#e600ff", "#ff00d7", "#0e7cff", "#0ef", "#ff00f0", "#9e00ff"
+    ];
+    let currentLevel = 0;
+
+    // Simulation values
+    const MIN_PRICE = 0;
+    const MAX_PRICE = 1000;
+    const INITIAL_PRICE = 20;
+    let price = INITIAL_PRICE, smoothPrice = INITIAL_PRICE, targetPrice = INITIAL_PRICE;
+    let priceHistory = [];
+    let animFrame = null;
+    let waveQueue = [];
+    let lastDotY = null;
+    let lastPriceEmit = 0;
+    let chartW = 720, chartH = 210;
+    let simInterval = null;
+    let tick = 0;
+
+    let balance = 1000.00;
+    let gameOver = false;
+
+    let position = null;
+    let tradeOpen = false;
+    let tradeStartTime = 0;
+    let warningShown = false;
+    let countdown = 15;
+    let countdownInterval = null;
+
+    // --- 10 second "buy or lose" timer ---
+    let mustBuyCountdown = 10;
+    let mustBuyTimer = null;
+    let mustBuyActive = false;
+
+    // DOM
+    const chartCanvas = document.getElementById("chartCanvas");
+    const ctx = chartCanvas.getContext("2d");
+    const solPrice = document.getElementById("solPrice");
+    const buyBtn = document.getElementById("buyBtn");
+    const sellBtn = document.getElementById("sellBtn");
+    const maxBtn = document.getElementById("maxBtn");
+    const tradeAmount = document.getElementById("tradeAmount");
+    const tradeMsg = document.getElementById("tradeMsg");
+    const pnlBox = document.getElementById("pnlBox");
+    const countdownBox = document.getElementById("countdownBox");
+    const balanceBox = document.getElementById("balanceBox");
+    const popupBackdrop = document.getElementById("popupBackdrop");
+    const levelBox = document.getElementById("levelBox");
+    const levelCircles = document.getElementById("levelCircles");
+
+    let displayPrice = INITIAL_PRICE;
+
+    // --- Amount formatting ---
+    function formatAmount(num) {
+      num = Number(num);
+      if (num >= 1_000_000_000_000) return (num / 1_000_000_000_000).toFixed(2) + "T";
+      if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + "B";
+      if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + "M";
+      return num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    // -- LEVEL CIRCLES --
+    function renderLevelCircles() {
+      let total = 15;
+      let html = "";
+      for (let i = 0; i < total; ++i) {
+        html += `<div class="circle${i < currentLevel ? ' on' : ''}"></div>`;
+      }
+      levelCircles.innerHTML = html;
+      if (currentLevel > 0) {
+        const last = levelCircles.children[currentLevel - 1];
+        if (last) {
+          last.classList.add("on");
+          last.style.animation = "circlePulse 0.7s";
+        }
+      }
+    }
+
+    function updateBalanceBox() {
+      balanceBox.textContent = "Balance: $" + formatAmount(balance);
+      if (balance <= 0) balanceBox.classList.add('negative');
+      else balanceBox.classList.remove('negative');
+    }
+    function updateLevelBox() {
+      if (currentLevel < LEVELS.length) {
+        let formatted = formatAmount(LEVELS[currentLevel]);
+        levelBox.textContent = `Level ${currentLevel+1}: Reach $${formatted} to advance`;
+      } else {
+        levelBox.textContent = `🎉 MAX LEVEL COMPLETED!`;
+      }
+    }
+    function resizeChart() {
+      const box = document.getElementById("chartBox");
+      let w = Math.min(box.offsetWidth-8, 470);
+      let h = Math.max(90, Math.min(box.offsetHeight * 0.80, 210));
+      chartCanvas.width = w;
+      chartCanvas.height = h;
+      chartW = w;
+      chartH = h;
+    }
+    window.addEventListener('resize', resizeChart);
+
+    function simulatePrice() {
+      let sharpMove = Math.random() < 0.6;
+      let volatility = (MAX_PRICE - MIN_PRICE) / (sharpMove ? 7 : 15);
+      let randomFactor = (Math.random() - 0.5) * volatility * (sharpMove ? 1.5 : 1);
+      let sudden = (Math.random() < 0.32 ? (Math.random()-0.5)*(MAX_PRICE-MIN_PRICE)/15 : 0);
+      let wave = Math.sin(Date.now() / 800) * (MAX_PRICE - MIN_PRICE) / 35;
+      targetPrice = targetPrice + randomFactor + sudden + wave;
+      targetPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, targetPrice));
+    }
+    function animatePrice() {
+      let diff = targetPrice - smoothPrice;
+      smoothPrice += diff * 0.21;
+      price = smoothPrice;
+      let dTop = price - displayPrice;
+      displayPrice += dTop * 0.07;
+    }
+    function updateHistory() {
+      if (priceHistory.length > 70) priceHistory.shift();
+      priceHistory.push(price);
+    }
+    function drawBoxesGrid() {
+      ctx.save();
+      let boxW = chartW / 6, boxH = chartH / 6;
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = "#0ef";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 6; ++i) {
+        for (let j = 0; j < 6; ++j) {
+          ctx.beginPath();
+          ctx.rect(Math.round(i*boxW)+0.5, Math.round(j*boxH)+0.5, Math.round(boxW), Math.round(boxH));
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+    function getLineColor() {
+      return LINE_COLORS[currentLevel % LINE_COLORS.length];
+    }
+    function drawWaveLineAndDot(dotX, dotY, price) {
+      if (priceHistory.length > 2) {
+        let minP = Math.min(...priceHistory, price);
+        let maxP = Math.max(...priceHistory, price);
+        let pad = (maxP-minP)*0.16 || 1;
+        minP -= pad; maxP += pad;
+        let yRange = maxP - minP;
+
+        let n = priceHistory.length;
+        ctx.save();
+        ctx.shadowColor = getLineColor();
+        ctx.shadowBlur = 7;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let i = 0; i < n; ++i) {
+          let x = (chartW / 2) * (i / (n-1));
+          let wave = Math.sin((i + tick/6) * 0.37) * 2 + Math.cos((i + tick/7) * 0.09) * 1;
+          let y = chartH-14-((priceHistory[i] - minP) * ((chartH-28) / yRange)) + wave;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = getLineColor();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      let blink = 0.75 + 0.25 * Math.abs(Math.sin(Date.now()/260));
+      ctx.save();
+      ctx.globalAlpha = blink;
+      ctx.shadowColor = "#ff00f0";
+      ctx.shadowBlur = 3.5 + 2.5 * blink;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = "#0ef";
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 1.3, 0, Math.PI*2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = "8px Orbitron,Arial,sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#9e00ff";
+      ctx.shadowColor = "#fff";
+      ctx.shadowBlur = 2;
+      let label = "$" + price.toLocaleString(undefined, {maximumFractionDigits:2});
+      let pricePadX = 8, pricePadY = 1.5;
+      let textWidth = ctx.measureText(label).width;
+      let px = dotX + 8;
+      let py = dotY;
+      ctx.fillRect(px - pricePadX, py - 6, textWidth + 2*pricePadX, 11);
+      ctx.fillStyle = "#f7fcff";
+      ctx.globalAlpha = 0.82;
+      ctx.fillRect(px - pricePadX, py - 6, textWidth + 2*pricePadX, 11);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#9e00ff";
+      ctx.shadowBlur = 0.5;
+      ctx.fillText(label, px, py+0.5);
+      ctx.restore();
+
+      for (let wave of waveQueue) {
+        let progress = (Date.now() - wave.time) / 900;
+        if (progress > 1) continue;
+        let r = 5 + 8 * progress;
+        let alpha = 0.13 * (1 - progress);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, r, 0, Math.PI*2);
+        let grad = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, r);
+        grad.addColorStop(0, "#fff");
+        grad.addColorStop(0.7, "#0ef");
+        grad.addColorStop(1, "rgba(38,255,230,0)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    function animateChart() {
+      tick++;
+      animatePrice();
+      updateHistory();
+      ctx.clearRect(0, 0, chartW, chartH);
+      drawBoxesGrid();
+
+      let n = priceHistory.length;
+      let dotX = chartW / 2;
+      let minP = Math.min(...priceHistory, price);
+      let maxP = Math.max(...priceHistory, price);
+      let pad = (maxP-minP)*0.16 || 1;
+      minP -= pad; maxP += pad;
+      let yRange = maxP - minP;
+      let dotY = chartH-14-((price - minP) * ((chartH-28) / yRange));
+      if (lastDotY === null || Math.abs(dotY - lastDotY) > 2.5) {
+        if (Date.now() - lastPriceEmit > 350) {
+          waveQueue.push({time: Date.now()});
+          if (waveQueue.length > 7) waveQueue.shift();
+          lastPriceEmit = Date.now();
+        }
+      }
+      lastDotY = dotY;
+      waveQueue = waveQueue.filter(wave => Date.now() - wave.time < 900);
+
+      drawWaveLineAndDot(dotX, dotY, price);
+
+      solPrice.textContent = "Price: $" + displayPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      if (position) {
+        let sol_bought = position.amount / position.entryPrice;
+        let curr_val = sol_bought * price;
+        let pnl = curr_val - position.amount;
+        let sign = pnl >= 0 ? "+" : "-";
+        let absPnl = Math.abs(pnl);
+        let percent = ((pnl / position.amount) * 100).toFixed(2);
+        let pnlAmountStr = "$" + formatAmount(absPnl);
+        pnlBox.textContent = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+        pnlBox.className = "pnl-box " + (pnl > 0 ? "positive" : (pnl < 0 ? "negative" : "neutral"));
+      } else {
+        pnlBox.textContent = "Profit: $0.00";
+        pnlBox.className = "pnl-box neutral";
+      }
+      animFrame = requestAnimationFrame(animateChart);
+    }
+    function showPnLPopup(pnl, pnlText, isProfit, isGameOver = false) {
+      let popup = document.getElementById('pnlPopup');
+      if (popup) popup.remove();
+      let backdrop = popupBackdrop;
+      backdrop.style.display = "flex";
+      let box = document.createElement("div");
+      box.className = "popup-box " + (isProfit ? "positive" : "negative");
+      box.id = "pnlPopup";
+      box.innerHTML = `
+        <div style="font-size:1.13em;margin-bottom:8px;">
+          ${isGameOver ? "💸 GAME OVER" : (isProfit ? "🎉 PROFIT!" : "💀 LOSS!")}
+        </div>
+        <div style="font-size:1.29em;margin-bottom:13px;">${pnlText}</div>
+        <button class="popup-close-btn" onclick="document.getElementById('popupBackdrop').style.display='none';document.getElementById('pnlPopup').remove();${isGameOver ? 'window.location.reload()' : ''}">Close</button>
+      `;
+      backdrop.innerHTML = "";
+      backdrop.appendChild(box);
+    }
+    function showLevelPopup(level, maxed) {
+      let popup = document.getElementById('levelPopup');
+      if (popup) popup.remove();
+      let backdrop = popupBackdrop;
+      backdrop.style.display = "flex";
+      let box = document.createElement("div");
+      box.className = "popup-box positive";
+      box.id = "levelPopup";
+      box.innerHTML = `
+        <div style="font-size:1.29em;margin-bottom:13px;">
+          🎉 Neon Up! Level ${level} Complete!
+        </div>
+        <div style="font-size:1.14em;margin-bottom:10px;">
+          ${maxed ? `You've reached the highest level!` : `Get to $${formatAmount(LEVELS[level])} for the next level!`}
+        </div>
+        <button class="popup-close-btn" onclick="document.getElementById('popupBackdrop').style.display='none';document.getElementById('levelPopup').remove();">Close</button>
+      `;
+      backdrop.innerHTML = "";
+      backdrop.appendChild(box);
+    }
+    function autoSell() {
+      if (!position) return;
+      let sol_bought = position.amount / position.entryPrice;
+      let curr_val = sol_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        "Auto-sold! " +
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} SOL at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#0ef" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+      if (!gameOver) startMustBuyCountdown();
+    }
+    function updateBalance(newVal) {
+      balance += newVal;
+      if (balance <= 0) {
+        balance = 0;
+        gameOver = true;
+        updateBalanceBox();
+        setTimeout(function() {
+          showPnLPopup(0, "Your balance is $0.00<br>Game Over!", false, true);
+        }, 150);
+        disableTrading();
+      } else {
+        updateBalanceBox();
+        // Check for level up:
+        if (currentLevel < LEVELS.length && balance >= LEVELS[currentLevel]) {
+          showLevelPopup(currentLevel + 1, currentLevel >= LEVELS.length - 1);
+          currentLevel++;
+          updateLevelBox();
+          renderLevelCircles();
+        }
+      }
+    }
+    function disableTrading() {
+      buyBtn.disabled = true;
+      sellBtn.disabled = true;
+      maxBtn.disabled = true;
+      buyBtn.style.opacity = "0.5";
+      sellBtn.style.opacity = "0.5";
+      maxBtn.style.opacity = "0.5";
+      tradeAmount.disabled = true;
+      tradeMsg.textContent = "Game Over. Please reload to play again.";
+      tradeMsg.style.color = "#ff4141";
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+      clearInterval(mustBuyTimer);
+    }
+    // --- 10s AUTO-LOSE LOGIC ---
+    function startMustBuyCountdown() {
+      mustBuyActive = true;
+      mustBuyCountdown = 10;
+      countdownBox.style.display = "";
+      countdownBox.textContent = mustBuyCountdown + "s";
+      countdownBox.style.background = "linear-gradient(90deg,#e6f 80%,#eaf5ff 100%)";
+      countdownBox.style.borderColor = "#ff4141";
+      countdownBox.style.color = "#ff4141";
+      countdownBox.classList.remove('neonPulse');
+      mustBuyTimer = setInterval(() => {
+        if (gameOver || !mustBuyActive) {
+          clearInterval(mustBuyTimer);
+          return;
+        }
+        mustBuyCountdown -= 1;
+        countdownBox.textContent = mustBuyCountdown + "s";
+        if (mustBuyCountdown <= 0) {
+          balance = 0;
+          updateBalanceBox();
+          gameOver = true;
+          disableTrading();
+          showPnLPopup(0, "You didn't buy within 10s.<br>Your balance is $0.00<br>Game Over!", false, true);
+          countdownBox.style.display = "none";
+          mustBuyActive = false;
+          clearInterval(mustBuyTimer);
+        }
+      }, 1000);
+    }
+    function stopMustBuyCountdown() {
+      mustBuyActive = false;
+      clearInterval(mustBuyTimer);
+      countdownBox.style.display = "none";
+      countdownBox.style.background = "";
+      countdownBox.style.borderColor = "#0ef";
+      countdownBox.style.color = "#00cfff";
+      countdownBox.classList.add('neonPulse');
+    }
+    buyBtn.onclick = function() {
+      if (gameOver) return;
+      let amt = parseFloat(tradeAmount.value);
+      if (isNaN(amt) || amt <= 0) {
+        tradeMsg.textContent = "Enter a valid amount.";
+        tradeMsg.style.color = "#ff4141";
+        return;
+      }
+      if (position) {
+        tradeMsg.textContent = "You already have a position.";
+        tradeMsg.style.color = "#ff00f0";
+        return;
+      }
+      if (amt > balance) {
+        tradeMsg.textContent = "Insufficient balance.";
+        tradeMsg.style.color = "#ff4141";
+        return;
+      }
+      stopMustBuyCountdown();
+      position = { amount: amt, entryPrice: price, time: Date.now() };
+      tradeOpen = true;
+      tradeStartTime = Date.now();
+      tradeMsg.textContent = `Bought $${formatAmount(amt)} worth of SOL at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+      tradeMsg.style.color = "#0ef";
+      balance -= amt;
+      updateBalanceBox();
+      countdown = 15;
+      countdownBox.style.display = "";
+      countdownBox.textContent = countdown + "s";
+      countdownBox.style.background = "";
+      countdownBox.style.borderColor = "#0ef";
+      countdownBox.style.color = "#00cfff";
+      countdownBox.classList.add('neonPulse');
+      clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (!tradeOpen || !position) { clearInterval(countdownInterval); return; }
+        countdown -= 1;
+        countdownBox.textContent = countdown + "s";
+        if (countdown <= 0) {
+          autoSell();
+        }
+      }, 1000);
+    };
+    maxBtn.onclick = function() {
+      if (gameOver) return;
+      tradeAmount.value = Math.floor(balance);
+    };
+    sellBtn.onclick = function() {
+      if (!position) {
+        tradeMsg.textContent = "No position to sell.";
+        tradeMsg.style.color = "#ff00f0";
+        return;
+      }
+      let sol_bought = position.amount / position.entryPrice;
+      let curr_val = sol_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} SOL at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#0ef" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+      if (!gameOver) startMustBuyCountdown();
+    };
+    tradeAmount.onkeydown = function(e) { if(e.key==="Enter") buyBtn.click(); };
+
+    for (let i = 0; i < 70; ++i) priceHistory.push(INITIAL_PRICE);
+
+    window.addEventListener('DOMContentLoaded', function(){
+      resizeChart();
+      animateChart();
+      simulatePrice();
+      simInterval = setInterval(simulatePrice, 320);
+      updateBalanceBox();
+      updateLevelBox();
+      renderLevelCircles();
+      startMustBuyCountdown();
+    });
+    // After auto-sell, start mustBuy timer again when done
+    function autoSell() {
+      if (!position) return;
+      let sol_bought = position.amount / position.entryPrice;
+      let curr_val = sol_bought * price;
+      let pnl = curr_val - position.amount;
+      let sign = pnl >= 0 ? "+" : "-";
+      let absPnl = Math.abs(pnl);
+      let percent = ((pnl / position.amount) * 100).toFixed(2);
+      let pnlAmountStr = "$" + formatAmount(absPnl);
+      let pnlText = sign + pnlAmountStr +
+          " (" + (sign === "+" ? "" : "-") + Math.abs(percent) + "%)";
+      updateBalance(curr_val);
+      showPnLPopup(pnl, pnlText, pnl >= 0, gameOver);
+      let amt = position.amount;
+      let entry = position.entryPrice;
+      let entryTime = new Date(position.time);
+      let min = entryTime.getMinutes().toString().padStart(2, "0");
+      let sec = entryTime.getSeconds().toString().padStart(2, "0");
+      let enter_at = `${min}:${sec}`;
+      tradeMsg.textContent =
+        "Auto-sold! " +
+        (pnl >= 0 ? "Profit: $" : "Loss: $") + formatAmount(absPnl) +
+        ` (Sold $${formatAmount(amt)} SOL at $${price.toLocaleString(undefined, {maximumFractionDigits:2})}, entry $${entry.toLocaleString(undefined, {maximumFractionDigits:2})} [${enter_at}])`;
+      tradeMsg.style.color = pnl >= 0 ? "#0ef" : "#ff4141";
+      position = null;
+      tradeOpen = false;
+      tradeStartTime = 0;
+      countdownBox.style.display = "none";
+      clearInterval(countdownInterval);
+      if (!gameOver) startMustBuyCountdown();
+    }
+  </script>
+</body>
+</html>
