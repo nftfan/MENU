@@ -214,23 +214,51 @@
       <button onclick="extractUsernames()">Extract Usernames</button>
     </div>
     <div id="usernamesList"></div>
-    <div class="muted">Paste any text above. Usernames in the format <b>@username</b> will be extracted and listed below.</div>
+    <div class="muted">Paste any text above. Usernames in the format <b>@username</b> will be saved and shown randomly below.</div>
   </div>
   <script>
-    function extractUsernames() {
-      const text = document.getElementById('inputText').value;
-      // Regex: @ followed by 2-32 allowed chars (letters, numbers, underscores, dots)
-      const matches = text.match(/@[a-zA-Z0-9_\.]{2,32}/g) || [];
-      const unique = Array.from(new Set(matches));
-      const listDiv = document.getElementById('usernamesList');
-      if (unique.length === 0) {
-        listDiv.innerHTML = '<div class="muted">No usernames found.</div>';
-        return;
+    const PANTRY_URL =
+      "https://getpantry.cloud/apiv1/pantry/ac2eb037-b72e-4e18-8d14-f6a497abed1a/basket/usernamesx";
+
+    // Fisher-Yates shuffle for randomizing the array
+    function shuffle(array) {
+      let m = array.length, t, i;
+      while (m) {
+        i = Math.floor(Math.random() * m--);
+        t = array[m];
+        array[m] = array[i];
+        array[i] = t;
       }
-      listDiv.innerHTML = unique.map(u =>
+      return array;
+    }
+
+    // Fetch and display usernames on page load
+    async function fetchAndShowUsernames() {
+      const listDiv = document.getElementById('usernamesList');
+      listDiv.innerHTML = '<div class="muted">Loading...</div>';
+      try {
+        const res = await fetch(PANTRY_URL);
+        if (!res.ok) throw new Error('Error fetching');
+        const data = await res.json();
+        let usernames = Array.isArray(data.usernames) ? data.usernames : [];
+        if (!usernames.length) {
+          listDiv.innerHTML = '<div class="muted">No usernames saved yet.</div>';
+          return;
+        }
+        usernames = shuffle([...usernames]); // Show in random order
+        renderUsernames(usernames);
+      } catch (err) {
+        listDiv.innerHTML = '<div class="muted">Error loading usernames.</div>';
+      }
+    }
+
+    // Render usernames as list with copy buttons
+    function renderUsernames(usernames) {
+      const listDiv = document.getElementById('usernamesList');
+      listDiv.innerHTML = usernames.map(u =>
         `<div class="username-row">
           <span class="username">${u}</span>
-          <button class="copy-btn" onclick="copyUsername(this, '${u}')">
+          <button class="copy-btn" onclick="copyUsername(this, '${u.replace(/'/g,"\\'")}')">
             <svg xmlns="http://www.w3.org/2000/svg" style="height:1em;width:1em;vertical-align:middle;margin-right:1px;" fill="none" viewBox="0 0 20 20"><path fill="#91EAE4" d="M6 2.75A2.25 2.25 0 0 0 3.75 5v10A2.25 2.25 0 0 0 6 17.25h8A2.25 2.25 0 0 0 16.25 15v-4.25a.75.75 0 0 0-1.5 0V15A.75.75 0 0 1 14 15.75H6A.75.75 0 0 1 5.25 15V5A.75.75 0 0 1 6 4.25h4.25a.75.75 0 0 0 0-1.5H6ZM15.78 2.72a.75.75 0 0 0-1.06 0l-5.25 5.25a.75.75 0 0 0 1.06 1.06l5.25-5.25a.75.75 0 0 0 0-1.06Z"/></svg>
             <span>Copy</span>
             <span class="copied-tooltip">Copied!</span>
@@ -238,6 +266,42 @@
         </div>`
       ).join('');
     }
+
+    // Extract usernames, merge, and update API
+    async function extractUsernames() {
+      const text = document.getElementById('inputText').value;
+      // Regex: @ followed by 2-32 allowed chars (letters, numbers, underscores, dots)
+      const matches = text.match(/@[a-zA-Z0-9_\.]{2,32}/g) || [];
+      const newUsernames = Array.from(new Set(matches));
+      if (newUsernames.length === 0) {
+        document.getElementById('usernamesList').innerHTML = '<div class="muted">No usernames found.</div>';
+        return;
+      }
+      // Fetch current usernames from API
+      let currentUsernames = [];
+      try {
+        const res = await fetch(PANTRY_URL);
+        if (res.ok) {
+          const data = await res.json();
+          currentUsernames = Array.isArray(data.usernames) ? data.usernames : [];
+        }
+      } catch (err) {}
+      // Merge and deduplicate
+      const merged = Array.from(new Set([...currentUsernames, ...newUsernames]));
+      // Save back to API
+      try {
+        await fetch(PANTRY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usernames: merged })
+        });
+      } catch (err) {
+        // ignore for now, still show locally
+      }
+      renderUsernames(shuffle([...merged]));
+    }
+
+    // Copy username to clipboard
     function copyUsername(btn, username) {
       if (navigator && navigator.clipboard) {
         navigator.clipboard.writeText(username).then(() => {
@@ -256,6 +320,9 @@
         setTimeout(() => btn.classList.remove('copied'), 1100);
       }
     }
+
+    // On load, fetch usernames
+    fetchAndShowUsernames();
   </script>
 </body>
 </html>
