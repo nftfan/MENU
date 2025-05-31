@@ -17,6 +17,7 @@
       --muted: #A2A9B7;
       --radius: 16px;
       --shadow: 0 2px 12px 0 rgba(20,24,36,0.15);
+      --progress-height: 4px;
     }
     html, body {
       margin: 0;
@@ -108,6 +109,25 @@
       margin-top: 1.1em;
       text-align: left;
       width: 100%;
+      min-height: 50px;
+      max-height: 350px;
+      overflow-y: auto;
+      border-radius: 7px;
+      /* Add a little shadow for the scroll area */
+      box-shadow: 0 2px 8px 0 rgba(134,168,231,0.07);
+      background: none;
+      scrollbar-width: thin;
+      scrollbar-color: #91EAE4 #232733;
+    }
+    #usernamesList::-webkit-scrollbar {
+      width: 6px;
+    }
+    #usernamesList::-webkit-scrollbar-thumb {
+      background: #91eae4cc;
+      border-radius: 6px;
+    }
+    #usernamesList::-webkit-scrollbar-track {
+      background: #232733;
     }
     .username-row {
       display: flex;
@@ -172,6 +192,47 @@
       letter-spacing: 0.01em;
       text-align: center;
     }
+    .total-row {
+      margin: 0.5em 0 0.2em 0;
+      font-size: 9.5px;
+      font-weight: bold;
+      color: #91EAE4;
+      letter-spacing: 0.01em;
+      text-align: left;
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: var(--progress-height);
+      background: #222733;
+      border-radius: 7px;
+      overflow: hidden;
+      margin: 0.4em 0 0.7em 0;
+      box-shadow: 0 2px 8px 0 rgba(145,234,228,0.08);
+      display: none;
+    }
+    .progress-bar {
+      height: var(--progress-height);
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+      border-radius: 7px;
+      transition: width 0.45s cubic-bezier(0.4, 0.6, 0.2, 1);
+      box-shadow: 0 1px 3px 0 rgba(134,168,231,0.12);
+    }
+    .progress-bar.animated {
+      animation: progressbar-stripes 1.4s linear infinite;
+      background-size: 40px 40px;
+      background-image: repeating-linear-gradient(
+        135deg,
+        var(--accent2),
+        var(--accent2) 12px,
+        var(--accent) 12px,
+        var(--accent) 24px
+      );
+    }
+    @keyframes progressbar-stripes {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 0; }
+    }
     @keyframes fadeOut {
       0% { opacity: 0.95; }
       80% { opacity: 0.95; }
@@ -202,6 +263,12 @@
       .muted {
         font-size: 8px;
       }
+      .total-row {
+        font-size: 8.5px;
+      }
+      #usernamesList {
+        max-height: 200px;
+      }
     }
   </style>
 </head>
@@ -212,13 +279,24 @@
     <div class="input-section">
       <textarea id="inputText" placeholder="Paste text containing @usernames here..."></textarea>
       <button onclick="extractUsernames()">Extract Usernames</button>
+      <div class="muted">For best results use latest tweets from X.</div>
     </div>
+    <div class="progress-bar-container" id="progressContainer">
+      <div class="progress-bar animated" id="progressBar"></div>
+    </div>
+    <div class="total-row" id="totalUsernames" style="display:none;"></div>
     <div id="usernamesList"></div>
-    <div class="muted">Paste any text above. Usernames in the format <b>@username</b> will be saved and shown randomly below.</div>
   </div>
   <script>
     const PANTRY_URL =
       "https://getpantry.cloud/apiv1/pantry/ac2eb037-b72e-4e18-8d14-f6a497abed1a/basket/usernamesx";
+
+    // Paging settings
+    const PAGE_SIZE = 32;
+    let allUsernames = [];
+    let totalUsernamesCount = 0;
+    let renderedCount = 0;
+    let isLoadingPage = false;
 
     // Fisher-Yates shuffle for randomizing the array
     function shuffle(array) {
@@ -232,39 +310,118 @@
       return array;
     }
 
-    // Fetch and display usernames on page load
-    async function fetchAndShowUsernames() {
-      const listDiv = document.getElementById('usernamesList');
-      listDiv.innerHTML = '<div class="muted">Loading...</div>';
-      try {
-        const res = await fetch(PANTRY_URL);
-        if (!res.ok) throw new Error('Error fetching');
-        const data = await res.json();
-        let usernames = Array.isArray(data.usernames) ? data.usernames : [];
-        if (!usernames.length) {
-          listDiv.innerHTML = '<div class="muted">No usernames saved yet.</div>';
-          return;
-        }
-        usernames = shuffle([...usernames]); // Show in random order
-        renderUsernames(usernames);
-      } catch (err) {
-        listDiv.innerHTML = '<div class="muted">Error loading usernames.</div>';
+    // Show total usernames count
+    function showTotal(count) {
+      const totalDiv = document.getElementById('totalUsernames');
+      if (count !== undefined && count !== null) {
+        totalDiv.textContent = `Total Usernames: ${count}`;
+        totalDiv.style.display = '';
+      } else {
+        totalDiv.style.display = 'none';
       }
     }
 
-    // Render usernames as list with copy buttons
-    function renderUsernames(usernames) {
+    // Progress bar controls
+    function showProgressBar() {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      progressBar.classList.add('animated');
+      progressBar.style.width = '0%';
+      progressContainer.style.display = 'block';
+      setTimeout(() => progressBar.style.width = '85%', 80); // animate to 85%
+    }
+    function finishProgressBar() {
+      const progressBar = document.getElementById('progressBar');
+      progressBar.classList.remove('animated');
+      progressBar.style.width = '100%';
+      setTimeout(() => {
+        document.getElementById('progressContainer').style.display = 'none';
+        progressBar.style.width = '0%';
+      }, 500);
+    }
+
+    // Render more usernames on scroll
+    function renderMoreUsernames() {
+      if (isLoadingPage) return;
+      isLoadingPage = true;
+      let next = allUsernames.slice(renderedCount, renderedCount + PAGE_SIZE);
+      if (!next.length) {
+        isLoadingPage = false;
+        return;
+      }
       const listDiv = document.getElementById('usernamesList');
-      listDiv.innerHTML = usernames.map(u =>
-        `<div class="username-row">
+      next.forEach(u => {
+        const row = document.createElement('div');
+        row.className = 'username-row';
+        row.innerHTML = `
           <span class="username">${u}</span>
           <button class="copy-btn" onclick="copyUsername(this, '${u.replace(/'/g,"\\'")}')">
             <svg xmlns="http://www.w3.org/2000/svg" style="height:1em;width:1em;vertical-align:middle;margin-right:1px;" fill="none" viewBox="0 0 20 20"><path fill="#91EAE4" d="M6 2.75A2.25 2.25 0 0 0 3.75 5v10A2.25 2.25 0 0 0 6 17.25h8A2.25 2.25 0 0 0 16.25 15v-4.25a.75.75 0 0 0-1.5 0V15A.75.75 0 0 1 14 15.75H6A.75.75 0 0 1 5.25 15V5A.75.75 0 0 1 6 4.25h4.25a.75.75 0 0 0 0-1.5H6ZM15.78 2.72a.75.75 0 0 0-1.06 0l-5.25 5.25a.75.75 0 0 0 1.06 1.06l5.25-5.25a.75.75 0 0 0 0-1.06Z"/></svg>
             <span>Copy</span>
             <span class="copied-tooltip">Copied!</span>
           </button>
-        </div>`
-      ).join('');
+        `;
+        listDiv.appendChild(row);
+      });
+      renderedCount += next.length;
+      isLoadingPage = false;
+    }
+
+    // Infinite scroll handler
+    function usernamesListScrollHandler(e) {
+      const el = e.target;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 32) { // near end
+        renderMoreUsernames();
+      }
+    }
+
+    // Set up scroll event for usernamesList
+    function setupInfiniteScroll() {
+      const listDiv = document.getElementById('usernamesList');
+      listDiv.removeEventListener('scroll', usernamesListScrollHandler);
+      listDiv.addEventListener('scroll', usernamesListScrollHandler);
+    }
+
+    // Fetch and display usernames on page load
+    async function fetchAndShowUsernames() {
+      const listDiv = document.getElementById('usernamesList');
+      showTotal(null);
+      listDiv.innerHTML = '<div class="muted">Loading...</div>';
+      allUsernames = [];
+      renderedCount = 0;
+      totalUsernamesCount = 0;
+
+      try {
+        const res = await fetch(PANTRY_URL);
+        if (!res.ok) throw new Error('Error fetching');
+        const data = await res.json();
+        let usernames = Array.isArray(data.usernames) ? data.usernames : [];
+        totalUsernamesCount = usernames.length;
+        if (!usernames.length) {
+          listDiv.innerHTML = '<div class="muted">No usernames saved yet.</div>';
+          showTotal(0);
+          return;
+        }
+        allUsernames = shuffle([...usernames]);
+        listDiv.innerHTML = ''; // clear
+        renderMoreUsernames();
+        showTotal(totalUsernamesCount);
+        setupInfiniteScroll();
+      } catch (err) {
+        listDiv.innerHTML = '<div class="muted">Error loading usernames.</div>';
+        showTotal(null);
+      }
+    }
+
+    // Render usernames as list with copy buttons (replace all)
+    function renderUsernames(usernames) {
+      allUsernames = usernames;
+      renderedCount = 0;
+      const listDiv = document.getElementById('usernamesList');
+      listDiv.innerHTML = '';
+      renderMoreUsernames();
+      showTotal(usernames.length);
+      setupInfiniteScroll();
     }
 
     // Extract usernames, merge, and update API
@@ -275,8 +432,10 @@
       const newUsernames = Array.from(new Set(matches));
       if (newUsernames.length === 0) {
         document.getElementById('usernamesList').innerHTML = '<div class="muted">No usernames found.</div>';
+        showTotal(0);
         return;
       }
+      showProgressBar();
       // Fetch current usernames from API
       let currentUsernames = [];
       try {
@@ -298,7 +457,10 @@
       } catch (err) {
         // ignore for now, still show locally
       }
-      renderUsernames(shuffle([...merged]));
+      setTimeout(() => {
+        renderUsernames(shuffle([...merged]));
+        finishProgressBar();
+      }, 650); // give a little time for animation to look nice
     }
 
     // Copy username to clipboard
@@ -321,7 +483,7 @@
       }
     }
 
-    // On load, fetch usernames
+    // On load, fetch usernames and set up scroll
     fetchAndShowUsernames();
   </script>
 </body>
