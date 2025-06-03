@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -588,67 +589,13 @@
         <div class="revenue-label">USD</div>
       </div>
 	    <div class="box">
-        <div class="box-title">My Total Revenue</div>
-        <div class="revenue-value">$4,520</div>
-        <div class="revenue-label">USD</div>
-      </div>
-      <!-- Latest NFT Senders -->
-      <div class="box">
-        <div class="box-title">Latest NFT Senders</div>
-        <div class="wallet-scroll-container">
-          <ul class="nft-sender-list">
-            <li class="nft-sender-item">
-              <span class="wallet">0xA1b2...98F4</span>
-              <span class="ads-sent">$24</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0xF9e6...C7B2</span>
-              <span class="ads-sent">$17</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x12Ec...AA80</span>
-              <span class="ads-sent">$12</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x7dB4...2F9C</span>
-              <span class="ads-sent">$10</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x9C3a...44E1</span>
-              <span class="ads-sent">$8</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x8F2d...11B9</span>
-              <span class="ads-sent">$6</span>
-            </li>
-            <!-- Duplicate for seamless scroll -->
-            <li class="nft-sender-item">
-              <span class="wallet">0xA1b2...98F4</span>
-              <span class="ads-sent">$24</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0xF9e6...C7B2</span>
-              <span class="ads-sent">$17</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x12Ec...AA80</span>
-              <span class="ads-sent">$12</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x7dB4...2F9C</span>
-              <span class="ads-sent">$10</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x9C3a...44E1</span>
-              <span class="ads-sent">$8</span>
-            </li>
-            <li class="nft-sender-item">
-              <span class="wallet">0x8F2d...11B9</span>
-              <span class="ads-sent">$6</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+  <div class="box-title">Latest NFT Senders</div>
+  <div class="wallet-scroll-container">
+    <ul class="nft-sender-list">
+      <!-- Wallets will be populated dynamically -->
+    </ul>
+  </div>
+</div>
     </section>
     <!-- Right Side -->
      <section class="right">
@@ -824,46 +771,173 @@
       }
     ];
 
-    async function connectWallet() {
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          const connectBtn = document.getElementById('connect-btn');
-          connectBtn.textContent = 'Connecting...';
-          connectBtn.disabled = true;
+    
+	
+	// Function to save wallet address to Pantry API
+async function saveWalletToPantry(walletAddress) {
+  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
+  const basketName = 'newBasket50';
+  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
 
-          // Request account access
-          const accounts = await window.ethereum.request({
-            method: 'eth_requestAccounts'
-          });
+  try {
+    // Fetch existing data
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    let data = await response.json();
 
-          if (accounts.length === 0) {
-            throw new Error('No accounts found');
-          }
+    // Initialize wallets array if it doesn't exist
+    if (!data.wallets) {
+      data.wallets = [];
+    }
 
-          userAccount = accounts[0];
-          web3 = new Web3(window.ethereum);
+    // Avoid duplicates
+    if (!data.wallets.includes(walletAddress)) {
+      data.wallets.push(walletAddress);
 
-          // Check if we're on Polygon network
-          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      // Update the basket with the new wallet address
+      const updateResponse = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallets: data.wallets }),
+      });
 
-          if (chainId !== POLYGON_CHAIN_ID) {
-            await switchToPolygon();
-          }
+      if (!updateResponse.ok) {
+        throw new Error('Failed to save wallet address');
+      }
+      console.log('Wallet address saved:', walletAddress);
+    }
+  } catch (error) {
+    console.error('Error saving wallet to Pantry:', error);
+    showMessage('Failed to save wallet address: ' + error.message, 'error');
+  }
+}
 
-          // Update UI
+// Function to fetch wallets from Pantry API and update the scrolling list
+async function loadWalletsFromPantry() {
+  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
+  const basketName = 'newBasket50';
+  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    const wallets = data.wallets || [];
+
+    // Update the nft-sender-list
+    const senderList = document.querySelector('.nft-sender-list');
+    senderList.innerHTML = ''; // Clear existing list
+
+    // Add wallets to the list
+    wallets.forEach(wallet => {
+      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+      const listItem = `
+        <li class="nft-sender-item">
+          <span class="wallet">${shortAddress}</span>
+          <span class="ads-sent">$40</span>
+        </li>
+      `;
+      senderList.innerHTML += listItem;
+    });
+
+    // Duplicate the list for seamless scrolling
+    wallets.forEach(wallet => {
+      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+      const listItem = `
+        <li class="nft-sender-item">
+          <span class="wallet">${shortAddress}</span>
+          <span class="ads-sent">$40</span>
+        </li>
+      `;
+      senderList.innerHTML += listItem;
+    });
+
+    // If no wallets, display a placeholder
+    if (wallets.length === 0) {
+      senderList.innerHTML = `
+        <li class="nft-sender-item">
+          <span class="wallet">No wallets yet</span>
+          <span class="ads-sent">$0</span>
+        </li>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading wallets from Pantry:', error);
+    showMessage('Failed to load wallets: ' + error.message, 'error');
+  }
+}
+
+// Modified connectWallet function to include saving to Pantry
+async function connectWallet() {
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      const connectBtn = document.getElementById('connect-btn');
+      connectBtn.textContent = 'Connecting...';
+      connectBtn.disabled = true;
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (accounts.length === 0) {
+        throw new Error('No accounts found');
+      }
+
+      userAccount = accounts[0];
+      web3 = new Web3(window.ethereum);
+
+      // Check if we're on Polygon network
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+      if (chainId !== POLYGON_CHAIN_ID) {
+        await switchToPolygon();
+      }
+
+      // Save wallet to Pantry
+      await saveWalletToPantry(userAccount);
+
+      // Update UI
+      updateConnectedUI();
+      await loadBalances();
+      await loadWalletsFromPantry(); // Load wallets after connecting
+      showMessage('Wallet connected successfully!', 'success');
+
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      showMessage('Failed to connect wallet: ' + error.message, 'error');
+      resetConnectButton();
+    }
+  } else {
+    showMessage('MetaMask is not installed. Please install MetaMask to continue.', 'error');
+  }
+}
+
+// Update the page load event to fetch wallets
+window.addEventListener('load', async () => {
+  await loadWalletsFromPantry(); // Load wallets on page load
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        userAccount = accounts[0];
+        web3 = new Web3(window.ethereum);
+
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId === POLYGON_CHAIN_ID) {
           updateConnectedUI();
           await loadBalances();
-          showMessage('Wallet connected successfully!', 'success');
-
-        } catch (error) {
-          console.error('Error connecting wallet:', error);
-          showMessage('Failed to connect wallet: ' + error.message, 'error');
-          resetConnectButton();
         }
-      } else {
-        showMessage('MetaMask is not installed. Please install MetaMask to continue.', 'error');
       }
+    } catch (error) {
+      console.error('Error checking connection:', error);
     }
+  }
+});
 
     async function switchToPolygon() {
       try {
