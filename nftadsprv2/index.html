@@ -1,0 +1,1083 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFT ADS NETWORK</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="https://i.imgur.com/ODP45iQ.png">
+  <!-- Add web3.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #131318;
+      --bg3: #1a1a22;
+      --accent: #00d4aa;
+      --accent2: #1a4a3a;
+      --accent-hover: #00b894;
+      --font: #ffffff;
+      --font-secondary: #b8bcc8;
+      --muted: #6c7293;
+      --border: #24242d;
+      --border-light: #34343e;
+      --success: #00d084;
+      --warning: #ff9500;
+      --danger: #ff4757;
+      --radius: 6px;
+      --radius-lg: 10px;
+      --gap: 12px;
+      --box-gap: 10px;
+      --font-size: 9px;
+      --logo-size: 30px;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      --shadow-hover: 0 4px 18px rgba(0, 0, 0, 0.25);
+      --tab-pad: 7px 5px;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html {
+      font-size: var(--font-size);
+      background: var(--bg);
+    }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, #0f0f16 100%);
+      color: var(--font);
+      min-height: 100vh;
+      font-size: var(--font-size);
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(19, 19, 24, 0.98);
+      backdrop-filter: blur(12px);
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      position: sticky;
+      top: 0;
+      min-height: 44px;
+    }
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .logo-img {
+      width: var(--logo-size);
+      height: var(--logo-size);
+      border-radius: 50%;
+      background: var(--bg2);
+      object-fit: cover;
+      border: 1.5px solid var(--accent);
+      box-shadow: 0 0 6px rgba(0, 212, 170, 0.14);
+    }
+    .title {
+      font-weight: 700;
+      font-size: 1.2em;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      white-space: nowrap;
+    }
+    .topbar-btn {
+      padding: 7px 18px;
+      font-size: 1em;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .topbar-btn:active { opacity: 0.85; }
+    .topbar-btn:hover { 
+      box-shadow: var(--shadow-hover);
+    }
+    .topbar-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .connected-wallet {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .wallet-address {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: var(--accent);
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+      padding: 12px;
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 80vh;
+    }
+    .balance-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      width: 100%;
+    }
+    /* Box styling, sleek borders, subtle shadow */
+    .box {
+      background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 15px 10px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+      opacity: 0.7;
+    }
+    .box-title {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: var(--font);
+      margin-bottom: 11px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .box-title::before {
+      content: '';
+      width: 3px; height: 12px;
+      background: var(--accent);
+      border-radius: 1.5px;
+      display: inline-block;
+    }
+    .revenue-value {
+      font-size: 2em;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 7px 0 2px 0;
+      letter-spacing: 1px;
+    }
+    .revenue-label {
+      font-size: 1em;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    /* NFT Senders List */
+    .wallet-scroll-container {
+      height: 90px;
+      overflow: hidden;
+      mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+      border-radius: var(--radius);
+    }
+    .nft-sender-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      animation: scrollUp 10s linear infinite;
+    }
+    @keyframes scrollUp {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+    .nft-sender-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 7px;
+      margin-bottom: 3px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.015);
+      border: 1px solid var(--border);
+      font-size: 1em;
+      transition: all 0.2s;
+    }
+    .nft-sender-item:hover {
+      background: rgba(0,212,170,0.09);
+      border-color: var(--accent);
+      transform: translateX(2px);
+    }
+    .wallet {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: var(--accent);
+      font-size: 1em;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90px;
+      white-space: nowrap;
+    }
+    .ads-sent {
+      color: var(--font);
+      font-weight: 700;
+      font-size: 1em;
+      background: rgba(0, 212, 170, 0.14);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+    }
+    /* Balance loading animation */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .balance-label {
+      font-size: 1em;
+      color: var(--muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .token-logo {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .polygon-logo {
+      background: #8247e5;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .contract-address {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.8em;
+      color: var(--muted);
+      word-break: break-all;
+      margin-top: 5px;
+    }
+    .connected-wallet {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .wallet-address {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: var(--accent);
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    .error-message {
+      background: rgba(255, 71, 87, 0.12);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 10px;
+      border-radius: var(--radius);
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    .success-message {
+      background: rgba(0, 208, 132, 0.13);
+      color: var(--success);
+      border: 1px solid var(--success);
+      padding: 10px;
+      border-radius: var(--radius);
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    #message-area {
+      min-height: 24px;
+      margin-bottom: 5px;
+    }
+    /* Campaign Tabs and other content omitted for brevity, keep as in your code */
+    .campaign-tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 11px;
+      background: var(--bg2);
+      padding: 3px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      padding: var(--tab-pad);
+      border-radius: calc(var(--radius) - 1px);
+      font-weight: 600;
+      font-size: 1em;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      position: relative;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1.5px 6px rgba(0, 212, 170, 0.18);
+    }
+    .tab-btn:not(.active):hover {
+      background: rgba(255,255,255,0.03);
+      color: var(--font-secondary);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .campaign-list {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .campaign-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 8px 6px;
+      gap: 7px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      min-height: 38px;
+    }
+    .campaign-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+      opacity: 0.5;
+    }
+	.campaign-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .campaign-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .campaign-title {
+      color: var(--font);
+      font-weight: 700;
+      font-size: 1.06em;
+      margin-bottom: 0.5em;
+      line-height: 1.1;
+    }
+    .campaign-desc {
+      font-size: 1em;
+      color: var(--font-secondary);
+      line-height: 1.3;
+      margin-bottom: 0.2em;
+    }
+    .campaign-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 2px;
+      font-size: 1em;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px 4px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 3.5px;
+      border: 1px solid var(--border);
+    }
+    .company-name {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .ad-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      transition: all 0.18s;
+    }
+    .ad-preview:hover {
+      transform: scale(1.04);
+      border-color: var(--accent);
+      box-shadow: 0 2px 7px rgba(0, 212, 170, 0.11);
+    }
+    .status-badge {
+      padding: 2px 7px;
+      border-radius: 9px;
+      font-size: 0.97em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid;
+      line-height: 1.1;
+    }
+    .status-active {
+      background: rgba(0,208,132,0.13);
+      color: var(--success);
+      border-color: var(--success);
+    }
+    .status-expiring {
+      background: rgba(255,149,0,0.11);
+      color: var(--warning);
+      border-color: var(--warning);
+    }
+    .status-expired {
+      background: rgba(255,71,87,0.12);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .status-coming {
+      background: rgba(108,114,147,0.09);
+      color: var(--muted);
+      border-color: var(--muted);
+    }
+    /* ... (rest of original campaign styles unchanged) ... */
+    @media (max-width: 440px) {
+      html { font-size: 9px; }
+      .topbar { padding: 9px 6px; min-height: 38px;}
+      .logo-title { gap: 3px; }
+      .container { padding: 5px; max-width: 100vw; gap: var(--gap);}
+      .box { padding: 9px 4px; }
+      .box-title { margin-bottom: 7px;}
+      .ad-preview { width: 100px; height: 100px;}
+      .campaign-item { grid-template-columns: 1fr; gap: 4px; text-align: left; }
+      .campaign-meta { justify-content: flex-start; font-size: 1em;}
+      .campaign-tabs { flex-direction: row; padding: 2px; }
+      .tab-btn { font-size: 1em; padding: 6px 2px;}
+      .balance-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 425px) {
+      html { font-size: 8px; }
+      .ad-preview { width: 100px; height: 100px;}
+      .campaign-logo { width: 15px; height: 15px;}
+      .box { padding: 4px 2px;}
+    }
+	  @keyframes neonBorder {
+  0%   { border-color: #ff00ff; }
+  25%  { border-color: #00ffff; }
+  50%  { border-color: #00ff00; }
+  75%  { border-color: #ffff00; }
+  100% { border-color: #ff00ff; }
+}
+
+.join-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  background-color: #111;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  border: 0.8px solid #ff00ff;
+  animation: neonBorder 4s linear infinite;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 4px #ff00ff, 0 0 8px #ff00ff;
+  width: fit-content;
+}
+
+.join-btn:hover {
+  background-color: #222;
+  box-shadow: 0 0 6px #00ffff, 0 0 12px #00ffff;
+}
+
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo-title">
+      <img src="https://i.imgur.com/ODP45iQ.png" class="logo-img" alt="NFT FAN TOKEN Logo">
+      <span class="title">NFT FAN TOKEN</span>
+    </div>
+    <div id="wallet-section">
+      <button class="topbar-btn" id="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+      <div class="connected-wallet" id="connected-info" style="display: none;">
+        <div class="wallet-address" id="wallet-address"></div>
+      </div>
+    </div>
+  </div>
+  <main class="container">
+    <div id="message-area"></div>
+    <!-- Wallet Balances (hidden until connect) -->
+    <div id="balance-section" style="display:none;">
+      <div class="balance-grid">
+        <!-- Polygon Balance -->
+        <div class="box">
+          <div class="box-title">MATIC Balance</div>
+          <div class="revenue-value" id="polygon-balance">
+            <div class="loading"></div>
+          </div>
+          <div class="balance-label">
+            <div class="token-logo polygon-logo"></div>
+            Polygon (MATIC)
+          </div>
+        </div>
+        <!-- NFT Fan Token Balance -->
+        <div class="box">
+          <div class="box-title">NFT Fan Token</div>
+          <div class="revenue-value" id="nftfan-balance">
+            <div class="loading"></div>
+          </div>
+          <div class="balance-label">
+            <img src="https://i.imgur.com/ODP45iQ.png" class="token-logo" alt="NFT Fan Token">
+            NFTFAN
+          </div>
+          <div class="contract-address">0x2017Fcaea540d2925430586DC92818035Bfc2F50</div>
+        </div>
+      </div>
+    </div>
+    <!-- Left Side -->
+    <section class="left">
+      <!-- Revenue Box -->
+      <div class="box">
+        <div class="box-title">Total Revenue Available</div>
+        <div class="revenue-value">$914,520</div>
+        <div class="revenue-label">USD</div>
+      </div>
+	    <div class="box">
+  <div class="box-title">Latest NFT Senders</div>
+  <div class="wallet-scroll-container">
+    <ul class="nft-sender-list">
+      <!-- Wallets will be populated dynamically -->
+    </ul>
+  </div>
+</div>
+    </section>
+    <!-- Right Side -->
+     <section class="right">
+  <div class="box">
+    <div class="box-title">Explore Campaign</div>
+    <!-- Campaign Tabs -->
+    <div class="campaign-tabs">
+      <button class="tab-btn active" onclick="showTab('active', event)">Active</button>
+      <button class="tab-btn" onclick="showTab('expiring', event)">Expiring Soon</button>
+      <button class="tab-btn" onclick="showTab('expired', event)">Expired</button>
+      <button class="tab-btn" onclick="showTab('coming', event)">Coming Soon</button>
+    </div>
+    <!-- Active Campaigns -->
+    <div class="tab-content active" id="active">
+      <div class="campaign-list">
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/fU6tONz.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">NFT Fans Token</div>
+            <div class="campaign-desc">Earn 40$ for dropping 1000 NFTs to 1000 human wallets.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-06-01</div>
+              <div class="meta-item">🏢 <span class="company-name">NFTFANS</span></div>
+              <div class="meta-item">📊 5M NFT Ads</div>
+		    <div class="meta-item">💰 $10,000 Budget </div>
+              <div class="status-badge status-active">Active</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join & Earn Reward $40</a>
+			
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/6MpH0H3.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">MetaArt Gallery</div>
+            <div class="campaign-desc">Showcasing generative art NFTs from top creators worldwide.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-05-28</div>
+              <div class="meta-item">🏢 <span class="company-name">MetaArt</span></div>
+              <div class="meta-item">📊 6M NFT Ads</div>
+		     <div class="meta-item">💰 $25,000 Budget </div>
+              <div class="status-badge status-active">Active</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join & Earn 0.25 SOL</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+      </div>
+    </div>
+    <!-- Expiring Soon -->
+    <div class="tab-content" id="expiring">
+      <div class="campaign-list">
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/ODP45iQ.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">DeFi Summer 2025</div>
+            <div class="campaign-desc">Earn rewards by staking your NFTs in our summer pool campaign.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-05-20</div>
+              <div class="meta-item">🏢 <span class="company-name">StakeHub</span></div>
+              <div class="meta-item">📊 370 NFT Ads</div>
+              <div class="status-badge status-expiring">Expires in 3 days</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/ODP45iQ.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">GameFi Revolution</div>
+            <div class="campaign-desc">Play-to-earn gaming platform with exclusive NFT rewards.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-05-15</div>
+              <div class="meta-item">🏢 <span class="company-name">GameFi Labs</span></div>
+              <div class="meta-item">📊 450 NFT Ads</div>
+              <div class="status-badge status-expiring">Expires in 7 days</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+      </div>
+    </div>
+    <!-- Expired -->
+    <div class="tab-content" id="expired">
+      <div class="campaign-list">
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/ODP45iQ.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">Virtual Real Estate</div>
+            <div class="campaign-desc">Premium metaverse land parcels in prime locations.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-04-10</div>
+              <div class="meta-item">🏢 <span class="company-name">MetaLand</span></div>
+              <div class="meta-item">📊 890 NFT Ads</div>
+              <div class="status-badge status-expired">Expired</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+      </div>
+    </div>
+    <!-- Coming Soon -->
+    <div class="tab-content" id="coming">
+      <div class="campaign-list">
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/ODP45iQ.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">AI Art Collective</div>
+            <div class="campaign-desc">Revolutionary AI-generated NFT collection launching next month.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-07-15</div>
+              <div class="meta-item">🏢 <span class="company-name">AI Collective</span></div>
+              <div class="meta-item">📊 1200 NFT Ads</div>
+              <div class="status-badge status-coming">Coming Soon</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+        <div class="campaign-item">
+          <img src="https://i.imgur.com/ODP45iQ.png" class="campaign-logo" alt="Brand Logo">
+          <div class="campaign-info">
+            <div class="campaign-title">Music NFT Platform</div>
+            <div class="campaign-desc">Exclusive music NFTs from Grammy-winning artists.</div>
+            <div class="campaign-meta">
+              <div class="meta-item">📅 2025-08-01</div>
+              <div class="meta-item">🏢 <span class="company-name">SoundWave</span></div>
+              <div class="meta-item">📊 750 NFT Ads</div>
+              <div class="status-badge status-coming">Coming Soon</div>
+            </div>
+            <a href="https://nftfanstoken.com/airdropv5" target="_blank" class="join-btn">Join</a>
+          </div>
+          <img src="https://i.imgur.com/jXWzvyi.png" class="ad-preview" alt="Ad Preview">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+  </main>
+  <script>
+    // Wallet Connect + Balance Feature
+    let web3;
+    let userAccount;
+    const NFTFAN_CONTRACT_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+    const POLYGON_CHAIN_ID = '0x89'; // 137 in hex
+
+    // ERC20 ABI for balance checking
+    const ERC20_ABI = [
+      {
+        "constant": true,
+        "inputs": [{"name": "_owner", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "balance", "type": "uint256"}],
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [{"name": "", "type": "uint8"}],
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [{"name": "", "type": "string"}],
+        "type": "function"
+      }
+    ];
+
+    
+	
+	// Function to save wallet address to Pantry API
+async function saveWalletToPantry(walletAddress) {
+  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
+  const basketName = 'newBasket50';
+  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
+
+  try {
+    // Fetch existing data
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    let data = await response.json();
+
+    // Initialize wallets array if it doesn't exist
+    if (!data.wallets) {
+      data.wallets = [];
+    }
+
+    // Avoid duplicates
+    if (!data.wallets.includes(walletAddress)) {
+      data.wallets.push(walletAddress);
+
+      // Update the basket with the new wallet address
+      const updateResponse = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallets: data.wallets }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to save wallet address');
+      }
+      console.log('Wallet address saved:', walletAddress);
+    }
+  } catch (error) {
+    console.error('Error saving wallet to Pantry:', error);
+    showMessage('Failed to save wallet address: ' + error.message, 'error');
+  }
+}
+
+// Function to fetch wallets from Pantry API and update the scrolling list
+async function loadWalletsFromPantry() {
+  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
+  const basketName = 'newBasket50';
+  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    const wallets = data.wallets || [];
+
+    // Update the nft-sender-list
+    const senderList = document.querySelector('.nft-sender-list');
+    senderList.innerHTML = ''; // Clear existing list
+
+    // Add wallets to the list
+    wallets.forEach(wallet => {
+      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+      const listItem = `
+        <li class="nft-sender-item">
+          <span class="wallet">${shortAddress}</span>
+          <span class="ads-sent">$40</span>
+        </li>
+      `;
+      senderList.innerHTML += listItem;
+    });
+
+    // Duplicate the list for seamless scrolling
+    wallets.forEach(wallet => {
+      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+      const listItem = `
+        <li class="nft-sender-item">
+          <span class="wallet">${shortAddress}</span>
+          <span class="ads-sent">$40</span>
+        </li>
+      `;
+      senderList.innerHTML += listItem;
+    });
+
+    // If no wallets, display a placeholder
+    if (wallets.length === 0) {
+      senderList.innerHTML = `
+        <li class="nft-sender-item">
+          <span class="wallet">No wallets yet</span>
+          <span class="ads-sent">$0</span>
+        </li>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading wallets from Pantry:', error);
+    showMessage('Failed to load wallets: ' + error.message, 'error');
+  }
+}
+
+// Modified connectWallet function to include saving to Pantry
+async function connectWallet() {
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      const connectBtn = document.getElementById('connect-btn');
+      connectBtn.textContent = 'Connecting...';
+      connectBtn.disabled = true;
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (accounts.length === 0) {
+        throw new Error('No accounts found');
+      }
+
+      userAccount = accounts[0];
+      web3 = new Web3(window.ethereum);
+
+      // Check if we're on Polygon network
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+      if (chainId !== POLYGON_CHAIN_ID) {
+        await switchToPolygon();
+      }
+
+      // Save wallet to Pantry
+      await saveWalletToPantry(userAccount);
+
+      // Update UI
+      updateConnectedUI();
+      await loadBalances();
+      await loadWalletsFromPantry(); // Load wallets after connecting
+      showMessage('Wallet connected successfully!', 'success');
+
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      showMessage('Failed to connect wallet: ' + error.message, 'error');
+      resetConnectButton();
+    }
+  } else {
+    showMessage('MetaMask is not installed. Please install MetaMask to continue.', 'error');
+  }
+}
+
+// Update the page load event to fetch wallets
+window.addEventListener('load', async () => {
+  await loadWalletsFromPantry(); // Load wallets on page load
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        userAccount = accounts[0];
+        web3 = new Web3(window.ethereum);
+
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId === POLYGON_CHAIN_ID) {
+          updateConnectedUI();
+          await loadBalances();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking connection:', error);
+    }
+  }
+});
+
+    async function switchToPolygon() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_CHAIN_ID }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: POLYGON_CHAIN_ID,
+                chainName: 'Polygon Mainnet',
+                nativeCurrency: {
+                  name: 'MATIC',
+                  symbol: 'MATIC',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://polygon-rpc.com/'],
+                blockExplorerUrls: ['https://polygonscan.com/'],
+              }],
+            });
+          } catch (addError) {
+            throw new Error('Failed to add Polygon network');
+          }
+        } else {
+          throw new Error('Failed to switch to Polygon network');
+        }
+      }
+    }
+
+    function updateConnectedUI() {
+      document.getElementById('balance-section').style.display = 'block';
+      document.getElementById('connect-btn').style.display = 'none';
+      document.getElementById('connected-info').style.display = 'block';
+
+      const shortAddress = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+      document.getElementById('wallet-address').textContent = shortAddress;
+    }
+
+    async function loadBalances() {
+      try {
+        // Load MATIC balance
+        const maticBalance = await web3.eth.getBalance(userAccount);
+        const maticFormatted = web3.utils.fromWei(maticBalance, 'ether');
+        document.getElementById('polygon-balance').textContent = parseFloat(maticFormatted).toFixed(2);
+
+        // Load NFT Fan Token balance
+        const contract = new web3.eth.Contract(ERC20_ABI, NFTFAN_CONTRACT_ADDRESS);
+        const tokenBalance = await contract.methods.balanceOf(userAccount).call();
+        const decimals = await contract.methods.decimals().call();
+
+        const tokenFormatted = (tokenBalance / Math.pow(10, decimals)).toFixed(0);
+document.getElementById('nftfan-balance').textContent = formatNumber(tokenFormatted);
+
+      } catch (error) {
+        console.error('Error loading balances:', error);
+        document.getElementById('polygon-balance').textContent = 'Error';
+        document.getElementById('nftfan-balance').textContent = 'Error';
+        showMessage('Failed to load balances: ' + error.message, 'error');
+      }
+    }
+
+    function formatNumber(num) {
+      const number = parseFloat(num);
+      if (number >= 10000000000000000000000) {
+        return (number / 1000000).toFixed(0) + '';
+      } else if (number >= 1000) {
+        return (number / 1000).toFixed(0) + '';
+      }
+      return number.toLocaleString();
+    }
+
+    function showMessage(message, type) {
+      const messageArea = document.getElementById('message-area');
+      const messageClass = type === 'success' ? 'success-message' : 'error-message';
+      messageArea.innerHTML = `<div class="${messageClass}">${message}</div>`;
+
+      setTimeout(() => {
+        messageArea.innerHTML = '';
+      }, 5000);
+    }
+
+    function resetConnectButton() {
+      const connectBtn = document.getElementById('connect-btn');
+      connectBtn.textContent = 'Connect Wallet';
+      connectBtn.disabled = false;
+    }
+
+    // Listen for account changes
+    if (typeof window.ethereum !== 'undefined') {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        if (accounts.length === 0) {
+          location.reload();
+        } else if (accounts[0] !== userAccount) {
+          userAccount = accounts[0];
+          updateConnectedUI();
+          loadBalances();
+        }
+      });
+
+      window.ethereum.on('chainChanged', function (chainId) {
+        if (chainId === POLYGON_CHAIN_ID && userAccount) {
+          loadBalances();
+        } else if (userAccount) {
+          showMessage('Please switch to Polygon network', 'error');
+        }
+      });
+    }
+
+    // Check if already connected on page load
+    window.addEventListener('load', async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            userAccount = accounts[0];
+            web3 = new Web3(window.ethereum);
+
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId === POLYGON_CHAIN_ID) {
+              updateConnectedUI();
+              await loadBalances();
+            }
+          }
+        } catch (error) {
+          console.error('Error checking connection:', error);
+        }
+      }
+    });
+
+    // Campaign tabs
+    function showTab(tabName, event) {
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
