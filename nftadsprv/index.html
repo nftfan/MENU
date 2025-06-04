@@ -634,9 +634,13 @@
 	    <div class="box">
   <div class="box-title">Latest NFT Senders</div>
   <div class="wallet-scroll-container">
-    <ul class="nft-sender-list">
-      <!-- X profiles (avatars and usernames) will be populated dynamically -->
-    </ul>
+    <li class="nft-sender-item">
+  <a href="https://x.com/nftfanstoken" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
+    <img src="https://pbs.twimg.com/profile_images/1925011658151268352/M2ez5q8I_400x400.jpg" class="profile-avatar" alt="@nftfanstoken" />
+    <span class="x-username">@nftfanstoken</span>
+  </a>
+  <span class="ads-sent">$40</span>
+</li>
   </div>
 </div>
     </section>
@@ -818,62 +822,7 @@
 	
 	
 
-async function loadSendersFromPantry() {
-  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
-  const basketName = 'newBasket50';
-  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await response.json();
-    const senders = data.senders || [];
-
-    const senderList = document.querySelector('.nft-sender-list');
-    senderList.innerHTML = '';
-
-    senders.forEach(user => {
-      const listItem = `
-        <li class="nft-sender-item">
-          <a href="${user.profileUrl}" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
-            <img src="${user.avatarUrl}" class="profile-avatar" alt="@${user.username}" />
-            <span class="x-username">@${user.username}</span>
-          </a>
-          <span class="ads-sent">$40</span>
-        </li>
-      `;
-      senderList.innerHTML += listItem;
-    });
-
-    // Duplicate for seamless scroll if needed
-    senders.forEach(user => {
-      const listItem = `
-        <li class="nft-sender-item">
-          <a href="${user.profileUrl}" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
-            <img src="${user.avatarUrl}" class="profile-avatar" alt="@${user.username}" />
-            <span class="x-username">@${user.username}</span>
-          </a>
-          <span class="ads-sent">$40</span>
-        </li>
-      `;
-      senderList.innerHTML += listItem;
-    });
-
-    if (senders.length === 0) {
-      senderList.innerHTML = `
-        <li class="nft-sender-item">
-          <span class="x-username">No senders yet</span>
-          <span class="ads-sent">$0</span>
-        </li>
-      `;
-    }
-  } catch (error) {
-    console.error('Error loading senders from Pantry:', error);
-    showMessage('Failed to load senders: ' + error.message, 'error');
-  }
-}
 
 // Modified connectWallet function to include saving to Pantry
 async function connectWallet() {
@@ -902,14 +851,7 @@ async function connectWallet() {
         await switchToPolygon();
       }
 
-      // Save wallet to Pantry
-      await saveWalletToPantry(userAccount);
-
-      // Update UI
-      updateConnectedUI();
-      await loadBalances();
-      await await loadSendersFromPantry(); // Load wallets after connecting
-      showMessage('Wallet connected successfully!', 'success');
+      
 
     } catch (error) {
       console.error('Error connecting wallet:', error);
@@ -921,27 +863,7 @@ async function connectWallet() {
   }
 }
 
-// Update the page load event to fetch wallets
-window.addEventListener('load', async () => {
-  await await loadSendersFromPantry(); // Load wallets on page load
-  if (typeof window.ethereum !== 'undefined') {
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
-        userAccount = accounts[0];
-        web3 = new Web3(window.ethereum);
 
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId === POLYGON_CHAIN_ID) {
-          updateConnectedUI();
-          await loadBalances();
-        }
-      }
-    } catch (error) {
-      console.error('Error checking connection:', error);
-    }
-  }
-});
 
     async function switchToPolygon() {
       try {
@@ -1009,10 +931,10 @@ document.getElementById('nftfan-balance').textContent = formatNumber(tokenFormat
 
     function formatNumber(num) {
       const number = parseFloat(num);
-      if (number >= 10000000000000000000000) {
+      if (number >= 1000000) {
         return (number / 1000000).toFixed(0) + '';
       } else if (number >= 1000) {
-        return (number / 1000).toFixed(0) + '';
+        return (number / 1000000000000000000).toFixed(0) + 'KT';
       }
       return number.toLocaleString();
     }
