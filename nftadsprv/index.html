@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -558,6 +559,25 @@
   box-shadow: 0 0 6px #00ffff, 0 0 12px #00ffff;
 }
 
+.profile-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 7px;
+  border: 1.5px solid var(--accent);
+  background: var(--bg2);
+  
+  vertical-align: middle;
+}
+.x-username {
+  color: var(--font);
+  font-weight: 600;
+  font-size: 1.1em;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
   </style>
 </head>
 <body>
@@ -615,7 +635,7 @@
   <div class="box-title">Latest NFT Senders</div>
   <div class="wallet-scroll-container">
     <ul class="nft-sender-list">
-      <!-- Wallets will be populated dynamically -->
+      <!-- X profiles (avatars and usernames) will be populated dynamically -->
     </ul>
   </div>
 </div>
@@ -796,49 +816,9 @@
 
     
 	
-	// Function to save wallet address to Pantry API
-async function saveWalletToPantry(walletAddress) {
-  const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
-  const basketName = 'newBasket50';
-  const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
+	
 
-  try {
-    // Fetch existing data
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    let data = await response.json();
-
-    // Initialize wallets array if it doesn't exist
-    if (!data.wallets) {
-      data.wallets = [];
-    }
-
-    // Avoid duplicates
-    if (!data.wallets.includes(walletAddress)) {
-      data.wallets.push(walletAddress);
-
-      // Update the basket with the new wallet address
-      const updateResponse = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallets: data.wallets }),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to save wallet address');
-      }
-      console.log('Wallet address saved:', walletAddress);
-    }
-  } catch (error) {
-    console.error('Error saving wallet to Pantry:', error);
-    showMessage('Failed to save wallet address: ' + error.message, 'error');
-  }
-}
-
-// Function to fetch wallets from Pantry API and update the scrolling list
-async function loadWalletsFromPantry() {
+async function loadSendersFromPantry() {
   const pantryId = 'ac2eb037-b72e-4e18-8d14-f6a497abed1a';
   const basketName = 'newBasket50';
   const url = `https://getpantry.cloud/apiv1/pantry/${pantryId}/basket/${basketName}`;
@@ -849,48 +829,49 @@ async function loadWalletsFromPantry() {
       headers: { 'Content-Type': 'application/json' },
     });
     const data = await response.json();
-    const wallets = data.wallets || [];
+    const senders = data.senders || [];
 
-    // Update the nft-sender-list
     const senderList = document.querySelector('.nft-sender-list');
-    senderList.innerHTML = ''; // Clear existing list
+    senderList.innerHTML = '';
 
-    // Add wallets to the list
-    wallets.forEach(wallet => {
-      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+    senders.forEach(user => {
       const listItem = `
         <li class="nft-sender-item">
-          <span class="wallet">${shortAddress}</span>
+          <a href="${user.profileUrl}" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
+            <img src="${user.avatarUrl}" class="profile-avatar" alt="@${user.username}" />
+            <span class="x-username">@${user.username}</span>
+          </a>
           <span class="ads-sent">$40</span>
         </li>
       `;
       senderList.innerHTML += listItem;
     });
 
-    // Duplicate the list for seamless scrolling
-    wallets.forEach(wallet => {
-      const shortAddress = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+    // Duplicate for seamless scroll if needed
+    senders.forEach(user => {
       const listItem = `
         <li class="nft-sender-item">
-          <span class="wallet">${shortAddress}</span>
+          <a href="${user.profileUrl}" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
+            <img src="${user.avatarUrl}" class="profile-avatar" alt="@${user.username}" />
+            <span class="x-username">@${user.username}</span>
+          </a>
           <span class="ads-sent">$40</span>
         </li>
       `;
       senderList.innerHTML += listItem;
     });
 
-    // If no wallets, display a placeholder
-    if (wallets.length === 0) {
+    if (senders.length === 0) {
       senderList.innerHTML = `
         <li class="nft-sender-item">
-          <span class="wallet">No wallets yet</span>
+          <span class="x-username">No senders yet</span>
           <span class="ads-sent">$0</span>
         </li>
       `;
     }
   } catch (error) {
-    console.error('Error loading wallets from Pantry:', error);
-    showMessage('Failed to load wallets: ' + error.message, 'error');
+    console.error('Error loading senders from Pantry:', error);
+    showMessage('Failed to load senders: ' + error.message, 'error');
   }
 }
 
@@ -927,7 +908,7 @@ async function connectWallet() {
       // Update UI
       updateConnectedUI();
       await loadBalances();
-      await loadWalletsFromPantry(); // Load wallets after connecting
+      await await loadSendersFromPantry(); // Load wallets after connecting
       showMessage('Wallet connected successfully!', 'success');
 
     } catch (error) {
@@ -942,7 +923,7 @@ async function connectWallet() {
 
 // Update the page load event to fetch wallets
 window.addEventListener('load', async () => {
-  await loadWalletsFromPantry(); // Load wallets on page load
+  await await loadSendersFromPantry(); // Load wallets on page load
   if (typeof window.ethereum !== 'undefined') {
     try {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
