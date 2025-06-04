@@ -212,57 +212,6 @@
       color: var(--muted);
       font-weight: 500;
     }
-    /* NFT Senders List */
-    .wallet-scroll-container {
-      height: 90px;
-      overflow-y: auto;
-      mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
-      border-radius: var(--radius);
-      scrollbar-width: thin;
-      scrollbar-color: var(--accent) var(--bg2);
-    }
-    .nft-sender-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .nft-sender-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 7px;
-      margin-bottom: 3px;
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.015);
-      border: 1px solid var(--border);
-      font-size: 1em;
-      transition: all 0.2s;
-    }
-    .nft-sender-item:hover {
-      background: rgba(0,212,170,0.09);
-      border-color: var(--accent);
-      transform: translateX(2px);
-    }
-    .wallet {
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      color: var(--accent);
-      font-size: 1em;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 90px;
-      white-space: nowrap;
-    }
-    .ads-sent {
-      color: var(--font);
-      font-weight: 700;
-      font-size: 1em;
-      background: rgba(0, 212, 170, 0.14);
-      padding: 2px 8px;
-      border-radius: 12px;
-      border: 1px solid var(--accent);
-    }
     /* Balance loading animation */
     .loading {
       display: inline-block;
@@ -623,14 +572,6 @@
         <div class="revenue-value">$914,520</div>
         <div class="revenue-label">USD</div>
       </div>
-      <div class="box">
-        <div class="box-title">Latest NFT Senders</div>
-        <div class="wallet-scroll-container">
-          <ul class="nft-sender-list">
-            <!-- X profiles (avatars and usernames) will be populated dynamically -->
-          </ul>
-        </div>
-      </div>
     </section>
     <!-- Right Side -->
      <section class="right">
@@ -806,74 +747,6 @@
       }
     ];
 
-    // Demo sender data for NFT senders list
-    const demoSenders = [
-      {
-        profileUrl: "https://x.com/nftfanstoken",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1925011658151268352/M2ez5q8I_400x400.jpg",
-        username: "vitalikbuterin"
-      },
-      {
-        profileUrl: "https://x.com/elonmusk",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1590968738358079488/IY9Gx6Ok_400x400.jpg",
-        username: "elonmusk"
-      },
-      {
-        profileUrl: "https://x.com/samczsun",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1635338010011848704/2vX2mM1x_400x400.jpg",
-        username: "samczsun"
-      },
-      {
-        profileUrl: "https://x.com/0xfoobar",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1670153992190904321/6p1Q4Ayk_400x400.jpg",
-        username: "0xfoobar"
-      },
-      {
-        profileUrl: "https://x.com/CryptoCobain",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1762699384237340672/WmYk1Vx2_400x400.jpg",
-        username: "CryptoCobain"
-      },
-      {
-        profileUrl: "https://x.com/larry0x",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1420288723688798212/4D8ioPqk_400x400.jpg",
-        username: "larry0x"
-      },
-      {
-        profileUrl: "https://x.com/balajis",
-        avatarUrl: "https://pbs.twimg.com/profile_images/1666588256998914048/4iQmMo6L_400x400.jpg",
-        username: "balajis"
-      }
-      // ...add as many as you want
-    ];
-
-    function loadSendersList() {
-      const senderList = document.querySelector('.nft-sender-list');
-      senderList.innerHTML = '';
-
-      demoSenders.forEach(user => {
-        const listItem = `
-          <li class="nft-sender-item">
-            <a href="${user.profileUrl}" target="_blank" style="display:flex;align-items:center;text-decoration:none;gap:6px;">
-              <img src="${user.avatarUrl}" class="profile-avatar" alt="@${user.username}" />
-              <span class="x-username">@${user.username}</span>
-            </a>
-            <span class="ads-sent">$40</span>
-          </li>
-        `;
-        senderList.innerHTML += listItem;
-      });
-
-      if (demoSenders.length === 0) {
-        senderList.innerHTML = `
-          <li class="nft-sender-item">
-            <span class="x-username">No senders yet</span>
-            <span class="ads-sent">$0</span>
-          </li>
-        `;
-      }
-    }
-
-    // Modified connectWallet function with NO pantry
     async function connectWallet() {
       if (typeof window.ethereum !== 'undefined') {
         try {
@@ -915,7 +788,6 @@
     }
 
     window.addEventListener('load', async () => {
-      loadSendersList(); // Load senders demo list on page load
       if (typeof window.ethereum !== 'undefined') {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -967,7 +839,14 @@
       }
     }
 
-  
+    function updateConnectedUI() {
+      document.getElementById('balance-section').style.display = 'block';
+      document.getElementById('connect-btn').style.display = 'none';
+      document.getElementById('connected-info').style.display = 'block';
+
+      const shortAddress = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+      document.getElementById('wallet-address').textContent = shortAddress;
+    }
 
     async function loadBalances() {
       try {
