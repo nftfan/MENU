@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NFTFAN Airdrop Tool</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #2017fc;
@@ -16,10 +16,15 @@
       --button: #2629ff;
       --button-text: #fff;
       --border: #262939;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
       --radius: 12px;
       --font-size: 10px;
       --wallet-font: 8px;
     }
+    
     html, body {
       margin: 0;
       padding: 0;
@@ -30,11 +35,13 @@
       box-sizing: border-box;
       min-height: 100vh;
     }
+    
     .container {
       max-width: 420px;
       margin: 0 auto;
       padding: 16px 8px 32px 8px;
     }
+    
     .card {
       background: var(--card);
       border-radius: var(--radius);
@@ -43,6 +50,7 @@
       margin-bottom: 16px;
       border: 1px solid var(--border);
     }
+    
     h1 {
       font-size: 1.2em;
       margin: 0 0 12px 0;
@@ -51,6 +59,7 @@
       color: var(--primary);
       text-align: center;
     }
+    
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -59,17 +68,20 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+    
     .wallet-controls {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
     }
+    
     .score-display {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       min-width: 120px;
     }
+    
     .btn {
       background: var(--button);
       border: none;
@@ -77,33 +89,44 @@
       border-radius: 8px;
       padding: 8px 14px;
       font-size: var(--font-size);
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       margin-right: 4px;
       margin-bottom: 4px;
-      transition: background 0.2s;
+      transition: all 0.2s;
       outline: none;
       box-shadow: none;
+      position: relative;
     }
-    .btn:active, .btn:focus {
+    
+    .btn:hover:not(:disabled) {
       background: #1b1fc7;
+      transform: translateY(-1px);
     }
+    
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
     .btn[disabled] {
       opacity: 0.5;
       cursor: not-allowed;
     }
+    
     .btn-disconnect {
       background: #444;
       color: #fff;
       margin-left: 0;
       margin-right: 0;
     }
+    
     .btn-refresh {
       background: #28a745;
       font-size: 8px;
       padding: 4px 8px;
       margin: 2px 0 0 0;
     }
+    
     textarea {
       width: 100%;
       min-height: 90px;
@@ -117,9 +140,16 @@
       resize: vertical;
       font-family: 'Inter', Arial, sans-serif;
       box-sizing: border-box;
+      transition: border-color 0.2s;
     }
+    
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
     .wallet-list {
-      background: var(--card);
+      background: var(--bg);
       border-radius: 8px;
       padding: 8px;
       max-height: 120px;
@@ -128,26 +158,44 @@
       margin-bottom: 8px;
       color: var(--muted);
       word-break: break-all;
+      border: 1px solid var(--border);
     }
+    
     .filter-info {
       margin: 6px 0 8px 0;
       color: var(--muted);
       font-size: var(--font-size);
     }
+    
     .progress-bar-bg {
       width: 100%;
-      height: 10px;
+      height: 12px;
       background: #262939;
-      border-radius: 5px;
+      border-radius: 6px;
       margin: 10px 0 8px 0;
       overflow: hidden;
+      position: relative;
     }
+    
     .progress-bar-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--primary), var(--accent));
       width: 0%;
-      transition: width 0.3s;
+      transition: width 0.3s ease;
+      position: relative;
     }
+    
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8px;
+      font-weight: 600;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+    
     .score-bar {
       background: var(--card);
       border-radius: 8px;
@@ -157,7 +205,9 @@
       font-weight: 700;
       font-size: 1em;
       letter-spacing: 0.01em;
+      border: 1px solid var(--border);
     }
+    
     .contract-info {
       font-size: var(--wallet-font);
       color: var(--muted);
@@ -165,26 +215,7 @@
       margin: 8px 0 0 0;
       word-break: break-all;
     }
-    .status-message {
-      background: #1a4d1a;
-      color: #4ade80;
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin: 8px 0;
-      font-size: var(--font-size);
-      text-align: center;
-      display: none;
-    }
-    .error-message {
-      background: #4d1a1a;
-      color: #f87171;
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin: 8px 0;
-      font-size: var(--font-size);
-      text-align: center;
-      display: none;
-    }
+    
     .gas-info {
       background: var(--card);
       border-radius: 8px;
@@ -193,31 +224,164 @@
       font-size: var(--font-size);
       color: var(--muted);
       text-align: center;
-      display: none;
+      border: 1px solid var(--border);
     }
+    
+    /* Notification Table Styles */
+    .notifications-section {
+      margin-top: 16px;
+    }
+    
+    .notifications-header {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    
+    .notifications-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      max-height: 200px;
+      overflow-y: auto;
+      display: block;
+    }
+    
+    .notifications-table thead {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    
+    .notifications-table tbody {
+      display: block;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    
+    .notifications-table tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    
+    .notifications-table th,
+    .notifications-table td {
+      padding: 4px 6px;
+      font-size: 9px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .notifications-table th {
+      background: var(--bg);
+      color: var(--accent);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .notifications-table th:first-child,
+    .notifications-table td:first-child {
+      width: 15%;
+    }
+    
+    .notifications-table th:nth-child(2),
+    .notifications-table td:nth-child(2) {
+      width: 20%;
+    }
+    
+    .notifications-table th:last-child,
+    .notifications-table td:last-child {
+      width: 65%;
+    }
+    
+    .status-success {
+      color: var(--success);
+    }
+    
+    .status-warning {
+      color: var(--warning);
+    }
+    
+    .status-error {
+      color: var(--error);
+    }
+    
+    .status-info {
+      color: var(--info);
+    }
+    
+    .status-processing {
+      color: var(--accent);
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border: 1px solid var(--muted);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 4px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
     @media (max-width: 600px) {
       .container {
         padding: 8px 2px 24px 2px;
       }
+      
       .card {
         padding: 10px;
       }
+      
       h1 {
         font-size: 1em;
       }
+      
       .btn {
         padding: 7px 10px;
       }
+      
       .score-bar {
         font-size: 0.95em;
       }
+      
       .top-bar {
         flex-direction: column;
         align-items: stretch;
       }
+      
       .score-display {
         align-items: center;
         min-width: auto;
+      }
+      
+      .notifications-table th,
+      .notifications-table td {
+        font-size: 8px;
+        padding: 3px 4px;
       }
     }
   </style>
@@ -236,8 +400,7 @@
         <button class="btn btn-refresh" id="refreshScoreBtn" style="display:none;">Refresh Score</button>
       </div>
     </div>
-    <div class="status-message" id="statusMessage"></div>
-    <div class="error-message" id="errorMessage"></div>
+    
     <div class="card">
       <h1>NFTFAN Airdrop</h1>
       <div class="filter-info">Paste any text containing wallet addresses below:</div>
@@ -247,18 +410,44 @@
         <span id="walletCount">0</span> wallets filtered
       </div>
       <div class="wallet-list" id="walletList"></div>
-      <div class="gas-info" id="gasInfo">
+      <div class="gas-info" id="gasInfo" style="display:none;">
         Estimated Gas: <span id="gasEstimate">Calculating...</span>
       </div>
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
       <button class="btn" id="airdropBtn" disabled>Send Airdrop</button>
     </div>
+    
     <div class="card contract-info">
       NFTFAN Token: <span id="tokenCA">0x2017Fcaea540d2925430586DC92818035Bfc2F50</span><br>
       Distributor: <span id="airdropCA">0x664d25959EcCabc3e04A4Dc9D1f5ca5dDE82a5d5</span>
     </div>
+    
+    <!-- Notifications Section -->
+    <div class="card notifications-section">
+      <div class="notifications-header">Activity Log</div>
+      <table class="notifications-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody id="notificationsBody">
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--muted); font-style: italic;">
+              Waiting for activity...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <script>
     // CONFIG
     const POLYGON_PARAMS = {
@@ -292,34 +481,64 @@
     const walletList = document.getElementById('walletList');
     const walletCount = document.getElementById('walletCount');
     const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
     const myScore = document.getElementById('myScore');
-    const statusMessage = document.getElementById('statusMessage');
-    const errorMessage = document.getElementById('errorMessage');
     const gasInfo = document.getElementById('gasInfo');
     const gasEstimate = document.getElementById('gasEstimate');
+    const notificationsBody = document.getElementById('notificationsBody');
 
     // App state
     let provider, signer, userAddress, contract;
     let filteredWallets = [];
     let airdropInProgress = false;
     let scoreRefreshInterval;
+    let notificationCount = 0;
 
-    function showStatus(message) {
-      statusMessage.textContent = message;
-      statusMessage.style.display = 'block';
-      errorMessage.style.display = 'none';
-      setTimeout(() => {
-        statusMessage.style.display = 'none';
-      }, 5000);
+    // Notification System
+    function addNotification(type, message, showSpinner = false) {
+      const time = new Date().toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      
+      // Remove "waiting" message if it exists
+      const waitingRow = notificationsBody.querySelector('td[colspan="3"]');
+      if (waitingRow) {
+        waitingRow.parentNode.remove();
+      }
+      
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${time}</td>
+        <td class="status-${type}">${type.toUpperCase()}</td>
+        <td class="status-${type}">
+          ${showSpinner ? '<span class="loading-spinner"></span>' : ''}${message}
+        </td>
+      `;
+      
+      // Add to top of table
+      notificationsBody.insertBefore(row, notificationsBody.firstChild);
+      
+      // Keep only last 50 notifications
+      const rows = notificationsBody.querySelectorAll('tr');
+      if (rows.length > 50) {
+        for (let i = 50; i < rows.length; i++) {
+          rows[i].remove();
+        }
+      }
+      
+      // Auto-scroll to show latest
+      notificationsBody.scrollTop = 0;
+      
+      notificationCount++;
     }
 
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
-      statusMessage.style.display = 'none';
-      setTimeout(() => {
-        errorMessage.style.display = 'none';
-      }, 8000);
+    function updateProgress(completed, total, message = '') {
+      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      progressBar.style.width = percentage + '%';
+      progressText.textContent = message || `${percentage}%`;
     }
 
     function isWallet(addr) {
@@ -327,28 +546,42 @@
     }
 
     function extractWallets(text) {
+      addNotification('info', 'Extracting wallet addresses from input...', true);
       let matches = text.match(/0x[a-fA-F0-9]{40}/g) || [];
-      let deduped = Array.from(new Set(matches.map(a => ethers.utils.getAddress(a.toLowerCase()))));
+      let deduped = Array.from(new Set(matches.map(a => {
+        try {
+          return ethers.utils.getAddress(a.toLowerCase());
+        } catch {
+          return null;
+        }
+      }).filter(Boolean)));
+      
+      addNotification('info', `Found ${matches.length} addresses, ${deduped.length} unique valid addresses`);
       return deduped;
     }
 
     function showWallets(wallets) {
-      walletList.innerHTML = wallets.slice(0, 200).map(w => 
-        `<div style="font-size:8px;line-height:1.1;margin-bottom:2px">${w}</div>`
+      const displayCount = Math.min(wallets.length, 200);
+      walletList.innerHTML = wallets.slice(0, displayCount).map(w => 
+        `<div style="font-size:8px;line-height:1.2;margin-bottom:2px;padding:1px 0;">${w}</div>`
       ).join('');
+      
       if (wallets.length > 200) {
-        walletList.innerHTML += `<div style="color:#5efcf5;">...and ${wallets.length-200} more</div>`;
+        walletList.innerHTML += `<div style="color:var(--accent);font-weight:600;margin-top:4px;">...and ${wallets.length-200} more addresses</div>`;
       }
+      
       walletCount.textContent = wallets.length;
     }
 
     async function estimateGasForBatch(recipients) {
       if (!contract || recipients.length === 0) return null;
       try {
+        addNotification('info', `Estimating gas for batch of ${recipients.length} addresses...`, true);
         const gasEstimate = await contract.estimateGas.distributeTokens(recipients);
+        addNotification('success', `Gas estimated: ${gasEstimate.toString()} units`);
         return gasEstimate;
       } catch (error) {
-        // Fallback calculation
+        addNotification('warning', `Gas estimation failed, using fallback calculation`);
         return ethers.BigNumber.from(100000 + (recipients.length * 50000));
       }
     }
@@ -358,27 +591,42 @@
         gasInfo.style.display = 'none';
         return;
       }
+      
       try {
         gasInfo.style.display = 'block';
         gasEstimate.textContent = 'Calculating...';
+        addNotification('info', 'Calculating total gas requirements...', true);
+        
         const sampleBatch = filteredWallets.slice(0, Math.min(BATCH_SIZE, filteredWallets.length));
         const gasForBatch = await estimateGasForBatch(sampleBatch);
         const totalBatches = Math.ceil(filteredWallets.length / BATCH_SIZE);
         const totalGasEstimate = gasForBatch.mul(totalBatches);
         const gasPrice = await provider.getGasPrice();
         const totalCost = totalGasEstimate.mul(gasPrice);
+        
         gasEstimate.innerHTML = `
           ${ethers.utils.formatUnits(totalCost, 'ether').slice(0, 8)} MATIC 
           (${totalBatches} batches)
         `;
+        
+        addNotification('success', `Total estimated cost: ${ethers.utils.formatUnits(totalCost, 'ether').slice(0, 8)} MATIC for ${totalBatches} batches`);
       } catch (error) {
         gasEstimate.textContent = 'Unable to estimate';
+        addNotification('error', `Gas estimation failed: ${error.message}`);
       }
     }
 
     filterBtn.onclick = async () => {
       try {
-        const rawWallets = extractWallets(walletInput.value);
+        addNotification('info', 'Starting wallet filtering process...', true);
+        const inputText = walletInput.value.trim();
+        
+        if (!inputText) {
+          addNotification('warning', 'No input provided');
+          return;
+        }
+        
+        const rawWallets = extractWallets(inputText);
         filteredWallets = rawWallets.filter(addr => {
           try {
             ethers.utils.getAddress(addr);
@@ -387,27 +635,36 @@
             return false;
           }
         });
+        
         showWallets(filteredWallets);
-        await updateGasEstimate();
-        airdropBtn.disabled = filteredWallets.length === 0 || !signer || airdropInProgress;
+        
         if (filteredWallets.length > 0) {
-          showStatus(`Filtered ${filteredWallets.length} valid wallet addresses`);
+          await updateGasEstimate();
+          addNotification('success', `Successfully filtered ${filteredWallets.length} valid wallet addresses`);
+        } else {
+          addNotification('warning', 'No valid wallet addresses found');
         }
+        
+        airdropBtn.disabled = filteredWallets.length === 0 || !signer || airdropInProgress;
       } catch (error) {
-        showError('Error filtering wallets: ' + error.message);
+        addNotification('error', `Wallet filtering failed: ${error.message}`);
       }
     };
 
-    // --- Automatic Polygon network switch ---
     async function switchToPolygon() {
       const polygonChainId = "0x89";
       try {
-        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: polygonChainId }] });
-        showStatus('Successfully switched to Polygon network');
+        addNotification('info', 'Switching to Polygon network...', true);
+        await window.ethereum.request({ 
+          method: "wallet_switchEthereumChain", 
+          params: [{ chainId: polygonChainId }] 
+        });
+        addNotification('success', 'Successfully switched to Polygon network');
         return true;
       } catch (switchError) {
         if (switchError.code === 4902) {
           try {
+            addNotification('info', 'Adding Polygon network to wallet...', true);
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
               params: [{
@@ -418,65 +675,66 @@
                 blockExplorerUrls: ["https://polygonscan.com/"]
               }]
             });
-            showStatus('Polygon network added successfully');
+            addNotification('success', 'Polygon network added successfully');
             return true;
           } catch (addError) {
-            showError("Failed to add Polygon network. Please add it manually.");
+            addNotification('error', 'Failed to add Polygon network');
             return false;
           }
         } else if (switchError.code === 4001) {
-          showError("Please approve the network switch in your wallet.");
+          addNotification('error', 'Network switch rejected by user');
           return false;
         } else {
-          showError("Please switch to Polygon network manually in your wallet.");
+          addNotification('error', 'Please switch to Polygon network manually');
           return false;
         }
       }
     }
-    // --- END Automatic Polygon network switch ---
 
     connectWalletBtn.onclick = async () => {
       if (!window.ethereum) {
-        showError('Please install MetaMask or a compatible Web3 wallet!');
+        addNotification('error', 'Web3 wallet not detected! Please install MetaMask');
         return;
       }
+      
       try {
-        showStatus('Connecting wallet...');
+        addNotification('info', 'Connecting to wallet...', true);
+        
         const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
         if (currentChainId !== POLYGON_PARAMS.chainId) {
-          const wantSwitch = confirm(
-            "This dApp requires the Polygon network.\n\nWould you like us to switch your wallet automatically?"
-          );
-          if (wantSwitch) {
-            const switched = await switchToPolygon();
-            if (!switched) return;
-          } else {
-            showError("You must be on the Polygon network to use this airdrop tool.");
-            return;
-          }
+          addNotification('warning', 'Wrong network detected, switching to Polygon...');
+          const switched = await switchToPolygon();
+          if (!switched) return;
         }
+        
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
         contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
+        
         connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
         connectWalletBtn.disabled = true;
         disconnectWalletBtn.style.display = "";
         refreshScoreBtn.style.display = "";
+        
+        addNotification('success', `Wallet connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`);
+        
         await updateScore();
         startScoreRefresh();
+        
         if (filteredWallets.length > 0) {
           await updateGasEstimate();
         }
+        
         airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
-        showStatus('Wallet connected successfully!');
       } catch (err) {
-        showError("Wallet connection failed: " + err.message);
+        addNotification('error', `Wallet connection failed: ${err.message}`);
       }
     };
 
     disconnectWalletBtn.onclick = () => {
+      addNotification('info', 'Disconnecting wallet...');
       stopScoreRefresh();
       provider = null;
       signer = null;
@@ -489,7 +747,8 @@
       myScore.textContent = "0";
       airdropBtn.disabled = true;
       gasInfo.style.display = 'none';
-      showStatus('Wallet disconnected');
+      updateProgress(0, 0, '0%');
+      addNotification('success', 'Wallet disconnected successfully');
     };
 
     async function updateScore() {
@@ -497,19 +756,27 @@
         myScore.textContent = "0";
         return;
       }
+      
       try {
+        addNotification('info', 'Fetching user score...', true);
         const score = await contract.userScores(userAddress);
         const scoreValue = score.toString();
         myScore.textContent = scoreValue;
+        addNotification('success', `Score updated: ${scoreValue}`);
       } catch (error) {
         myScore.textContent = "Error";
+        addNotification('error', `Score fetch failed: ${error.message}`);
       }
     }
 
     function startScoreRefresh() {
       stopScoreRefresh();
-      scoreRefreshInterval = setInterval(updateScore, 30000);
+      scoreRefreshInterval = setInterval(() => {
+        addNotification('info', 'Auto-refreshing score...');
+        updateScore();
+      }, 30000);
     }
+
     function stopScoreRefresh() {
       if (scoreRefreshInterval) {
         clearInterval(scoreRefreshInterval);
@@ -520,6 +787,7 @@
     refreshScoreBtn.onclick = async () => {
       refreshScoreBtn.disabled = true;
       refreshScoreBtn.textContent = 'Refreshing...';
+      addNotification('info', 'Manual score refresh requested...', true);
       await updateScore();
       setTimeout(() => {
         refreshScoreBtn.disabled = false;
@@ -528,23 +796,40 @@
     };
 
     async function performPreflightChecks(batch) {
+      addNotification('info', 'Running pre-flight checks...', true);
+      
       const checks = {
         balance: false,
         gasPrice: false,
         contract: false,
         network: false
       };
+      
       try {
         const balance = await signer.getBalance();
         const gasPrice = await provider.getGasPrice();
         const estimatedGas = await estimateGasForBatch(batch);
         const requiredGas = estimatedGas.mul(gasPrice);
+        
         checks.balance = balance.gte(requiredGas);
         checks.gasPrice = gasPrice.lt(ethers.utils.parseUnits('100', 'gwei'));
+        
         const code = await provider.getCode(AIRDROP_CONTRACT_CA);
         checks.contract = code !== '0x';
+        
         const network = await provider.getNetwork();
         checks.network = network.chainId === 137;
+        
+        // Log individual check results
+        addNotification(checks.balance ? 'success' : 'error', 
+          `Balance check: ${ethers.utils.formatEther(balance).slice(0, 6)} MATIC available`);
+        addNotification(checks.contract ? 'success' : 'error', 
+          `Contract check: ${checks.contract ? 'Valid' : 'Invalid'}`);
+        addNotification(checks.network ? 'success' : 'error', 
+          `Network check: ${checks.network ? 'Polygon' : 'Wrong network'}`);
+        addNotification(checks.gasPrice ? 'success' : 'warning', 
+          `Gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei').slice(0, 6)} Gwei`);
+        
         return {
           passed: Object.values(checks).every(Boolean),
           details: checks,
@@ -553,6 +838,7 @@
           gasPrice: gasPrice
         };
       } catch (error) {
+        addNotification('error', `Pre-flight check failed: ${error.message}`);
         return {
           passed: false,
           error: error.message,
@@ -562,195 +848,242 @@
     }
 
     function getDetailedError(error) {
-      if (error.code === 'INSUFFICIENT_FUNDS') return 'Insufficient MATIC balance for gas fees';
-      if (error.code === 'UNPREDICTABLE_GAS_LIMIT') return 'Cannot estimate gas - contract may revert or insufficient token balance';
-      if (error.code === 'CALL_EXCEPTION') return 'Contract call failed - check if you have permission or sufficient tokens';
-      if (error.code === 'NETWORK_ERROR') return 'Network connection error - please try again';
-      if (error.code === 'TIMEOUT') return 'Transaction timeout - network may be congested';
-      const message = error.message || error.reason || '';
-      if (message.includes('insufficient funds')) return 'Insufficient MATIC balance for gas fees';
-      if (message.includes('gas required exceeds')) return 'Transaction requires too much gas - try smaller batches';
-      if (message.includes('execution reverted')) {
-        if (message.includes('Ownable')) return 'Access denied - you may not have permission to perform airdrops';
-        if (message.includes('ERC20')) return 'Token transfer failed - insufficient token balance in contract';
-        return 'Contract execution failed: ' + message.split('execution reverted: ')[1];
+      const errorString = error.toString().toLowerCase();
+      
+      if (errorString.includes('insufficient funds')) {
+        return 'Insufficient MATIC balance for gas fees';
+      } else if (errorString.includes('gas required exceeds allowance')) {
+        return 'Gas limit exceeded - try smaller batch size';
+      } else if (errorString.includes('user rejected')) {
+        return 'Transaction rejected by user';
+      } else if (errorString.includes('nonce')) {
+        return 'Transaction nonce error - please try again';
+      } else if (errorString.includes('replacement underpriced')) {
+        return 'Gas price too low - increase and retry';
+      } else if (errorString.includes('already known')) {
+        return 'Transaction already pending';
+      } else if (errorString.includes('network')) {
+        return 'Network connection error';
+      } else if (errorString.includes('timeout')) {
+        return 'Transaction timeout - check network';
+      } else {
+        return error.message || 'Unknown error occurred';
       }
-      if (message.includes('nonce too high') || message.includes('nonce too low')) return 'Transaction nonce error - please reset your wallet or try again';
-      if (message.includes('replacement transaction underpriced')) return 'Gas price too low - please increase gas price and try again';
-      return error.reason || error.message || 'Unknown transaction error';
     }
 
     airdropBtn.onclick = async () => {
-      if (!signer || !contract || filteredWallets.length === 0 || airdropInProgress) return;
-      showStatus('Running pre-flight checks...');
-      const testBatch = filteredWallets.slice(0, Math.min(5, filteredWallets.length));
-      const preflightResult = await performPreflightChecks(testBatch);
-      if (!preflightResult.passed) {
-        let errorMsg = 'Pre-flight checks failed:\n';
-        if (preflightResult.error) {
-          errorMsg += preflightResult.error;
-        } else {
-          if (!preflightResult.details.balance) errorMsg += '• Insufficient MATIC balance\n';
-          if (!preflightResult.details.contract) errorMsg += '• Contract not found or invalid\n';
-          if (!preflightResult.details.network) errorMsg += '• Wrong network (must be Polygon)\n';
-          if (!preflightResult.details.gasPrice) errorMsg += '• Gas price too high\n';
-        }
-        showError(errorMsg);
+      if (airdropInProgress || !signer || filteredWallets.length === 0) {
+        addNotification('warning', 'Cannot start airdrop - check requirements');
         return;
       }
-      const balanceFormatted = ethers.utils.formatEther(preflightResult.balance).slice(0, 6);
-      const requiredFormatted = ethers.utils.formatEther(preflightResult.requiredGas).slice(0, 6);
-      const confirmed = confirm(
-        `Send airdrop to ${filteredWallets.length} wallets?\n\n` +
-        `Batches: ${Math.ceil(filteredWallets.length / BATCH_SIZE)}\n` +
-        `Your MATIC: ${balanceFormatted}\n` +
-        `Est. Required: ${requiredFormatted}\n\n` +
-        `Continue with airdrop?`
-      );
-      if (!confirmed) return;
+      
       airdropInProgress = true;
       airdropBtn.disabled = true;
-      filterBtn.disabled = true;
-      let total = filteredWallets.length;
-      let done = 0;
-      let failed = 0;
-      progressBar.style.width = "0%";
-      showStatus('Starting airdrop...');
-      try {
-        for (let i = 0; i < total; i += BATCH_SIZE) {
-          const batch = filteredWallets.slice(i, i + BATCH_SIZE);
-          const batchNum = Math.floor(i/BATCH_SIZE) + 1;
-          const totalBatches = Math.ceil(total/BATCH_SIZE);
-          showStatus(`Processing batch ${batchNum}/${totalBatches} (${batch.length} addresses)...`);
-          try {
-            const gasEstimate = await estimateGasForBatch(batch);
-            let gasLimit;
-            if (gasEstimate.gt(MAX_GAS_LIMIT)) {
-              showError(`Batch ${batchNum} requires too much gas (${gasEstimate.toString()}). Skipping...`);
-              failed += batch.length;
-              continue;
-            } else {
-              gasLimit = gasEstimate.mul(130).div(100); // 30% buffer
-            }
-            const gasPrice = await provider.getGasPrice();
-            const adjustedGasPrice = gasPrice.mul(110).div(100); // 10% buffer
-            showStatus(`Sending batch ${batchNum} transaction...`);
-            const tx = await contract.distributeTokens(batch, {
-              gasLimit: gasLimit,
-              gasPrice: adjustedGasPrice
-            });
-            showStatus(`Batch ${batchNum} sent (${tx.hash.slice(0,10)}...), waiting for confirmation...`);
-            const receipt = await Promise.race([
-              tx.wait(),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Transaction timeout after 5 minutes')), 300000)
-              )
-            ]);
-            if (receipt.status === 1) {
-              done += batch.length;
-              progressBar.style.width = (100 * (done + failed) / total).toFixed(1) + "%";
-              await updateScore();
-              showStatus(`Batch ${batchNum}/${totalBatches} completed successfully! ✅`);
-              if (batchNum < totalBatches) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-              }
-            } else {
-              throw new Error(`Transaction failed with status: ${receipt.status}`);
-            }
-          } catch (batchError) {
-            failed += batch.length;
-            const detailedError = getDetailedError(batchError);
-            if (batchError.code === 'INSUFFICIENT_FUNDS') {
-              showError(`Batch ${batchNum} failed: ${detailedError}\nStopping airdrop.`);
+      airdropBtn.textContent = 'Airdropping...';
+      
+      addNotification('info', `Starting airdrop to ${filteredWallets.length} addresses...`, true);
+      
+      const batches = [];
+      for (let i = 0; i < filteredWallets.length; i += BATCH_SIZE) {
+        batches.push(filteredWallets.slice(i, i + BATCH_SIZE));
+      }
+      
+      addNotification('info', `Split into ${batches.length} batches of max ${BATCH_SIZE} addresses each`);
+      
+      let completedBatches = 0;
+      let totalTransactions = 0;
+      let failedBatches = 0;
+      
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        updateProgress(i, batches.length, `Processing batch ${i + 1}/${batches.length}`);
+        
+        try {
+          addNotification('info', `Processing batch ${i + 1}/${batches.length} with ${batch.length} addresses...`, true);
+          
+          // Run pre-flight checks for this batch
+          const preflightResult = await performPreflightChecks(batch);
+          if (!preflightResult.passed) {
+            addNotification('error', `Pre-flight check failed for batch ${i + 1}`);
+            failedBatches++;
+            continue;
+          }
+          
+          // Estimate gas for this specific batch
+          const gasEstimate = await estimateGasForBatch(batch);
+          
+          if (gasEstimate.gt(MAX_GAS_LIMIT)) {
+            addNotification('warning', `Batch ${i + 1} exceeds gas limit, skipping...`);
+            failedBatches++;
+            continue;
+          }
+          
+          // Execute the transaction
+          addNotification('processing', `Sending transaction for batch ${i + 1}...`, true);
+          const tx = await contract.distributeTokens(batch, {
+            gasLimit: gasEstimate.add(100000) // Add buffer
+          });
+          
+          addNotification('info', `Transaction sent: ${tx.hash.slice(0, 10)}...`);
+          
+          // Wait for confirmation
+          const receipt = await tx.wait();
+          
+          if (receipt.status === 1) {
+            addNotification('success', `Batch ${i + 1} completed successfully! Gas used: ${receipt.gasUsed.toString()}`);
+            completedBatches++;
+            totalTransactions += batch.length;
+          } else {
+            addNotification('error', `Batch ${i + 1} transaction failed`);
+            failedBatches++;
+          }
+          
+        } catch (error) {
+          const detailedError = getDetailedError(error);
+          addNotification('error', `Batch ${i + 1} failed: ${detailedError}`);
+          failedBatches++;
+          
+          // If it's a critical error, ask user if they want to continue
+          if (error.toString().includes('insufficient funds') || 
+              error.toString().includes('user rejected')) {
+            const continueAirdrop = confirm(
+              `Error in batch ${i + 1}: ${detailedError}\n\nDo you want to continue with remaining batches?`
+            );
+            if (!continueAirdrop) {
+              addNotification('warning', 'Airdrop cancelled by user');
               break;
-            } else if (batchError.message && batchError.message.includes('nonce')) {
-              showError(`Batch ${batchNum} failed: ${detailedError}\nPlease reset wallet and try again.`);
-              break;
-            } else {
-              showError(`Batch ${batchNum} failed: ${detailedError}\nContinuing with next batch...`);
-              progressBar.style.width = (100 * (done + failed) / total).toFixed(1) + "%";
-              await new Promise(resolve => setTimeout(resolve, 5000));
             }
           }
         }
-        progressBar.style.width = "100%";
-        if (done > 0 && failed === 0) {
-          showStatus(`🎉 Airdrop completed successfully! All ${done} addresses processed.`);
-        } else if (done > 0 && failed > 0) {
-          showStatus(`⚠️ Airdrop partially completed. Success: ${done}, Failed: ${failed}`);
-        } else {
-          showError(`❌ Airdrop failed completely. No addresses were processed.`);
+        
+        // Small delay between batches to prevent rate limiting
+        if (i < batches.length - 1) {
+          addNotification('info', 'Waiting 2 seconds before next batch...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
-      } catch (error) {
-        const detailedError = getDetailedError(error);
-        showError(`Airdrop failed: ${detailedError}`);
       }
+      
+      // Final summary
+      updateProgress(batches.length, batches.length, 'Complete!');
+      
+      const summary = `Airdrop Summary:
+      • Total Batches: ${batches.length}
+      • Completed: ${completedBatches}
+      • Failed: ${failedBatches}
+      • Addresses Processed: ${totalTransactions}
+      • Success Rate: ${Math.round((completedBatches / batches.length) * 100)}%`;
+      
+      addNotification('info', summary.replace(/\n/g, ' '));
+      
+      if (completedBatches === batches.length) {
+        addNotification('success', `🎉 Airdrop completed successfully! ${totalTransactions} addresses processed.`);
+      } else if (completedBatches > 0) {
+        addNotification('warning', `Airdrop partially completed. ${completedBatches}/${batches.length} batches successful.`);
+      } else {
+        addNotification('error', 'Airdrop failed completely. Please check your setup and try again.');
+      }
+      
+      // Reset button state
       airdropInProgress = false;
-      airdropBtn.disabled = filteredWallets.length === 0 || !signer;
-      filterBtn.disabled = false;
+      airdropBtn.disabled = false;
+      airdropBtn.textContent = 'Send Airdrop';
+      
+      // Refresh score after completion
+      if (completedBatches > 0) {
+        addNotification('info', 'Refreshing score after airdrop completion...');
+        await updateScore();
+      }
     };
 
+    // Handle network changes
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', async (accounts) => {
-        if (accounts.length > 0) {
-          try {
-            provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-            signer = provider.getSigner();
-            userAddress = accounts[0];
-            contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
-            connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-            connectWalletBtn.disabled = true;
-            disconnectWalletBtn.style.display = "";
-            refreshScoreBtn.style.display = "";
-            await updateScore();
-            startScoreRefresh();
-            if (filteredWallets.length > 0) {
-              await updateGasEstimate();
-            }
-            airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
-            showStatus('Account switched successfully');
-          } catch (error) {
-            showError('Error switching account: ' + error.message);
-          }
-        } else {
-          disconnectWalletBtn.onclick();
+      window.ethereum.on('chainChanged', (chainId) => {
+        addNotification('warning', `Network changed to ${chainId}`);
+        if (chainId !== POLYGON_PARAMS.chainId) {
+          addNotification('warning', 'Please switch back to Polygon network');
         }
       });
-      window.ethereum.on('chainChanged', async (chainId) => {
-        if (chainId !== POLYGON_PARAMS.chainId) {
-          showError("Wrong network detected. Please switch to Polygon network.");
-          disconnectWalletBtn.onclick();
+      
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) {
+          addNotification('warning', 'Wallet disconnected');
+          disconnectWalletBtn.click();
+        } else if (userAddress && accounts[0].toLowerCase() !== userAddress.toLowerCase()) {
+          addNotification('warning', 'Account changed, please reconnect');
+          disconnectWalletBtn.click();
         }
       });
     }
 
-    showWallets([]);
-    airdropBtn.disabled = true;
-    filterBtn.disabled = false;
-
-    window.addEventListener('DOMContentLoaded', async () => {
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+      addNotification('info', 'NFTFAN Airdrop Tool initialized');
+      addNotification('info', 'Connect your wallet to get started');
+      
+      // Auto-connect if wallet was previously connected
       if (window.ethereum && window.ethereum.selectedAddress) {
-        try {
-          const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-          if (currentChainId === POLYGON_PARAMS.chainId) {
-            showStatus('Auto-connecting wallet...');
-            provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-            signer = provider.getSigner();
-            userAddress = await signer.getAddress();
-            contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
-            connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-            connectWalletBtn.disabled = true;
-            disconnectWalletBtn.style.display = "";
-            refreshScoreBtn.style.display = "";
-            await updateScore();
-            startScoreRefresh();
-            airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
-            showStatus('Wallet auto-connected successfully');
-          }
-        } catch (error) {
-          // Ignore auto-connect error
+        addNotification('info', 'Previous wallet connection detected');
+        setTimeout(() => {
+          connectWalletBtn.click();
+        }, 1000);
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case 'Enter':
+            if (!airdropBtn.disabled) {
+              e.preventDefault();
+              airdropBtn.click();
+            }
+            break;
+          case 'f':
+            e.preventDefault();
+            filterBtn.click();
+            break;
+          case 'r':
+            if (refreshScoreBtn.style.display !== 'none') {
+              e.preventDefault();
+              refreshScoreBtn.click();
+            }
+            break;
         }
       }
+    });
+
+    // Add tooltip functionality
+    const tooltips = {
+      'connectWalletBtn': 'Connect your Web3 wallet (MetaMask, etc.)',
+      'filterBtn': 'Extract and validate wallet addresses from input (Ctrl+F)',
+      'airdropBtn': 'Start the airdrop process to all filtered addresses (Ctrl+Enter)',
+      'refreshScoreBtn': 'Manually refresh your NFTFAN score (Ctrl+R)'
+    };
+
+    Object.entries(tooltips).forEach(([id, text]) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.title = text;
+      }
+    });
+
+    // Prevent accidental page reload during airdrop
+    window.addEventListener('beforeunload', (e) => {
+      if (airdropInProgress) {
+        e.preventDefault();
+        e.returnValue = 'Airdrop in progress. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+
+    // Error boundary for unhandled errors
+    window.addEventListener('error', (e) => {
+      addNotification('error', `Unexpected error: ${e.message}`);
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      addNotification('error', `Unhandled promise rejection: ${e.reason}`);
     });
   </script>
 </body>
