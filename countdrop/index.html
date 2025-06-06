@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NFTFAN Airdrop Tool</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2017fc;
+      --accent: #5efcf5;
+      --bg: #181a20;
+      --card: #23262f;
+      --text: #fff;
+      --muted: #a3a9b9;
+      --button: #2629ff;
+      --button-text: #fff;
+      --border: #262939;
+      --radius: 12px;
+      --font-size: 10px;
+      --wallet-font: 8px;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: var(--font-size);
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 16px 8px 32px 8px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px #0002;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.2em;
+      margin: 0 0 12px 0;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--primary);
+      text-align: center;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: var(--button);
+      border: none;
+      color: var(--button-text);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: var(--font-size);
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 4px;
+      margin-bottom: 4px;
+      transition: background 0.2s;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .btn:active, .btn:focus {
+      background: #1b1fc7;
+    }
+    .btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      font-size: var(--font-size);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 8px;
+      margin-bottom: 8px;
+      resize: vertical;
+      font-family: 'Inter', Arial, sans-serif;
+      box-sizing: border-box;
+    }
+
+    .wallet-list {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: var(--wallet-font);
+      margin-bottom: 8px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .filter-info {
+      margin: 6px 0 8px 0;
+      color: var(--muted);
+      font-size: var(--font-size);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #262939;
+      border-radius: 5px;
+      margin: 10px 0 8px 0;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .score-bar {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 1em;
+      letter-spacing: 0.01em;
+    }
+
+    .contract-info {
+      font-size: var(--wallet-font);
+      color: var(--muted);
+      text-align: center;
+      margin: 8px 0 0 0;
+      word-break: break-all;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 8px 2px 24px 2px;
+      }
+      .card {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1em;
+      }
+      .btn {
+        padding: 7px 10px;
+      }
+      .score-bar {
+        font-size: 0.95em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <button class="btn" id="connectWalletBtn">Connect Wallet</button>
+      <div class="score-bar">
+        My Score: <span id="myScore">0</span>
+      </div>
+    </div>
+    <div class="card">
+      <h1>NFTFAN Airdrop</h1>
+      <div class="filter-info">Paste any text containing wallet addresses below:</div>
+      <textarea id="walletInput" placeholder="Paste addresses here (comma, space, newline, or mixed)"></textarea>
+      <button class="btn" id="filterBtn">Filter Wallets</button>
+      <div class="filter-info">
+        <span id="walletCount">0</span> wallets filtered
+      </div>
+      <div class="wallet-list" id="walletList"></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+      <button class="btn" id="airdropBtn" disabled>Send Airdrop</button>
+    </div>
+    <div class="card contract-info">
+      NFTFAN Token: <span id="tokenCA">0x2017Fcaea540d2925430586DC92818035Bfc2F50</span><br>
+      Distributor: <span id="airdropCA">0x664d25959EcCabc3e04A4Dc9D1f5ca5dDE82a5d5</span>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    // CONFIG
+    const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+    const AIRDROP_CONTRACT_CA = "0x664d25959EcCabc3e04A4Dc9D1f5ca5dDE82a5d5";
+    const AIRDROP_ABI = [
+      // Only needed functions
+      "function distributeTokens(address[] calldata recipients) external",
+      "function userScores(address) public view returns (uint256)"
+    ];
+    const BATCH_SIZE = 50;
+
+    // DOM elements
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const filterBtn = document.getElementById('filterBtn');
+    const airdropBtn = document.getElementById('airdropBtn');
+    const walletInput = document.getElementById('walletInput');
+    const walletList = document.getElementById('walletList');
+    const walletCount = document.getElementById('walletCount');
+    const progressBar = document.getElementById('progressBar');
+    const myScore = document.getElementById('myScore');
+
+    // App state
+    let provider, signer, userAddress, contract;
+    let filteredWallets = [];
+    let airdropInProgress = false;
+
+    // Utility: Validate Ethereum address
+    function isWallet(addr) {
+      return /^0x[a-fA-F0-9]{40}$/.test(addr);
+    }
+
+    // Utility: Extract wallets from text
+    function extractWallets(text) {
+      // Find all hex addresses (case insensitive)
+      let matches = text.match(/0x[a-fA-F0-9]{40}/g) || [];
+      // De-duplicate and lowercase
+      let deduped = Array.from(new Set(matches.map(a => a.toLowerCase())));
+      return deduped;
+    }
+
+    // UI: Show wallets
+    function showWallets(wallets) {
+      walletList.innerHTML = wallets.slice(0, 200).map(w => `<div style="font-size:8px;line-height:1.1;margin-bottom:2px">${w}</div>`).join('');
+      if (wallets.length > 200) walletList.innerHTML += `<div style="color:#5efcf5;">...and ${wallets.length-200} more</div>`;
+      walletCount.textContent = wallets.length;
+    }
+
+    // Filter wallets on button click
+    filterBtn.onclick = () => {
+      filteredWallets = extractWallets(walletInput.value);
+      showWallets(filteredWallets);
+      airdropBtn.disabled = filteredWallets.length === 0 || !signer || airdropInProgress;
+    };
+
+    // Connect wallet logic
+    connectWalletBtn.onclick = async () => {
+      if (!window.ethereum) {
+        alert('Please install MetaMask or a compatible wallet!');
+        return;
+      }
+      try {
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
+        connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+        connectWalletBtn.disabled = true;
+        updateScore();
+        airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
+      } catch (err) {
+        alert("Wallet connection failed.");
+      }
+    };
+
+    // Update user's score
+    async function updateScore() {
+      if (!contract || !userAddress) return;
+      try {
+        let score = await contract.userScores(userAddress);
+        myScore.textContent = score.toString();
+      } catch (e) {
+        myScore.textContent = "0";
+      }
+    }
+
+    // Airdrop logic
+    airdropBtn.onclick = async () => {
+      if (!signer || !contract || filteredWallets.length === 0) return;
+      if (airdropInProgress) return;
+      airdropInProgress = true;
+      airdropBtn.disabled = true;
+      filterBtn.disabled = true;
+      let total = filteredWallets.length;
+      let done = 0;
+      progressBar.style.width = "0%";
+
+      try {
+        for (let i = 0; i < total; i += BATCH_SIZE) {
+          let batch = filteredWallets.slice(i, i + BATCH_SIZE);
+          // Send transaction
+          let tx = await contract.distributeTokens(batch);
+          await tx.wait();
+          done += batch.length;
+          progressBar.style.width = (100 * done / total).toFixed(1) + "%";
+          updateScore();
+        }
+        progressBar.style.width = "100%";
+        alert("Airdrop completed!");
+      } catch (err) {
+        alert("Airdrop failed: " + (err.data && err.data.message ? err.data.message : err.message));
+      }
+      airdropInProgress = false;
+      airdropBtn.disabled = filteredWallets.length === 0 || !signer;
+      filterBtn.disabled = false;
+    };
+
+    // Initial state
+    showWallets([]);
+    airdropBtn.disabled = true;
+    filterBtn.disabled = false;
+  </script>
+</body>
+</html>
