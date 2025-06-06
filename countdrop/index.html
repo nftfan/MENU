@@ -260,7 +260,7 @@
     
     <div class="card contract-info">
       NFTFAN Token: <span id="tokenCA">0x2017Fcaea540d2925430586DC92818035Bfc2F50</span><br>
-      Distributor: <span id="airdropCA">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</span>
+      Distributor: <span id="airdropCA">0x664d25959EcCabc3e04A4Dc9D1f5ca5dDE82a5d5</span>
     </div>
   </div>
   
@@ -280,7 +280,7 @@
     };
     
     const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
-    const AIRDROP_CONTRACT_CA = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+    const AIRDROP_CONTRACT_CA = "0x664d25959EcCabc3e04A4Dc9D1f5ca5dDE82a5d5";
     const AIRDROP_ABI = [
       "function distributeTokens(address[] calldata recipients) external",
       "function userScores(address) public view returns (uint256)"
@@ -583,14 +583,139 @@
       }, 2000);
     };
 
-    // Enhanced airdrop with better error handling and gas management
+    // Pre-flight checks before airdrop
+    async function performPreflightChecks(batch) {
+      const checks = {
+        balance: false,
+        gasPrice: false,
+        contract: false,
+        network: false
+      };
+      
+      try {
+        // Check wallet balance
+        const balance = await signer.getBalance();
+        const gasPrice = await provider.getGasPrice();
+        const estimatedGas = await estimateGasForBatch(batch);
+        const requiredGas = estimatedGas.mul(gasPrice);
+        
+        checks.balance = balance.gte(requiredGas);
+        checks.gasPrice = gasPrice.lt(ethers.utils.parseUnits('100', 'gwei')); // Gas price sanity check
+        
+        // Check if contract is accessible
+        const code = await provider.getCode(AIRDROP_CONTRACT_CA);
+        checks.contract = code !== '0x';
+        
+        // Check network
+        const network = await provider.getNetwork();
+        checks.network = network.chainId === 137; // Polygon mainnet
+        
+        return {
+          passed: Object.values(checks).every(Boolean),
+          details: checks,
+          balance: balance,
+          requiredGas: requiredGas,
+          gasPrice: gasPrice
+        };
+      } catch (error) {
+        return {
+          passed: false,
+          error: error.message,
+          details: checks
+        };
+      }
+    }
+
+    // Get detailed error message
+    function getDetailedError(error) {
+      console.log('Full error object:', error);
+      
+      // Check for specific error types
+      if (error.code === 'INSUFFICIENT_FUNDS') {
+        return 'Insufficient MATIC balance for gas fees';
+      }
+      
+      if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
+        return 'Cannot estimate gas - contract may revert or insufficient token balance';
+      }
+      
+      if (error.code === 'CALL_EXCEPTION') {
+        return 'Contract call failed - check if you have permission or sufficient tokens';
+      }
+      
+      if (error.code === 'NETWORK_ERROR') {
+        return 'Network connection error - please try again';
+      }
+      
+      if (error.code === 'TIMEOUT') {
+        return 'Transaction timeout - network may be congested';
+      }
+      
+      // Check error message patterns
+      const message = error.message || error.reason || '';
+      
+      if (message.includes('insufficient funds')) {
+        return 'Insufficient MATIC balance for gas fees';
+      }
+      
+      if (message.includes('gas required exceeds')) {
+        return 'Transaction requires too much gas - try smaller batches';
+      }
+      
+      if (message.includes('execution reverted')) {
+        if (message.includes('Ownable')) {
+          return 'Access denied - you may not have permission to perform airdrops';
+        }
+        if (message.includes('ERC20')) {
+          return 'Token transfer failed - insufficient token balance in contract';
+        }
+        return 'Contract execution failed: ' + message.split('execution reverted: ')[1];
+      }
+      
+      if (message.includes('nonce too high') || message.includes('nonce too low')) {
+        return 'Transaction nonce error - please reset your wallet or try again';
+      }
+      
+      if (message.includes('replacement transaction underpriced')) {
+        return 'Gas price too low - please increase gas price and try again';
+      }
+      
+      // Return original error if no specific pattern matches
+      return error.reason || error.message || 'Unknown transaction error';
+    }
+
+    // Enhanced airdrop with comprehensive error handling and debugging
     airdropBtn.onclick = async () => {
       if (!signer || !contract || filteredWallets.length === 0 || airdropInProgress) return;
 
+      // Pre-flight checks
+      showStatus('Running pre-flight checks...');
+      const testBatch = filteredWallets.slice(0, Math.min(5, filteredWallets.length));
+      const preflightResult = await performPreflightChecks(testBatch);
+      
+      if (!preflightResult.passed) {
+        let errorMsg = 'Pre-flight checks failed:\n';
+        if (preflightResult.error) {
+          errorMsg += preflightResult.error;
+        } else {
+          if (!preflightResult.details.balance) errorMsg += '• Insufficient MATIC balance\n';
+          if (!preflightResult.details.contract) errorMsg += '• Contract not found or invalid\n';
+          if (!preflightResult.details.network) errorMsg += '• Wrong network (must be Polygon)\n';
+          if (!preflightResult.details.gasPrice) errorMsg += '• Gas price too high\n';
+        }
+        showError(errorMsg);
+        return;
+      }
+
+      const balanceFormatted = ethers.utils.formatEther(preflightResult.balance).slice(0, 6);
+      const requiredFormatted = ethers.utils.formatEther(preflightResult.requiredGas).slice(0, 6);
+      
       const confirmed = confirm(
         `Send airdrop to ${filteredWallets.length} wallets?\n\n` +
-        `This will be processed in ${Math.ceil(filteredWallets.length / BATCH_SIZE)} batches.\n` +
-        `Please ensure you have sufficient MATIC for gas fees.`
+        `Batches: ${Math.ceil(filteredWallets.length / BATCH_SIZE)}\n` +
+        `Your MATIC: ${balanceFormatted}\n` +
+        `Est. Required: ${requiredFormatted}\n\n` +
+        `Continue with airdrop?`
       );
       
       if (!confirmed) return;
@@ -601,6 +726,7 @@
       
       let total = filteredWallets.length;
       let done = 0;
+      let failed = 0;
       progressBar.style.width = "0%";
       
       showStatus('Starting airdrop...');
@@ -608,51 +734,93 @@
       try {
         for (let i = 0; i < total; i += BATCH_SIZE) {
           const batch = filteredWallets.slice(i, i + BATCH_SIZE);
-          showStatus(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(total/BATCH_SIZE)}...`);
+          const batchNum = Math.floor(i/BATCH_SIZE) + 1;
+          const totalBatches = Math.ceil(total/BATCH_SIZE);
+          
+          showStatus(`Processing batch ${batchNum}/${totalBatches} (${batch.length} addresses)...`);
           
           try {
             // Enhanced gas estimation for each batch
             const gasEstimate = await estimateGasForBatch(batch);
-            const gasLimit = gasEstimate.lt(MAX_GAS_LIMIT) ? gasEstimate.mul(120).div(100) : MAX_GAS_LIMIT;
+            let gasLimit;
             
+            if (gasEstimate.gt(MAX_GAS_LIMIT)) {
+              showError(`Batch ${batchNum} requires too much gas (${gasEstimate.toString()}). Skipping...`);
+              failed += batch.length;
+              continue;
+            } else {
+              gasLimit = gasEstimate.mul(130).div(100); // 30% buffer
+            }
+            
+            // Get current gas price and add small buffer
+            const gasPrice = await provider.getGasPrice();
+            const adjustedGasPrice = gasPrice.mul(110).div(100); // 10% buffer
+            
+            showStatus(`Sending batch ${batchNum} transaction...`);
             const tx = await contract.distributeTokens(batch, {
-              gasLimit: gasLimit
+              gasLimit: gasLimit,
+              gasPrice: adjustedGasPrice
             });
             
-            showStatus(`Transaction sent, waiting for confirmation...`);
-            const receipt = await tx.wait();
+            showStatus(`Batch ${batchNum} sent (${tx.hash.slice(0,10)}...), waiting for confirmation...`);
+            
+            // Wait for transaction with timeout
+            const receipt = await Promise.race([
+              tx.wait(),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Transaction timeout after 5 minutes')), 300000)
+              )
+            ]);
             
             if (receipt.status === 1) {
               done += batch.length;
-              progressBar.style.width = (100 * done / total).toFixed(1) + "%";
+              progressBar.style.width = (100 * (done + failed) / total).toFixed(1) + "%";
               await updateScore();
-              showStatus(`Batch ${Math.floor(i/BATCH_SIZE) + 1} completed successfully`);
+              showStatus(`Batch ${batchNum}/${totalBatches} completed successfully! ✅`);
+              
+              // Small delay between successful batches to avoid nonce conflicts
+              if (batchNum < totalBatches) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
             } else {
-              throw new Error('Transaction failed');
+              throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
             
           } catch (batchError) {
-            console.error(`Batch ${Math.floor(i/BATCH_SIZE) + 1} failed:`, batchError);
+            failed += batch.length;
+            const detailedError = getDetailedError(batchError);
+            console.error(`Batch ${batchNum} failed:`, batchError);
             
-            // Try to continue with remaining batches unless it's a critical error
+            // Check if we should continue or stop
             if (batchError.code === 'INSUFFICIENT_FUNDS') {
-              throw new Error('Insufficient MATIC for gas fees');
-            } else if (batchError.code === 'UNPREDICTABLE_GAS_LIMIT') {
-              // Skip this batch and continue
-              showError(`Batch ${Math.floor(i/BATCH_SIZE) + 1} failed - skipping`);
-              continue;
+              showError(`Batch ${batchNum} failed: ${detailedError}\nStopping airdrop.`);
+              break;
+            } else if (batchError.message.includes('nonce')) {
+              showError(`Batch ${batchNum} failed: ${detailedError}\nPlease reset wallet and try again.`);
+              break;
             } else {
-              throw batchError;
+              showError(`Batch ${batchNum} failed: ${detailedError}\nContinuing with next batch...`);
+              progressBar.style.width = (100 * (done + failed) / total).toFixed(1) + "%";
+              
+              // Wait before trying next batch
+              await new Promise(resolve => setTimeout(resolve, 5000));
             }
           }
         }
         
         progressBar.style.width = "100%";
-        showStatus(`Airdrop completed! Processed ${done}/${total} addresses successfully.`);
+        
+        if (done > 0 && failed === 0) {
+          showStatus(`🎉 Airdrop completed successfully! All ${done} addresses processed.`);
+        } else if (done > 0 && failed > 0) {
+          showStatus(`⚠️ Airdrop partially completed. Success: ${done}, Failed: ${failed}`);
+        } else {
+          showError(`❌ Airdrop failed completely. No addresses were processed.`);
+        }
         
       } catch (error) {
-        const errorMsg = error.reason || error.message || 'Unknown error occurred';
-        showError(`Airdrop failed: ${errorMsg}`);
+        const detailedError = getDetailedError(error);
+        showError(`Airdrop failed: ${detailedError}`);
         console.error('Airdrop error:', error);
       }
 
