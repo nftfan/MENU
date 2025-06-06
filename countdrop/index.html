@@ -79,12 +79,6 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
-    .btn-disconnect {
-      background: #444;
-      color: #fff;
-      margin-left: 0;
-      margin-right: 0;
-    }
     textarea {
       width: 100%;
       min-height: 90px;
@@ -169,10 +163,7 @@
 <body>
   <div class="container">
     <div class="top-bar">
-      <div>
-        <button class="btn" id="connectWalletBtn">Connect Wallet</button>
-        <button class="btn btn-disconnect" id="disconnectWalletBtn" style="display:none;">Disconnect</button>
-      </div>
+      <button class="btn" id="connectWalletBtn">Connect Wallet</button>
       <div class="score-bar">
         My Score: <span id="myScore">0</span>
       </div>
@@ -197,17 +188,6 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     // CONFIG
-    const POLYGON_PARAMS = {
-      chainId: "0x89",
-      chainName: "Polygon Mainnet",
-      nativeCurrency: {
-        name: "MATIC",
-        symbol: "MATIC",
-        decimals: 18
-      },
-      rpcUrls: ["https://polygon-rpc.com"],
-      blockExplorerUrls: ["https://polygonscan.com/"]
-    };
     const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
     const AIRDROP_CONTRACT_CA = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
     const AIRDROP_ABI = [
@@ -218,7 +198,6 @@
 
     // DOM elements
     const connectWalletBtn = document.getElementById('connectWalletBtn');
-    const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
     const filterBtn = document.getElementById('filterBtn');
     const airdropBtn = document.getElementById('airdropBtn');
     const walletInput = document.getElementById('walletInput');
@@ -258,53 +237,11 @@
       airdropBtn.disabled = filteredWallets.length === 0 || !signer || airdropInProgress;
     };
 
-    // Switch network to Polygon
-    async function switchToPolygon() {
-      if (!window.ethereum) return false;
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: POLYGON_PARAMS.chainId }]
-        });
-        return true;
-      } catch (switchError) {
-        // If not added, try adding
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [POLYGON_PARAMS]
-            });
-            return true;
-          } catch (addError) {
-            alert("Please add the Polygon network to your wallet.");
-            return false;
-          }
-        } else {
-          alert("Please switch to the Polygon network in your wallet.");
-          return false;
-        }
-      }
-    }
-
-    // Connect wallet logic with network check
+    // Connect wallet logic
     connectWalletBtn.onclick = async () => {
       if (!window.ethereum) {
         alert('Please install MetaMask or a compatible wallet!');
         return;
-      }
-      // Ask to switch to Polygon
-      const wantSwitch = confirm("Please switch your wallet to the Polygon network before connecting.\n\nDo you want us to attempt to do it for you automatically?");
-      if (wantSwitch) {
-        const switched = await switchToPolygon();
-        if (!switched) return;
-      } else {
-        // Check current network
-        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (currentChainId !== POLYGON_PARAMS.chainId) {
-          alert("You must be on the Polygon network to use this airdrop tool.");
-          return;
-        }
       }
       try {
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
@@ -314,25 +251,11 @@
         contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
         connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
         connectWalletBtn.disabled = true;
-        disconnectWalletBtn.style.display = "";
         await updateScore();
         airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
       } catch (err) {
         alert("Wallet connection failed.");
       }
-    };
-
-    // Disconnect wallet (frontend only)
-    disconnectWalletBtn.onclick = () => {
-      provider = null;
-      signer = null;
-      userAddress = null;
-      contract = null;
-      connectWalletBtn.textContent = "Connect Wallet";
-      connectWalletBtn.disabled = false;
-      disconnectWalletBtn.style.display = "none";
-      myScore.textContent = "0";
-      airdropBtn.disabled = true;
     };
 
     // Listen for wallet/account changes and update score
@@ -345,25 +268,13 @@
           contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
           connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
           connectWalletBtn.disabled = true;
-          disconnectWalletBtn.style.display = "";
           await updateScore();
           airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
         } else {
-          provider = null;
-          signer = null;
           userAddress = null;
-          contract = null;
           connectWalletBtn.textContent = "Connect Wallet";
           connectWalletBtn.disabled = false;
-          disconnectWalletBtn.style.display = "none";
           myScore.textContent = "0";
-          airdropBtn.disabled = true;
-        }
-      });
-      window.ethereum.on('chainChanged', async (chainId) => {
-        if (chainId !== POLYGON_PARAMS.chainId) {
-          alert("You must be on the Polygon network to use this airdrop tool.");
-          disconnectWalletBtn.onclick();
         }
       });
     }
@@ -417,21 +328,17 @@
     airdropBtn.disabled = true;
     filterBtn.disabled = false;
 
-    // On load, try to auto-connect and fetch score if MetaMask is already connected and on Polygon
+    // On load, try to auto-connect and fetch score if MetaMask is already connected
     window.addEventListener('DOMContentLoaded', async () => {
       if (window.ethereum && window.ethereum.selectedAddress) {
-        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (currentChainId === POLYGON_PARAMS.chainId) {
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-          signer = provider.getSigner();
-          userAddress = await signer.getAddress();
-          contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
-          connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-          connectWalletBtn.disabled = true;
-          disconnectWalletBtn.style.display = "";
-          await updateScore();
-          airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
-        }
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        contract = new ethers.Contract(AIRDROP_CONTRACT_CA, AIRDROP_ABI, signer);
+        connectWalletBtn.textContent = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+        connectWalletBtn.disabled = true;
+        await updateScore();
+        airdropBtn.disabled = filteredWallets.length === 0 || airdropInProgress;
       }
     });
   </script>
