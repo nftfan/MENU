@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Subdrop Score Checker</title>
+  <!-- Load Ethers.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 40px auto; }
+    input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { padding: 8px 16px; margin-top: 10px; width: 100%; }
+    .score { margin-top: 20px; font-size: 1.2em; word-break: break-all; }
+    .loader { display: none; }
+  </style>
+</head>
+<body>
+  <h2>Check Subdrop Score</h2>
+  <input type="text" id="wallet" placeholder="Enter wallet address" />
+  <button onclick="checkScore()">Get Subdrop Score</button>
+  <div class="score" id="result"></div>
+  <div class="loader" id="loader">⏳ Loading...</div>
+  <script>
+    // ====== CONFIGURATION ======
+    // Replace this with your deployed contract address
+    const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
+    // Minimal ABI for the getSubdropScore function
+    const ABI = [
+      "function getSubdropScore(address wallet) view returns (uint256)"
+    ];
+
+    async function checkScore() {
+      const wallet = document.getElementById('wallet').value.trim();
+      const resultDiv = document.getElementById('result');
+      const loader = document.getElementById('loader');
+      resultDiv.textContent = "";
+      loader.style.display = "block";
+      if (!wallet || !/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        loader.style.display = "none";
+        resultDiv.textContent = "Please enter a valid Ethereum wallet address.";
+        return;
+      }
+
+      try {
+        // Prefer using MetaMask or any provider injected in window.ethereum
+        let provider;
+        if (window.ethereum) {
+          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+          // Prompt user for account connections
+          await provider.send("eth_requestAccounts", []);
+        } else {
+          // Fallback to public RPC (mainnet)
+          provider = ethers.getDefaultProvider();
+        }
+
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+        resultDiv.textContent = "";
+        const score = await contract.getSubdropScore(wallet);
+        loader.style.display = "none";
+        resultDiv.textContent = `Subdrop Score for ${wallet}:\n${score.toString()}`;
+      } catch (err) {
+        loader.style.display = "none";
+        resultDiv.textContent = "Error fetching score: " + (err.data && err.data.message ? err.data.message : err.message);
+      }
+    }
+  </script>
+</body>
+</html>
