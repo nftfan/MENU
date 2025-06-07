@@ -266,6 +266,38 @@
             margin: 6px 0;
             font-size: 0.9em;
         }
+        .score-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin-bottom: 10px;
+            font-size: 1.04em;
+            font-weight: 600;
+            color: #764ba2;
+            min-height: 35px;
+        }
+        .subfan-animated {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #fff;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 10px 0 #764ba233;
+            animation: bounceSubfan 1.3s infinite alternate;
+        }
+        .subfan-animated img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        @keyframes bounceSubfan {
+            0% { transform: translateY(0px) scale(1); }
+            60% { transform: translateY(-4px) scale(1.08);}
+            100% { transform: translateY(-10px) scale(1.15);}
+        }
         @media (max-width: 600px) {
             html {
                 font-size: 13px;
@@ -314,6 +346,10 @@
                 ></textarea>
             </div>
             <div class="wallet-count" id="walletCount">No wallets extracted yet</div>
+            <div class="score-preview" id="scorePreview" style="display:none;">
+                <span class="subfan-animated"><img src="https://i.imgur.com/1GjgG1P.png" alt="subfan"></span>
+                <span id="scoreMessage">You will earn SUBFANS for this drop!</span>
+            </div>
             <div class="button-group">
                 <button class="action-btn extract-btn" id="extractBtn" onclick="extractWallets()">Extract Wallets</button>
                 <button class="action-btn airdrop-btn" id="airdropBtn" onclick="startAirdrop()" disabled>Send Airdrop</button>
@@ -401,6 +437,9 @@
         let distributorContract;
         let nftfanContract;
         let extractedWallets = [];
+        let newWalletsCount = 0;
+        let predictedScore = null;
+        let currentScore = null;
 
         function addLog(event, details) {
             const logBody = document.getElementById('logBody');
@@ -480,7 +519,7 @@
             } else {
                 addLog('Error', 'MetaMask not found');
             }
-            document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount;
+            document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount || newWalletsCount === 0;
         }
 
         async function updateSubdropScore() {
@@ -488,6 +527,8 @@
             try {
                 const score = await distributorContract.methods.getSubdropScore(userAccount).call();
                 document.getElementById('subdropScore').textContent = score;
+                currentScore = score;
+                updateScorePreview(); // update preview if possible
                 addLog('Score', 'Updated subdrop score: ' + score);
             } catch (error) {
                 addLog('Error', 'Failed to fetch subdrop score');
@@ -501,13 +542,19 @@
             if (matches) {
                 extractedWallets = [...new Set(matches)].filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
                 document.getElementById('walletCount').textContent = `Extracted ${extractedWallets.length} unique wallet addresses`;
-                document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount;
                 addLog('Extract', `Found ${extractedWallets.length} unique wallets`);
             } else {
                 extractedWallets = [];
                 document.getElementById('walletCount').textContent = 'No valid wallet addresses found';
-                document.getElementById('airdropBtn').disabled = true;
                 addLog('Extract', 'No valid wallet addresses found');
+            }
+            // Reset newWalletsCount and predictedScore and UI
+            newWalletsCount = 0;
+            predictedScore = null;
+            document.getElementById('scorePreview').style.display = 'none';
+            document.getElementById('airdropBtn').disabled = true;
+            if (userAccount && extractedWallets.length > 0) {
+                previewScoreAndEnableAirdrop();
             }
         }
 
@@ -519,9 +566,54 @@
             return results;
         }
 
-        async function startAirdrop() {
+        async function previewScoreAndEnableAirdrop() {
+            // Preview how many new wallets and tokens needed, and estimate score
             if (!userAccount || !distributorContract || extractedWallets.length === 0) {
-                addLog('Error', 'Prerequisites not met for airdrop');
+                document.getElementById('scorePreview').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = true;
+                return;
+            }
+            const batchSize = 50;
+            const batches = chunkArray(extractedWallets, batchSize);
+            let totalDrops = 0;
+            try {
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    const preview = await distributorContract.methods.previewDistribution(userAccount, batch).call();
+                    totalDrops += Number(preview.successfulDrops);
+                }
+                newWalletsCount = totalDrops;
+                // Show score preview if currentScore is loaded
+                updateScorePreview();
+                // Only enable airdrop if new wallets found
+                document.getElementById('airdropBtn').disabled = newWalletsCount === 0;
+            } catch (error) {
+                document.getElementById('scorePreview').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = true;
+                addLog('Error', 'Failed to preview new wallets: ' + error.message);
+            }
+        }
+
+        function updateScorePreview() {
+            const previewDiv = document.getElementById('scorePreview');
+            const scoreMsg = document.getElementById('scoreMessage');
+            if (typeof currentScore !== 'undefined' && currentScore !== null && newWalletsCount > 0) {
+                // If SUBFANS = subdrop score = # of unique drops, e.g. +1 per wallet, or show as increment
+                let newScore = Number(currentScore) + Number(newWalletsCount);
+                scoreMsg.textContent = `You will score ${newScore} SUBFANS after this drop!`;
+                previewDiv.style.display = '';
+            } else if (newWalletsCount === 0) {
+                scoreMsg.textContent = 'No new wallets to airdrop. Add new wallets!';
+                previewDiv.style.display = '';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        async function startAirdrop() {
+            if (!userAccount || !distributorContract || extractedWallets.length === 0 || newWalletsCount === 0) {
+                addLog('Error', 'No new wallets to airdrop');
+                document.getElementById('airdropBtn').disabled = true;
                 return;
             }
             const batchSize = 50;
@@ -548,7 +640,8 @@
                 if (totalDrops === 0) {
                     addLog('Info', 'No new wallets to airdrop to');
                     document.getElementById('progressSection').style.display = 'none';
-                    document.getElementById('airdropBtn').disabled = false;
+                    document.getElementById('airdropBtn').disabled = true;
+                    updateScorePreview();
                     return;
                 }
                 const balance = await nftfanContract.methods.balanceOf(userAccount).call();
@@ -630,7 +723,30 @@
             }
         });
 
-        addLog('System', 'Airdrop tool loaded');
+        // On load, if already connected, load score & preview
+        window.addEventListener('DOMContentLoaded', async function() {
+            addLog('System', 'Airdrop tool loaded');
+            if (typeof window.ethereum !== 'undefined') {
+                // Try auto connect
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        userAccount = accounts[0];
+                        web3 = new Web3(window.ethereum);
+                        distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                        nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                        document.getElementById('walletAddress').textContent = userAccount.slice(0, 6) + '...' + userAccount.slice(-4);
+                        document.getElementById('connectBtn').textContent = 'Connected';
+                        document.getElementById('connectBtn').disabled = true;
+                        await updateSubdropScore();
+                        if (extractedWallets.length > 0) {
+                            previewScoreAndEnableAirdrop();
+                        }
+                    }
+                } catch {}
+            }
+        });
+
     </script>
 </body>
 </html>
