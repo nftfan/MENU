@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>My SUBFANS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
+    <style>
+        * {margin:0;padding:0;box-sizing:border-box;}
+        html {font-size:14px;}
+        body {
+            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+            background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height:100vh;
+            padding:0;
+        }
+        .container {
+            max-width:480px;
+            margin:0 auto;
+            background:white;
+            border-radius:15px;
+            box-shadow:0 10px 24px rgba(0,0,0,0.10);
+            overflow:hidden;
+            min-height:100vh;
+            display:flex;
+            flex-direction:column;
+        }
+        .topbar {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:10px 10px 10px 10px;
+            background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .topbar-left {
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+        .topbar-logo {
+            height:32px;width:32px;border-radius:50%;background:#fff;object-fit:cover;
+            animation:spinVarying 3s ease-out infinite;
+        }
+        @keyframes spinVarying {
+            0% {transform:rotate(0deg);}
+            5% {transform:rotate(360deg);}
+            20% {transform:rotate(540deg);}
+            50% {transform:rotate(720deg);}
+            100% {transform:rotate(900deg);}
+        }
+        .topbar-title {font-size:10px;font-weight:700;color:#222;letter-spacing:0.01em;}
+        .topbar-score {
+            display:flex;
+            align-items:center;
+            gap:3px;
+            background:#f5faff;
+            border-radius:8px;
+            padding:3px 8px;
+            font-size:0.93em;
+            font-weight:600;
+            color:#4facfe;
+        }
+        .topbar-actions {display:flex;align-items:center;gap:7px;}
+        .connect-btn {
+            background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color:white;
+            border:none;
+            padding:6px 14px;
+            border-radius:25px;
+            font-size:0.95em;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.3s ease;
+            min-width:90px;
+            outline:none;
+        }
+        .connect-btn:disabled {opacity:0.5;cursor:not-allowed;}
+        .topbar-wallet {
+            color:#666;
+            font-size:0.55em;
+            font-family:monospace;
+            max-width:80px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+        }
+        .main-content {
+            padding:16px 12px 20px 12px;
+            flex:1;
+            display:flex;
+            flex-direction:column;
+        }
+        .input-section {margin-bottom:18px;}
+        .input-section label {
+            display:block;
+            margin-bottom:7px;
+            font-weight:600;
+            color:#333;
+            font-size:0.9em;
+        }
+        .text-input {
+            font-size:10px !important;
+            width:100%;
+            min-height:70px;
+            padding:8px;
+            border:2px solid #e9ecef;
+            border-radius:8px;
+            font-family:monospace;
+            resize:vertical;
+            transition:border-color 0.3s ease;
+            box-sizing:border-box;
+            outline:none;
+            -webkit-text-size-adjust:none;
+        }
+        .text-input:focus {border-color:#4facfe;}
+        .wallet-count {
+            background:#f8f9fa;
+            padding:9px;
+            border-radius:8px;
+            margin-bottom:15px;
+            text-align:center;
+            font-weight:600;
+            font-size:0.95em;
+        }
+        .button-group {
+            display:flex;
+            gap:10px;
+            margin-bottom:18px;
+            flex-wrap:wrap;
+        }
+        .action-btn {
+            background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color:white;
+            border:none;
+            padding:9px 12px;
+            border-radius:8px;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.3s ease;
+            flex:1;
+            min-width:90px;
+            font-size:0.96em;
+        }
+        .action-btn:hover {transform:translateY(-1px);box-shadow:0 3px 9px rgba(0,0,0,0.10);}
+        .action-btn:disabled {background:#ccc;cursor:not-allowed;transform:none;box-shadow:none;}
+        .extract-btn {background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);}
+        .airdrop-btn {background:linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);}
+        .progress-section {margin-bottom:18px;display:none;}
+        .progress-bar {
+            width:100%;
+            height:14px;
+            background:#e9ecef;
+            border-radius:8px;
+            overflow:hidden;
+            margin-bottom:5px;
+        }
+        .progress-fill {
+            height:100%;
+            background:linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            width:0%;
+            transition:width 0.3s ease;
+        }
+        .progress-text {text-align:center;font-weight:600;color:#666;font-size:0.9em;}
+        .score-preview {
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:7px;
+            margin-bottom:10px;
+            font-size:1.04em;
+            font-weight:600;
+            color:#764ba2;
+            min-height:35px;
+        }
+        .subfan-animated {
+            width:32px;
+            height:32px;
+            border-radius:50%;
+            background:#fff;
+            display:inline-block;
+            position:relative;
+            overflow:hidden;
+            box-shadow:0 2px 10px 0 #764ba233;
+            animation:bounceSubfan 1.3s infinite alternate;
+        }
+        .subfan-animated img {width:100%;height:100%;object-fit:cover;}
+        @keyframes bounceSubfan {
+            0% {transform:translateY(0px) scale(1);}
+            60% {transform:translateY(-4px) scale(1.08);}
+            100% {transform:translateY(-10px) scale(1.15);}
+        }
+        .activity-log {
+            background:#f8f9fa;
+            border-radius:8px;
+            max-height:180px;
+            overflow-y:auto;
+            margin-top:14px;
+        }
+        .activity-log h3 {
+            padding:8px 10px;
+            margin:0;
+            background:#e9ecef;
+            border-radius:8px 8px 0 0;
+            font-size:1.0em;
+        }
+        .log-table {width:100%;border-collapse:collapse;}
+        .log-table th {
+            background:#e9ecef;
+            padding:6px;
+            text-align:left;
+            font-size:9px;
+            font-weight:600;
+            border-bottom:1px solid #dee2e6;
+        }
+        .log-table td {
+            padding:4px 6px;
+            font-size:9px;
+            border-bottom:1px solid #f1f3f4;
+            font-family:monospace;
+        }
+        .log-table tr:hover {background:#f1f3f4;}
+        .log-empty {
+            padding:10px;
+            text-align:center;
+            color:#666;
+            font-style:italic;
+            font-size:10px;
+        }
+        .error {
+            color:#dc3545;
+            background:#f8d7da;
+            padding:6px;
+            border-radius:5px;
+            margin:6px 0;
+            font-size:0.9em;
+        }
+        .success {
+            color:#155724;
+            background:#d4edda;
+            padding:6px;
+            border-radius:5px;
+            margin:6px 0;
+            font-size:0.9em;
+        }
+        @media (max-width:600px) {
+            html {font-size:13px;}
+            .container {max-width:100vw;border-radius:0;box-shadow:none;}
+            .main-content {padding:10px 4px 14px 4px;}
+            .topbar {padding:7px 3vw 7px 3vw;}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation Bar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <img src="https://i.imgur.com/1GjgG1P.png" alt="Logo" class="topbar-logo">
+                <span class="topbar-title">My SubFans</span>
+                <span class="topbar-score">
+                    <span id="subdropScore">0</span>
+                </span>
+            </div>
+            <div class="topbar-actions">
+                <span class="topbar-wallet" id="walletAddress"></span>
+                <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect</button>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="input-section">
+                <textarea 
+                    class="text-input" 
+                    id="walletInput" 
+                    placeholder="Paste text with wallet addresses here...&#10;Extracts valid Ethereum addresses."
+                    inputmode="text"
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                ></textarea>
+            </div>
+            <div class="wallet-count" id="walletCount">No wallets extracted yet</div>
+            <div class="score-preview" id="scorePreview" style="display:none;">
+                <span class="subfan-animated"><img src="https://i.imgur.com/1GjgG1P.png" alt="subfan"></span>
+                <span id="scoreMessage">You will earn SUBFANS for this drop!</span>
+            </div>
+            <div class="button-group">
+                <button class="action-btn extract-btn" id="extractBtn" onclick="extractWallets()">Extract Wallets</button>
+                <button class="action-btn airdrop-btn" id="airdropBtn" onclick="startAirdrop()" disabled>Send Airdrop</button>
+            </div>
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Preparing airdrop...</div>
+            </div>
+            <div class="activity-log">
+                <h3>Activity Log</h3>
+                <table class="log-table" id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logBody">
+                        <tr>
+                            <td colspan="3" class="log-empty">No activity yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        const DISTRIBUTOR_ADDRESS = '0x6Ee372b30C73Dd6087ba58F8C4a5Ca77F49BE0b3';
+        const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+        const POLYGON_CHAIN_ID = '0x89';
+
+        const DISTRIBUTOR_ABI = [
+            {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"}
+        ];
+        const ERC20_ABI = [
+            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+        ];
+        let web3, userAccount, distributorContract, nftfanContract, extractedWallets = [];
+        let newWalletsCount = 0, predictedScore = null, currentScore = null;
+
+        function addLog(event, details) {
+            const logBody = document.getElementById('logBody');
+            const emptyRow = logBody.querySelector('.log-empty');
+            if (emptyRow) emptyRow.parentNode.removeChild(emptyRow);
+            const row = document.createElement('tr');
+            const time = new Date().toLocaleTimeString();
+            row.innerHTML = `<td>${time}</td><td>${event}</td><td>${details}</td>`;
+            logBody.insertBefore(row, logBody.firstChild);
+            while (logBody.children.length > 50) logBody.removeChild(logBody.lastChild);
+        }
+
+        async function switchToPolygon() {
+            try {
+                await window.ethereum.request({method: 'wallet_switchEthereumChain',params: [{chainId: POLYGON_CHAIN_ID}]});
+                addLog('Network', 'Switched to Polygon');
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: POLYGON_CHAIN_ID,
+                                chainName: 'Polygon',
+                                nativeCurrency: {name: 'MATIC',symbol: 'MATIC',decimals: 18},
+                                rpcUrls: ['https://polygon-rpc.com/'],
+                                blockExplorerUrls: ['https://polygonscan.com/']
+                            }]
+                        });
+                        addLog('Network', 'Added and switched to Polygon');
+                    } catch (addError) {
+                        addLog('Error', 'Failed to add Polygon network');
+                        throw addError;
+                    }
+                } else {
+                    addLog('Error', 'Failed to switch to Polygon');
+                    throw switchError;
+                }
+            }
+        }
+
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    await switchToPolygon();
+                    const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+                    userAccount = accounts[0];
+                    web3 = new Web3(window.ethereum);
+                    distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                    nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                    document.getElementById('walletAddress').textContent = userAccount.slice(0,6)+'...'+userAccount.slice(-4);
+                    document.getElementById('connectBtn').textContent = 'Connected';
+                    document.getElementById('connectBtn').disabled = true;
+                    await updateSubdropScore();
+                    addLog('Wallet', 'Connected successfully');
+                } catch (error) {
+                    addLog('Error', 'Failed to connect wallet: ' + error.message);
+                }
+            } else {
+                addLog('Error', 'MetaMask not found');
+            }
+            document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount || newWalletsCount === 0;
+        }
+
+        async function updateSubdropScore() {
+            if (!distributorContract || !userAccount) return;
+            try {
+                const score = await distributorContract.methods.getSubdropScore(userAccount).call();
+                document.getElementById('subdropScore').textContent = score;
+                currentScore = score;
+                updateScorePreview();
+                addLog('Score', 'Updated subdrop score: ' + score);
+            } catch (error) {
+                addLog('Error', 'Failed to fetch subdrop score');
+            }
+        }
+
+        function extractWallets() {
+            const input = document.getElementById('walletInput').value;
+            const walletRegex = /0x[a-fA-F0-9]{40}/g;
+            const matches = input.match(walletRegex);
+            if (matches) {
+                extractedWallets = [...new Set(matches)].filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
+                document.getElementById('walletCount').textContent = `Extracted ${extractedWallets.length} unique wallet addresses`;
+                addLog('Extract', `Found ${extractedWallets.length} unique wallets`);
+            } else {
+                extractedWallets = [];
+                document.getElementById('walletCount').textContent = 'No valid wallet addresses found';
+                addLog('Extract', 'No valid wallet addresses found');
+            }
+            newWalletsCount = 0;
+            predictedScore = null;
+            document.getElementById('scorePreview').style.display = 'none';
+            document.getElementById('airdropBtn').disabled = true;
+            if (userAccount && extractedWallets.length > 0) {
+                previewScoreAndEnableAirdrop();
+            }
+        }
+
+        function chunkArray(array, chunkSize) {
+            const results = [];
+            for (let i = 0; i < array.length; i += chunkSize) {
+                results.push(array.slice(i, i + chunkSize));
+            }
+            return results;
+        }
+
+        async function previewScoreAndEnableAirdrop() {
+            if (!userAccount || !distributorContract || extractedWallets.length === 0) {
+                document.getElementById('scorePreview').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = true;
+                return;
+            }
+            const batchSize = 50;
+            const batches = chunkArray(extractedWallets, batchSize);
+            let totalDrops = 0;
+            try {
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    const preview = await distributorContract.methods.previewDistribution(userAccount, batch).call();
+                    totalDrops += Number(preview.successfulDrops);
+                }
+                newWalletsCount = totalDrops;
+                updateScorePreview();
+                document.getElementById('airdropBtn').disabled = newWalletsCount === 0;
+            } catch (error) {
+                document.getElementById('scorePreview').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = true;
+                addLog('Error', 'Failed to preview new wallets: ' + error.message);
+            }
+        }
+
+        function updateScorePreview() {
+            const previewDiv = document.getElementById('scorePreview');
+            const scoreMsg = document.getElementById('scoreMessage');
+            if (typeof currentScore !== 'undefined' && currentScore !== null && newWalletsCount > 0) {
+                let newScore = Number(currentScore) + Number(newWalletsCount);
+                scoreMsg.textContent = `You will score ${newScore} SUBFANS after this drop!`;
+                previewDiv.style.display = '';
+            } else if (newWalletsCount === 0) {
+                scoreMsg.textContent = 'No new wallets to airdrop. Add new wallets!';
+                previewDiv.style.display = '';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        async function startAirdrop() {
+            if (!userAccount || !distributorContract || extractedWallets.length === 0 || newWalletsCount === 0) {
+                addLog('Error', 'No new wallets to airdrop');
+                document.getElementById('airdropBtn').disabled = true;
+                return;
+            }
+            const batchSize = 50;
+            const batches = chunkArray(extractedWallets, batchSize);
+            let totalDrops = 0;
+            let totalTokensNeeded = BigInt(0);
+            let totalDistributed = 0;
+
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('airdropBtn').disabled = true;
+
+            // Preview all batches up front
+            try {
+                addLog('Preview', `Checking distribution preview for ${batches.length} batches...`);
+                let previews = [];
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    const preview = await distributorContract.methods.previewDistribution(userAccount, batch).call();
+                    previews.push(preview);
+                    totalDrops += Number(preview.successfulDrops);
+                    totalTokensNeeded += BigInt(preview.tokensNeeded);
+                    addLog('Preview', `Batch ${i + 1}: ${preview.successfulDrops} new wallets, ${(BigInt(preview.tokensNeeded) / BigInt('1000000000000000000')).toString()} tokens needed`);
+                }
+                if (totalDrops === 0) {
+                    addLog('Info', 'No new wallets to airdrop to');
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = true;
+                    updateScorePreview();
+                    return;
+                }
+                const balance = await nftfanContract.methods.balanceOf(userAccount).call();
+                if (BigInt(balance) < totalTokensNeeded) {
+                    addLog('Error', 'Insufficient token balance');
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = false;
+                    return;
+                }
+                const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
+                if (BigInt(allowance) < totalTokensNeeded) {
+                    addLog('Approval', 'Approving tokens for distribution...');
+                    document.getElementById('progressText').textContent = 'Approving tokens...';
+                    await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, totalTokensNeeded.toString()).send({from:userAccount});
+                    addLog('Approval', 'Tokens approved for distribution');
+                }
+            } catch (error) {
+                addLog('Error', 'Preview/Approval failed: ' + error.message);
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = false;
+                updateProgress(0);
+                return;
+            }
+
+            // Airdrop batches
+            try {
+                let batchesDone = 0;
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    document.getElementById('progressText').textContent = `Airdropping batch ${i + 1} of ${batches.length}...`;
+                    updateProgress(Math.round((i / batches.length) * 100));
+                    addLog('Airdrop', `Sending tokens to batch ${i + 1} (${batch.length} wallets)...`);
+                    try {
+                        const distributeTx = await distributorContract.methods.distributeTokens(batch).send({from:userAccount,gas:5000000});
+                        addLog('Success', `Batch ${i + 1} airdropped! Tx: ${distributeTx.transactionHash}`);
+                        batchesDone++;
+                        totalDistributed += batch.length;
+                        updateProgress(Math.round((batchesDone / batches.length) * 100));
+                    } catch (batchError) {
+                        addLog('Error', `Airdrop failed for batch ${i + 1}: ${batchError.message}`);
+                    }
+                }
+                document.getElementById('progressText').textContent = 'Airdrop completed!';
+                updateProgress(100);
+                addLog('Success', `Airdrop completed! Distributed to ${totalDistributed} wallets in ${batchesDone} batches`);
+                await updateSubdropScore();
+                setTimeout(() => {
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = false;
+                    updateProgress(0);
+                    showFindNewWalletsMessage();
+                }, 2000);
+            } catch (error) {
+                addLog('Error', 'Airdrop failed: ' + error.message);
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = false;
+                updateProgress(0);
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            if (percent === 100) {
+                document.getElementById('progressText').textContent = 'Airdrop completed!';
+            }
+        }
+
+        // Show encouragement message to find new wallets for more SUBFANS
+        function showFindNewWalletsMessage() {
+            const previewDiv = document.getElementById('scorePreview');
+            const scoreMsg = document.getElementById('scoreMessage');
+            scoreMsg.textContent = "Airdrop done! 🎉 Find NEW wallets to score MORE SUBFANS!";
+            previewDiv.style.display = '';
+        }
+
+        document.addEventListener('touchstart', function(e) {
+            var active = document.activeElement;
+            if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
+                setTimeout(function() {active.style.fontSize = '10px';}, 0);
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', async function() {
+            addLog('System', 'Airdrop tool loaded');
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({method: 'eth_accounts'});
+                    if (accounts.length > 0) {
+                        userAccount = accounts[0];
+                        web3 = new Web3(window.ethereum);
+                        distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                        nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                        document.getElementById('walletAddress').textContent = userAccount.slice(0,6)+'...'+userAccount.slice(-4);
+                        document.getElementById('connectBtn').textContent = 'Connected';
+                        document.getElementById('connectBtn').disabled = true;
+                        await updateSubdropScore();
+                        if (extractedWallets.length > 0) {
+                            previewScoreAndEnableAirdrop();
+                        }
+                    }
+                } catch {}
+            }
+        });
+    </script>
+</body>
+</html>
