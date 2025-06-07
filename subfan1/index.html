@@ -833,147 +833,154 @@
             if (matches) {
                 extractedWallets = [...new Set(matches)].filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
                 document.getElementById('walletCount').textContent = `Extracted ${extractedWallets.length} unique wallet addresses`;
+				
+				dWallets = [...new Set(matches)].filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
+                document.getElementById('walletCount').textContent = `Extracted ${extractedWallets.length} unique wallet addresses`;
+                addLog('Extract', `Found ${extractedWallets.length} unique wallet addresses`);
                 
-                if (userAccount) {
+                if (userAccount && extractedWallets.length > 0) {
                     document.getElementById('airdropBtn').disabled = false;
                 }
-                addLog('Extract', `Found ${extractedWallets.length} unique wallets`);
             } else {
                 extractedWallets = [];
                 document.getElementById('walletCount').textContent = 'No valid wallet addresses found';
                 document.getElementById('airdropBtn').disabled = true;
-                addLog('Extract', 'No valid wallets found');
+                addLog('Extract', 'No valid wallet addresses found');
             }
+        }
+		
+		
+		
+		
+
+
+        function updateProgress(percentage, text) {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function hideProgress() {
+            document.getElementById('progressSection').style.display = 'none';
         }
 
         async function startAirdrop() {
-            if (!userAccount || extractedWallets.length === 0) {
-                addLog('Error', 'Connect wallet and extract addresses first');
+            if (!userAccount || !distributorContract || extractedWallets.length === 0) {
+                addLog('Error', 'Wallet not connected or no addresses extracted');
                 return;
             }
 
-            const progressSection = document.getElementById('progressSection');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            const airdropBtn = document.getElementById('airdropBtn');
-            
-            progressSection.style.display = 'block';
-            airdropBtn.disabled = true;
-            
             try {
-                // Step 1: Preview distribution
-                progressText.textContent = 'Analyzing distribution...';
-                progressFill.style.width = '20%';
-                
+                updateProgress(0, 'Preparing airdrop...');
+                addLog('Airdrop', 'Starting airdrop process');
+
+                // Preview the distribution
+                updateProgress(20, 'Checking distribution requirements...');
                 const preview = await distributorContract.methods.previewDistribution(userAccount, extractedWallets).call();
-                const successfulDrops = parseInt(preview.successfulDrops);
-                const tokensNeeded = web3.utils.fromWei(preview.tokensNeeded, 'ether');
+                const successfulDrops = preview.successfulDrops;
+                const tokensNeeded = preview.tokensNeeded;
                 
-                addLog('Preview', `${successfulDrops} eligible recipients, ${tokensNeeded} NFTFAN needed`);
-                
-                if (successfulDrops === 0) {
-                    throw new Error('No eligible recipients found');
+                addLog('Preview', `${successfulDrops} successful drops, ${web3.utils.fromWei(tokensNeeded, 'ether')} NFTFAN needed`);
+
+                if (successfulDrops === '0') {
+                    addLog('Error', 'No valid recipients for airdrop');
+                    hideProgress();
+                    return;
                 }
-                
-                // Step 2: Check balance
-                progressText.textContent = 'Checking token balance...';
-                progressFill.style.width = '40%';
-                
+
+                // Check token balance
+                updateProgress(40, 'Checking token balance...');
                 const balance = await nftfanContract.methods.balanceOf(userAccount).call();
-                const balanceEther = web3.utils.fromWei(balance, 'ether');
-                
-                if (parseFloat(balanceEther) < parseFloat(tokensNeeded)) {
-                    throw new Error(`Insufficient NFTFAN balance. Need: ${tokensNeeded}, Have: ${balanceEther}`);
+                if (BigInt(balance) < BigInt(tokensNeeded)) {
+                    addLog('Error', 'Insufficient NFTFAN token balance');
+                    hideProgress();
+                    return;
                 }
-                
-                // Step 3: Check allowance
-                progressText.textContent = 'Checking token allowance...';
-                progressFill.style.width = '60%';
-                
+
+                // Check allowance
+                updateProgress(60, 'Checking token allowance...');
                 const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
-                
-                if (web3.utils.toBN(allowance).lt(web3.utils.toBN(preview.tokensNeeded))) {
-                    progressText.textContent = 'Approving tokens...';
-                    const approveTx = await nftfanContract.methods.approve(
-                        DISTRIBUTOR_ADDRESS, 
-                        web3.utils.toWei('1000000', 'ether')
-                    ).send({ from: userAccount });
-                    addLog('Approve', 'Token allowance approved');
+                if (BigInt(allowance) < BigInt(tokensNeeded)) {
+                    updateProgress(70, 'Requesting token approval...');
+                    addLog('Approval', 'Requesting token approval');
+                    
+                    const approveTx = await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, tokensNeeded).send({
+                        from: userAccount
+                    });
+                    addLog('Approval', `Approved: ${approveTx.transactionHash}`);
                 }
+
+                // Execute airdrop
+                updateProgress(90, 'Executing airdrop...');
+                addLog('Airdrop', 'Executing distribution transaction');
                 
-                // Step 4: Execute distribution
-                progressText.textContent = 'Executing airdrop...';
-                progressFill.style.width = '80%';
-                
-                const distributeTx = await distributorContract.methods.distributeTokens(extractedWallets).send({ 
-                    from: userAccount,
-                    gas: '500000'
+                const airdropTx = await distributorContract.methods.distributeTokens(extractedWallets).send({
+                    from: userAccount
                 });
-                
-                // Step 5: Complete
-                progressFill.style.width = '100%';
-                progressText.textContent = `Airdrop completed! ${successfulDrops} recipients`;
-                
-                addLog('Success', `Airdrop completed to ${successfulDrops} wallets`);
-                addLog('Transaction', `Hash: ${distributeTx.transactionHash}`);
-                
-                // Update SUBFAN score
-                await updateSubdropScore();
-                
-                // Hide progress after 3 seconds
-                setTimeout(() => {
-                    progressSection.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }, 3000);
-                
+
+                updateProgress(100, 'Airdrop completed!');
+                addLog('Success', `Airdrop completed: ${airdropTx.transactionHash}`);
+                addLog('Success', `Distributed to ${successfulDrops} addresses`);
+
+                // Update SUBFANS score
+                setTimeout(async () => {
+                    await updateSubdropScore();
+                    hideProgress();
+                }, 2000);
+
             } catch (error) {
                 addLog('Error', 'Airdrop failed: ' + error.message);
-                progressText.textContent = 'Airdrop failed';
-                progressFill.style.width = '0%';
-                
-                setTimeout(() => {
-                    progressSection.style.display = 'none';
-                }, 3000);
-            } finally {
-                airdropBtn.disabled = false;
+                hideProgress();
             }
         }
 
-        // Event listeners
+        // Initialize wallet connection on page load
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        await connectWallet();
+                    }
+                } catch (error) {
+                    console.log('Could not auto-connect wallet');
+                }
+
+                // Listen for account changes
+                window.ethereum.on('accountsChanged', function (accounts) {
+                    if (accounts.length === 0) {
+                        disconnectWallet();
+                    } else {
+                        connectWallet();
+                    }
+                });
+
+                // Listen for chain changes
+                window.ethereum.on('chainChanged', function (chainId) {
+                    if (chainId !== POLYGON_CHAIN_ID) {
+                        addLog('Warning', 'Please switch to Polygon network');
+                    }
+                });
+            }
+
+            addLog('System', 'NFTFAN Airdrop Tool initialized');
+        });
+
+        // Connect wallet when top button is clicked (if not connected)
         document.getElementById('walletTopBtn').addEventListener('click', function(e) {
             if (!userAccount) {
+                e.stopPropagation();
                 connectWallet();
-            } else {
-                toggleWalletMenu(e);
             }
         });
 
-        // Auto-connect if previously connected
-        window.addEventListener('load', async function() {
-            if (typeof window.ethereum !== 'undefined') {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) {
-                    await connectWallet();
-                }
+        // Auto-extract wallets when text is pasted
+        document.getElementById('walletInput').addEventListener('input', function() {
+            const input = this.value;
+            if (input.length > 50) { // Only auto-extract for substantial input
+                setTimeout(extractWallets, 500);
             }
         });
-
-        // Handle account/network changes
-        if (typeof window.ethereum !== 'undefined') {
-            window.ethereum.on('accountsChanged', function(accounts) {
-                if (accounts.length === 0) {
-                    disconnectWallet();
-                } else {
-                    userAccount = accounts[0];
-                    updateWalletUI('Connected', userAccount);
-                    updateSubdropScore();
-                }
-            });
-
-            window.ethereum.on('chainChanged', function() {
-                window.location.reload();
-            });
-        }
     </script>
 </body>
 </html>
