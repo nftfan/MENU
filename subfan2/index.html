@@ -347,9 +347,21 @@
         const POLYGON_CHAIN_ID = '0x89';
 
         const DISTRIBUTOR_ABI = [
+            // --- Your function ABIs ---
             {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"}
+            {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"},
+            // --- Event ABI for TokensDistributed ---
+            {
+                "anonymous": false,
+                "inputs": [
+                    { "indexed": true, "internalType": "address", "name": "sender", "type": "address" },
+                    { "indexed": true, "internalType": "address", "name": "recipient", "type": "address" },
+                    { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+                ],
+                "name": "TokensDistributed",
+                "type": "event"
+            }
         ];
         const ERC20_ABI = [
             {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
@@ -616,15 +628,19 @@
         async function fetchAirdroppedWallets() {
             if (!distributorContract || !userAccount) return [];
             try {
+                // DEBUG LOGS
+                // console.log("Fetching tokens for sender:", userAccount);
                 const events = await distributorContract.getPastEvents('TokensDistributed', {
                     filter: { sender: userAccount },
                     fromBlock: 0,
                     toBlock: 'latest'
                 });
+                // console.log("Fetched events:", events);
                 const wallets = [...new Set(events.map(ev => ev.returnValues.recipient.toLowerCase()))];
                 return wallets;
             } catch (e) {
                 addLog('Error', 'Could not fetch airdrop history');
+                // console.error('Error fetching events:', e);
                 return [];
             }
         }
