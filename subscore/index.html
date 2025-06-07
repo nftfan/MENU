@@ -507,9 +507,10 @@
             
             if (matches) {
                 // Remove duplicates and invalid addresses
-                extractedWallets = [...new Set(matches)].filter(addr => 
-                    web3 ? web3.utils.isAddress(addr) : /^0x[a-fA-F0-9]{40}$/.test(addr)
-                );
+                extractedWallets = [...new Set(matches)].filter(addr => {
+                    // Basic validation for Ethereum address format
+                    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+                });
                 
                 document.getElementById('walletCount').textContent = 
                     `Extracted ${extractedWallets.length} unique wallet addresses`;
@@ -541,7 +542,7 @@
                 const tokensNeeded = preview.tokensNeeded;
                 
                 addLog('Preview', `${successfulDrops} new wallets will receive tokens`);
-                addLog('Preview', `${web3.utils.fromWei(tokensNeeded, 'ether')} tokens needed`);
+                addLog('Preview', `${(BigInt(tokensNeeded) / BigInt('1000000000000000000')).toString()} tokens needed`);
                 
                 if (successfulDrops === 0) {
                     addLog('Info', 'No new wallets to airdrop to');
@@ -552,7 +553,7 @@
                 
                 // Check and approve tokens
                 const balance = await nftfanContract.methods.balanceOf(userAccount).call();
-                if (web3.utils.toBN(balance).lt(web3.utils.toBN(tokensNeeded))) {
+                if (BigInt(balance) < BigInt(tokensNeeded)) {
                     addLog('Error', 'Insufficient token balance');
                     document.getElementById('progressSection').style.display = 'none';
                     document.getElementById('airdropBtn').disabled = false;
@@ -560,7 +561,7 @@
                 }
                 
                 const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
-                if (web3.utils.toBN(allowance).lt(web3.utils.toBN(tokensNeeded))) {
+                if (BigInt(allowance) < BigInt(tokensNeeded)) {
                     addLog('Approval', 'Approving tokens for distribution...');
                     document.getElementById('progressText').textContent = 'Approving tokens...';
                     
