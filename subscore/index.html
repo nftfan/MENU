@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTFAN Airdrop Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .status-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .wallet-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .wallet-address {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .score-display {
+            text-align: right;
+        }
+        
+        .score-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4facfe;
+        }
+        
+        .score-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-section label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .text-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        
+        .text-input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .extract-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .airdrop-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .wallet-count {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .progress-section {
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .activity-log {
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .activity-log h3 {
+            padding: 15px;
+            margin: 0;
+            background: #e9ecef;
+            border-radius: 10px 10px 0 0;
+            font-size: 1.1em;
+        }
+        
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .log-table th {
+            background: #e9ecef;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 600;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .log-table td {
+            padding: 6px 8px;
+            font-size: 9px;
+            border-bottom: 1px solid #f1f3f4;
+            font-family: monospace;
+        }
+        
+        .log-table tr:hover {
+            background: #f1f3f4;
+        }
+        
+        .log-empty {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NFTFAN Airdrop</h1>
+            <p>Distribute tokens and earn Subdrop Score</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="status-section">
+                <div class="wallet-info">
+                    <div id="walletStatus">Not Connected</div>
+                    <div class="wallet-address" id="walletAddress"></div>
+                </div>
+                <div class="score-display">
+                    <div class="score-number" id="subdropScore">0</div>
+                    <div class="score-label">Subdrop Score</div>
+                </div>
+                <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+            </div>
+            
+            <div class="input-section">
+                <label for="walletInput">Enter text containing wallet addresses:</label>
+                <textarea 
+                    class="text-input" 
+                    id="walletInput" 
+                    placeholder="Paste any text containing wallet addresses here...&#10;The tool will automatically extract valid Ethereum addresses from your text."
+                ></textarea>
+            </div>
+            
+            <div class="wallet-count" id="walletCount">No wallets extracted yet</div>
+            
+            <div class="button-group">
+                <button class="action-btn extract-btn" id="extractBtn" onclick="extractWallets()">Extract Wallets</button>
+                <button class="action-btn airdrop-btn" id="airdropBtn" onclick="startAirdrop()" disabled>Send Airdrop</button>
+            </div>
+            
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Preparing airdrop...</div>
+            </div>
+            
+            <div class="activity-log">
+                <h3>Activity Log</h3>
+                <table class="log-table" id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logBody">
+                        <tr>
+                            <td colspan="3" class="log-empty">No activity yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Contract addresses
+        const DISTRIBUTOR_ADDRESS = '0xb997063E3187366E528A118EF18832E9aE8A5C83';
+        const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+        const POLYGON_CHAIN_ID = '0x89'; // 137 in hex
+        
+        // Contract ABIs (minimal required functions)
+        const DISTRIBUTOR_ABI = [
+            {
+                "inputs": [{"internalType": "address[]", "name": "recipients", "type": "address[]"}],
+                "name": "distributeTokens",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "wallet", "type": "address"}],
+                "name": "getSubdropScore",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "sender", "type": "address"}, {"internalType": "address[]", "name": "recipients", "type": "address[]"}],
+                "name": "previewDistribution",
+                "outputs": [{"internalType": "uint256", "name": "successfulDrops", "type": "uint256"}, {"internalType": "uint256", "name": "tokensNeeded", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        const ERC20_ABI = [
+            {
+                "inputs": [{"internalType": "address", "name": "spender", "type": "address"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
+                "name": "approve",
+                "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+                "name": "balanceOf",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "owner", "type": "address"}, {"internalType": "address", "name": "spender", "type": "address"}],
+                "name": "allowance",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        let web3;
+        let userAccount;
+        let distributorContract;
+        let nftfanContract;
+        let extractedWallets = [];
+        
+        function addLog(event, details) {
+            const logBody = document.getElementById('logBody');
+            const emptyRow = logBody.querySelector('.log-empty');
+            if (emptyRow) {
+                emptyRow.parentNode.removeChild(emptyRow);
+            }
+            
+            const row = document.createElement('tr');
+            const time = new Date().toLocaleTimeString();
+            row.innerHTML = `
+                <td>${time}</td>
+                <td>${event}</td>
+                <td>${details}</td>
+            `;
+            logBody.insertBefore(row, logBody.firstChild);
+            
+            // Keep only last 50 entries
+            while (logBody.children.length > 50) {
+                logBody.removeChild(logBody.lastChild);
+            }
+        }
+        
+        async function switchToPolygon() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: POLYGON_CHAIN_ID }],
+                });
+                addLog('Network', 'Switched to Polygon');
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: POLYGON_CHAIN_ID,
+                                chainName: 'Polygon',
+                                nativeCurrency: {
+                                    name: 'MATIC',
+                                    symbol: 'MATIC',
+                                    decimals: 18,
+                                },
+                                rpcUrls: ['https://polygon-rpc.com/'],
+                                blockExplorerUrls: ['https://polygonscan.com/'],
+                            }],
+                        });
+                        addLog('Network', 'Added and switched to Polygon');
+                    } catch (addError) {
+                        addLog('Error', 'Failed to add Polygon network');
+                        throw addError;
+                    }
+                } else {
+                    addLog('Error', 'Failed to switch to Polygon');
+                    throw switchError;
+                }
+            }
+        }
+        
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    await switchToPolygon();
+                    
+                    const accounts = await window.ethereum.request({
+                        method: 'eth_requestAccounts'
+                    });
+                    
+                    userAccount = accounts[0];
+                    web3 = new Web3(window.ethereum);
+                    
+                    distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                    nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                    
+                    document.getElementById('walletStatus').textContent = 'Connected';
+                    document.getElementById('walletAddress').textContent = userAccount;
+                    document.getElementById('connectBtn').textContent = 'Connected';
+                    document.getElementById('connectBtn').disabled = true;
+                    
+                    await updateSubdropScore();
+                    addLog('Wallet', 'Connected successfully');
+                    
+                } catch (error) {
+                    addLog('Error', 'Failed to connect wallet: ' + error.message);
+                }
+            } else {
+                addLog('Error', 'MetaMask not found');
+            }
+        }
+        
+        async function updateSubdropScore() {
+            if (!distributorContract || !userAccount) return;
+            
+            try {
+                const score = await distributorContract.methods.getSubdropScore(userAccount).call();
+                document.getElementById('subdropScore').textContent = score;
+                addLog('Score', 'Updated subdrop score: ' + score);
+            } catch (error) {
+                addLog('Error', 'Failed to fetch subdrop score');
+            }
+        }
+        
+        function extractWallets() {
+            const input = document.getElementById('walletInput').value;
+            const walletRegex = /0x[a-fA-F0-9]{40}/g;
+            const matches = input.match(walletRegex);
+            
+            if (matches) {
+                // Remove duplicates and invalid addresses
+                extractedWallets = [...new Set(matches)].filter(addr => 
+                    web3 ? web3.utils.isAddress(addr) : /^0x[a-fA-F0-9]{40}$/.test(addr)
+                );
+                
+                document.getElementById('walletCount').textContent = 
+                    `Extracted ${extractedWallets.length} unique wallet addresses`;
+                document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount;
+                
+                addLog('Extract', `Found ${extractedWallets.length} unique wallets`);
+            } else {
+                extractedWallets = [];
+                document.getElementById('walletCount').textContent = 'No valid wallet addresses found';
+                document.getElementById('airdropBtn').disabled = true;
+                addLog('Extract', 'No valid wallet addresses found');
+            }
+        }
+        
+        async function startAirdrop() {
+            if (!userAccount || !distributorContract || extractedWallets.length === 0) {
+                addLog('Error', 'Prerequisites not met for airdrop');
+                return;
+            }
+            
+            try {
+                document.getElementById('progressSection').style.display = 'block';
+                document.getElementById('airdropBtn').disabled = true;
+                
+                // Preview the distribution
+                addLog('Preview', 'Checking distribution preview...');
+                const preview = await distributorContract.methods.previewDistribution(userAccount, extractedWallets).call();
+                const successfulDrops = preview.successfulDrops;
+                const tokensNeeded = preview.tokensNeeded;
+                
+                addLog('Preview', `${successfulDrops} new wallets will receive tokens`);
+                addLog('Preview', `${web3.utils.fromWei(tokensNeeded, 'ether')} tokens needed`);
+                
+                if (successfulDrops === 0) {
+                    addLog('Info', 'No new wallets to airdrop to');
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = false;
+                    return;
+                }
+                
+                // Check and approve tokens
+                const balance = await nftfanContract.methods.balanceOf(userAccount).call();
+                if (web3.utils.toBN(balance).lt(web3.utils.toBN(tokensNeeded))) {
+                    addLog('Error', 'Insufficient token balance');
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = false;
+                    return;
+                }
+                
+                const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
+                if (web3.utils.toBN(allowance).lt(web3.utils.toBN(tokensNeeded))) {
+                    addLog('Approval', 'Approving tokens for distribution...');
+                    document.getElementById('progressText').textContent = 'Approving tokens...';
+                    
+                    const approveTx = await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, tokensNeeded).send({
+                        from: userAccount
+                    });
+                    addLog('Approval', 'Tokens approved for distribution');
+                }
+                
+                // Execute distribution
+                document.getElementById('progressText').textContent = 'Sending airdrop...';
+                updateProgress(50);
+                
+                addLog('Airdrop', 'Starting token distribution...');
+                
+                const distributeTx = await distributorContract.methods.distributeTokens(extractedWallets).send({
+                    from: userAccount,
+                    gas: 5000000
+                });
+                
+                updateProgress(100);
+                addLog('Success', `Airdrop completed! Tx: ${distributeTx.transactionHash}`);
+                addLog('Success', `Distributed to ${successfulDrops} new wallets`);
+                
+                // Update score
+                await updateSubdropScore();
+                
+                setTimeout(() => {
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('airdropBtn').disabled = false;
+                    updateProgress(0);
+                }, 2000);
+                
+            } catch (error) {
+                addLog('Error', 'Airdrop failed: ' + error.message);
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = false;
+                updateProgress(0);
+            }
+        }
+        
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            if (percent === 100) {
+                document.getElementById('progressText').textContent = 'Airdrop completed!';
+            }
+        }
+        
+        // Initialize
+        addLog('System', 'Airdrop tool loaded');
+    </script>
+</body>
+</html>
