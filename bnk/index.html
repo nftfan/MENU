@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Personal Delivery</title>
+   <meta charset="UTF-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="icon" href="https://raw.githubusercontent.com/nftfan/delivery/main/Untitled%20design%20(22).png" type="image/png">
   
@@ -13,9 +13,11 @@
   <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/delivery/main/Untitled%20design%20(22).png">
   <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
   <meta charset="UTF-8">
-  <title>MATIC Bank - Digital Wallet Dashboard</title>
+  <title>MATIC Bank</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     html, body {
       background: #fff;
@@ -56,6 +58,30 @@
       font-weight: bold;
       color: #7a3cff;
       letter-spacing: 0.3px;
+    }
+    .refresh-btn {
+      font-size: 10px;
+      padding: 7px 18px;
+      border-radius: 15px;
+      border: 1px solid #ececec;
+      background: #f4f0ff;
+      color: #7a3cff;
+      font-weight: bold;
+      margin: 0 10px 12px 10px;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.18s, box-shadow 0.18s;
+      box-shadow: none;
+      display: inline-block;
+      align-self: flex-end;
+    }
+    .refresh-btn:active {
+      background: #ede4ff;
+    }
+    .refresh-btn:disabled {
+      color: #ccc;
+      background: #f8f8f8;
+      cursor: not-allowed;
     }
     /* Section headers */
     .section-label {
@@ -146,6 +172,10 @@
       .section-label {
         margin-left: 4vw;
       }
+      .refresh-btn {
+        margin-left: 2vw;
+        margin-right: 2vw;
+      }
     }
     /* Make touch targets a little bigger */
     .account-card {
@@ -165,6 +195,7 @@
         <span class="loading-spinner"></span>
       </div>
     </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshAllBalances()">⟳ Refresh</button>
 
     <div class="section-label">Payment accounts</div>
     <div class="account-card" id="account-1">
@@ -224,17 +255,23 @@
     }
 
     async function refreshAllBalances() {
-      // Show loading spinner on total
+      const btn = document.getElementById("refresh-btn");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⟳ Refreshing...";
+      }
       document.getElementById("total-sum").innerHTML = '<span class="loading-spinner"></span>';
       let sum = 0;
-      // Call and sum balances in UI order
       for (let i = 0; i < DISPLAY_ORDER.length; i++) {
         const idx = DISPLAY_ORDER[i];
         const balance = await fetchAndShowBalance(WALLETS[idx], idx);
         sum += balance;
       }
-      // Show total sum
       document.getElementById("total-sum").textContent = "+ " + sum.toLocaleString(undefined, {maximumFractionDigits: 4}) + " MATIC";
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "⟳ Refresh";
+      }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
