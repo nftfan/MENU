@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Subdrop Score Checker</title>
-  <!-- Ethers.js CDN - must be loaded before your script! -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <!-- Correct Ethers.js UMD build for browser use -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 400px; margin: 40px auto; }
     input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
@@ -35,14 +35,9 @@
       }
 
       try {
-        let provider;
-        if (window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
-        } else {
-          provider = ethers.getDefaultProvider(); // fallback to public mainnet
-        }
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+        // Use public provider (read-only, no wallet needed)
+        const provider = new window.ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/1c1483e2a14643b1a879b7b30b3f7b60");
+        const contract = new window.ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
         resultDiv.textContent = "Loading...";
         const score = await contract.getSubdropScore(wallet);
         resultDiv.textContent = `Subdrop Score for ${wallet}: ${score.toString()}`;
