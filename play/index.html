@@ -282,6 +282,36 @@
         .bookmarks-list::-webkit-scrollbar-thumb:hover {
             background: rgba(255,255,255,0.5);
         }
+
+        .playback-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .playback-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            padding: 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            outline: none;
+        }
+
+        .playback-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .playback-btn:active {
+            transform: scale(0.97);
+        }
     </style>
 </head>
 <body>
@@ -295,6 +325,14 @@
             <video id="videoPlayer" class="video-js vjs-default-skin" controls>
                 Your browser does not support the video tag.
             </video>
+            <div class="playback-controls" id="playbackControls" style="display: none;">
+                <button class="playback-btn" onclick="playPreviousBookmark()" title="Previous Channel">
+                    <span class="material-icons">skip_previous</span>
+                </button>
+                <button class="playback-btn" onclick="playNextBookmark(true)" title="Next Channel">
+                    <span class="material-icons">skip_next</span>
+                </button>
+            </div>
         </div>
 
         <div class="controls-section">
@@ -338,18 +376,18 @@
         let bookmarks = [];
         let bookmarkPlayIndex = 0;
         let player = null;
+        let isPlayingBookmarks = false;
+        let bookmarkTimeout = null;
 
         // Use localStorage for bookmarks persistence
         const BOOKMARKS_STORAGE_KEY = 'iptv_bookmarks';
 
-        // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             initializePlayer();
             loadBookmarks();
             updateBookmarksList();
         });
 
-        // Initialize Video.js player
         function initializePlayer() {
             player = videojs('videoPlayer', {
                 fluid: true,
@@ -358,7 +396,6 @@
             });
         }
 
-        // Show status message
         function showStatus(message, duration = 3000) {
             const statusBar = document.getElementById('statusBar');
             statusBar.textContent = message;
@@ -368,20 +405,16 @@
             }, duration);
         }
 
-        // Fetch and parse M3U file
         async function fetchChannels() {
             try {
                 showStatus('Loading channels...');
                 const response = await fetch('https://iptv-org.github.io/iptv/index.m3u');
                 const data = await response.text();
-                
                 const lines = data.split('\n');
                 channels = [];
                 let currentName = '';
-                
                 lines.forEach(line => {
                     if (line.startsWith('#EXTINF:')) {
-                        // Extract channel name from EXTINF line
                         const nameMatch = line.match(/,(.+)$/);
                         currentName = nameMatch ? nameMatch[1].trim() : 'Unknown Channel';
                     } else if (line.startsWith('http')) {
@@ -392,7 +425,6 @@
                         currentName = '';
                     }
                 });
-                
                 showStatus(`Loaded ${channels.length} channels`);
                 return channels;
             } catch (error) {
@@ -402,70 +434,59 @@
             }
         }
 
-        // Load random channel
         async function loadRandomChannel() {
+            hidePlaybackControls();
+            isPlayingBookmarks = false;
+            clearBookmarkTimeout();
             if (channels.length === 0) {
                 channels = await fetchChannels();
             }
-            
             if (channels.length === 0) {
                 showStatus('No channels available');
                 return;
             }
-            
             const randomIndex = Math.floor(Math.random() * channels.length);
             const randomChannel = channels[randomIndex];
-            
             loadChannel(randomChannel.url, randomChannel.name);
         }
 
-        // Load specific channel
         function loadChannel(url, name) {
             currentChannelUrl = url;
             currentChannelName = name;
-            
             player.src({
                 type: 'application/x-mpegURL',
                 src: url
             });
-            
             player.play().catch(error => {
                 console.log('Play failed:', error);
                 showStatus('Failed to play channel');
             });
-            
             document.getElementById('bookmarkBtn').disabled = false;
             showStatus(`Now playing: ${name}`);
         }
 
-        // Bookmark current channel
         function bookmarkCurrentChannel() {
             if (!currentChannelUrl) {
                 showStatus('No channel is currently playing');
                 return;
             }
-            
-            // Check if already bookmarked
             const existingBookmark = bookmarks.find(b => b.url === currentChannelUrl);
             if (existingBookmark) {
                 showStatus('Channel already bookmarked');
                 return;
             }
-            
             const bookmark = {
                 id: Date.now(),
                 name: currentChannelName,
                 url: currentChannelUrl,
                 timestamp: new Date().toISOString()
             };
-            
             bookmarks.push(bookmark);
             saveBookmarks();
             updateBookmarksList();
             showStatus('Channel bookmarked!');
         }
 
-        // Load bookmarks from localStorage
         function loadBookmarks() {
             try {
                 const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
@@ -475,7 +496,6 @@
             }
         }
 
-        // Save bookmarks to localStorage
         function saveBookmarks() {
             try {
                 localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(bookmarks));
@@ -484,10 +504,8 @@
             }
         }
 
-        // Update bookmarks list display
         function updateBookmarksList() {
             const bookmarksList = document.getElementById('bookmarksList');
-            
             if (bookmarks.length === 0) {
                 bookmarksList.innerHTML = `
                     <div class="empty-state">
@@ -497,7 +515,6 @@
                 `;
                 return;
             }
-            
             bookmarksList.innerHTML = bookmarks.map(bookmark => `
                 <div class="bookmark-item">
                     <div class="bookmark-info">
@@ -508,7 +525,7 @@
                         </div>
                     </div>
                     <div class="bookmark-actions">
-                        <button class="icon-btn" onclick="loadChannel('${bookmark.url.replace(/'/g, "\\'")}', '${bookmark.name.replace(/'/g, "\\'")}')" title="Play">
+                        <button class="icon-btn" onclick="hidePlaybackControls();isPlayingBookmarks=false;clearBookmarkTimeout();loadChannel('${bookmark.url.replace(/'/g, "\\'")}', '${bookmark.name.replace(/'/g, "\\'")}')" title="Play">
                             <span class="material-icons">play_arrow</span>
                         </button>
                         <button class="icon-btn" onclick="deleteBookmark(${bookmark.id})" title="Delete">
@@ -519,7 +536,6 @@
             `).join('');
         }
 
-        // Delete bookmark
         function deleteBookmark(id) {
             bookmarks = bookmarks.filter(b => b.id !== id);
             saveBookmarks();
@@ -527,34 +543,69 @@
             showStatus('Bookmark deleted');
         }
 
-        // Play all bookmarks in sequence
         function playAllBookmarks() {
             if (bookmarks.length === 0) {
                 showStatus('No bookmarks to play');
                 return;
             }
-            
+            isPlayingBookmarks = true;
             bookmarkPlayIndex = 0;
-            playNextBookmark();
+            playBookmarkAtIndex(bookmarkPlayIndex);
+            showPlaybackControls();
         }
 
-        // Play next bookmark in sequence
-        function playNextBookmark() {
-            if (bookmarkPlayIndex >= bookmarks.length) {
-                bookmarkPlayIndex = 0; // Loop back to start
-                showStatus('Playlist finished, restarting...');
-            }
-            
+        function playBookmarkAtIndex(index) {
+            if (bookmarks.length === 0) return;
+            if (index < 0) index = bookmarks.length - 1;
+            if (index >= bookmarks.length) index = 0;
+            bookmarkPlayIndex = index;
             const bookmark = bookmarks[bookmarkPlayIndex];
             loadChannel(bookmark.url, bookmark.name);
-            bookmarkPlayIndex++;
-            
-            // Auto-play next bookmark after 30 seconds (you can adjust this)
-            setTimeout(() => {
-                if (bookmarks.length > 1) {
+            updatePlaybackControls();
+            clearBookmarkTimeout();
+            // Auto-play next bookmark after 30 seconds (adjustable)
+            bookmarkTimeout = setTimeout(() => {
+                if (isPlayingBookmarks && bookmarks.length > 1) {
                     playNextBookmark();
                 }
             }, 30000);
+        }
+
+        function clearBookmarkTimeout() {
+            if (bookmarkTimeout) {
+                clearTimeout(bookmarkTimeout);
+                bookmarkTimeout = null;
+            }
+        }
+
+        function playNextBookmark(manual = false) {
+            if (!isPlayingBookmarks || bookmarks.length === 0) return;
+            if (manual) clearBookmarkTimeout();
+            playBookmarkAtIndex((bookmarkPlayIndex + 1) % bookmarks.length);
+        }
+
+        function playPreviousBookmark() {
+            if (!isPlayingBookmarks || bookmarks.length === 0) return;
+            clearBookmarkTimeout();
+            let prevIndex = bookmarkPlayIndex - 1;
+            if (prevIndex < 0) prevIndex = bookmarks.length - 1;
+            playBookmarkAtIndex(prevIndex);
+        }
+
+        function showPlaybackControls() {
+            document.getElementById('playbackControls').style.display = 'flex';
+        }
+
+        function hidePlaybackControls() {
+            document.getElementById('playbackControls').style.display = 'none';
+        }
+
+        function updatePlaybackControls() {
+            if (isPlayingBookmarks && bookmarks.length > 1) {
+                showPlaybackControls();
+            } else {
+                hidePlaybackControls();
+            }
         }
     </script>
 </body>
