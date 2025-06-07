@@ -6,6 +6,7 @@
     <title>My SUBFANS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
     <style>
+        /* ...[same CSS as your original, unchanged for brevity]... */
         * {
             margin: 0;
             padding: 0;
@@ -31,7 +32,6 @@
             display: flex;
             flex-direction: column;
         }
-
         .topbar {
             display: flex;
             align-items: center;
@@ -44,27 +44,21 @@
             align-items: center;
             gap: 8px;
         }
-		
-
-
         .topbar-logo {
-    height: 32px;
-    width: 32px;
-    border-radius: 50%;
-    background: #fff;
-    object-fit: cover;
-    animation: spinVarying 3s ease-out infinite; /* Adjust duration as needed */
-}
-
-/* Spin starts fast and slows down */
-@keyframes spinVarying {
-    0%   { transform: rotate(0deg); }
-    5%   { transform: rotate(360deg); }   /* Very fast initial spin */
-    20%  { transform: rotate(540deg); }   /* Slower */
-    50%  { transform: rotate(720deg); }   /* Medium */
-    100% { transform: rotate(900deg); }   /* Very slow at end */
-}
-
+            height: 32px;
+            width: 32px;
+            border-radius: 50%;
+            background: #fff;
+            object-fit: cover;
+            animation: spinVarying 3s ease-out infinite;
+        }
+        @keyframes spinVarying {
+            0%   { transform: rotate(0deg); }
+            5%   { transform: rotate(360deg); }
+            20%  { transform: rotate(540deg); }
+            50%  { transform: rotate(720deg); }
+            100% { transform: rotate(900deg); }
+        }
         .topbar-title {
             font-size: 10px;
             font-weight: 700;
@@ -113,7 +107,6 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
         .main-content {
             padding: 16px 12px 20px 12px;
             flex: 1;
@@ -142,7 +135,6 @@
             transition: border-color 0.3s ease;
             box-sizing: border-box;
             outline: none;
-            /* Prevent zoom on iOS */
             -webkit-text-size-adjust: none;
         }
         .text-input:focus {
@@ -488,7 +480,6 @@
             } else {
                 addLog('Error', 'MetaMask not found');
             }
-            // Enable airdrop button if wallets extracted
             document.getElementById('airdropBtn').disabled = extractedWallets.length === 0 || !userAccount;
         }
 
@@ -520,52 +511,94 @@
             }
         }
 
+        function chunkArray(array, chunkSize) {
+            const results = [];
+            for (let i = 0; i < array.length; i += chunkSize) {
+                results.push(array.slice(i, i + chunkSize));
+            }
+            return results;
+        }
+
         async function startAirdrop() {
             if (!userAccount || !distributorContract || extractedWallets.length === 0) {
                 addLog('Error', 'Prerequisites not met for airdrop');
                 return;
             }
+            const batchSize = 50;
+            const batches = chunkArray(extractedWallets, batchSize);
+            let totalDrops = 0;
+            let totalTokensNeeded = BigInt(0);
+            let totalDistributed = 0;
+
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('airdropBtn').disabled = true;
+
+            // Preview all batches up front
             try {
-                document.getElementById('progressSection').style.display = 'block';
-                document.getElementById('airdropBtn').disabled = true;
-                addLog('Preview', 'Checking distribution preview...');
-                const preview = await distributorContract.methods.previewDistribution(userAccount, extractedWallets).call();
-                const successfulDrops = preview.successfulDrops;
-                const tokensNeeded = preview.tokensNeeded;
-                addLog('Preview', `${successfulDrops} new wallets will receive tokens`);
-                addLog('Preview', `${(BigInt(tokensNeeded) / BigInt('1000000000000000000')).toString()} tokens needed`);
-                if (successfulDrops === 0) {
+                addLog('Preview', `Checking distribution preview for ${batches.length} batches...`);
+                let previews = [];
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    const preview = await distributorContract.methods.previewDistribution(userAccount, batch).call();
+                    previews.push(preview);
+                    totalDrops += Number(preview.successfulDrops);
+                    totalTokensNeeded += BigInt(preview.tokensNeeded);
+                    addLog('Preview', `Batch ${i + 1}: ${preview.successfulDrops} new wallets, ${(BigInt(preview.tokensNeeded) / BigInt('1000000000000000000')).toString()} tokens needed`);
+                }
+                if (totalDrops === 0) {
                     addLog('Info', 'No new wallets to airdrop to');
                     document.getElementById('progressSection').style.display = 'none';
                     document.getElementById('airdropBtn').disabled = false;
                     return;
                 }
                 const balance = await nftfanContract.methods.balanceOf(userAccount).call();
-                if (BigInt(balance) < BigInt(tokensNeeded)) {
+                if (BigInt(balance) < totalTokensNeeded) {
                     addLog('Error', 'Insufficient token balance');
                     document.getElementById('progressSection').style.display = 'none';
                     document.getElementById('airdropBtn').disabled = false;
                     return;
                 }
                 const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
-                if (BigInt(allowance) < BigInt(tokensNeeded)) {
+                if (BigInt(allowance) < totalTokensNeeded) {
                     addLog('Approval', 'Approving tokens for distribution...');
                     document.getElementById('progressText').textContent = 'Approving tokens...';
-                    await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, tokensNeeded).send({
+                    await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, totalTokensNeeded.toString()).send({
                         from: userAccount
                     });
                     addLog('Approval', 'Tokens approved for distribution');
                 }
-                document.getElementById('progressText').textContent = 'Sending airdrop...';
-                updateProgress(50);
-                addLog('Airdrop', 'Starting token distribution...');
-                const distributeTx = await distributorContract.methods.distributeTokens(extractedWallets).send({
-                    from: userAccount,
-                    gas: 5000000
-                });
+            } catch (error) {
+                addLog('Error', 'Preview/Approval failed: ' + error.message);
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('airdropBtn').disabled = false;
+                updateProgress(0);
+                return;
+            }
+
+            // Airdrop batches
+            try {
+                let batchesDone = 0;
+                for (let i = 0; i < batches.length; i++) {
+                    const batch = batches[i];
+                    document.getElementById('progressText').textContent = `Airdropping batch ${i + 1} of ${batches.length}...`;
+                    updateProgress(Math.round((i / batches.length) * 100));
+                    addLog('Airdrop', `Sending tokens to batch ${i + 1} (${batch.length} wallets)...`);
+                    try {
+                        const distributeTx = await distributorContract.methods.distributeTokens(batch).send({
+                            from: userAccount,
+                            gas: 5000000
+                        });
+                        addLog('Success', `Batch ${i + 1} airdropped! Tx: ${distributeTx.transactionHash}`);
+                        batchesDone++;
+                        totalDistributed += batch.length;
+                        updateProgress(Math.round((batchesDone / batches.length) * 100));
+                    } catch (batchError) {
+                        addLog('Error', `Airdrop failed for batch ${i + 1}: ${batchError.message}`);
+                    }
+                }
+                document.getElementById('progressText').textContent = 'Airdrop completed!';
                 updateProgress(100);
-                addLog('Success', `Airdrop completed! Tx: ${distributeTx.transactionHash}`);
-                addLog('Success', `Distributed to ${successfulDrops} new wallets`);
+                addLog('Success', `Airdrop completed! Distributed to ${totalDistributed} wallets in ${batchesDone} batches`);
                 await updateSubdropScore();
                 setTimeout(() => {
                     document.getElementById('progressSection').style.display = 'none';
