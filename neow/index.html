@@ -286,6 +286,7 @@
       min-height: 120px;
       display: flex; flex-direction: column;
       font-size: 11px;
+      cursor: pointer;
     }
     .shop-item:hover, .nft-card:hover {
       transform: translateY(-2.5px) scale(1.025);
@@ -410,6 +411,114 @@
       .tab-content { padding: 4px 1px; }
       .shop-img, .nft-img { height: 46px; }
     }
+    /* Modal styles */
+    .modal-backdrop {
+      position: fixed;
+      z-index: 1111;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.67);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal-content {
+      background: var(--neon-bg-gradient);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 32px var(--neon-cyan), 0 3px 38px #000;
+      border-radius: 16px;
+      padding: 24px 14px 12px 14px;
+      min-width: 280px;
+      min-height: 180px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: var(--neon-green);
+      font-size: 12px;
+      position: relative;
+      animation: fadeInUp 0.23s;
+      font-family: 'Orbitron', monospace;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,255,136,0.12);
+      border: none;
+      color: var(--neon-cyan);
+      font-size: 22px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      z-index: 2;
+    }
+    .modal-close-btn:hover {
+      background: rgba(0,255,255,0.2);
+      color: var(--neon-yellow);
+    }
+    .modal-img {
+      width: 120px; height: 120px; object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto 12px auto;
+      display: block;
+      box-shadow: 0 0 23px var(--neon-cyan), 0 1px 14px #000;
+      background: linear-gradient(135deg,rgba(0,255,136,0.09),rgba(0,255,255,0.09),rgba(255,255,0,0.10));
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-shadow: var(--neon-cyan-shadow);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .modal-desc {
+      color: rgba(0,255,136,0.85);
+      font-size: 12px;
+      margin-bottom: 7px;
+      text-shadow: var(--neon-text-shadow);
+      text-align: center;
+    }
+    .modal-id-row, .modal-own-row, .modal-price-row, .modal-inv-row {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      font-size: 11px;
+      margin-bottom: 7px;
+      font-family: 'Orbitron', monospace;
+      color: var(--neon-yellow);
+      text-shadow: var(--neon-yellow-shadow);
+    }
+    .modal-shop-btn-row {
+      display: flex; justify-content: center; align-items: center; gap: 11px; margin-top: 13px;
+    }
+    .modal-shop-btn-row .buy-btn {
+      min-width: 80px;
+      font-size: 13px;
+      padding: 7px 14px;
+      margin: 0;
+    }
+    .modal-sold-row {
+      color: #ff2070;
+      font-weight: bold;
+      margin-bottom: 7px;
+      text-shadow: 0 0 3px #ff2070;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      text-align: center;
+    }
+    footer {
+      margin-top: 16px;
+      text-align: center;
+      font-family: 'Orbitron', monospace;
+      font-size: 6px;
+      color: var(--neon-cyan);
+      opacity: 0.95;
+      letter-spacing: 2px;
+      padding: 10px 0 4px 0;
+      background: transparent;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -447,7 +556,7 @@
     </div>
     <div id="start-message" class="start-message">
       <span class="material-icons" style="font-size:16px;color:#a377ff;vertical-align:middle;">stars</span>
-      Connect your wallet to start NFT Fans</span>
+      Connect your wallet to start NFT Fans
     </div>
     <div class="tab-content hidden" id="tab-content-shop">
       <div id="shop-loading" style="font-size:11px;color:#aaa;text-align:center;margin:10px;">Loading NFTs...</div>
@@ -461,6 +570,13 @@
       <div id="nft-demo-msg" style="font-size:10px;color:#aaa;text-align:center;margin-top:8px;">(Demo: connect wallet to show your NFTs)</div>
     </div>
   </div>
+  <!-- Modal -->
+  <div id="modalBackdrop" class="modal-backdrop" style="display:none;">
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+  <footer>
+    COPYRIGHT NFT FANS TOKEN
+  </footer>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script>
     // ------ BEGIN APP LOGIC ------
@@ -645,6 +761,79 @@
         return await res.json();
       } catch (e) { return null; }
     }
+    // Modal logic
+    function closeModal() {
+      document.getElementById('modalBackdrop').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    function openModal(modalHtml) {
+      document.getElementById('modalContent').innerHTML = modalHtml;
+      document.getElementById('modalBackdrop').style.display = '';
+      document.body.style.overflow = 'hidden';
+      document.onkeydown = function(e) {
+        if (e.key === 'Escape') closeModal();
+      };
+    }
+    document.getElementById('modalBackdrop').onclick = function(e) {
+      if (e.target === this) closeModal();
+    };
+
+    function renderShopModal(item) {
+      let {
+        id, meta, metaJson, openseaName, openseaImg, openseaDesc, price,
+        isForSale, shopAmount, priceWei
+      } = item;
+      let inv = `<div class="modal-inv-row"><span class="material-icons" style="font-size:13px">inventory_2</span>Available: ${shopAmount}</div>`;
+      let priceTab = `<div class="modal-price-row"><span class="material-icons" style="font-size:13px">sell</span>${price} POL</div>`;
+      let sold = !isForSale || shopAmount == "0";
+      let status = sold ? `<div class="modal-sold-row"><span class="material-icons" style="font-size:13px;color:#c92828;vertical-align:middle;">gavel</span> Sold Out</div>` : '';
+      let btn = '';
+      if (!sold) {
+        btn = `<button class="buy-btn" style="min-width:90px;" onclick="buyNFT(${id}, '${priceWei}', ${shopAmount}); closeModal();">Buy Now</button>`;
+      }
+      let html = `
+        <button class="modal-close-btn" onclick="closeModal()" aria-label="Close"><span class="material-icons">close</span></button>
+        <img class="modal-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+        <div class="modal-title">${openseaName}</div>
+        <div class="modal-id-row"><span class="material-icons" style="font-size:11px;color:#aaa">tag</span>ID: ${id}</div>
+        <div class="modal-desc">${openseaDesc || ''}</div>
+        ${priceTab}
+        ${inv}
+        ${status}
+        <div class="modal-shop-btn-row">${btn}</div>
+      `;
+      return html;
+    }
+    function renderVaultModal(item) {
+      let {
+        id, amount, meta, metaJson, openseaName, openseaImg, openseaDesc
+      } = item;
+      let html = `
+        <button class="modal-close-btn" onclick="closeModal()" aria-label="Close"><span class="material-icons">close</span></button>
+        <img class="modal-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+        <div class="modal-title">${openseaName}</div>
+        <div class="modal-id-row"><span class="material-icons" style="font-size:11px;color:#aaa">tag</span>ID: ${id}</div>
+        <div class="modal-desc">${openseaDesc || ''}</div>
+        <div class="modal-own-row"><span class="material-icons" style="font-size:13px;color:#555;vertical-align:middle;">inventory_2</span>You own: ${amount}</div>
+      `;
+      return html;
+    }
+    function addGridClickHandlers() {
+      document.querySelectorAll('#shopGrid > .shop-item').forEach((el, i) => {
+        el.onclick = function(e) {
+          if (window._shopModalData && window._shopModalData[i]) {
+            openModal(renderShopModal(window._shopModalData[i]));
+          }
+        };
+      });
+      document.querySelectorAll('#myGrid > .nft-card').forEach((el, i) => {
+        el.onclick = function(e) {
+          if (window._vaultModalData && window._vaultModalData[i]) {
+            openModal(renderVaultModal(window._vaultModalData[i]));
+          }
+        };
+      });
+    }
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
@@ -663,6 +852,7 @@
         }
         const metaArr = await Promise.all(uris.map(async (uri) => await fetchOpenSeaMeta(uri)));
         let html = "";
+        let modalData = [];
         for (let i = 0; i < ids.length; i++) {
           const id = ids[i];
           const meta = metaArr[i];
@@ -689,7 +879,7 @@
             btn = `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>
             <span class="material-icons" style="font-size:9px;vertical-align:middle">shopping_cart</span>Buy</button>`;
           }
-          html += `<li class="shop-item">
+          html += `<li class="shop-item" tabindex="0">
               <img class="shop-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
               <div class="shop-section">
                 <div class="shop-row">
@@ -706,10 +896,15 @@
                 ${btn}
               </div>
           </li>`;
+          modalData.push({
+            id, meta, metaJson: meta, openseaName, openseaImg, openseaDesc, price, isForSale: isForSale[i], shopAmount: shopAmounts[i], priceWei: prices[i]
+          });
         }
         shopGrid.innerHTML = html;
         loading.style.display = "none";
         shopGrid.style.display = "grid";
+        window._shopModalData = modalData;
+        addGridClickHandlers();
       } catch (error) {
         shopGrid.innerHTML = "";
         loading.style.display = "none";
@@ -786,12 +981,13 @@
           }
         }));
         let html = "";
+        let modalData = [];
         for (let item of metaArr) {
           const {id, amount, meta, metaJson} = item;
           const openseaName = metaJson?.name || `NFTFAN #${id}`;
           const openseaImg = metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
           const openseaDesc = metaJson?.description || "";
-          html += `<li class="nft-card">
+          html += `<li class="nft-card" tabindex="0">
               <img class="nft-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
               <div class="nft-section">
                 <div class="nft-row">
@@ -812,10 +1008,15 @@
                 </div>
               </div>
           </li>`;
+          modalData.push({
+            id, amount, meta, metaJson, openseaName, openseaImg, openseaDesc
+          });
         }
         myGrid.innerHTML = html;
         loading.style.display = "none";
         myGrid.style.display = "grid";
+        window._vaultModalData = modalData;
+        addGridClickHandlers();
       } catch (error) {
         myGrid.innerHTML = "";
         loading.style.display = "none";
@@ -871,7 +1072,6 @@
       showStartMessage(true);
       setStatusBar('Connect wallet to get started', "account_balance_wallet", false, 1700);
     });
-    // ---- Neon/Glitch Enhancements ----
     setInterval(() => {
       const elements = document.querySelectorAll('.shop-item, .nft-card');
       const randomElement = elements[Math.floor(Math.random() * elements.length)];
