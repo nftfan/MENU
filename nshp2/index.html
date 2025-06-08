@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>NFTFANS ERC1155 Shop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <!-- Material Icons CDN -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
     html, body {
@@ -36,7 +35,6 @@
       top: 0;
       z-index: 20;
     }
-    /* Banner styles */
     .banner-area {
       position: relative;
       width: 100%;
@@ -206,14 +204,15 @@
       transition: color 0.3s;
     }
     .fixed-status-bar.buying {
-      background: linear-gradient(90deg, #ede4ff 0%, #f9f6ff 100%);
-      color: #673ab7;
       animation: statusBarPulse 1.1s infinite cubic-bezier(.4,2,.3,1);
     }
     @keyframes statusBarPulse {
-      0%   { box-shadow: 0 0 0 0 rgba(120,70,255,0.09);}
-      50%  { box-shadow: 0 0 24px 0 rgba(120,70,255,0.17);}
-      100% { box-shadow: 0 0 0 0 rgba(120,70,255,0.09);}
+      0%   { box-shadow: 0 0 0 0 var(--pulse-color); }
+      50%  { box-shadow: 0 0 24px 0 var(--pulse-color); }
+      100% { box-shadow: 0 0 0 0 var(--pulse-color); }
+    }
+    :root {
+      --pulse-color: rgba(120,70,255,0.17);
     }
     .tab-content {
       margin: 0 10px;
@@ -309,7 +308,7 @@
       display: flex;
       align-items: flex-start;
       gap: 4px;
-      font-size: 7px;
+      font-size: 6px;
       color: #5e5e7e;
       margin: 3px 7px 2px 7px;
       min-height: 10px;
@@ -428,8 +427,6 @@
 <body>
   <div class="wrapper">
     <div class="header-bar">
-
-      <!-- Banner above the tabs, wallet button on banner -->
       <div class="banner-area">
         <img src="https://pbs.twimg.com/media/Gs758wIWEAEsq45?format=jpg&name=large" alt="NFTFANS Banner">
         <button class="connect-btn" id="connect-btn" onclick="connectWallet()">
@@ -437,14 +434,12 @@
           Connect Wallet
         </button>
       </div>
-
       <div class="header-row">
         <div class="nftfan-balance-bar" id="nftfanBalanceBar" style="display:none;">
           <img class="nftfan-token-icon" src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN Token">
           <span id="nftfanBalance">--</span>
           <span style="font-size:10px;font-weight:400;color:#888;margin-left:2px;">NFTFAN</span>
         </div>
-        <!-- No connect button here anymore! -->
       </div>
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">NFTFANS Shop</button>
@@ -475,7 +470,6 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script>
-    // Polygon mainnet config for Metamask
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -520,16 +514,31 @@
     let nftfanContract = null;
     let nftfanShop = null;
 
-    // Status bar logic
     let statusBarQueue = [];
     let statusBarIsShowing = false;
     let currentStatus = {msg: "Initializing...", icon: "info", buying: false};
+
+    const statusStyles = {
+      "info": { bg: "#E3F2FD", text: "#0D47A1", main: "#2196F3" },
+      "check_circle": { bg: "#E8F5E9", text: "#1B5E20", main: "#4CAF50" },
+      "error": { bg: "#FFEBEE", text: "#B71C1C", main: "#F44336" },
+      "warning": { bg: "#FFF3E0", text: "#E65100", main: "#FF9800" },
+      "hourglass_empty": { bg: "#F3E5F5", text: "#4A148C", main: "#9C27B0" },
+      "link": { bg: "#E8EAF6", text: "#1A237E", main: "#3F51B5" },
+      "cloud_done": { bg: "#E0F2F1", text: "#004D40", main: "#009688" },
+      "celebration": { bg: "#FFFDE7", text: "#F57F17", main: "#FFEB3B" },
+      "change_circle": { bg: "#EFEBE9", text: "#3E2723", main: "#795548" },
+      "public": { bg: "#ECEFF1", text: "#37474F", main: "#607D8B" },
+      "sync": { bg: "#FCE4EC", text: "#880E4F", main: "#E91E63" },
+      "account_balance_wallet": { bg: "#FBE9E7", text: "#BF360C", main: "#FF5722" },
+    };
 
     function setStatusBar(message, icon = "info", buying = false, timeout = 2300) {
       let statusMsg = (message.startsWith("Status:") ? message : "Status: " + message);
       statusBarQueue.push({ statusMsg, icon, buying, timeout });
       if (!statusBarIsShowing) processStatusBarQueue();
     }
+
     function processStatusBarQueue() {
       if (statusBarQueue.length === 0) {
         document.getElementById('fixedStatusBar').classList.remove('buying');
@@ -542,7 +551,13 @@
       const statusBar = document.getElementById('fixedStatusBar');
       document.getElementById('statusText').textContent = statusMsg;
       document.getElementById('statusIcon').textContent = icon;
+      const style = statusStyles[icon] || { bg: "#ede4ff", text: "#7a3cff", main: "#7846ff" };
+      statusBar.style.background = style.bg;
+      statusBar.style.color = style.text;
+      document.getElementById('statusIcon').style.color = style.text;
       if (buying) {
+        const pulseColor = style.main + '40';
+        statusBar.style.setProperty('--pulse-color', pulseColor);
         statusBar.classList.add('buying');
       } else {
         statusBar.classList.remove('buying');
@@ -599,6 +614,9 @@
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         userAccount = accounts[0];
         document.getElementById("connect-btn").textContent = "✔ Connected";
+        document.getElementById("connect-btn").style.background = "#e8f5e9";
+        document.getElementById("connect-btn").style.color = "#1b5e20";
+        document.getElementById("connect-btn").style.borderColor = "#c8e6c9";
         await setupContracts();
         await showNftfanBalance();
         setStatusBar("Wallet connected", "check_circle");
@@ -851,7 +869,6 @@
       }
     }
 
-    // Tab switching
     function showTab(tab) {
       if (!userAccount) return;
       document.getElementById('tab-content-shop').classList.toggle("hidden", tab !== 'shop');
@@ -862,11 +879,21 @@
       else if (tab === 'mynfts') loadUserNFTs();
     }
 
-    // Listen for account/network changes
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', function (accounts) {
         userAccount = accounts[0] || null;
-        document.getElementById("connect-btn").textContent = userAccount ? "✔ Connected" : "Connect Wallet";
+        const connectBtn = document.getElementById("connect-btn");
+        if (userAccount) {
+          connectBtn.textContent = "✔ Connected";
+          connectBtn.style.background = "#e8f5e9";
+          connectBtn.style.color = "#1b5e20";
+          connectBtn.style.borderColor = "#c8e6c9";
+        } else {
+          connectBtn.textContent = "Connect Wallet";
+          connectBtn.style.background = "#f4f0ff";
+          connectBtn.style.color = "#7a3cff";
+          connectBtn.style.borderColor = "#ececec";
+        }
         showStartMessage(!userAccount);
         if (userAccount) {
           setupContracts().then(() => {
@@ -887,11 +914,9 @@
       });
     }
 
-    // Initialization
     window.addEventListener("DOMContentLoaded", async () => {
       setStatusBar('Initializing application...', "sync");
       showStartMessage(true);
-      // Don't loadShopNFTs or loadUserNFTs until wallet connects
       setStatusBar('Connect your wallet to get started', "account_balance_wallet", false, 3000);
     });
   </script>
