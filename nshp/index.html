@@ -32,6 +32,23 @@
     .debug-info p { margin: 5px 0; font-size: 14px; }
     .nftfan-balance-bar { display: flex; align-items: center; margin-right: auto; }
     .nftfan-token-icon { width: 20px; height: 20px; margin-right: 5px; }
+    /* New: Sell Modal */
+    #sellModal {
+      display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5); justify-content: center; align-items: center;
+    }
+    #sellModalContent {
+      background: #fff; padding: 24px 18px 18px 18px; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      min-width: 260px; max-width: 90vw; display: flex; flex-direction: column; align-items: center;
+    }
+    #sellModalContent input {
+      margin: 6px 0 10px 0; padding: 6px; border: 1px solid #60a5fa; border-radius: 4px; width: 80%;
+    }
+    #sellModalContent button {
+      padding: 6px 16px; border-radius: 4px; border: none; background: #60a5fa; color: #fff; font-weight: bold; cursor: pointer;
+      margin-top: 5px;
+    }
+    #sellModalContent button:hover { background: #3b82f6; }
   </style>
 </head>
 <body>
@@ -81,6 +98,22 @@
     </div>
   </div>
   
+  <!-- Sell Modal -->
+  <div id="sellModal">
+    <div id="sellModalContent">
+      <h3>Sell Your NFT</h3>
+      <div>Token ID: <span id="sellTokenId"></span></div>
+      <div>You own: <span id="sellMaxAmount"></span></div>
+      <input type="number" id="sellAmountInput" min="1" placeholder="Amount to sell">
+      <input type="number" id="sellPriceInput" step="0.000000000000000001" placeholder="Price per NFT (MATIC)">
+      <div style="display:flex;gap:10px;width:100%;justify-content:center;">
+        <button onclick="confirmSellNFT()">Sell</button>
+        <button onclick="closeSellModal()" style="background:#d1d5db;color:#222;">Cancel</button>
+      </div>
+      <div id="sellModalError" style="color:#dc2626;margin-top:7px;font-size:12px;"></div>
+    </div>
+  </div>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script>
     // --- CONFIG ---
@@ -91,46 +124,59 @@
       rpcUrls: ['https://polygon-rpc.com/', 'https://rpc.polygon.technology/', 'https://rpc-mainnet.matic.network/'],
       blockExplorerUrls: ['https://polygonscan.com/'],
     };
-    const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
-    const NFTFAN_SHOP_CA = "0x9ce8C0dDFc6600eC82ecc37B719e62e3248BE3AF";
+    // No ERC20 token in your new contract, so we skip NFTFAN_TOKEN_CA
+    const NFTFAN_SHOP_CA = "0x10FdffF7E02CDfB4E5d34FA5Dc93074f1F2619cc";
 
     // --- ABIs ---
-    const ERC20_ABI = [
-      {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
-      {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
-    ];
     const NFTFAN_SHOP_ABI = [
-      { "constant": true, "inputs": [{ "name": "account", "type": "address" }, { "name": "id", "type": "uint256" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "type": "function" },
-      { "constant": true, "inputs": [{ "name": "user", "type": "address" }], "name": "tokensOfOwner", "outputs": [
-        { "name": "tokenIds", "type": "uint256[]" }, { "name": "amounts", "type": "uint256[]" }
-      ], "type": "function" },
-      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "uri", "outputs": [{ "name": "uri", "type": "string" }], "type": "function" },
-      { "constant": true, "inputs": [], "name": "getShopNFTs", "outputs": [
-        { "name": "ids", "type": "uint256[]" },
-        { "name": "uris", "type": "string[]" },
-        { "name": "prices", "type": "uint256[]" },
-        { "name": "isForSale", "type": "bool[]" },
-        { "name": "shopAmounts", "type": "uint256[]" },
-        { "name": "maxSupplies", "type": "uint256[]" },
-        { "name": "currentSupplies", "type": "uint256[]" }
-      ], "type": "function" },
-      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "nftInfo", "outputs": [
-        { "name": "tokenURI", "type": "string" },
-        { "name": "price", "type": "uint256" },
-        { "name": "forSale", "type": "bool" },
-        { "name": "originalCreator", "type": "address" },
-        { "name": "maxSupply", "type": "uint256" },
-        { "name": "currentSupply", "type": "uint256" }
-      ], "type": "function" },
-      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "shopInventory", "outputs": [ { "name":"amount","type":"uint256" } ], "type": "function" },
-      { "inputs": [{ "name": "tokenId", "type": "uint256" }, { "name": "amount", "type": "uint256" }], "name": "buyNFT", "outputs": [], "stateMutability": "payable", "type": "function" },
-      { "inputs": [{ "name": "tokenId", "type": "uint256" }, { "name": "amount", "type": "uint256" }, { "name": "_price", "type": "uint256" }], "name": "sellNFT", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+      // NFTMeta struct
+      { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"creator","type":"address"},{"indexed":false,"internalType":"string","name":"tokenURI","type":"string"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTMinted","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"buyer","type":"address"},{"indexed":false,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTBought","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTListed","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"NFTUnlisted","type":"event" },
+      // view functions
+      { "inputs": [], "name": "nextTokenId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "nftInfo", "outputs": [
+        { "internalType": "string", "name": "tokenURI", "type": "string" },
+        { "internalType": "uint256", "name": "price", "type": "uint256" },
+        { "internalType": "bool", "name": "forSale", "type": "bool" },
+        { "internalType": "address", "name": "originalCreator", "type": "address" },
+        { "internalType": "uint256", "name": "maxSupply", "type": "uint256" },
+        { "internalType": "uint256", "name": "currentSupply", "type": "uint256" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "shopInventory", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "getShopNFTs", "outputs": [
+        { "internalType": "uint256[]", "name": "ids", "type": "uint256[]" },
+        { "internalType": "string[]", "name": "uris", "type": "string[]" },
+        { "internalType": "uint256[]", "name": "prices", "type": "uint256[]" },
+        { "internalType": "bool[]", "name": "isForSale", "type": "bool[]" },
+        { "internalType": "uint256[]", "name": "shopAmounts", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "maxSupplies", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "currentSupplies", "type": "uint256[]" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "address", "name": "user", "type": "address" } ], "name": "tokensOfOwner", "outputs": [
+        { "internalType": "uint256[]", "name": "tokenIds", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "amounts", "type": "uint256[]" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "getListings", "outputs": [
+        { "components": [
+          { "internalType": "address", "name": "seller", "type": "address" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" },
+          { "internalType": "uint256", "name": "price", "type": "uint256" }
+        ], "internalType": "struct NFTFansShop.Listing[]", "name": "", "type": "tuple[]" }
+      ], "stateMutability": "view", "type": "function" },
+      // user actions
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" }, { "internalType": "uint256", "name": "amount", "type": "uint256" } ], "name": "buyNFT", "outputs": [], "stateMutability": "payable", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "_price", "type": "uint256" } ], "name": "sellNFT", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // ERC1155
+      { "inputs": [ { "internalType": "address", "name": "account", "type": "address" }, { "internalType": "uint256", "name": "id", "type": "uint256" } ], "name": "balanceOf", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "uri", "outputs": [ { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }
     ];
 
     // --- APP STATE ---
     let userAccount = null;
     let web3;
-    let nftfanContract = null;
     let nftfanShop = null;
     let lastError = null;
 
@@ -149,7 +195,7 @@
     function updateDebugInfo() {
       document.getElementById('networkInfo').textContent = web3 ? 'Connected' : 'Not connected';
       document.getElementById('walletInfo').textContent = userAccount || 'Not connected';
-      document.getElementById('contractInfo').textContent = (nftfanContract && nftfanShop) ? 'Initialized' : 'Not initialized';
+      document.getElementById('contractInfo').textContent = nftfanShop ? 'Initialized' : 'Not initialized';
       document.getElementById('lastError').textContent = lastError || 'None';
     }
 
@@ -167,12 +213,9 @@
     async function connectWallet() {
       try {
         updateStatus('Connecting wallet...');
-        
         if (!window.ethereum) {
           throw new Error("Please install MetaMask or a compatible wallet!");
         }
-
-        // Check/switch to Polygon
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
         if (chainId !== POLYGON_PARAMS.chainId) {
           updateStatus('Switching to Polygon network...');
@@ -196,15 +239,11 @@
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         userAccount = accounts[0];
         document.getElementById("connect-btn").textContent = "✔ Connected";
-        
         await setupContracts();
-        await showNftfanBalance();
         updateStatus('Connected successfully');
-        
         // Load data
         loadShopNFTs();
         loadUserNFTs();
-        
       } catch (error) {
         logError(error, 'Wallet Connection');
         updateStatus('Connection failed');
@@ -215,19 +254,15 @@
     async function setupContracts() {
       try {
         updateStatus('Setting up contracts...');
-        
-        // Try multiple RPC endpoints
         const rpcUrls = POLYGON_PARAMS.rpcUrls;
         let provider = null;
-        
         if (window.ethereum) {
           provider = window.ethereum;
         } else {
-          // Try public RPC endpoints
           for (const rpcUrl of rpcUrls) {
             try {
               const testWeb3 = new Web3(rpcUrl);
-              await testWeb3.eth.getBlockNumber(); // Test connection
+              await testWeb3.eth.getBlockNumber();
               provider = rpcUrl;
               break;
             } catch (e) {
@@ -235,17 +270,12 @@
             }
           }
         }
-        
         if (!provider) {
           throw new Error('No working RPC provider found');
         }
-        
         web3 = new Web3(provider);
-        nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_TOKEN_CA);
         nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
-        
         updateStatus('Contracts initialized');
-        
       } catch (error) {
         logError(error, 'Contract Setup');
         throw error;
@@ -255,18 +285,13 @@
     async function testContractConnection() {
       try {
         updateStatus('Testing contract connection...');
-        
         if (!nftfanShop) {
           await setupContracts();
         }
-        
-        // Test contract call
         const result = await nftfanShop.methods.getShopNFTs().call();
         const { ids } = result;
-        
         updateStatus(`Contract test successful - Found ${ids.length} NFTs`);
         alert(`Contract connection successful! Found ${ids.length} NFTs in shop.`);
-        
       } catch (error) {
         logError(error, 'Contract Test');
         updateStatus('Contract test failed');
@@ -274,50 +299,20 @@
       }
     }
 
-    async function showNftfanBalance() {
-      if (!nftfanContract || !userAccount) {
-        document.getElementById('nftfanBalanceBar').style.display = 'none';
-        return;
-      }
-      try {
-        let [balance, decimals] = await Promise.all([
-          nftfanContract.methods.balanceOf(userAccount).call(),
-          nftfanContract.methods.decimals().call()
-        ]);
-        const divisor = BigInt(10) ** BigInt(decimals);
-        let intBalance = (BigInt(balance) / divisor).toString();
-        intBalance = Number(intBalance).toLocaleString('en');
-        document.getElementById('nftfanBalance').textContent = intBalance;
-        document.getElementById('nftfanBalanceBar').style.display = '';
-      } catch (e) {
-        logError(e, 'Balance Loading');
-        document.getElementById('nftfanBalanceBar').style.display = 'none';
-      }
-    }
-
     // OpenSea Metadata Fetcher
     async function fetchOpenSeaMeta(uri) {
       if (!uri) return null;
-      
       try {
-        // Convert IPFS and Arweave URIs
         if (uri.startsWith("ipfs://")) {
           uri = "https://ipfs.io/ipfs/" + uri.replace("ipfs://", "");
         }
         if (uri.startsWith("ar://")) {
           uri = "https://arweave.net/" + uri.replace("ar://", "");
         }
-        
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-        
-        const res = await fetch(uri, {
-          mode: 'cors',
-          signal: controller.signal
-        });
-        
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(uri, { mode: 'cors', signal: controller.signal });
         clearTimeout(timeoutId);
-        
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         return await res.json();
       } catch (e) {
@@ -330,32 +325,21 @@
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
-      const errorEl = document.getElementById("shop-error");
-      
       shopGrid.innerHTML = "";
       loading.style.display = "block";
       shopGrid.style.display = "none";
       hideError("shop-error");
-      
       try {
         updateStatus('Loading shop NFTs...');
-        
-        if (!nftfanShop) {
-          await setupContracts();
-        }
-        
+        if (!nftfanShop) await setupContracts();
         const result = await nftfanShop.methods.getShopNFTs().call();
         const { ids, uris, prices, isForSale, shopAmounts, maxSupplies, currentSupplies } = result;
-        
         if (!ids.length) {
           loading.textContent = "No NFTs in Shop";
           updateStatus('Shop loaded - no NFTs available');
           return;
         }
-        
         updateStatus(`Loading metadata for ${ids.length} NFTs...`);
-        
-        // Load metadata with timeout
         const metaPromises = uris.map(async (uri, index) => {
           try {
             const meta = await fetchOpenSeaMeta(uri);
@@ -365,9 +349,7 @@
             return null;
           }
         });
-        
         const metaArr = await Promise.all(metaPromises);
-        
         let html = "";
         for (let i = 0; i < ids.length; i++) {
           const id = ids[i];
@@ -376,11 +358,9 @@
           const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT";
           const openseaDesc = meta?.description || "";
           const price = web3.utils.fromWei(prices[i], "ether");
-          
           let status = "";
           let btn = "";
           let inv = "";
-          
           if (!isForSale[i] || shopAmounts[i] == "0") {
             status = `<div class="sold-out">Sold Out</div>`;
             btn = `<button class="buy-btn" disabled>Sold Out</button>`;
@@ -388,7 +368,7 @@
             inv = `<div class="inventory">Available: ${shopAmounts[i]}</div>`;
             btn = `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>Buy</button>`;
           }
-          
+          // Show user listings for this token
           html += `<li class="shop-item">
               <img class="shop-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
               <div class="shop-title">${openseaName}</div>
@@ -397,14 +377,17 @@
               ${inv}
               ${status}
               ${btn}
+              <div id="listings-${id}" style="margin-top:7px;text-align:left;"></div>
           </li>`;
         }
-        
         shopGrid.innerHTML = html;
         loading.style.display = "none";
         shopGrid.style.display = "flex";
         updateStatus(`Shop loaded - ${ids.length} NFTs available`);
-        
+        // Load user listings for each token
+        for (let i = 0; i < ids.length; i++) {
+          loadListingsForToken(ids[i]);
+        }
       } catch (error) {
         logError(error, 'Shop Loading');
         shopGrid.innerHTML = "";
@@ -414,12 +397,33 @@
       }
     }
 
+    async function loadListingsForToken(tokenId) {
+      try {
+        if (!nftfanShop) await setupContracts();
+        const listings = await nftfanShop.methods.getListings(tokenId).call();
+        if (listings.length === 0) {
+          document.getElementById(`listings-${tokenId}`).innerHTML = "";
+          return;
+        }
+        let html = `<div style="font-size:11px;margin-bottom:2px;"><b>User Listings:</b></div>`;
+        listings.forEach((l, idx) => {
+          if (l.amount === "0") return;
+          html += `<div style="font-size:11px;margin-bottom:3px;padding-left:4px;">
+            <span>${formatAddress(l.seller)}: <b>${web3.utils.fromWei(l.price, "ether")} MATIC</b> &times; ${l.amount}</span>
+            <button style="margin-left:5px;padding:2px 8px;font-size:11px;background:#60a5fa;color:#fff;border:none;border-radius:3px;cursor:pointer;" onclick="buyListingNFT(${tokenId},${idx},'${l.price}',${l.amount})" ${!userAccount ? "disabled" : ""}>Buy</button>
+          </div>`;
+        });
+        document.getElementById(`listings-${tokenId}`).innerHTML = html;
+      } catch (err) {
+        document.getElementById(`listings-${tokenId}`).innerHTML = "";
+      }
+    }
+
     async function buyNFT(tokenId, priceWei, availableAmount) {
       if (!userAccount) {
         alert("Connect your wallet first!");
         return;
       }
-      
       let amount = 1;
       if (availableAmount > 1) {
         let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
@@ -430,30 +434,63 @@
           return;
         }
       }
-      
       try {
         updateStatus('Processing purchase...');
         const button = document.querySelector(`button[onclick^="buyNFT(${tokenId},"]`);
         if (button) button.disabled = true;
-        
         if (!nftfanShop) await setupContracts();
-        
-        await nftfanShop.methods.buyNFT(tokenId, amount).send({ 
-          from: userAccount, 
-          value: (BigInt(priceWei) * BigInt(amount)).toString() 
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
+          value: (BigInt(priceWei) * BigInt(amount)).toString()
         });
-        
         alert("NFT bought successfully! It will appear in 'My NFTs'");
         updateStatus('Purchase successful');
         loadShopNFTs();
         loadUserNFTs();
-        
       } catch (error) {
         logError(error, 'NFT Purchase');
         updateStatus('Purchase failed');
         alert("Purchase failed: " + error.message);
       } finally {
-        // Re-enable button and reload
+        setTimeout(() => {
+          loadShopNFTs();
+          loadUserNFTs();
+        }, 1000);
+      }
+    }
+
+    async function buyListingNFT(tokenId, idx, priceWei, amountMax) {
+      if (!userAccount) {
+        alert("Connect your wallet first!");
+        return;
+      }
+      let amount = 1;
+      if (amountMax > 1) {
+        let input = prompt(`How many from this listing would you like to buy? (max ${amountMax})`, "1");
+        if (!input) return;
+        amount = parseInt(input);
+        if (isNaN(amount) || amount < 1 || amount > amountMax) {
+          alert("Invalid amount");
+          return;
+        }
+      }
+      try {
+        updateStatus('Processing user listing purchase...');
+        // The contract will buy from listings in FIFO order, can't pick listing index directly
+        // So we just call buyNFT for the amount, and it will use the listings in FIFO order
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
+          value: (BigInt(priceWei) * BigInt(amount)).toString()
+        });
+        alert("NFT bought from user listing successfully!");
+        updateStatus('User listing purchase successful');
+        loadShopNFTs();
+        loadUserNFTs();
+      } catch (error) {
+        logError(error, 'Listing Purchase');
+        updateStatus('Listing purchase failed');
+        alert("Purchase failed: " + error.message);
+      } finally {
         setTimeout(() => {
           loadShopNFTs();
           loadUserNFTs();
@@ -465,32 +502,24 @@
     async function loadUserNFTs() {
       const myGrid = document.getElementById("myGrid");
       const loading = document.getElementById("my-loading");
-      const errorEl = document.getElementById("my-error");
-      
       myGrid.innerHTML = "";
       loading.style.display = "block";
       myGrid.style.display = "none";
       hideError("my-error");
-      
       if (!userAccount) {
         loading.textContent = "Connect wallet to view your NFTs.";
         return;
       }
-      
       try {
         updateStatus('Loading your NFTs...');
-        
         if (!nftfanShop) await setupContracts();
-        
         const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
         const { tokenIds, amounts } = tokens;
-        
         if (!tokenIds.length) {
           loading.textContent = "You own no NFTs yet.";
           updateStatus('Your NFTs loaded - none found');
           return;
         }
-        
         let metaArr = await Promise.all(tokenIds.map(async (id, index) => {
           try {
             let meta = await nftfanShop.methods.nftInfo(id).call();
@@ -501,14 +530,12 @@
             return {id, amount: amounts[index], meta: null, metaJson: null};
           }
         }));
-        
         let html = "";
         for (let item of metaArr) {
           const {id, amount, meta, metaJson} = item;
           const openseaName = metaJson?.name || `NFTFAN #${id}`;
           const openseaImg = metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
           const openseaDesc = metaJson?.description || "";
-          
           html += `<li class="nft-card">
               <img class="nft-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
               <div class="nft-title">${openseaName}</div>
@@ -516,16 +543,14 @@
               ${openseaDesc ? `<div class="inventory" style="font-size:9px;color:#222;margin-bottom:2px;">${openseaDesc.substring(0, 50)}${openseaDesc.length > 50 ? '...' : ''}</div>` : ""}
               <div class="inventory">You own: ${amount}</div>
               <div style="width:100%;display:flex;justify-content:center;">
-                <button class="sell-btn" onclick="sellNFT(${id}, ${amount})">Sell</button>
+                <button class="sell-btn" onclick="openSellModal(${id}, ${amount})">Sell</button>
               </div>
           </li>`;
         }
-        
         myGrid.innerHTML = html;
         loading.style.display = "none";
         myGrid.style.display = "flex";
         updateStatus(`Your NFTs loaded - ${tokenIds.length} found`);
-        
       } catch (error) {
         logError(error, 'User NFTs Loading');
         myGrid.innerHTML = "";
@@ -535,78 +560,73 @@
       }
     }
 
-    async function sellNFT(tokenId, maxAmount) {
+    // --- SELL MODAL LOGIC ---
+    let sellModalTokenId = null;
+    let sellModalMaxAmount = null;
+    function openSellModal(tokenId, maxAmount) {
+      sellModalTokenId = tokenId;
+      sellModalMaxAmount = maxAmount;
+      document.getElementById("sellModal").style.display = "flex";
+      document.getElementById("sellTokenId").textContent = tokenId;
+      document.getElementById("sellMaxAmount").textContent = maxAmount;
+      document.getElementById("sellAmountInput").value = "";
+      document.getElementById("sellAmountInput").max = maxAmount;
+      document.getElementById("sellPriceInput").value = "";
+      document.getElementById("sellModalError").textContent = "";
+    }
+    function closeSellModal() {
+      document.getElementById("sellModal").style.display = "none";
+      sellModalTokenId = null;
+      sellModalMaxAmount = null;
+    }
+    async function confirmSellNFT() {
+      const amount = parseInt(document.getElementById("sellAmountInput").value);
+      const price = document.getElementById("sellPriceInput").value;
+      document.getElementById("sellModalError").textContent = "";
       if (!userAccount) {
-        alert("Connect your wallet first!");
+        document.getElementById("sellModalError").textContent = "Connect your wallet first!";
         return;
       }
-      
-      let amount = 1;
-      if (maxAmount > 1) {
-        let input = prompt(`How many would you like to sell? (max ${maxAmount})`, "1");
-        if (!input) return;
-        amount = parseInt(input);
-        if (isNaN(amount) || amount < 1 || amount > maxAmount) {
-          alert("Invalid amount");
-          return;
-        }
+      if (!amount || isNaN(amount) || amount < 1 || amount > sellModalMaxAmount) {
+        document.getElementById("sellModalError").textContent = "Invalid amount!";
+        return;
       }
-      
-      let price = prompt("Set price in MATIC to sell this NFT:");
-      if (!price) return;
-      
-      let priceWei;
+      if (!price || isNaN(price) || Number(price) <= 0) {
+        document.getElementById("sellModalError").textContent = "Invalid price!";
+        return;
+      }
+      let priceWei = "0";
       try {
         priceWei = web3.utils.toWei(price, "ether");
       } catch (e) {
-        alert("Invalid price.");
+        document.getElementById("sellModalError").textContent = "Invalid price.";
         return;
       }
-      
       try {
         updateStatus('Processing sale...');
-        const button = document.querySelector(`button[onclick^="sellNFT(${tokenId},"]`);
-        if (button) button.disabled = true;
-        
-        if (!nftfanShop) await setupContracts();
-        
-        await nftfanShop.methods.sellNFT(tokenId, amount, priceWei).send({ from: userAccount });
-        
+        await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
         alert("NFT listed in shop successfully!");
         updateStatus('Sale listing successful');
+        closeSellModal();
         loadShopNFTs();
         loadUserNFTs();
-        
       } catch (error) {
         logError(error, 'NFT Sale');
         updateStatus('Sale listing failed');
-        alert("Sale failed: " + error.message);
-      } finally {
-        // Re-enable button and reload
-        setTimeout(() => {
-          loadShopNFTs();
-          loadUserNFTs();
-        }, 1000);
+        document.getElementById("sellModalError").textContent = "Sale failed: " + error.message;
       }
     }
 
     // --- TABS ---
     function showTab(tab) {
-      // Hide all tab contents
       document.getElementById('tab-content-shop').style.display = 'none';
       document.getElementById('tab-content-mynfts').style.display = 'none';
       document.getElementById('tab-content-debug').style.display = 'none';
-      
-      // Show selected tab content
       document.getElementById(`tab-content-${tab}`).style.display = 'block';
-      
-      // Update tab button states
       document.getElementById('tab-shop').classList.remove('active');
       document.getElementById('tab-mynfts').classList.remove('active');
       document.getElementById('tab-debug').classList.remove('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
-      
-      // Load data when switching tabs
       if (tab === 'shop') {
         loadShopNFTs();
       } else if (tab === 'mynfts') {
@@ -620,10 +640,8 @@
         userAccount = accounts[0] || null;
         const connectBtn = document.getElementById("connect-btn");
         connectBtn.textContent = userAccount ? "✔ Connected" : "🔗 Connect Wallet";
-        
         if (userAccount) {
           setupContracts().then(() => {
-            showNftfanBalance();
             loadShopNFTs();
             loadUserNFTs();
             updateStatus('Account changed - reloaded');
@@ -635,11 +653,9 @@
           updateStatus('Wallet disconnected');
         }
       });
-      
       window.ethereum.on('chainChanged', function (chainId) {
         updateStatus('Network changed - reconnecting...');
         setupContracts().then(() => {
-          showNftfanBalance();
           loadShopNFTs();
           loadUserNFTs();
           updateStatus('Network changed - reloaded');
@@ -660,52 +676,18 @@
       } catch (error) {
         logError(error, 'Initialization');
         updateStatus('Initialization failed');
-        
-        // Show user-friendly error message
-        const shopError = document.getElementById('shop-error');
         showError('shop-error', 'Failed to initialize the application. Please check your internet connection and try refreshing the page.');
       }
     });
 
     // --- ADDITIONAL UTILITY FUNCTIONS ---
-    
-    // Function to retry failed operations
-    async function retryOperation(operation, maxRetries = 3, delay = 1000) {
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          return await operation();
-        } catch (error) {
-          if (i === maxRetries - 1) throw error;
-          console.warn(`Operation failed, retrying in ${delay}ms...`, error);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        }
-      }
-    }
-
-    // Function to check if user is on correct network
-    async function ensureCorrectNetwork() {
-      if (!window.ethereum) return false;
-      
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        return chainId === POLYGON_PARAMS.chainId;
-      } catch (error) {
-        logError(error, 'Network Check');
-        return false;
-      }
-    }
-
-    // Function to format large numbers
     function formatNumber(num) {
       if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
       if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
       if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
       return num.toString();
     }
-
-    // Function to truncate addresses
-    function truncateAddress(address) {
+    function formatAddress(address) {
       if (!address) return '';
       return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
@@ -716,9 +698,15 @@
       loadShopNFTs,
       loadUserNFTs,
       connectWallet,
-      setupContracts,
-      retryOperation,
-      ensureCorrectNetwork
+      setupContracts
+    };
+
+    // Modal close on outside click
+    window.onclick = function(event) {
+      const modal = document.getElementById("sellModal");
+      if (event.target === modal) {
+        closeSellModal();
+      }
     };
 
     console.log('NFTFANS Shop Debug Version Loaded');
