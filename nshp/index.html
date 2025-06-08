@@ -5,234 +5,33 @@
   <title>NFTFANS ERC1155 Shop (Debug)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    html, body { background: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; font-size: 10px; color: #222; min-height: 100vh;}
-    .wrapper { max-width: 480px; margin: 0 auto; padding: 10px 0 30px 0; position: relative;}
-    .top-bar { width: 100%; min-height: 38px; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px 0 0; box-sizing: border-box;}
-    .nftfan-balance-bar { background: #f8f7ff; border-radius: 13px; border: 1px solid #ececec; padding: 4px 11px 4px 7px; margin-left: 10px; margin-right: 0; display: flex; align-items: center; font-size: 11px; font-weight: bold; color: #7a3cff; gap: 5px; min-width: 0; max-width: 160px; white-space: nowrap;}
-    .nftfan-token-icon { width: 20px; height: 20px; margin-right: 3px; border-radius: 50%; background: #fff; border: 1px solid #ececec; object-fit: contain; display: inline-block; vertical-align: middle;}
-    .connect-btn { font-size: 10px; padding: 7px 18px; border-radius: 15px; border: 1px solid #ececec; background: #f4f0ff; color: #7a3cff; font-weight: bold; cursor: pointer; outline: none; transition: background 0.18s, box-shadow 0.18s; box-shadow: none; display: inline-block; margin: 0;}
-    .connect-btn:active { background: #ede4ff; }
-    .connect-btn:disabled { color: #ccc; background: #f8f8f8; cursor: not-allowed;}
-    .tab-bar { display: flex; border-radius: 10px; overflow: hidden; margin: 14px 10px 18px 10px; border: 1px solid #ececec; background: #f8f7ff; box-shadow: none;}
-    .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; font-size: 12px; font-weight: bold; color: #7a3cff; letter-spacing: 0.2px; cursor: pointer; outline: none; transition: background 0.18s, color 0.18s;}
-    .tab-btn.active { background: #e5e0fa; color: #764ba2;}
-    .tab-content { margin: 0 10px; padding: 10px 0 0 0; min-height: 160px; animation: fadein 0.2s;}
-    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
-    .nft-grid, .shop-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; justify-content: flex-start;}
-    .nft-card, .shop-item { width: calc((100% - 20px) / 3); background: none; border: none; box-shadow: none; padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center;}
-    .nft-img, .shop-img { width: 92px; height: 92px; object-fit: cover; background: #ececec; border-radius: 8px; margin-bottom: 5px; border: 1px solid #ececec;}
-    .nft-title, .shop-title { font-size: 10px; font-weight: bold; color: #333; text-align: center; margin-bottom: 0; letter-spacing: 0.07px; line-height: 1.2;}
-    .shop-price { font-size: 10px; color: #7a3cff; margin-bottom: 6px; font-weight: bold;}
-    .buy-btn, .sell-btn { font-size: 10px; padding: 5px 13px; border-radius: 12px; border: 1px solid #e0dbfa; background: #e5e0fa; color: #764ba2; font-weight: 600; cursor: pointer; margin-bottom: 3px;}
-    .buy-btn:active, .sell-btn:active { background: #ede4ff; }
-    .buy-btn[disabled], .sell-btn[disabled] { color: #ccc; background: #f8f8f8; cursor: not-allowed;}
-    .nft-id { font-size: 9px; color: #888; margin-bottom: 2px; text-align: center;}
-    .sold-out { font-size: 10px; color: #E53E3E; font-weight: bold; margin-bottom: 6px; margin-top: 2px; text-align: center;}
-    .inventory { font-size: 9px; color: #888; margin-bottom: 1px;}
-    .loading { font-size: 12px; color: #aaa; text-align: center; margin: 30px 0; width: 100%;}
-    .error { font-size: 11px; color: #E53E3E; text-align: center; margin: 20px 0; width: 100%; background: #ffeaea; padding: 10px; border-radius: 8px; border: 1px solid #ffcccc;}
-    .debug-info { font-size: 9px; color: #666; background: #f5f5f5; padding: 8px; border-radius: 6px; margin: 10px 0; border: 1px solid #ddd;}
-    .status-bar { background: #f0f9ff; border: 1px solid #bfdbfe; padding: 8px; margin: 10px; border-radius: 6px; font-size: 10px; color: #1e40af;}
-    @media (max-width: 575px) {
-      .wrapper { max-width: 100vw; padding: 2vw 0 12vw 0;}
-      .tab-bar, .tab-content { margin-left: 2vw; margin-right: 2vw;}
-      .top-bar { padding-right: 2vw; padding-left: 2vw;}
-      .nft-card, .shop-item { width: calc((100% - 10vw) / 3); min-width: 78px;}
-      .nft-img, .shop-img { width: 22vw; min-width: 68px; height: 22vw; min-height: 68px;}
-      .nftfan-balance-bar { max-width: 32vw; font-size: 10px; padding: 4px 6px 4px 4px;}
-    }
-
-    async function sellNFT(tokenId, maxAmount) {
-      if (!userAccount) {
-        alert("Connect your wallet first!");
-        return;
-      }
-      
-      let amount = 1;
-      if (maxAmount > 1) {
-        let input = prompt(`How many would you like to sell? (max ${maxAmount})`, "1");
-        if (!input) return;
-        amount = parseInt(input);
-        if (isNaN(amount) || amount < 1 || amount > maxAmount) {
-          alert("Invalid amount");
-          return;
-        }
-      }
-      
-      let price = prompt("Set price in MATIC to sell this NFT:");
-      if (!price) return;
-      
-      let priceWei;
-      try {
-        priceWei = web3.utils.toWei(price, "ether");
-      } catch (e) {
-        alert("Invalid price.");
-        return;
-      }
-      
-      try {
-        updateStatus('Processing sale...');
-        const button = document.querySelector(`button[onclick^="sellNFT(${tokenId},"]`);
-        if (button) button.disabled = true;
-        
-        if (!nftfanShop) await setupContracts();
-        
-        await nftfanShop.methods.sellNFT(tokenId, amount, priceWei).send({ from: userAccount });
-        
-        alert("NFT listed in shop successfully!");
-        updateStatus('Sale listing successful');
-        loadShopNFTs();
-        loadUserNFTs();
-        
-      } catch (error) {
-        logError(error, 'NFT Sale');
-        updateStatus('Sale listing failed');
-        alert("Sale failed: " + error.message);
-      } finally {
-        // Re-enable button and reload
-        setTimeout(() => {
-          loadShopNFTs();
-          loadUserNFTs();
-        }, 1000);
-      }
-    }
-
-    // --- TABS ---
-    function showTab(tab) {
-      // Hide all tab contents
-      document.getElementById('tab-content-shop').style.display = 'none';
-      document.getElementById('tab-content-mynfts').style.display = 'none';
-      document.getElementById('tab-content-debug').style.display = 'none';
-      
-      // Show selected tab content
-      document.getElementById(`tab-content-${tab}`).style.display = 'block';
-      
-      // Update tab button states
-      document.getElementById('tab-shop').classList.remove('active');
-      document.getElementById('tab-mynfts').classList.remove('active');
-      document.getElementById('tab-debug').classList.remove('active');
-      document.getElementById(`tab-${tab}`).classList.add('active');
-      
-      // Load data when switching tabs
-      if (tab === 'shop') {
-        loadShopNFTs();
-      } else if (tab === 'mynfts') {
-        loadUserNFTs();
-      }
-    }
-
-    // --- EVENT LISTENERS ---
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', function (accounts) {
-        userAccount = accounts[0] || null;
-        const connectBtn = document.getElementById("connect-btn");
-        connectBtn.textContent = userAccount ? "✔ Connected" : "🔗 Connect Wallet";
-        
-        if (userAccount) {
-          setupContracts().then(() => {
-            showNftfanBalance();
-            loadShopNFTs();
-            loadUserNFTs();
-            updateStatus('Account changed - reloaded');
-          }).catch(e => {
-            logError(e, 'Account Change');
-            updateStatus('Account change failed');
-          });
-        } else {
-          updateStatus('Wallet disconnected');
-        }
-      });
-      
-      window.ethereum.on('chainChanged', function (chainId) {
-        updateStatus('Network changed - reconnecting...');
-        setupContracts().then(() => {
-          showNftfanBalance();
-          loadShopNFTs();
-          loadUserNFTs();
-          updateStatus('Network changed - reloaded');
-        }).catch(e => {
-          logError(e, 'Chain Change');
-          updateStatus('Network change failed');
-        });
-      });
-    }
-
-    // --- INITIALIZATION ---
-    window.addEventListener("DOMContentLoaded", async () => {
-      try {
-        updateStatus('Initializing application...');
-        await setupContracts();
-        await loadShopNFTs();
-        updateStatus('Application ready');
-      } catch (error) {
-        logError(error, 'Initialization');
-        updateStatus('Initialization failed');
-        
-        // Show user-friendly error message
-        const shopError = document.getElementById('shop-error');
-        showError('shop-error', 'Failed to initialize the application. Please check your internet connection and try refreshing the page.');
-      }
-    });
-
-    // --- ADDITIONAL UTILITY FUNCTIONS ---
-    
-    // Function to retry failed operations
-    async function retryOperation(operation, maxRetries = 3, delay = 1000) {
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          return await operation();
-        } catch (error) {
-          if (i === maxRetries - 1) throw error;
-          console.warn(`Operation failed, retrying in ${delay}ms...`, error);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        }
-      }
-    }
-
-    // Function to check if user is on correct network
-    async function ensureCorrectNetwork() {
-      if (!window.ethereum) return false;
-      
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        return chainId === POLYGON_PARAMS.chainId;
-      } catch (error) {
-        logError(error, 'Network Check');
-        return false;
-      }
-    }
-
-    // Function to format large numbers
-    function formatNumber(num) {
-      if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
-      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-      if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-      return num.toString();
-    }
-
-    // Function to truncate addresses
-    function truncateAddress(address) {
-      if (!address) return '';
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    }
-
-    // Export functions for debugging (available in console)
-    window.debugFunctions = {
-      testContractConnection,
-      loadShopNFTs,
-      loadUserNFTs,
-      connectWallet,
-      setupContracts,
-      retryOperation,
-      ensureCorrectNetwork
-    };
-
-    console.log('NFTFANS Shop Debug Version Loaded');
-    console.log('Available debug functions:', Object.keys(window.debugFunctions));
-  </script>
-</body>
-</html>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f0f9ff; color: #1e3a8a; }
+    .wrapper { max-width: 800px; margin: 0 auto; padding: 10px; }
+    .top-bar { display: flex; justify-content: flex-end; align-items: center; padding: 10px; }
+    .connect-btn { padding: 6px 12px; background: #bfdbfe; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: #1e3a8a; }
+    .connect-btn:hover { background: #93c5fd; }
+    .status-bar { padding: 5px 10px; background: #dbeafe; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #1e3a8a; }
+    .tab-bar { display: flex; gap: 5px; margin-bottom: 10px; }
+    .tab-btn { flex: 1; padding: 8px; background: #bfdbfe; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: #1e3a8a; }
+    .tab-btn.active { background: #60a5fa; color: white; }
+    .tab-btn:hover:not(.active) { background: #93c5fd; }
+    .shop-grid, .nft-grid { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+    .shop-item, .nft-card { background: white; border-radius: 8px; padding: 10px; width: 150px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .shop-img, .nft-img { width: 92px; height: 92px; object-fit: cover; border-radius: 4px; margin-bottom: 5px; }
+    .shop-title, .nft-title { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #1e3a8a; }
+    .shop-price { font-size: 12px; color: #2563eb; margin-bottom: 5px; }
+    .nft-id { font-size: 10px; color: #666; margin-bottom: 5px; }
+    .inventory { font-size: 12px; color: #444; margin-bottom: 5px; }
+    .sold-out { font-size: 12px; color: #dc2626; font-weight: bold; margin-bottom: 5px; }
+    .buy-btn, .sell-btn { width: 100%; padding: 6px; background: #60a5fa; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
+    .buy-btn:disabled, .sell-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+    .buy-btn:hover:not(:disabled), .sell-btn:hover:not(:disabled) { background: #3b82f6; }
+    .loading { text-align: center; padding: 20px; color: #1e3a8a; }
+    .error { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    .debug-info { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .debug-info p { margin: 5px 0; font-size: 14px; }
+    .nftfan-balance-bar { display: flex; align-items: center; margin-right: auto; }
+    .nftfan-token-icon { width: 20px; height: 20px; margin-right: 5px; }
   </style>
 </head>
 <body>
@@ -463,7 +262,7 @@
         
         // Test contract call
         const result = await nftfanShop.methods.getShopNFTs().call();
-        const [ids] = result;
+        const { ids } = result;
         
         updateStatus(`Contract test successful - Found ${ids.length} NFTs`);
         alert(`Contract connection successful! Found ${ids.length} NFTs in shop.`);
@@ -546,7 +345,7 @@
         }
         
         const result = await nftfanShop.methods.getShopNFTs().call();
-        const [ids, uris, prices, isForSale, shopAmounts, maxSupplies, currentSupplies] = result;
+        const { ids, uris, prices, isForSale, shopAmounts, maxSupplies, currentSupplies } = result;
         
         if (!ids.length) {
           loading.textContent = "No NFTs in Shop";
@@ -684,7 +483,7 @@
         if (!nftfanShop) await setupContracts();
         
         const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-        const [tokenIds, amounts] = tokens;
+        const { tokenIds, amounts } = tokens;
         
         if (!tokenIds.length) {
           loading.textContent = "You own no NFTs yet.";
@@ -735,8 +534,8 @@
         updateStatus('Your NFTs loading failed');
       }
     }
-	
-	async function sellNFT(tokenId, maxAmount) {
+
+    async function sellNFT(tokenId, maxAmount) {
       if (!userAccount) {
         alert("Connect your wallet first!");
         return;
