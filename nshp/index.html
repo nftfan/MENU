@@ -9,7 +9,6 @@
     .wrapper { max-width: 480px; margin: 0 auto; padding: 10px 0 30px 0; position: relative;}
     .top-bar { width: 100%; min-height: 38px; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px 0 0; box-sizing: border-box;}
     .nftfan-balance-bar { background: #f8f7ff; border-radius: 13px; border: 1px solid #ececec; padding: 4px 11px 4px 7px; margin-left: 10px; margin-right: 0; display: flex; align-items: center; font-size: 11px; font-weight: bold; color: #7a3cff; gap: 5px; min-width: 0; max-width: 160px; white-space: nowrap;}
-    .nftfan-balance-bar[style*="display: none"] { display: none !important; }
     .nftfan-token-icon { width: 20px; height: 20px; margin-right: 3px; border-radius: 50%; background: #fff; border: 1px solid #ececec; object-fit: contain; display: inline-block; vertical-align: middle;}
     .connect-btn { font-size: 10px; padding: 7px 18px; border-radius: 15px; border: 1px solid #ececec; background: #f4f0ff; color: #7a3cff; font-weight: bold; cursor: pointer; outline: none; transition: background 0.18s, box-shadow 0.18s; box-shadow: none; display: inline-block; margin: 0;}
     .connect-btn:active { background: #ede4ff; }
@@ -113,11 +112,9 @@
 
     // --- APP STATE ---
     let userAccount = null;
-    let provider = null;
-    let isPolygon = false;
+    let web3;
     let nftfanContract = null;
     let nftfanShop = null;
-    let web3;
 
     // --- WALLET CONNECTION ---
     async function connectWallet() {
@@ -125,23 +122,32 @@
         alert("Please install MetaMask or a compatible wallet!");
         return;
       }
-      try {
-        provider = window.ethereum;
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [POLYGON_PARAMS]
-        });
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        userAccount = accounts[0];
-        isPolygon = true;
-        document.getElementById("connect-btn").textContent = "✔ Connected";
-        setupContracts();
-        showNftfanBalance();
-        loadShopNFTs();
-        loadUserNFTs();
-      } catch (e) {
-        alert("Wallet connection failed: " + (e.message || e));
+      // Fix: switch or add chain as appropriate
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId !== POLYGON_PARAMS.chainId) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: POLYGON_PARAMS.chainId }],
+          });
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [POLYGON_PARAMS],
+            });
+          } else {
+            throw switchError;
+          }
+        }
       }
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      userAccount = accounts[0];
+      document.getElementById("connect-btn").textContent = "✔ Connected";
+      setupContracts();
+      showNftfanBalance();
+      loadShopNFTs();
+      loadUserNFTs();
     }
 
     function setupContracts() {
@@ -172,7 +178,6 @@
 
     // OpenSea Metadata Fetcher (native, no proxy needed for IPFS/Lighthouse)
     async function fetchOpenSeaMeta(uri) {
-      // Handle ipfs:// and ar:// etc.
       if (uri.startsWith("ipfs://")) {
         uri = "https://ipfs.io/ipfs/" + uri.replace("ipfs://", "");
       }
@@ -204,7 +209,6 @@
           return;
         }
         let html = "";
-        // Fetch all OpenSea metadata in parallel
         const metaArr = await Promise.all(
           uris.map(u => fetchOpenSeaMeta(u))
         );
@@ -223,7 +227,6 @@
             btn = `<button class="buy-btn" disabled>Sold Out</button>`;
           } else {
             inv = `<div class="inventory">Available: ${shopAmounts[i]}</div>`;
-            status = "";
             btn = `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>Buy</button>`;
           }
           html += `<li class="shop-item">
@@ -294,7 +297,6 @@
           loading.textContent = "You own no NFTs yet.";
           return;
         }
-        // Get uris and OpenSea meta for each token
         let metaArr = await Promise.all(tokenIds.map(async (id) => {
           let meta = await nftfanShop.methods.nftInfo(id).call();
           let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
@@ -389,7 +391,6 @@
         loadUserNFTs();
       });
       window.ethereum.on('chainChanged', function (chainId) {
-        isPolygon = (chainId === POLYGON_PARAMS.chainId);
         setupContracts();
         showNftfanBalance();
         loadShopNFTs();
