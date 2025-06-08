@@ -197,7 +197,7 @@
       overflow-x: auto;
       z-index: 100;
       padding: 0 10px;
-      margin-bottom: 4px;
+      margin-bottom: 0px;
     }
     .fixed-status-bar .status-content {
       display: flex;
@@ -717,21 +717,32 @@
       try {
         if (!nftfanShop) await setupContracts();
         const result = await nftfanShop.methods.getShopNFTs().call();
-        const { ids, uris, prices, isForSale, shopAmounts } = result;
+        let { ids, uris, prices, isForSale, shopAmounts } = result;
         if (!ids.length) {
           loading.textContent = "No NFTs in Shop";
           setStatusBar('No NFTs in the shop', "info");
           return;
         }
-        const metaArr = await Promise.all(uris.map(async (uri) => await fetchOpenSeaMeta(uri)));
+        // Sort by tokenId descending
+        let nftArray = ids.map((id, i) => ({
+          id: ids[i],
+          uri: uris[i],
+          price: prices[i],
+          isForSale: isForSale[i],
+          shopAmount: shopAmounts[i],
+          index: i // preserve index for metadata lookup
+        }));
+        nftArray.sort((a, b) => BigInt(b.id) - BigInt(a.id)); // Descending by tokenId
+        // Fetch metadata in the order of sorted NFTs
+        const metaArr = await Promise.all(nftArray.map(async (nft) => await fetchOpenSeaMeta(nft.uri)));
         let html = "";
-        for (let i = 0; i < ids.length; i++) {
-          const id = ids[i];
+        for (let i = 0; i < nftArray.length; i++) {
+          const nft = nftArray[i];
           const meta = metaArr[i];
-          const openseaName = meta?.name || `NFTFAN #${id}`;
-          const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT";
+          const openseaName = meta?.name || `NFTFAN #${nft.id}`;
+          const openseaImg = meta?.image || nft.uri || "https://via.placeholder.com/92x92?text=NFT";
           const openseaDesc = meta?.description || "";
-          const price = web3.utils.fromWei(prices[i], "ether");
+          const price = web3.utils.fromWei(nft.price, "ether");
           let status = "";
           let btn = "";
           let inv = "";
@@ -739,7 +750,7 @@
             <span class="material-icons" style="font-size:10px">sell</span>
             ${price} POL
           </div>`;
-          if (!isForSale[i] || shopAmounts[i] == "0") {
+          if (!nft.isForSale || nft.shopAmount == "0") {
             status = `
             <div class="shop-sold-row">
               <span class="material-icons" style="font-size:11px;color:#c92828;vertical-align:middle;">gavel</span>
@@ -747,8 +758,8 @@
             </div>`;
             btn = `<button class="buy-btn" disabled>Sold Out</button>`;
           } else {
-            inv = `<div style="font-size:7px;color:#444;margin-bottom:2px;"><span class="material-icons" style="font-size:9px;vertical-align:middle">inventory_2</span>Available: ${shopAmounts[i]}</div>`;
-            btn = `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>
+            inv = `<div style="font-size:7px;color:#444;margin-bottom:2px;"><span class="material-icons" style="font-size:9px;vertical-align:middle">inventory_2</span>Available: ${nft.shopAmount}</div>`;
+            btn = `<button class="buy-btn" onclick="buyNFT(${nft.id}, '${nft.price}', ${nft.shopAmount})" ${!userAccount ? 'disabled' : ''}>
             <span class="material-icons" style="font-size:10px;vertical-align:middle">shopping_cart</span>Buy</button>`;
           }
           html += `<li class="shop-item">
@@ -840,13 +851,20 @@
           return;
         }
         demoMsg.style.display = 'none';
-        let metaArr = await Promise.all(tokenIds.map(async (id, index) => {
+        // Sort user's NFTs by tokenId descending
+        let ownedArray = tokenIds.map((id, i) => ({
+          id,
+          amount: amounts[i],
+          index: i
+        }));
+        ownedArray.sort((a, b) => BigInt(b.id) - BigInt(a.id));
+        let metaArr = await Promise.all(ownedArray.map(async (item) => {
           try {
-            let meta = await nftfanShop.methods.nftInfo(id).call();
+            let meta = await nftfanShop.methods.nftInfo(item.id).call();
             let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-            return {id, amount: amounts[index], meta, metaJson};
+            return {id: item.id, amount: item.amount, meta, metaJson};
           } catch (e) {
-            return {id, amount: amounts[index], meta: null, metaJson: null};
+            return {id: item.id, amount: item.amount, meta: null, metaJson: null};
           }
         }));
         let html = "";
