@@ -328,7 +328,7 @@
   <div class="wrapper">
     <div class="status-bar" id="statusBar">
       <span class="material-icons status-ic">info</span>
-     
+      <span id="statusMsg">Connect your wallet to start...</span>
     </div>
     <div class="tab-bar">
       <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">
@@ -344,19 +344,19 @@
     <div class="tab-content" id="tab-content-shop">
       <div id="shop-loading" class="loading" style="display:none;">Loading NFTs...</div>
       <div id="shop-error" class="error" style="display: none;"></div>
-     
+      <div id="shop-connect-msg" class="connect-required-msg">Connect your wallet to start...</div>
       <ul class="shop-grid" id="shopGrid" style="display: none;"></ul>
     </div>
     <div class="tab-content" id="tab-content-recent" style="display:none;">
       <div id="recent-loading" class="loading" style="display:none;">Loading Recently Listed NFTs...</div>
       <div id="recent-error" class="error" style="display: none;"></div>
-      
+      <div id="recent-connect-msg" class="connect-required-msg">Connect your wallet to start...</div>
       <ul class="recent-listings-grid" id="recentListingsGrid" style="display: none;"></ul>
     </div>
     <div class="tab-content" id="tab-content-mynfts" style="display:none;">
       <div id="my-loading" class="loading" style="display:none;">Loading Your NFTs...</div>
       <div id="my-error" class="error" style="display: none;"></div>
-     
+      <div id="my-connect-msg" class="connect-required-msg">Connect your wallet to start...</div>
       <ul class="nft-grid" id="myGrid" style="display: none;"></ul>
     </div>
   </div>
@@ -375,7 +375,7 @@
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-   <script>
+  <script>
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -461,7 +461,7 @@
         }
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         userAccount = accounts[0];
-        document.getElementById("connect-btn-label").textContent = "Connected";
+        document.getElementById("connect-btn-label").textContent = formatAddress(userAccount);
         document.getElementById("connect-btn").classList.add("connected");
         await setupContracts();
         updateStatus('Connected successfully', "check_circle");
@@ -502,71 +502,86 @@
         return await res.json();
       } catch (e) { return null; }
     }
-    // --- SHOP TAB: Only show NFTs newly minted, available in shop (never sold yet, and not sold out!) ---
-   async function loadShopNFTs() {
-  const shopGrid = document.getElementById("shopGrid");
-  const loading = document.getElementById("shop-loading");
-  shopGrid.innerHTML = "";
-  loading.style.display = "block";
-  shopGrid.style.display = "none";
-  hideError("shop-error");
-  try {
-    updateStatus('Loading shop NFTs...', "storefront");
-    if (!nftfanShop) await setupContracts();
-    const {ids, uris, prices, isForSale, shopAmounts, maxSupplies, currentSupplies} = await nftfanShop.methods.getShopNFTs().call();
-    let html = "";
-    let shown = 0;
-    const metaArr = await Promise.all(uris.map(uri => fetchOpenSeaMeta(uri)));
-    // Collect all user listings in parallel for efficiency
-    const allListings = await Promise.all(ids.map(id => nftfanShop.methods.getListings(id).call()));
-    for (let i = 0; i < ids.length; i++) {
-      // Only show if: isForSale[i], shopAmounts[i]>0, currentSupply==maxSupply (never sold), shopAmounts==maxSupplies (never sold out), AND NO user listings!
-      const userListings = (allListings[i] || []).filter(l => l.amount && l.amount !== "0");
-      if (
-        !isForSale[i] ||
-        shopAmounts[i] == "0" ||
-        currentSupplies[i] !== maxSupplies[i] ||
-        shopAmounts[i] !== maxSupplies[i] ||
-        userListings.length > 0 // Exclude any with user listings
-      ) continue;
-      shown++;
-      const id = ids[i], meta = metaArr[i];
-      const openseaName = meta?.name || `NFTFAN #${id}`;
-      const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/110x110?text=NFT";
-      const openseaDesc = meta?.description || "";
-      const price = web3.utils.fromWei(prices[i], "ether");
-      html += `<li class="card">
-          <img class="card-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/110x110?text=NFT'">
-          <div class="card-title">${openseaName}</div>
-          <div class="card-price"><span class="material-icons" style="font-size:1em;vertical-align:-1.5px;">paid</span> ${price} MATIC</div>
-          <div class="card-id">ID: ${id}</div>
-          ${openseaDesc ? `<div class="desc">${openseaDesc.substring(0, 34)}${openseaDesc.length > 34 ? '...' : ''}</div>` : ""}
-          <div class="inventory">Available: ${shopAmounts[i]}</div>
-          <div class="card-actions">
-            <button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}><span class='material-icons' style='font-size:1em;vertical-align:middle;'>shopping_cart</span> Buy</button>
-          </div>
-      </li>`;
+    async function loadShopNFTs() {
+      const shopConnectMsg = document.getElementById("shop-connect-msg");
+      const shopGrid = document.getElementById("shopGrid");
+      const loading = document.getElementById("shop-loading");
+      shopGrid.innerHTML = "";
+      if (!userAccount) {
+        shopConnectMsg.style.display = "block";
+        shopGrid.style.display = "none";
+        loading.style.display = "none";
+        hideError("shop-error");
+        return;
+      }
+      shopConnectMsg.style.display = "none";
+      loading.style.display = "block";
+      shopGrid.style.display = "none";
+      hideError("shop-error");
+      try {
+        updateStatus('Loading shop NFTs...', "storefront");
+        if (!nftfanShop) await setupContracts();
+        const {ids, uris, prices, isForSale, shopAmounts, maxSupplies, currentSupplies} = await nftfanShop.methods.getShopNFTs().call();
+        let html = "";
+        let shown = 0;
+        const metaArr = await Promise.all(uris.map(uri => fetchOpenSeaMeta(uri)));
+        const allListings = await Promise.all(ids.map(id => nftfanShop.methods.getListings(id).call()));
+        for (let i = 0; i < ids.length; i++) {
+          const userListings = (allListings[i] || []).filter(l => l.amount && l.amount !== "0");
+          if (
+            !isForSale[i] ||
+            shopAmounts[i] == "0" ||
+            currentSupplies[i] !== maxSupplies[i] ||
+            shopAmounts[i] !== maxSupplies[i] ||
+            userListings.length > 0
+          ) continue;
+          shown++;
+          const id = ids[i], meta = metaArr[i];
+          const openseaName = meta?.name || `NFTFAN #${id}`;
+          const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/110x110?text=NFT";
+          const openseaDesc = meta?.description || "";
+          const price = web3.utils.fromWei(prices[i], "ether");
+          html += `<li class="card">
+              <img class="card-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/110x110?text=NFT'">
+              <div class="card-title">${openseaName}</div>
+              <div class="card-price"><span class="material-icons" style="font-size:1em;vertical-align:-1.5px;">paid</span> ${price} MATIC</div>
+              <div class="card-id">ID: ${id}</div>
+              ${openseaDesc ? `<div class="desc">${openseaDesc.substring(0, 34)}${openseaDesc.length > 34 ? '...' : ''}</div>` : ""}
+              <div class="inventory">Available: ${shopAmounts[i]}</div>
+              <div class="card-actions">
+                <button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}><span class='material-icons' style='font-size:1em;vertical-align:middle;'>shopping_cart</span> Buy</button>
+              </div>
+          </li>`;
+        }
+        if (shown === 0) {
+          loading.textContent = "No new NFTs available in the shop.";
+          loading.style.display = "block";
+        } else {
+          shopGrid.innerHTML = html;
+          loading.style.display = "none";
+          shopGrid.style.display = "grid";
+        }
+        updateStatus(shown ? `Shop loaded - ${shown} new NFTs` : "Shop loaded - no new NFTs", "storefront");
+      } catch (error) {
+        shopGrid.innerHTML = "";
+        loading.style.display = "none";
+        showError("shop-error", "Failed to load NFTs: " + error.message);
+        updateStatus('Shop loading failed', "error");
+      }
     }
-    if (shown === 0) {
-      loading.textContent = "No new NFTs available in the shop.";
-    } else {
-      shopGrid.innerHTML = html;
-      loading.style.display = "none";
-      shopGrid.style.display = "grid";
-    }
-    updateStatus(shown ? `Shop loaded - ${shown} new NFTs` : "Shop loaded - no new NFTs", "storefront");
-  } catch (error) {
-    shopGrid.innerHTML = "";
-    loading.style.display = "none";
-    showError("shop-error", "Failed to load NFTs: " + error.message);
-    updateStatus('Shop loading failed', "error");
-  }
-}
-    // --- RECENTLY LISTED TAB ---
     async function loadRecentListings() {
+      const recentConnectMsg = document.getElementById("recent-connect-msg");
       const grid = document.getElementById("recentListingsGrid");
       const loading = document.getElementById("recent-loading");
       grid.innerHTML = "";
+      if (!userAccount) {
+        recentConnectMsg.style.display = "block";
+        grid.style.display = "none";
+        loading.style.display = "none";
+        hideError("recent-error");
+        return;
+      }
+      recentConnectMsg.style.display = "none";
       loading.style.display = "block";
       grid.style.display = "none";
       hideError("recent-error");
@@ -595,6 +610,7 @@
         recentListings = recentListings.slice(0, 20);
         if (!recentListings.length) {
           loading.textContent = "No recent user listings.";
+          loading.style.display = "block";
           updateStatus("No recent user listings.", "bolt");
           return;
         }
@@ -655,16 +671,21 @@
       }
     }
     async function loadUserNFTs() {
+      const myConnectMsg = document.getElementById("my-connect-msg");
       const myGrid = document.getElementById("myGrid");
       const loading = document.getElementById("my-loading");
       myGrid.innerHTML = "";
+      if (!userAccount) {
+        myConnectMsg.style.display = "block";
+        myGrid.style.display = "none";
+        loading.style.display = "none";
+        hideError("my-error");
+        return;
+      }
+      myConnectMsg.style.display = "none";
       loading.style.display = "block";
       myGrid.style.display = "none";
       hideError("my-error");
-      if (!userAccount) {
-        loading.textContent = "Connect wallet to view your NFTs.";
-        return;
-      }
       try {
         updateStatus('Loading your NFTs...', "collections");
         if (!nftfanShop) await setupContracts();
@@ -672,6 +693,7 @@
         const { tokenIds, amounts } = tokens;
         if (!tokenIds.length) {
           loading.textContent = "You own no NFTs yet.";
+          loading.style.display = "block";
           updateStatus('Your NFTs loaded - none found', "collections");
           return;
         }
@@ -807,7 +829,7 @@
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', function (accounts) {
         userAccount = accounts[0] || null;
-        document.getElementById("connect-btn-label").textContent = userAccount ? "Connected" : "Connect Wallet";
+        document.getElementById("connect-btn-label").textContent = userAccount ? formatAddress(userAccount) : "Connect Wallet";
         if (userAccount) {
           setupContracts().then(() => {
             loadShopNFTs(); loadUserNFTs(); loadRecentListings();
@@ -815,6 +837,7 @@
           }).catch(e => { updateStatus('Account change failed', "error"); });
         } else {
           updateStatus('Wallet disconnected', "account_balance_wallet");
+          loadShopNFTs(); loadUserNFTs(); loadRecentListings(); // Reload tabs to show connect messages
         }
       });
       window.ethereum.on('chainChanged', function (chainId) {
