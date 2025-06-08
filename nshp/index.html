@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>NFTFANS ERC1155 Shop (OpenSea Metadata, CORS Fixed)</title>
+  <title>NFTFANS ERC1155 Shop (IPFS Metadata)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     html, body { background: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; font-size: 10px; color: #222; min-height: 100vh;}
@@ -170,7 +170,7 @@
       }
     }
 
-    // OpenSea Metadata Fetcher with CORS proxy for GitHub raw
+    // OpenSea Metadata Fetcher (native, no proxy needed for IPFS/Lighthouse)
     async function fetchOpenSeaMeta(uri) {
       // Handle ipfs:// and ar:// etc.
       if (uri.startsWith("ipfs://")) {
@@ -179,13 +179,8 @@
       if (uri.startsWith("ar://")) {
         uri = "https://arweave.net/" + uri.replace("ar://", "");
       }
-      // Use CORS proxy for GitHub raw and other URLs without CORS
-      let fetchUrl = uri;
-      if (uri.startsWith("https://raw.githubusercontent.com/")) {
-        fetchUrl = "https://corsproxy.io/?" + encodeURIComponent(uri);
-      }
       try {
-        const res = await fetch(fetchUrl, {mode: 'cors'});
+        const res = await fetch(uri, {mode: 'cors'});
         if (!res.ok) throw new Error("HTTP error: " + res.status);
         return await res.json();
       } catch (e) {
