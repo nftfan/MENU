@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NFTFANS ERC1155 Shop (Crypto Theme)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, 'Inter', Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      font-size: 10px;
+    }
+    body {
+      background: linear-gradient(160deg, #181f3a 0%, #10131f 100%);
+    }
+    .wrapper {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 7px 0 24px 0;
+    }
+    .header, .top-bar {
+      background-color: #111;
+      padding: 10px 5px 10px 7px;
+      font-weight: bold;
+      font-size: 12px;
+      border-bottom: 1px solid #222;
+      text-align: center;
+      letter-spacing: 0.5px;
+      color: #93c5fd;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 5px 3px 7px;
+      background: #0b1221;
+      font-size: 10px;
+      border: none;
+      color: #93c5fd;
+    }
+    .nftfan-balance-bar {
+      display: flex;
+      align-items: center;
+      margin-right: auto;
+      font-size: 8px;
+      color: #89c9ff;
+      background: #1a2336;
+      border-radius: 6px;
+      padding: 2px 7px 2px 2px;
+      gap: 2px;
+      font-weight: 500;
+    }
+    .nftfan-token-icon {
+      width: 15px;
+      height: 15px;
+      margin-right: 2px;
+    }
+    .connect-btn {
+      padding: 4px 8px;
+      background: #121d33;
+      border: 1px solid #3b82f6;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #60a5fa;
+      font-size: 9px;
+      min-width: 70px;
+      box-shadow: 0 1px 2px #0008;
+      transition: background .18s, color .18s;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .connect-btn:hover, .connect-btn:focus {
+      background: #182745;
+      color: #fff;
+      outline: none;
+    }
+    .status-bar {
+      padding: 6px 9px;
+      background: #fff;
+      border-radius: 4px;
+      margin: 8px 7px 8px 7px;
+      font-size: 9px;
+      color: #e53e3e;
+      min-height: 19px;
+      text-align: left;
+      font-weight: 600;
+      border: 1px solid #e53e3e;
+      letter-spacing: .01em;
+      transition: color .18s, background .18s;
+      box-shadow: 0 0.5px 2px #0002;
+      word-break: break-word;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin: 0 7px 8px 7px;
+      background: #121d33;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 6px 0;
+      background: #121d33;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      font-weight: 600;
+      color: #93c5fd;
+      font-size: 8px;
+      letter-spacing: .01em;
+      transition: background .18s, color .18s;
+      outline: none;
+    }
+    .tab-btn.active {
+      background: #60a5fa;
+      color: #fff;
+    }
+    .tab-btn:hover:not(.active) {
+      background: #182745;
+      color: #fff;
+    }
+
+    .nft-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .nft-post {
+      background: #171f32;
+      border-radius: 10px;
+      padding: 13px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #202c48;
+      box-shadow: 0 2px 8px #0002;
+      position: relative;
+      font-size: 10px;
+      gap: 13px;
+      overflow: hidden;
+    }
+    .nft-post-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    .nft-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: #fff;
+      object-fit: cover;
+      box-shadow: 0 2px 8px #0004;
+      border: 2px solid #222f44;
+      flex-shrink: 0;
+      display: block;
+    }
+    .nft-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .nft-title {
+      font-weight: bold;
+      font-size: 11px;
+      color: #cbe2ff;
+      line-height: 1.2;
+      margin-bottom: 2px;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .nft-supply,
+    .nft-price {
+      color: #60a5fa;
+      font-size: 9px;
+      margin-bottom: 1px;
+      font-weight: 500;
+    }
+    .nft-supply {
+      color: #aaa;
+      font-size: 9px;
+      font-weight: 400;
+      margin-left: 4px;
+    }
+    .nft-description {
+      font-size: 9px;
+      color: #ccc;
+      margin-top: 2px;
+      max-width: 260px;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .buy-btn {
+      font-size: 9px;
+      padding: 7px 18px;
+      border-radius: 17px;
+      border: none;
+      background-color: #1e90ff;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+      margin-left: 10px;
+      box-shadow: 0 1px 2px #0008;
+      letter-spacing: 0.1px;
+    }
+    .buy-btn:hover {
+      background-color: #3aa0ff;
+    }
+    .sold-out {
+      font-size: 9px;
+      color: #ff6363;
+      font-weight: bold;
+      margin-bottom: 2px;
+      width: 100%;
+      text-align: left;
+    }
+    @media (max-width: 600px) {
+      .wrapper { max-width: 100vw; padding: 0; }
+      .nft-avatar { width: 36px; height: 36px; }
+      .nft-title { font-size: 10px; }
+      .buy-btn { font-size: 8px; padding: 5px 12px; }
+      .nft-description { font-size: 8px; max-width: 140px; }
+      .nft-post { padding: 10px 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">NFTFANS ERC1155 Shop</div>
+    <!-- Top bar with connect wallet -->
+    <div class="top-bar">
+      <div class="nftfan-balance-bar" id="nftfanBalanceBar" style="display:none;">
+        <img class="nftfan-token-icon" src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN Token">
+        <span id="nftfanBalance">--</span>
+        <span style="font-size:7px;font-weight:400;color:#888;margin-left:2px;">NFTFAN</span>
+      </div>
+      <button class="connect-btn" id="connect-btn" onclick="connectWallet()">🔗 Connect Wallet</button>
+    </div>
+    <div class="status-bar" id="statusBar">
+      Status: Initializing...
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">NFTFANS Shop</button>
+      <button class="tab-btn" id="tab-mynfts" onclick="showTab('mynfts')">My NFTs</button>
+    </div>
+    <div class="tab-content" id="tab-content-shop">
+      <div id="shop-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading NFTs...</div>
+      <div id="shop-error" class="error" style="display: none;background:#fee2e2;color:#e53e3e;padding:7px;border-radius:4px;margin-bottom:7px;font-size:9px;text-align:left;border:1px solid #fecaca;"></div>
+      <ul class="nft-list" id="shopGrid" style="display: none;"></ul>
+    </div>
+    <div class="tab-content" id="tab-content-mynfts" style="display:none;">
+      <div id="my-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading Your NFTs...</div>
+      <div id="my-error" class="error" style="display: none;background:#fee2e2;color:#e53e3e;padding:7px;border-radius:4px;margin-bottom:7px;font-size:9px;text-align:left;border:1px solid #fecaca;"></div>
+      <ul class="nft-list" id="myGrid" style="display: none;"></ul>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+  <script>
+    // --- CONFIG ---
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/', 'https://rpc.polygon.technology/', 'https://rpc-mainnet.matic.network/'],
+      blockExplorerUrls: ['https://polygonscan.com/'],
+    };
+    const NFTFAN_SHOP_CA = "0x10FdffF7E02CDfB4E5d34FA5Dc93074f1F2619cc";
+    const NFTFAN_SHOP_ABI = [
+      // NFTMeta struct
+      { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"creator","type":"address"},{"indexed":false,"internalType":"string","name":"tokenURI","type":"string"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTMinted","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"buyer","type":"address"},{"indexed":false,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTBought","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NFTListed","type":"event" },
+      { "anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"NFTUnlisted","type":"event" },
+      // view functions
+      { "inputs": [], "name": "nextTokenId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "nftInfo", "outputs": [
+        { "internalType": "string", "name": "tokenURI", "type": "string" },
+        { "internalType": "uint256", "name": "price", "type": "uint256" },
+        { "internalType": "bool", "name": "forSale", "type": "bool" },
+        { "internalType": "address", "name": "originalCreator", "type": "address" },
+        { "internalType": "uint256", "name": "maxSupply", "type": "uint256" },
+        { "internalType": "uint256", "name": "currentSupply", "type": "uint256" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "shopInventory", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "getShopNFTs", "outputs": [
+        { "internalType": "uint256[]", "name": "ids", "type": "uint256[]" },
+        { "internalType": "string[]", "name": "uris", "type": "string[]" },
+        { "internalType": "uint256[]", "name": "prices", "type": "uint256[]" },
+        { "internalType": "bool[]", "name": "isForSale", "type": "bool[]" },
+        { "internalType": "uint256[]", "name": "shopAmounts", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "maxSupplies", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "currentSupplies", "type": "uint256[]" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "address", "name": "user", "type": "address" } ], "name": "tokensOfOwner", "outputs": [
+        { "internalType": "uint256[]", "name": "tokenIds", "type": "uint256[]" },
+        { "internalType": "uint256[]", "name": "amounts", "type": "uint256[]" }
+      ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "getListings", "outputs": [
+        { "components": [
+          { "internalType": "address", "name": "seller", "type": "address" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" },
+          { "internalType": "uint256", "name": "price", "type": "uint256" }
+        ], "internalType": "struct NFTFansShop.Listing[]", "name": "", "type": "tuple[]" }
+      ], "stateMutability": "view", "type": "function" },
+      // user actions
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" }, { "internalType": "uint256", "name": "amount", "type": "uint256" } ], "name": "buyNFT", "outputs": [], "stateMutability": "payable", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "_price", "type": "uint256" } ], "name": "sellNFT", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // ERC1155
+      { "inputs": [ { "internalType": "address", "name": "account", "type": "address" }, { "internalType": "uint256", "name": "id", "type": "uint256" } ], "name": "balanceOf", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" },
+      { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "uri", "outputs": [ { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }
+    ];
+
+    // --- APP STATE ---
+    let userAccount = null, web3, nftfanShop = null, lastError = null, statusTimeout = null;
+
+    function updateStatus(message) {
+      clearTimeout(statusTimeout);
+      const statusBar = document.getElementById('statusBar');
+      statusBar.textContent = message;
+      statusBar.style.background = "#fff";
+      statusBar.style.color = "#e53e3e";
+      statusTimeout = setTimeout(() => {
+        statusBar.style.background = "#fff";
+        statusBar.style.color = "#e53e3e";
+      }, 6000);
+    }
+    function logError(error, context = '') {
+      lastError = `${context}: ${error.message || error}`;
+    }
+    function showError(elementId, message) {
+      const errorEl = document.getElementById(elementId);
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      updateStatus(message);
+    }
+    function hideError(elementId) {
+      document.getElementById(elementId).style.display = 'none';
+    }
+    // WALLET CONNECTION
+    async function connectWallet() {
+      try {
+        updateStatus('Connecting wallet...');
+        if (!window.ethereum) throw new Error("Please install MetaMask or a compatible wallet!");
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== POLYGON_PARAMS.chainId) {
+          updateStatus('Switching to Polygon network...');
+          try {
+            await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
+          } catch (switchError) {
+            if (switchError.code === 4902) {
+              await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+            } else { throw switchError; }
+          }
+        }
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        document.getElementById("connect-btn").textContent = formatAddress(userAccount);
+        await setupContracts();
+        updateStatus('Connected successfully');
+        loadShopNFTs(); loadUserNFTs();
+      } catch (error) {
+        logError(error, 'Wallet Connection');
+        updateStatus('Connection failed: ' + error.message);
+      }
+    }
+    async function setupContracts() {
+      try {
+        updateStatus('Setting up contracts...');
+        const rpcUrls = POLYGON_PARAMS.rpcUrls;
+        let provider = null;
+        if (window.ethereum) {
+          provider = window.ethereum;
+        } else {
+          for (const rpcUrl of rpcUrls) {
+            try {
+              const testWeb3 = new Web3(rpcUrl);
+              await testWeb3.eth.getBlockNumber();
+              provider = rpcUrl;
+              break;
+            } catch {}
+          }
+        }
+        if (!provider) throw new Error('No working RPC provider found');
+        web3 = new Web3(provider);
+        nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
+        updateStatus('Contracts initialized');
+      } catch (error) {
+        logError(error, 'Contract Setup');
+        throw error;
+      }
+    }
+    async function fetchOpenSeaMeta(uri) {
+      if (!uri) return null;
+      try {
+        if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.slice(7);
+        if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.slice(5);
+        const res = await fetch(uri, { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        updateStatus('Metadata fetch failed: ' + (uri || 'unknown'));
+        return null;
+      }
+    }
+    // --- SHOP LOGIC ---
+    async function loadShopNFTs() {
+      const shopGrid = document.getElementById("shopGrid");
+      const loading = document.getElementById("shop-loading");
+      shopGrid.innerHTML = "";
+      loading.style.display = "block";
+      shopGrid.style.display = "none";
+      hideError("shop-error");
+      try {
+        updateStatus('Loading shop NFTs...');
+        if (!nftfanShop) await setupContracts();
+        const result = await nftfanShop.methods.getShopNFTs().call();
+        const { ids, uris, prices, isForSale, shopAmounts, maxSupplies } = result;
+        if (!ids.length) { loading.textContent = "No NFTs in Shop"; updateStatus('No NFTs in shop'); return; }
+        updateStatus(`Loading metadata for ${ids.length} NFTs...`);
+        const metaArr = await Promise.all(uris.map((uri, i) => fetchOpenSeaMeta(uri)));
+        let html = "";
+        for (let i = 0; i < ids.length; i++) {
+          const id = ids[i], meta = metaArr[i],
+                name = meta?.name || `NFTFAN #${id}`,
+                img = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT",
+                desc = meta?.description || "",
+                price = web3.utils.fromWei(prices[i], "ether"),
+                forSale = isForSale[i], available = shopAmounts[i],
+                maxSupply = maxSupplies ? maxSupplies[i] : '';
+          html += `<li class="nft-post">
+            <div class="nft-post-left">
+              <img class="nft-avatar" src="${img}" alt="NFT ${name}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+              <div class="nft-content">
+                <div class="nft-title">${name}
+                  ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ''}
+                </div>
+                <div class="nft-description">${desc ? desc.substring(0, 60) + (desc.length > 60 ? '...' : '') : ''}</div>
+                <div class="nft-price">${price} MATIC</div>
+              </div>
+            </div>
+            ${(forSale && available != "0") ? `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${!userAccount ? 'disabled' : ''}>Buy</button>` : `<div class="sold-out">Sold Out</div>`}
+          </li>`;
+        }
+        shopGrid.innerHTML = html;
+        loading.style.display = "none";
+        shopGrid.style.display = "flex";
+        updateStatus(`Shop loaded`);
+      } catch (error) {
+        logError(error, 'Shop Loading');
+        showError("shop-error", "Failed to load NFTs: " + error.message);
+      }
+    }
+    // --- MY NFTS LOGIC ---
+    async function loadUserNFTs() {
+      const myGrid = document.getElementById("myGrid");
+      const loading = document.getElementById("my-loading");
+      myGrid.innerHTML = "";
+      loading.style.display = "block";
+      myGrid.style.display = "none";
+      hideError("my-error");
+      if (!userAccount) { loading.textContent = "Connect wallet to view your NFTs."; return; }
+      try {
+        updateStatus('Loading your NFTs...');
+        if (!nftfanShop) await setupContracts();
+        const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
+        const { tokenIds, amounts } = tokens;
+        if (!tokenIds.length) { loading.textContent = "You own no NFTs yet."; updateStatus('No NFTs owned'); return; }
+        let metaArr = await Promise.all(tokenIds.map(async (id, idx) => {
+          try {
+            let meta = await nftfanShop.methods.nftInfo(id).call();
+            let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+            return {id, amount: amounts[idx], meta, metaJson};
+          } catch { return {id, amount: amounts[idx], meta: null, metaJson: null}; }
+        }));
+        let html = "";
+        for (let item of metaArr) {
+          const {id, amount, meta, metaJson} = item,
+                name = metaJson?.name || `NFTFAN #${id}`,
+                img = metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT"),
+                desc = metaJson?.description || "",
+                maxSupply = meta?.maxSupply || "",
+                price = meta?.price ? web3.utils.fromWei(meta.price, "ether") : "";
+          html += `<li class="nft-post">
+              <div class="nft-post-left">
+                <img class="nft-avatar" src="${img}" alt="NFT ${name}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+                <div class="nft-content">
+                  <div class="nft-title">${name}
+                    ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ''}
+                  </div>
+                  <div class="nft-description">${desc ? desc.substring(0, 60) + (desc.length > 60 ? '...' : '') : ''}</div>
+                  <div class="nft-price">${price ? price + ' MATIC' : ''}</div>
+                  <div class="nft-supply">You own: ${amount}</div>
+                </div>
+              </div>
+            </li>`;
+        }
+        myGrid.innerHTML = html;
+        loading.style.display = "none";
+        myGrid.style.display = "flex";
+        updateStatus(`Your NFTs loaded`);
+      } catch (error) {
+        logError(error, 'User NFTs Loading');
+        showError("my-error", "Failed to load your NFTs: " + error.message);
+      }
+    }
+    // TABS
+    function showTab(tab) {
+      document.getElementById('tab-content-shop').style.display = 'none';
+      document.getElementById('tab-content-mynfts').style.display = 'none';
+      document.getElementById(`tab-content-${tab}`).style.display = 'block';
+      document.getElementById('tab-shop').classList.remove('active');
+      document.getElementById('tab-mynfts').classList.remove('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      if (tab === 'shop') loadShopNFTs();
+      else if (tab === 'mynfts') loadUserNFTs();
+    }
+    // EVENTS
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        userAccount = accounts[0] || null;
+        const connectBtn = document.getElementById("connect-btn");
+        connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
+        if (userAccount) {
+          setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); updateStatus('Account changed'); });
+        } else { updateStatus('Wallet disconnected'); }
+      });
+      window.ethereum.on('chainChanged', function (chainId) {
+        updateStatus('Network changed - reconnecting...');
+        setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); updateStatus('Network changed'); });
+      });
+    }
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        updateStatus('Initializing...');
+        await setupContracts();
+        await loadShopNFTs();
+        updateStatus('Ready');
+      } catch (error) {
+        logError(error, 'Initialization');
+        updateStatus('Initialization failed: ' + error.message);
+        showError('shop-error', 'Failed to initialize the application. Please refresh.');
+      }
+    });
+    function formatAddress(address) {
+      if (!address) return '';
+      return `${address.slice(0, 5)}...${address.slice(-4)}`;
+    }
+  </script>
+</body>
+</html>
