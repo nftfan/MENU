@@ -231,26 +231,6 @@
       text-align: left;
       border: 1px solid #fecaca;
     }
-    .debug-info {
-      background: #131a2a;
-      padding: 11px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px #0002;
-      font-size: 8px;
-    }
-    .debug-info p {
-      margin: 4px 0;
-      font-size: 8.5px;
-      color: #d4eaff;
-      font-weight: 500;
-    }
-    .debug-info h3 {
-      font-size: 10px;
-      color: #60a5fa;
-      margin-top: 0;
-      margin-bottom: 7px;
-      font-weight: 600;
-    }
     /* Sell Modal */
     #sellModal {
       display: none;
@@ -376,7 +356,6 @@
     <div class="tab-bar">
       <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">NFTFANS Shop</button>
       <button class="tab-btn" id="tab-mynfts" onclick="showTab('mynfts')">My NFTs</button>
-      <button class="tab-btn" id="tab-debug" onclick="showTab('debug')">Debug</button>
     </div>
     <div class="tab-content" id="tab-content-shop">
       <div id="shop-loading" class="loading">Loading NFTs...</div>
@@ -387,18 +366,6 @@
       <div id="my-loading" class="loading">Loading Your NFTs...</div>
       <div id="my-error" class="error" style="display: none;"></div>
       <ul class="nft-grid" id="myGrid" style="display: none;"></ul>
-    </div>
-    <div class="tab-content" id="tab-content-debug" style="display:none;">
-      <div class="debug-info">
-        <h3>Debug Information</h3>
-        <div id="debugInfo">
-          <p><strong>Network:</strong> <span id="networkInfo">Not connected</span></p>
-          <p><strong>Wallet:</strong> <span id="walletInfo">Not connected</span></p>
-          <p><strong>Contract Status:</strong> <span id="contractInfo">Not initialized</span></p>
-          <p><strong>Last Error:</strong> <span id="lastError">None</span></p>
-        </div>
-        <button onclick="testContractConnection()" style="margin-top:7px; padding:4px 8px; background:#10131f; border:1px solid #60a5fa; border-radius:5px; color:#60a5fa; font-size:8px;cursor:pointer;">Test Contract Connection</button>
-      </div>
     </div>
   </div>
   
@@ -429,7 +396,6 @@
       blockExplorerUrls: ['https://polygonscan.com/'],
     };
     const NFTFAN_SHOP_CA = "0x10FdffF7E02CDfB4E5d34FA5Dc93074f1F2619cc";
-     // --- ABIs ---
     const NFTFAN_SHOP_ABI = [
       // NFTMeta struct
       { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
@@ -489,18 +455,10 @@
         statusBar.style.background = "#fff";
         statusBar.style.color = "#e53e3e";
       }, 6000);
-      updateDebugInfo();
     }
 
     function logError(error, context = '') {
       lastError = `${context}: ${error.message || error}`;
-      updateDebugInfo();
-    }
-    function updateDebugInfo() {
-      document.getElementById('networkInfo').textContent = web3 ? 'Connected' : 'Not connected';
-      document.getElementById('walletInfo').textContent = userAccount || 'Not connected';
-      document.getElementById('contractInfo').textContent = nftfanShop ? 'Initialized' : 'Not initialized';
-      document.getElementById('lastError').textContent = lastError || 'None';
     }
     function showError(elementId, message) {
       const errorEl = document.getElementById(elementId);
@@ -564,29 +522,18 @@
         throw error;
       }
     }
-    async function testContractConnection() {
-      try {
-        updateStatus('Testing contract connection...');
-        if (!nftfanShop) await setupContracts();
-        const result = await nftfanShop.methods.getShopNFTs().call();
-        updateStatus(`Contract test successful - Found ${result.ids.length} NFTs`);
-      } catch (error) {
-        logError(error, 'Contract Test');
-        updateStatus('Contract test failed: ' + error.message);
-      }
-    }
     async function fetchOpenSeaMeta(uri) {
       if (!uri) return null;
       try {
-        if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.replace("ipfs://", "");
-        if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.replace("ar://", "");
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 9000);
-        const res = await fetch(uri, { mode: 'cors', signal: controller.signal });
-        clearTimeout(timeoutId);
+        if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.slice(7);
+        if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.slice(5);
+        const res = await fetch(uri, { mode: 'cors' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
-      } catch { return null; }
+      } catch (e) {
+        updateStatus('Metadata fetch failed: ' + (uri || 'unknown'));
+        return null;
+      }
     }
     // --- SHOP LOGIC ---
     async function loadShopNFTs() {
@@ -794,11 +741,9 @@
     function showTab(tab) {
       document.getElementById('tab-content-shop').style.display = 'none';
       document.getElementById('tab-content-mynfts').style.display = 'none';
-      document.getElementById('tab-content-debug').style.display = 'none';
       document.getElementById(`tab-content-${tab}`).style.display = 'block';
       document.getElementById('tab-shop').classList.remove('active');
       document.getElementById('tab-mynfts').classList.remove('active');
-      document.getElementById('tab-debug').classList.remove('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
       if (tab === 'shop') loadShopNFTs();
       else if (tab === 'mynfts') loadUserNFTs();
