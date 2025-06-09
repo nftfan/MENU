@@ -159,16 +159,16 @@
     }
     .nft-post-left {
       display: flex;
-      align-items: center;   /* Ensure vertical centering */
+      align-items: center;
       gap: 12px;
       flex: 1;
       min-width: 0;
     }
     .serial-number {
       display: flex;
-      align-items: center;   /* Vertically center content */
+      align-items: center;
       justify-content: center;
-      height: 38px;          /* Same as avatar for perfect centering */
+      height: 38px; /* Same as avatar for perfect centering */
       min-width: 22px;
       font-size: 8px;
       color: #aaa;
@@ -178,8 +178,6 @@
       text-align: center;
       margin-right: 0;
     }
-	
-	
     .nft-avatar {
       width: 38px;
       height: 38px;
@@ -244,7 +242,8 @@
       display: inline-block;
       letter-spacing: 0.15px;
     }
-    .buy-btn {
+    .buy-btn,
+    .sell-btn {
       font-size: 9px;
       padding: 5px 13px;
       border-radius: 16px;
@@ -257,12 +256,14 @@
       box-shadow: 0 1px 2px #0008;
       letter-spacing: 0.1px;
     }
-    .buy-btn:disabled {
+    .buy-btn:disabled,
+    .sell-btn:disabled {
       background: #222a46;
       color: #aaa;
       cursor: not-allowed;
     }
-    .buy-btn:hover:not(:disabled) {
+    .buy-btn:hover:not(:disabled),
+    .sell-btn:hover:not(:disabled) {
       background-color: #3aa0ff;
     }
     .sold-out {
@@ -274,14 +275,74 @@
     @media (max-width: 600px) {
       .wrapper { max-width: 100vw; padding: 0; }
       .nft-avatar { width: 29px; height: 29px; }
+      .serial-number { height: 29px; min-width: 14px; font-size: 7px;}
       .nft-title { font-size: 9px; }
-      .buy-btn { font-size: 8px; padding: 4px 10px; }
+      .buy-btn, .sell-btn { font-size: 8px; padding: 4px 10px; }
       .nft-description { font-size: 7.5px; max-width: 110px; }
       .nft-post { padding: 7px 0; }
       .price-tab { font-size: 8px; padding: 3px 7px; min-width: 50px;}
       .nft-actions { gap: 4px; margin-left: 7px;}
       .nft-post:not(:last-child)::after { left: 44px; }
-      .serial-number { height: 29px; min-width: 14px; font-size: 7px;}
+    }
+    /* Modal for selling */
+    #sellModal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(9,15,32,0.92);
+      justify-content: center;
+      align-items: center;
+    }
+    #sellModalContent {
+      background: #161e2d;
+      padding: 14px 10px 13px 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 16px #0008;
+      min-width: 190px;
+      max-width: 94vw;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      font-size: 8px;
+      color: #fff;
+      border: 1px solid #60a5fa;
+    }
+    #sellModalContent input {
+      margin: 4px 0 7px 0;
+      padding: 5px;
+      border: 1px solid #60a5fa;
+      border-radius: 4px;
+      width: 95%;
+      font-size: 8px;
+      background: #10131f;
+      color: #fff;
+      outline: none;
+    }
+    #sellModalContent button {
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: none;
+      background: #60a5fa;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 8px;
+      margin-top: 3px;
+      transition: background .18s;
+    }
+    #sellModalContent button:hover { background: #3b82f6; }
+    #sellModalContent .cancel-btn {
+      background: #222a38;
+      color: #fff;
+      margin-left: 7px;
+      border: 1px solid #d1d5db;
+    }
+    #sellModalError {
+      color: #ff6363;
+      margin-top: 7px;
+      font-size: 8px;
     }
   </style>
 </head>
@@ -312,6 +373,21 @@
       <div id="my-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading Your NFTs...</div>
       <div id="my-error" class="error" style="display: none;background:#fee2e2;color:#e53e3e;padding:7px;border-radius:4px;margin-bottom:7px;font-size:9px;text-align:left;border:1px solid #fecaca;"></div>
       <ul class="nft-list" id="myGrid" style="display: none;"></ul>
+    </div>
+  </div>
+  <!-- Sell Modal -->
+  <div id="sellModal">
+    <div id="sellModalContent">
+      <h3 style="margin:0 0 7px 0;font-size:9px;">Sell Your NFT</h3>
+      <div>Token ID: <span id="sellTokenId"></span></div>
+      <div>You own: <span id="sellMaxAmount"></span></div>
+      <input type="number" id="sellAmountInput" min="1" placeholder="Amount to sell">
+      <input type="number" id="sellPriceInput" step="0.000000000000000001" placeholder="Price per NFT (MATIC)">
+      <div style="display:flex;gap:7px;width:100%;justify-content:flex-start;">
+        <button onclick="confirmSellNFT()">Sell</button>
+        <button onclick="closeSellModal()" class="cancel-btn">Cancel</button>
+      </div>
+      <div id="sellModalError"></div>
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
@@ -370,9 +446,8 @@
       { "inputs": [ { "internalType": "address", "name": "account", "type": "address" }, { "internalType": "uint256", "name": "id", "type": "uint256" } ], "name": "balanceOf", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" },
       { "inputs": [ { "internalType": "uint256", "name": "tokenId", "type": "uint256" } ], "name": "uri", "outputs": [ { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }
     ];
-
-    // --- APP STATE ---
     let userAccount = null, web3, nftfanShop = null, lastError = null, statusTimeout = null;
+    let sellModalTokenId = null, sellModalMaxAmount = null;
 
     function updateStatus(message) {
       clearTimeout(statusTimeout);
@@ -397,7 +472,7 @@
     function hideError(elementId) {
       document.getElementById(elementId).style.display = 'none';
     }
-    // WALLET CONNECTION
+
     async function connectWallet() {
       try {
         updateStatus('Connecting wallet...');
@@ -463,7 +538,6 @@
         return null;
       }
     }
-    // --- SHOP LOGIC ---
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
@@ -514,7 +588,6 @@
         showError("shop-error", "Failed to load NFTs: " + error.message);
       }
     }
-    // --- MY NFTS LOGIC ---
     async function loadUserNFTs() {
       const myGrid = document.getElementById("myGrid");
       const loading = document.getElementById("my-loading");
@@ -554,6 +627,7 @@
                   </div>
                   <div class="nft-description">${desc ? desc.substring(0, 60) + (desc.length > 60 ? '...' : '') : ''}</div>
                   <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">You own: ${amount}</div>
+                  <button class="sell-btn" style="margin-top:5px;width:90px;" onclick="openSellModal(${id}, ${amount})">Sell</button>
                 </div>
               </div>
             </li>`;
@@ -567,7 +641,6 @@
         showError("my-error", "Failed to load your NFTs: " + error.message);
       }
     }
-    // TABS
     function showTab(tab) {
       document.getElementById('tab-content-shop').style.display = 'none';
       document.getElementById('tab-content-mynfts').style.display = 'none';
@@ -578,6 +651,77 @@
       if (tab === 'shop') loadShopNFTs();
       else if (tab === 'mynfts') loadUserNFTs();
     }
+
+    // BUY NFT
+    window.buyNFT = async function(tokenId, priceWei, availableAmount) {
+      if (!userAccount) return updateStatus("Connect your wallet first!");
+      let amount = 1;
+      if (availableAmount > 1) {
+        let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
+        if (!input) return;
+        amount = parseInt(input);
+        if (isNaN(amount) || amount < 1 || amount > availableAmount) return updateStatus("Invalid amount");
+      }
+      try {
+        updateStatus('Processing purchase...');
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
+          value: (BigInt(priceWei) * BigInt(amount)).toString()
+        });
+        updateStatus('NFT bought successfully!');
+        loadShopNFTs(); loadUserNFTs();
+      } catch (error) {
+        logError(error, 'NFT Purchase');
+        updateStatus('Purchase failed: ' + error.message);
+      }
+    };
+
+    // SELL MODAL LOGIC
+    window.openSellModal = function(tokenId, maxAmount) {
+      sellModalTokenId = tokenId;
+      sellModalMaxAmount = maxAmount;
+      document.getElementById("sellModal").style.display = "flex";
+      document.getElementById("sellTokenId").textContent = tokenId;
+      document.getElementById("sellMaxAmount").textContent = maxAmount;
+      document.getElementById("sellAmountInput").value = "";
+      document.getElementById("sellAmountInput").max = maxAmount;
+      document.getElementById("sellPriceInput").value = "";
+      document.getElementById("sellModalError").textContent = "";
+    }
+    window.closeSellModal = function() {
+      document.getElementById("sellModal").style.display = "none";
+      sellModalTokenId = null; sellModalMaxAmount = null;
+    }
+    window.confirmSellNFT = async function() {
+      const amount = parseInt(document.getElementById("sellAmountInput").value);
+      const price = document.getElementById("sellPriceInput").value;
+      document.getElementById("sellModalError").textContent = "";
+      if (!userAccount) return document.getElementById("sellModalError").textContent = "Connect your wallet first!";
+      if (!amount || isNaN(amount) || amount < 1 || amount > sellModalMaxAmount)
+        return document.getElementById("sellModalError").textContent = "Invalid amount!";
+      if (!price || isNaN(price) || Number(price) <= 0)
+        return document.getElementById("sellModalError").textContent = "Invalid price!";
+      let priceWei = "0";
+      try { priceWei = web3.utils.toWei(price, "ether"); }
+      catch { return document.getElementById("sellModalError").textContent = "Invalid price."; }
+      try {
+        updateStatus('Processing sale...');
+        await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
+        updateStatus('NFT listed for sale!');
+        closeSellModal();
+        loadShopNFTs(); loadUserNFTs();
+      } catch (error) {
+        logError(error, 'NFT Sale');
+        updateStatus('Sale listing failed: ' + error.message);
+        document.getElementById("sellModalError").textContent = "Sale failed: " + error.message;
+      }
+    }
+    // Modal close on outside click
+    window.onclick = function(event) {
+      const modal = document.getElementById("sellModal");
+      if (event.target === modal) closeSellModal();
+    };
+
     // EVENTS
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', function (accounts) {
