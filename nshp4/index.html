@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NFTFANS ERC1155 Shop (Crypto Theme Minimal)</title>
   <style>
+    /* ... All previous CSS remains unchanged ... */
     html, body {
       margin: 0;
       padding: 0;
@@ -363,6 +364,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">NFTFANS Shop</button>
       <button class="tab-btn" id="tab-mynfts" onclick="showTab('mynfts')">My NFTs</button>
+      <button class="tab-btn" id="tab-listings" onclick="showTab('listings')">User Listings</button>
     </div>
     <div class="tab-content" id="tab-content-shop">
       <div id="shop-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading NFTs...</div>
@@ -373,6 +375,11 @@
       <div id="my-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading Your NFTs...</div>
       <div id="my-error" class="error" style="display: none;background:#fee2e2;color:#e53e3e;padding:7px;border-radius:4px;margin-bottom:7px;font-size:9px;text-align:left;border:1px solid #fecaca;"></div>
       <ul class="nft-list" id="myGrid" style="display: none;"></ul>
+    </div>
+    <div class="tab-content" id="tab-content-listings" style="display:none;">
+      <div id="listings-loading" class="loading" style="color:#60a5fa;text-align:center;padding:18px 0;font-size:10px;">Loading User Listings...</div>
+      <div id="listings-error" class="error" style="display: none;background:#fee2e2;color:#e53e3e;padding:7px;border-radius:4px;margin-bottom:7px;font-size:9px;text-align:left;border:1px solid #fecaca;"></div>
+      <ul class="nft-list" id="listingsGrid" style="display: none;"></ul>
     </div>
   </div>
   <!-- Sell Modal -->
@@ -493,7 +500,7 @@
         document.getElementById("connect-btn").textContent = formatAddress(userAccount);
         await setupContracts();
         updateStatus('Connected successfully');
-        loadShopNFTs(); loadUserNFTs();
+        loadShopNFTs(); loadUserNFTs(); loadUserListings();
       } catch (error) {
         logError(error, 'Wallet Connection');
         updateStatus('Connection failed: ' + error.message);
@@ -641,15 +648,121 @@
         showError("my-error", "Failed to load your NFTs: " + error.message);
       }
     }
+
+    // ----------- USER LISTINGS LOGIC -------------
+    // This will show *only* listings where seller !== original creator (i.e. not the shop)
+    async function loadUserListings() {
+      const listingsGrid = document.getElementById("listingsGrid");
+      const loading = document.getElementById("listings-loading");
+      listingsGrid.innerHTML = "";
+      loading.style.display = "block";
+      listingsGrid.style.display = "none";
+      hideError("listings-error");
+      try {
+        updateStatus('Loading user listings...');
+        if (!nftfanShop) await setupContracts();
+        // get all NFTs in shop
+        const result = await nftfanShop.methods.getShopNFTs().call();
+        const { ids, uris } = result;
+        if (!ids.length) { loading.textContent = "No NFTs in Shop"; updateStatus('No NFTs in shop'); return; }
+        // For each token, get all listings
+        let allListings = [];
+        for (let i = 0; i < ids.length; i++) {
+          try {
+            const id = ids[i];
+            const uri = uris[i];
+            // Get all listings for this tokenId
+            const listings = await nftfanShop.methods.getListings(id).call();
+            // Get shop's original creator (owner)
+            const meta = await nftfanShop.methods.nftInfo(id).call();
+            const originalCreator = meta.originalCreator;
+            // Only keep listings NOT by original creator and with amount > 0
+            const filtered = listings
+              .filter(l => l.seller.toLowerCase() !== originalCreator.toLowerCase() && Number(l.amount) > 0)
+              .map(l => ({ ...l, id, uri, meta }));
+            allListings = allListings.concat(filtered);
+          } catch {}
+        }
+        if (!allListings.length) {
+          loading.textContent = "No other user listings yet.";
+          updateStatus('No user listings');
+          return;
+        }
+        updateStatus(`Loading metadata for ${allListings.length} listings...`);
+        // Fetch metadata for all
+        let html = "";
+        for (let i = 0; i < allListings.length; i++) {
+          const l = allListings[i];
+          let metaJson = await fetchOpenSeaMeta(l.meta.tokenURI);
+          let name = metaJson?.name || `NFTFAN #${l.id}`;
+          let img = metaJson?.image || l.meta.tokenURI || "https://via.placeholder.com/92x92?text=NFT";
+          let desc = metaJson?.description || "";
+          let price = web3.utils.fromWei(l.price, "ether");
+          html += `<li class="nft-post">
+            <div class="nft-post-left">
+              <span class="serial-number">${i+1}</span>
+              <img class="nft-avatar" src="${img}" alt="NFT ${name}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+              <div class="nft-content">
+                <div class="nft-title">${name}
+                  ${l.meta.maxSupply ? `<span class="nft-supply">· Max: ${l.meta.maxSupply}</span>` : ''}
+                </div>
+                <div class="nft-description">${desc ? desc.substring(0, 60) + (desc.length > 60 ? '...' : '') : ''}</div>
+                <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">Seller: ${formatAddress(l.seller)}</div>
+              </div>
+            </div>
+            <div class="nft-actions">
+              <div class="price-tab">${price} MATIC</div>
+              <button class="buy-btn" onclick="buyUserListing('${l.id}', '${l.seller}', '${l.price}', '${l.amount}')" ${!userAccount ? 'disabled' : ''}>Buy</button>
+            </div>
+          </li>`;
+        }
+        listingsGrid.innerHTML = html;
+        loading.style.display = "none";
+        listingsGrid.style.display = "block";
+        updateStatus(`User listings loaded`);
+      } catch (error) {
+        logError(error, 'User Listings Loading');
+        showError("listings-error", "Failed to load user listings: " + error.message);
+      }
+    }
+
+    window.buyUserListing = async function(tokenId, seller, priceWei, availableAmount) {
+      if (!userAccount) return updateStatus("Connect your wallet first!");
+      let amount = 1;
+      if (availableAmount > 1) {
+        let input = prompt(`How many would you like to buy from user? (max ${availableAmount})`, "1");
+        if (!input) return;
+        amount = parseInt(input);
+        if (isNaN(amount) || amount < 1 || amount > availableAmount) return updateStatus("Invalid amount");
+      }
+      try {
+        updateStatus('Processing purchase...');
+        // The contract's buyNFT handles any available listing, including user ones;
+        // if contract expects to buy from a specific seller, you need to add a buyFromSeller method.
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
+          value: (BigInt(priceWei) * BigInt(amount)).toString()
+        });
+        updateStatus('NFT bought successfully!');
+        loadShopNFTs(); loadUserNFTs(); loadUserListings();
+      } catch (error) {
+        logError(error, 'NFT User Listing Purchase');
+        updateStatus('Purchase failed: ' + error.message);
+      }
+    };
+
     function showTab(tab) {
       document.getElementById('tab-content-shop').style.display = 'none';
       document.getElementById('tab-content-mynfts').style.display = 'none';
+      document.getElementById('tab-content-listings').style.display = 'none';
       document.getElementById(`tab-content-${tab}`).style.display = 'block';
       document.getElementById('tab-shop').classList.remove('active');
       document.getElementById('tab-mynfts').classList.remove('active');
+      document.getElementById('tab-listings').classList.remove('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
       if (tab === 'shop') loadShopNFTs();
       else if (tab === 'mynfts') loadUserNFTs();
+      else if (tab === 'listings') loadUserListings();
     }
 
     // BUY NFT
@@ -669,7 +782,7 @@
           value: (BigInt(priceWei) * BigInt(amount)).toString()
         });
         updateStatus('NFT bought successfully!');
-        loadShopNFTs(); loadUserNFTs();
+        loadShopNFTs(); loadUserNFTs(); loadUserListings();
       } catch (error) {
         logError(error, 'NFT Purchase');
         updateStatus('Purchase failed: ' + error.message);
@@ -709,7 +822,7 @@
         await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
         updateStatus('NFT listed for sale!');
         closeSellModal();
-        loadShopNFTs(); loadUserNFTs();
+        loadShopNFTs(); loadUserNFTs(); loadUserListings();
       } catch (error) {
         logError(error, 'NFT Sale');
         updateStatus('Sale listing failed: ' + error.message);
@@ -729,12 +842,12 @@
         const connectBtn = document.getElementById("connect-btn");
         connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
         if (userAccount) {
-          setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); updateStatus('Account changed'); });
+          setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); loadUserListings(); updateStatus('Account changed'); });
         } else { updateStatus('Wallet disconnected'); }
       });
       window.ethereum.on('chainChanged', function (chainId) {
         updateStatus('Network changed - reconnecting...');
-        setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); updateStatus('Network changed'); });
+        setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); loadUserListings(); updateStatus('Network changed'); });
       });
     }
     window.addEventListener("DOMContentLoaded", async () => {
@@ -742,6 +855,7 @@
         updateStatus('Initializing...');
         await setupContracts();
         await loadShopNFTs();
+        await loadUserListings();
         updateStatus('Ready');
       } catch (error) {
         logError(error, 'Initialization');
