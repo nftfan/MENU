@@ -545,6 +545,16 @@
         return null;
       }
     }
+	
+	let permanentlySoldOutIds = JSON.parse(localStorage.getItem('nftfans_permanently_sold_out_ids') || '[]');
+
+    function markPermanentlySoldOut(tokenId) {
+      if (!permanentlySoldOutIds.includes(tokenId)) {
+        permanentlySoldOutIds.push(tokenId);
+        localStorage.setItem('nftfans_permanently_sold_out_ids', JSON.stringify(permanentlySoldOutIds));
+      }
+    }
+
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
@@ -561,6 +571,7 @@
         updateStatus(`Loading metadata for ${ids.length} NFTs...`);
         const metaArr = await Promise.all(uris.map((uri, i) => fetchOpenSeaMeta(uri)));
         let html = "";
+        let visibleCount = 0;
         for (let i = 0; i < ids.length; i++) {
           const id = ids[i], meta = metaArr[i],
                 name = meta?.name || `NFTFAN #${id}`,
@@ -569,9 +580,16 @@
                 price = web3.utils.fromWei(prices[i], "ether"),
                 forSale = isForSale[i], available = shopAmounts[i],
                 maxSupply = maxSupplies ? maxSupplies[i] : '';
+          // Skip if sold out and mark as permanently sold out
+          if ((available == "0" || available == 0) || !forSale) {
+            markPermanentlySoldOut(id);
+            continue;
+          }
+          // Also skip if marked permanently sold out in storage
+          if (permanentlySoldOutIds.includes(id)) continue;
           html += `<li class="nft-post">
             <div class="nft-post-left">
-              <span class="serial-number">${i+1}</span>
+              <span class="serial-number">${++visibleCount}</span>
               <img class="nft-avatar" src="${img}" alt="NFT ${name}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
               <div class="nft-content">
                 <div class="nft-title">${name}
@@ -582,13 +600,17 @@
             </div>
             <div class="nft-actions">
               <div class="price-tab">${price} MATIC</div>
-              ${(forSale && available != "0") ? `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${!userAccount ? 'disabled' : ''}>Buy</button>` : `<div class="sold-out">Sold Out</div>`}
+              <button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${!userAccount ? 'disabled' : ''}>Buy</button>
             </div>
           </li>`;
         }
         shopGrid.innerHTML = html;
         loading.style.display = "none";
-        shopGrid.style.display = "block";
+        shopGrid.style.display = visibleCount > 0 ? "block" : "none";
+        if (visibleCount === 0) {
+          loading.textContent = "No NFTs available in shop.";
+          loading.style.display = "block";
+        }
         updateStatus(`Shop loaded`);
       } catch (error) {
         logError(error, 'Shop Loading');
@@ -765,7 +787,6 @@
       else if (tab === 'listings') loadUserListings();
     }
 
-    // BUY NFT
     window.buyNFT = async function(tokenId, priceWei, availableAmount) {
       if (!userAccount) return updateStatus("Connect your wallet first!");
       let amount = 1;
@@ -782,12 +803,16 @@
           value: (BigInt(priceWei) * BigInt(amount)).toString()
         });
         updateStatus('NFT bought successfully!');
-        loadShopNFTs(); loadUserNFTs(); loadUserListings();
+        // After purchase, reload and check for sold out
+        await loadShopNFTs();
+        loadUserNFTs();
+        loadUserListings();
       } catch (error) {
         logError(error, 'NFT Purchase');
         updateStatus('Purchase failed: ' + error.message);
       }
     };
+
 
     // SELL MODAL LOGIC
     window.openSellModal = function(tokenId, maxAmount) {
