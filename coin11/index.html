@@ -488,6 +488,44 @@ textarea,
 select {
   font-size: 16px !important;
 }
+
+.delist-btn {
+  font-size: 9px;
+  padding: 5px 13px;
+  border-radius: 16px;
+  border: none;
+  background-color: #e53e3e;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+  box-shadow: 0 1px 2px #0008;
+  letter-spacing: 0.1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.delist-btn .material-icons {
+  font-size: 13px;
+  margin-bottom: 1px;
+}
+.delist-btn:disabled {
+  background: #222a46;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.delist-btn:hover:not(:disabled) {
+  background-color: #ff4d4d;
+}
+@media (max-width: 600px) {
+  .delist-btn {
+    font-size: 8px;
+    padding: 4px 10px;
+  }
+  .delist-btn .material-icons {
+    font-size: 12px;
+  }
+}
   </style>
 </head>
 <body>
@@ -1357,11 +1395,6 @@ select {
     const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
     console.log("tokensOfOwner result:", tokens);
     const { tokenIds, amounts } = tokens;
-    if (!tokenIds.length) {
-      loading.textContent = "You own no NFTs yet.";
-      updateStatus("No NFTs owned", "info");
-      return;
-    }
     let metaArr = await Promise.all(
       tokenIds.map(async (id, idx) => {
         try {
@@ -1374,6 +1407,7 @@ select {
           let userListings = listings
             .map((l, index) => ({ ...l, listingIndex: index }))
             .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
+          console.log(`User listings for token ${id}:`, userListings);
           return { id, amount: amounts[idx], meta, metaJson, userListings };
         } catch (e) {
           console.error(`Failed to load data for token ${id}:`, e);
@@ -1381,6 +1415,40 @@ select {
         }
       })
     );
+    // Include NFTs with listings even if amount is 0
+    let additionalListings = [];
+    const allShopNFTs = await nftfanShop.methods.getShopNFTs().call();
+    for (let i = 0; i < allShopNFTs.ids.length; i++) {
+      const id = allShopNFTs.ids[i];
+      if (!tokenIds.includes(id)) {
+        try {
+          let listings = await nftfanShop.methods.getListings(id).call();
+          let userListings = listings
+            .map((l, index) => ({ ...l, listingIndex: index }))
+            .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
+          if (userListings.length > 0) {
+            let meta = await nftfanShop.methods.nftInfo(id).call();
+            let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+            additionalListings.push({
+              id,
+              amount: 0,
+              meta,
+              metaJson,
+              userListings
+            });
+            console.log(`Added token ${id} with listings but no ownership`);
+          }
+        } catch (e) {
+          console.error(`Failed to check listings for token ${id}:`, e);
+        }
+      }
+    }
+    metaArr = metaArr.concat(additionalListings);
+    if (!metaArr.length) {
+      loading.textContent = "You own no NFTs and have no active listings.";
+      updateStatus("No NFTs or listings found", "info");
+      return;
+    }
     let html = "";
     for (let i = 0; i < metaArr.length; i++) {
       const item = metaArr[i];
@@ -1399,8 +1467,8 @@ select {
               <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
                 <span>Price: ${web3.utils.fromWei(l.price, "ether")} MATIC</span>
                 <span>Amount: ${l.amount}</span>
-                <button class="cancel-btn" onclick="cancelListing(${id}, ${l.listingIndex})">
-                  <span class="material-icons">cancel</span>Cancel
+                <button class="delist-btn" onclick="cancelListing(${id}, ${l.listingIndex})">
+                  <span class="material-icons">cancel</span>Delist
                 </button>
               </div>`
           )
@@ -1587,24 +1655,24 @@ select {
     }
   };
 
-  window.cancelListing = async function (tokenId, listingIndex) {
-    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-    if (!confirm("Are you sure you want to cancel this listing?")) return;
-    try {
-      updateStatus("Cancelling listing...", "info");
-      await nftfanShop.methods
-        .cancelListing(tokenId, listingIndex)
-        .send({ from: userAccount });
-      updateStatus("Listing cancelled successfully!", "success");
-      await loadShopNFTs();
-      await loadUserNFTs();
-      await loadUserListings();
-    } catch (error) {
-      console.error("cancelListing failed:", error);
-      logError(error, "Cancel Listing");
-      updateStatus("Cancel failed: " + error.message, "error");
-    }
-  };
+ window.cancelListing = async function (tokenId, listingIndex) {
+  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+  if (!confirm("Are you sure you want to delist this NFT?")) return;
+  try {
+    updateStatus("Delisting NFT...", "info");
+    await nftfanShop.methods
+      .cancelListing(tokenId, listingIndex)
+      .send({ from: userAccount });
+    updateStatus("NFT delisted successfully!", "success");
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
+  } catch (error) {
+    console.error("cancelListing failed:", error);
+    logError(error, "Delist NFT");
+    updateStatus("Delist failed: " + error.message, "error");
+  }
+};
 
   window.openSellModal = function (tokenId, maxAmount) {
     sellModalTokenId = tokenId;
@@ -1704,25 +1772,46 @@ select {
       });
   }
 
-  window.addEventListener("DOMContentLoaded", async () => {
-    try {
-      updateStatus("Initializing...", "info");
-      await setupContracts();
-      await loadShopNFTs();
-      await loadUserListings();
-      updateStatus("Ready", "success");
-    } catch (error) {
-      console.error("Initialization failed:", error);
-      logError(error, "Initialization");
-      updateStatus("Initialization failed: " + error.message, "error");
-      showError("shop-error", "Failed to initialize the application. Please refresh.");
-    }
-  });
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    console.log('Initializing app...');
+    updateStatus("Initializing...", "info");
+    await setupContracts();
+    console.log('Contracts set up successfully');
+    await loadShopNFTs();
+    console.log('Shop NFTs loaded');
+    await loadUserListings();
+    console.log('User listings loaded');
+    await loadUserNFTs();
+    console.log('User NFTs loaded');
+    updateStatus("Ready", "success");
+    // Bind tab button events
+    const tabButtons = {
+      'listings': document.getElementById('tab-listings'),
+      'shop': document.getElementById('tab-shop'),
+      'mynfts': document.getElementById('tab-mynfts')
+    };
+    Object.keys(tabButtons).forEach(tab => {
+      if (tabButtons[tab]) {
+        tabButtons[tab].addEventListener('click', () => {
+          console.log(`Tab button clicked: ${tab}`);
+          showTab(tab);
+        });
+      } else {
+        console.error(`Tab button not found: tab-${tab}`);
+      }
+    });
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    logError(error, "Initialization");
+    updateStatus("Initialization failed: " + error.message, "error");
+    showError("shop-error", "Failed to initialize the application. Please refresh.");
+  }
+});
   
-  function showTab(tab) {
+function showTab(tab) {
   try {
     console.log(`Switching to tab: ${tab}`);
-    // Hide all tab contents
     const tabContents = ['shop', 'mynfts', 'listings'];
     tabContents.forEach((t) => {
       const content = document.getElementById(`tab-content-${t}`);
@@ -1732,14 +1821,12 @@ select {
         console.error(`Tab content element not found: tab-content-${t}`);
       }
     });
-    // Show selected tab content
     const selectedContent = document.getElementById(`tab-content-${tab}`);
     if (selectedContent) {
       selectedContent.style.display = 'block';
     } else {
       throw new Error(`Invalid tab content ID: tab-content-${tab}`);
     }
-    // Update active tab button
     tabContents.forEach((t) => {
       const btn = document.getElementById(`tab-${t}`);
       if (btn) {
@@ -1754,7 +1841,6 @@ select {
     } else {
       throw new Error(`Invalid tab button ID: tab-${tab}`);
     }
-    // Load data for the selected tab
     if (tab === 'shop') {
       loadShopNFTs().catch((e) => {
         console.error('loadShopNFTs failed in showTab:', e);
