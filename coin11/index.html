@@ -1340,106 +1340,105 @@ select {
   }
 
   async function loadUserNFTs() {
-    const myGrid = document.getElementById("myGrid");
-    const loading = document.getElementById("my-loading");
-    myGrid.innerHTML = "";
-    loading.style.display = "block";
-    myGrid.style.display = "none";
-    hideError("my-error");
-    if (!userAccount) {
-      loading.textContent = "Connect wallet to view your NFTs.";
-      updateStatus("Connect wallet to view your NFTs", "info");
+  const myGrid = document.getElementById("myGrid");
+  const loading = document.getElementById("my-loading");
+  myGrid.innerHTML = "";
+  loading.style.display = "block";
+  myGrid.style.display = "none";
+  hideError("my-error");
+  if (!userAccount) {
+    loading.textContent = "Connect wallet to view your NFTs.";
+    updateStatus("Connect wallet to view your NFTs", "info");
+    return;
+  }
+  try {
+    updateStatus("Loading your NFTs...", "info");
+    if (!nftfanShop) await setupContracts();
+    const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
+    console.log("tokensOfOwner result:", tokens);
+    const { tokenIds, amounts } = tokens;
+    if (!tokenIds.length) {
+      loading.textContent = "You own no NFTs yet.";
+      updateStatus("No NFTs owned", "info");
       return;
     }
-    try {
-      updateStatus("Loading your NFTs...", "info");
-      if (!nftfanShop) await setupContracts();
-      const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-      console.log("tokensOfOwner result:", tokens);
-      const { tokenIds, amounts } = tokens;
-      if (!tokenIds.length) {
-        loading.textContent = "You own no NFTs yet.";
-        updateStatus("No NFTs owned", "info");
-        return;
-      }
-      let metaArr = await Promise.all(
-        tokenIds.map(async (id, idx) => {
-          try {
-            let meta = await nftfanShop.methods.nftInfo(id).call();
-            console.log(`nftInfo for token ${id}:`, meta);
-            let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-            console.log(`Metadata for token ${id}:`, metaJson);
-            let listings = await nftfanShop.methods.getListings(id).call();
-            console.log(`Listings for token ${id}:`, listings);
-            let userListings = listings
-              .map((l, index) => ({ ...l, listingIndex: index }))
-              .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
-            return { id, amount: amounts[idx], meta, metaJson, userListings };
-          } catch (e) {
-            console.error(`Failed to load data for token ${id}:`, e);
-            return { id, amount: amounts[idx], meta: null, metaJson: null, userListings: [] };
-          }
-        })
-      );
-      let html = "";
-      for (let i = 0; i < metaArr.length; i++) {
-        const item = metaArr[i];
-        const { id, amount, meta, metaJson, userListings } = item;
-        const name = metaJson?.name || `NFTFAN #${id}`;
-        const img =
-          metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
-        const desc = metaJson?.description || "";
-        const maxSupply = meta?.maxSupply || "";
-        let listingsHtml = "";
-        if (userListings.length > 0) {
-          listingsHtml = `<div class="nft-listings" style="margin-top:5px;font-size:8px;color:#93c5fd;">Your Listings:</div>`;
-          listingsHtml += userListings
-            .map(
-              (l, idx) => `
-                <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
-                  <span>Price: ${web3.utils.fromWei(l.price, "ether")} MATIC</span>
-                  <span>Amount: ${l.amount}</span>
-                  <button class="cancel-btn" onclick="cancelListing(${id}, ${l.listingIndex})">
-                    <span class="material-icons">cancel</span>Cancel
-                  </button>
-                </div>`
-            )
-            .join("");
+    let metaArr = await Promise.all(
+      tokenIds.map(async (id, idx) => {
+        try {
+          let meta = await nftfanShop.methods.nftInfo(id).call();
+          console.log(`nftInfo for token ${id}:`, meta);
+          let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+          console.log(`Metadata for token ${id}:`, metaJson);
+          let listings = await nftfanShop.methods.getListings(id).call();
+          console.log(`Listings for token ${id}:`, listings);
+          let userListings = listings
+            .map((l, index) => ({ ...l, listingIndex: index }))
+            .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
+          return { id, amount: amounts[idx], meta, metaJson, userListings };
+        } catch (e) {
+          console.error(`Failed to load data for token ${id}:`, e);
+          return { id, amount: amounts[idx], meta: null, metaJson: null, userListings: [] };
         }
-        html += `<li class="nft-post">
-          <div class="nft-post-left">
-            <span class="serial-number">${i + 1}</span>
-            <img class="nft-avatar" src="${img}" alt="NFT ${name}" 
-                 onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-            <div class="nft-content">
-              <div class="nft-title">${name}
-                ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ""}
-              </div>
-              <div class="nft-description">${
-                desc ? desc.substring(0, 60) + (desc.length > 60 ? "..." : "") : ""
-              }</div>
-              <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">You own: ${amount}</div>
-              <button class="sell-btn" style="margin-top:5px;width:90px;" 
-                      onclick="openSellModal(${id}, ${amount})" 
-                      ${amount == 0 ? "disabled" : ""}>
-                <span class="material-icons">sell</span>Sell
-              </button>
-              ${listingsHtml}
-            </div>
-          </div>
-        </li>`;
+      })
+    );
+    let html = "";
+    for (let i = 0; i < metaArr.length; i++) {
+      const item = metaArr[i];
+      const { id, amount, meta, metaJson, userListings } = item;
+      const name = metaJson?.name || `NFTFAN #${id}`;
+      const img =
+        metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
+      const desc = metaJson?.description || "";
+      const maxSupply = meta?.maxSupply || "";
+      let listingsHtml = "";
+      if (userListings.length > 0) {
+        listingsHtml = `<div class="nft-listings" style="margin-top:5px;font-size:8px;color:#93c5fd;">Your Listings:</div>`;
+        listingsHtml += userListings
+          .map(
+            (l, idx) => `
+              <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
+                <span>Price: ${web3.utils.fromWei(l.price, "ether")} MATIC</span>
+                <span>Amount: ${l.amount}</span>
+                <button class="cancel-btn" onclick="cancelListing(${id}, ${l.listingIndex})">
+                  <span class="material-icons">cancel</span>Cancel
+                </button>
+              </div>`
+          )
+          .join("");
       }
-      myGrid.innerHTML = html;
-      loading.style.display = "none";
-      myGrid.style.display = "block";
-      updateStatus("Your NFTs loaded", "success");
-    } catch (error) {
-      console.error("loadUserNFTs failed:", error);
-      logError(error, "User NFTs Loading");
-      showError("my-error", "Failed to load your NFTs: " + error.message);
+      html += `<li class="nft-post">
+        <div class="nft-post-left">
+          <span class="serial-number">${i + 1}</span>
+          <img class="nft-avatar" src="${img}" alt="NFT ${name}" 
+               onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+          <div class="nft-content">
+            <div class="nft-title">${name}
+              ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ""}
+            </div>
+            <div class="nft-description">${
+              desc ? desc.substring(0, 60) + (desc.length > 60 ? "..." : "") : ""
+            }</div>
+            <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">You own: ${amount}</div>
+            <button class="sell-btn" style="margin-top:5px;width:90px;" 
+                    onclick="openSellModal(${id}, ${amount})" 
+                    ${amount == 0 ? "disabled" : ""}>
+              <span class="material-icons">sell</span>Sell
+            </button>
+            ${listingsHtml}
+          </div>
+        </div>
+      </li>`;
     }
+    myGrid.innerHTML = html;
+    loading.style.display = "none";
+    myGrid.style.display = "block";
+    updateStatus("Your NFTs loaded", "success");
+  } catch (error) {
+    console.error("loadUserNFTs failed:", error);
+    logError(error, "User NFTs Loading");
+    showError("my-error", "Failed to load your NFTs: " + error.message);
   }
-
+}
   async function loadUserListings() {
     const listingsGrid = document.getElementById("listingsGrid");
     const loading = document.getElementById("listings-loading");
