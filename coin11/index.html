@@ -1719,6 +1719,68 @@ select {
       showError("shop-error", "Failed to initialize the application. Please refresh.");
     }
   });
+  
+  function showTab(tab) {
+  try {
+    console.log(`Switching to tab: ${tab}`);
+    // Hide all tab contents
+    const tabContents = ['shop', 'mynfts', 'listings'];
+    tabContents.forEach((t) => {
+      const content = document.getElementById(`tab-content-${t}`);
+      if (content) {
+        content.style.display = 'none';
+      } else {
+        console.error(`Tab content element not found: tab-content-${t}`);
+      }
+    });
+    // Show selected tab content
+    const selectedContent = document.getElementById(`tab-content-${tab}`);
+    if (selectedContent) {
+      selectedContent.style.display = 'block';
+    } else {
+      throw new Error(`Invalid tab content ID: tab-content-${tab}`);
+    }
+    // Update active tab button
+    tabContents.forEach((t) => {
+      const btn = document.getElementById(`tab-${t}`);
+      if (btn) {
+        btn.classList.remove('active');
+      } else {
+        console.error(`Tab button element not found: tab-${t}`);
+      }
+    });
+    const selectedBtn = document.getElementById(`tab-${tab}`);
+    if (selectedBtn) {
+      selectedBtn.classList.add('active');
+    } else {
+      throw new Error(`Invalid tab button ID: tab-${tab}`);
+    }
+    // Load data for the selected tab
+    if (tab === 'shop') {
+      loadShopNFTs().catch((e) => {
+        console.error('loadShopNFTs failed in showTab:', e);
+        updateStatus('Failed to load shop NFTs', 'error');
+      });
+    } else if (tab === 'mynfts') {
+      loadUserNFTs().catch((e) => {
+        console.error('loadUserNFTs failed in showTab:', e);
+        updateStatus('Failed to load your NFTs', 'error');
+      });
+    } else if (tab === 'listings') {
+      loadUserListings().catch((e) => {
+        console.error('loadUserListings failed in showTab:', e);
+        updateStatus('Failed to load user listings', 'error');
+      });
+    } else {
+      throw new Error(`Invalid tab: ${tab}`);
+    }
+    console.log(`Tab switched successfully: ${tab}`);
+  } catch (error) {
+    console.error('showTab failed:', error);
+    updateStatus(`Failed to switch to ${tab} tab: ${error.message}`, 'error');
+  }
+}
+
 </script>
 
 </body>
