@@ -653,7 +653,9 @@ select {
   <!-- Sell Modal -->
   <div id="sellModal">
     <div id="sellModalContent">
-      <button id="sellModalClose" onclick="closeSellModal()" title="Close"><span class="material-icons">close</span></button>
+      <button id="userListingsModalClose" onclick="closeUserListingsModal()" title="Close">
+  <span class="material-icons">close</span>
+</button>
       <h3>
         <span class="material-icons">sell</span>
         Sell Your NFT
@@ -831,6 +833,7 @@ async function connectWallet() {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     userAccount = accounts[0];
     document.getElementById("connect-btn").textContent = formatAddress(userAccount);
+    document.getElementById("my-listings-btn").style.display = "inline-block"; // Show My Listings button
     await setupContracts();
     updateStatus('Connected successfully');
     loadShopNFTs();
@@ -1114,6 +1117,35 @@ window.buyUserListing = async function(tokenId, seller, priceWei, availableAmoun
   }
 };
 
+async function fetchUserListings() {
+  if (!userAccount || !nftfanShop) return [];
+  try {
+    const result = await nftfanShop.methods.getShopNFTs().call();
+    const { ids } = result;
+    let userListings = [];
+    for (let id of ids) {
+      const listings = await nftfanShop.methods.getListings(id).call();
+      listings.forEach((listing, index) => {
+        if (
+          listing.seller.toLowerCase() === userAccount.toLowerCase() &&
+          Number(listing.amount) > 0
+        ) {
+          userListings.push({
+            tokenId: id,
+            listingIndex: index,
+            amount: listing.amount,
+            price: listing.price,
+          });
+        }
+      });
+    }
+    return userListings;
+  } catch (error) {
+    console.error("Error fetching user listings:", error);
+    return [];
+  }
+}
+
 function showTab(tab) {
   document.getElementById('tab-content-shop').style.display = 'none';
   document.getElementById('tab-content-mynfts').style.display = 'none';
@@ -1233,7 +1265,77 @@ function formatAddress(address) {
   if (!address) return '';
   return `${address.slice(0, 5)}...${address.slice(-4)}`;
 }
+
+async function openUserListingsModal() {
+  const modal = document.getElementById("userListingsModal");
+  const tableBody = document.getElementById("userListingsTable").querySelector("tbody");
+  const emptyMessage = document.getElementById("userListingsEmpty");
+  
+  // Clear previous content
+  tableBody.innerHTML = "";
+  emptyMessage.style.display = "none";
+  
+  // Show modal
+  modal.style.display = "flex";
+  
+  try {
+    const listings = await fetchUserListings();
+    if (listings.length === 0) {
+      emptyMessage.style.display = "block";
+    } else {
+      listings.forEach((listing) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${listing.tokenId}</td>
+          <td>${listing.amount}</td>
+          <td>${web3.utils.fromWei(listing.price, "ether")}</td>
+          <td>
+            <button class="cancel-listing-btn" onclick="cancelUserListing('${listing.tokenId}', '${listing.listingIndex}')">
+              <span class="material-icons">cancel</span>Cancel
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+  } catch (error) {
+    console.error("Failed to load user listings:", error);
+    emptyMessage.textContent = "Failed to load listings.";
+    emptyMessage.style.display = "block";
+  }
+}
+
+async function cancelUserListing(tokenId, listingIndex) {
+  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+  try {
+    updateStatus("Canceling listing...");
+    await nftfanShop.methods.cancelListing(tokenId, listingIndex).send({ from: userAccount });
+    updateStatus("Listing canceled successfully!", "success");
+    // Refresh UI
+    openUserListingsModal();
+    loadShopNFTs();
+    loadUserNFTs();
+    loadUserListings();
+  } catch (error) {
+    logError(error, "Cancel Listing");
+    updateStatus("Cancel failed: " + error.message, "error");
+  }
+}
+
+function closeUserListingsModal() {
+  document.getElementById("userListingsModal").style.display = "none";
+}
+
+window.ethereum.on('accountsChanged', function (accounts) {
+  userAccount = accounts[0] || null;
+  const connectBtn = document.getElementById("connect-btn");
+  connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
+  document.getElementById("my-listings-btn").style.display = userAccount ? "inline-block" : "none"; // Toggle visibility
+  if (userAccount) {
+    setupContracts().then(() => { loadShopNFTs(); loadUserNFTs(); loadUserListings(); updateStatus('Account changed', "info"); });
+  } else { updateStatus('Wallet disconnected', "warn"); }
+});
+
   </script>
 </body>
 </html>
-
