@@ -76,26 +76,10 @@ body {
   border: none;
   color: #93c5fd;
 }
-.nftfan-balance-bar {
-  display: flex;
-  align-items: center;
-  margin-right: auto;
-  font-size: 8px;
-  color: #89c9ff;
-  background: #1a2336;
-  border-radius: 6px;
-  padding: 2px 7px 2px 2px;
-  gap: 2px;
-  font-weight: 500;
-}
-.nftfan-token-icon {
-  width: 15px;
-  height: 15px;
-  margin-right: 2px;
-}
+
 .connect-btn {
   padding: 4px 8px;
-  background: #121d33;
+  
   border: 1px solid #3b82f6;
   border-radius: 5px;
   cursor: pointer;
@@ -684,9 +668,9 @@ input, textarea, select {
       <input type="number" id="sellAmountInput" min="1" placeholder="Amount to sell">
       <input type="number" id="sellPriceInput" step="0.000000000000000001" placeholder="Price per NFT (MATIC)">
       <div style="display:flex;gap:7px;width:100%;justify-content:flex-start;">
-        <button onclick="confirmSellNFT()">
-          <span class="material-icons">check_circle</span>Sell
-        </button>
+       <button onclick="confirmSell()">
+  <span class="material-icons">check_circle</span>Sell
+</button>
         <button onclick="closeSellModal()" class="cancel-btn">
           <span class="material-icons">cancel</span>Cancel
         </button>
@@ -1966,24 +1950,31 @@ window.confirmSell = async function () {
     document.getElementById("sellModalError").style.display = "block";
     return;
   }
+
   const amount = parseInt(document.getElementById("sellAmountInput").value);
   const price = document.getElementById("sellPriceInput").value;
+
   if (isNaN(amount) || amount < 1 || amount > sellModalMaxAmount) {
     document.getElementById("sellModalError").textContent = "Invalid amount.";
     document.getElementById("sellModalError").style.display = "block";
     return;
   }
+
   if (!price || isNaN(price) || parseFloat(price) <= 0) {
     document.getElementById("sellModalError").textContent = "Invalid price.";
     document.getElementById("sellModalError").style.display = "block";
     return;
   }
+
   try {
     updateStatus("Listing NFT for sale...", "info");
     const priceWei = web3.utils.toWei(price, "ether");
+
+    // ✅ Fixed here: changed listNFT to sellNFT
     await nftfanShop.methods
-      .listNFT(sellModalTokenId, amount, priceWei)
+      .sellNFT(sellModalTokenId, amount, priceWei)
       .send({ from: userAccount });
+
     updateStatus("NFT listed successfully!", "success");
     closeSellModal();
     await loadShopNFTs();
@@ -1997,6 +1988,7 @@ window.confirmSell = async function () {
     document.getElementById("sellModalError").style.display = "block";
   }
 };
+
 
 function formatAddress(address) {
   if (!address) return "Unknown";
