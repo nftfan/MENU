@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BookTok: Swipe Books</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <!-- Material Icons CDN -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --accent: #ffd600;
+      --bg: #000;
+      --card-bg: #1a1a1a;
+      --text: #ffffff;
+      --text-secondary: #bfc5d1;
+      --border: #333;
+      --overlay: rgba(0,0,0,0.7);
+    }
+    
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      overflow: hidden;
+      touch-action: pan-y;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    body {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, #42a5f5 100%);
+      padding: 8px 16px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    
+    .top-bar select {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 8px 32px 8px 12px;
+      margin-left: 12px;
+      outline: none;
+      appearance: none;
+      backdrop-filter: blur(10px);
+      flex: 1;
+    }
+    
+    .category-icon {
+      font-size: 28px;
+      color: var(--accent);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .book-container {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      overflow: hidden;
+    }
+    
+    .book-card {
+      position: absolute;
+      width: 100vw;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 100px 16px;
+    }
+    
+    .book-cover {
+      width: calc(100vw - 32px);
+      max-width: 350px;
+      height: auto;
+      max-height: calc(100vh - 200px);
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      background: var(--card-bg);
+      flex-shrink: 0;
+    }
+    
+    .book-details {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, var(--overlay) 20%, var(--bg) 70%);
+      padding: 80px 20px 20px 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    
+    .book-title {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 8px;
+      line-height: 1.3;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    
+    .book-author {
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .book-year, .book-publisher {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+    
+    .book-subjects {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+    
+    .book-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--accent);
+      font-size: 14px;
+      text-decoration: none;
+      background: rgba(26,115,232,0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      border: 1px solid rgba(26,115,232,0.3);
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+    
+    .book-link:active {
+      background: var(--primary);
+      color: white;
+      transform: scale(0.95);
+    }
+    
+    .nav-btns {
+      position: fixed;
+      left: 20px;
+      right: 20px;
+      bottom: 120px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 20;
+      pointer-events: none;
+    }
+    
+    .nav-btn {
+      background: rgba(26,115,232,0.8);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      box-shadow: 0 4px 16px rgba(26,115,232,0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      pointer-events: auto;
+      backdrop-filter: blur(10px);
+    }
+    
+    .nav-btn:active {
+      background: var(--primary);
+      transform: scale(0.9);
+      box-shadow: 0 2px 8px rgba(26,115,232,0.6);
+    }
+    
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 500;
+      text-align: center;
+      z-index: 10;
+    }
+    
+    /* Swipe indicator */
+    .swipe-indicator {
+      position: fixed;
+      bottom: 200px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.5);
+      font-size: 12px;
+      z-index: 15;
+      animation: fadeInOut 3s infinite;
+    }
+    
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+    
+    /* Improved animations */
+    .book-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+    
+    .book-cover {
+      transition: transform 0.2s ease;
+    }
+    
+    .book-cover:active {
+      transform: scale(0.98);
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-height: 700px) {
+      .book-cover {
+        max-height: calc(100vh - 180px);
+      }
+      .book-details {
+        padding: 60px 20px 20px 20px;
+      }
+      .nav-btns {
+        bottom: 100px;
+      }
+    }
+    
+    @media (max-height: 600px) {
+      .book-cover {
+        max-height: calc(100vh - 160px);
+      }
+      .book-title {
+        font-size: 16px;
+      }
+      .book-author {
+        font-size: 13px;
+      }
+    }
+    
+    /* Notch support for newer iPhones */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      .top-bar {
+        padding-top: max(8px, env(safe-area-inset-top));
+        height: calc(60px + env(safe-area-inset-top));
+      }
+      .book-container {
+        top: calc(60px + env(safe-area-inset-top));
+      }
+      .book-details {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <span class="material-icons category-icon" id="category-icon">science</span>
+    <select id="category-dropdown">
+      <option value="physics" data-icon="science">Physics</option>
+      <option value="math" data-icon="calculate">Mathematics</option>
+      <option value="history" data-icon="history_edu">History</option>
+      <option value="literature" data-icon="menu_book">Literature</option>
+      <option value="computer science" data-icon="computer">Computer Science</option>
+      <option value="art" data-icon="palette">Art</option>
+      <option value="biology" data-icon="biotech">Biology</option>
+      <option value="music" data-icon="music_note">Music</option>
+      <option value="comics" data-icon="auto_stories">Comics</option>
+      <option value="philosophy" data-icon="psychology">Philosophy</option>
+      <option value="medicine" data-icon="healing">Medicine</option>
+      <option value="engineering" data-icon="precision_manufacturing">Engineering</option>
+      <option value="business" data-icon="business_center">Business</option>
+      <option value="psychology" data-icon="psychology_alt">Psychology</option>
+      <option value="sports" data-icon="sports_soccer">Sports</option>
+      <option value="travel" data-icon="flight_takeoff">Travel</option>
+      <option value="cookbooks" data-icon="restaurant_menu">Cookbooks</option>
+      <option value="poetry" data-icon="edit_note">Poetry</option>
+      <option value="children" data-icon="child_care">Children's Books</option>
+      <option value="languages" data-icon="language">Languages</option>
+      <option value="religion" data-icon="self_improvement">Religion</option>
+      <option value="law" data-icon="gavel">Law</option>
+      <option value="geography" data-icon="public">Geography</option>
+    </select>
+  </div>
+  
+  <div class="book-container" id="book-container">
+    <div id="loading">
+      <div class="spinner"></div>
+      Loading...
+    </div>
+  </div>
+  
+  <div class="swipe-indicator" id="swipe-indicator">
+    Swipe up/down to browse books
+  </div>
+  
+  <div class="nav-btns">
+    <button class="nav-btn" id="prev-btn" title="Previous">
+      <span class="material-icons">keyboard_arrow_up</span>
+    </button>
+    <button class="nav-btn" id="next-btn" title="Next">
+      <span class="material-icons">keyboard_arrow_down</span>
+    </button>
+  </div>
+
+  <script>
+    // ---- CATEGORY ICON LOGIC ----
+    const catDropdown = document.getElementById('category-dropdown');
+    const catIcon = document.getElementById('category-icon');
+    const swipeIndicator = document.getElementById('swipe-indicator');
+    
+    function updateCategoryIcon() {
+      const icon = catDropdown.options[catDropdown.selectedIndex].dataset.icon || 'science';
+      catIcon.innerText = icon;
+    }
+    catDropdown.addEventListener('change', updateCategoryIcon);
+
+    // Hide swipe indicator after first interaction
+    let hasInteracted = false;
+    function hideSwipeIndicator() {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        swipeIndicator.style.opacity = '0';
+        setTimeout(() => swipeIndicator.style.display = 'none', 300);
+      }
+    }
+
+    // ---- BOOK BROWSING LOGIC ----
+    let books = [];
+    let bookIndex = 0;
+    let currentPage = 1;
+    let currentCategory = catDropdown.value;
+    let loading = false;
+    let endOfResults = false;
+    const bookContainer = document.getElementById('book-container');
+    const loadingDiv = document.getElementById('loading');
+
+    function getCoverUrl(book) {
+      return book.cover_i
+        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+        : 'https://via.placeholder.com/400x600/1a1a1a/888?text=No+Cover';
+    }
+    
+    function getField(arr) {
+      return Array.isArray(arr) && arr.length ? arr.join(', ') : '';
+    }
+    
+    function getSubjects(book) {
+      if (book.subject) {
+        return book.subject.slice(0, 3).join(', ');
+      }
+      return '';
+    }
+    
+    // Enhanced animation for mobile
+    function animateBookSwap(direction) {
+      const card = document.querySelector('.book-card');
+      if (!card) return;
+      
+      hideSwipeIndicator();
+      
+      card.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease';
+      card.style.transform = `translateY(${direction === "up" ? "-100%" : "100%"}) scale(0.9)`;
+      card.style.opacity = '0';
+      
+      setTimeout(() => {
+        showBook(bookIndex, direction === "up" ? "from-bottom" : "from-top");
+      }, 150);
+    }
+    
+    function showBook(idx, animateFrom) {
+      if (!books.length || !books[idx]) {
+        bookContainer.innerHTML = '<div id="loading">No books found.</div>';
+        return;
+      }
+      
+      const book = books[idx];
+      const coverImg = getCoverUrl(book);
+      const bookUrl = `https://openlibrary.org${book.key}`;
+      const author = getField(book.author_name) || 'Unknown Author';
+      const publisher = getField(book.publisher) || '';
+      const year = book.first_publish_year ? `Published: ${book.first_publish_year}` : '';
+      const subjects = getSubjects(book);
+      
+      const cardHtml = `
+        <div class="book-card" style="opacity:0;transform:translateY(${animateFrom === "from-bottom" ? "100%" : animateFrom === "from-top" ? "-100%" : "0"});">
+          <img class="book-cover" src="${coverImg}" alt="${book.title}" loading="lazy">
+          <div class="book-details">
+            <div class="book-title">${book.title}</div>
+            <div class="book-author">${author}</div>
+            ${year ? `<div class="book-year">${year}</div>` : ''}
+            ${publisher ? `<div class="book-publisher">${publisher}</div>` : ''}
+            ${subjects ? `<div class="book-subjects">${subjects}</div>` : ''}
+            <a class="book-link" href="${bookUrl}" target="_blank">
+              <span class="material-icons" style="font-size:16px;margin-right:4px;">open_in_new</span>
+              View on Open Library
+            </a>
+          </div>
+        </div>
+      `;
+      
+      bookContainer.innerHTML = cardHtml;
+      
+      // Smooth entrance animation
+      setTimeout(() => {
+        const card = document.querySelector('.book-card');
+        if (card) {
+          card.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease';
+          card.style.transform = 'translateY(0) scale(1)';
+          card.style.opacity = '1';
+        }
+      }, 10);
+    }
+    
+    function showLoading(msg = "Loading...") {
+      bookContainer.innerHTML = `
+        <div id="loading">
+          <div class="spinner"></div>
+          ${msg}
+        </div>
+      `;
+    }
+    
+    async function fetchBooks(page = 1, category = currentCategory) {
+      if (loading || endOfResults) return;
+      loading = true;
+      showLoading();
+      
+      try {
+        const query = encodeURIComponent(category);
+        const resp = await fetch(`https://openlibrary.org/search.json?q=${query}&page=${page}&limit=20`);
+        const data = await resp.json();
+        
+        if (Array.isArray(data.docs) && data.docs.length > 0) {
+          // Filter books with covers for better mobile experience
+          const booksWithCovers = data.docs.filter(book => book.cover_i);
+          books = books.concat(booksWithCovers.length > 0 ? booksWithCovers : data.docs);
+          loading = false;
+          showBook(bookIndex);
+        } else {
+          endOfResults = true;
+          showLoading("No more books found in this category.");
+        }
+      } catch (e) {
+        showLoading("Error loading books. Please try again.");
+        loading = false;
+      }
+    }
+    
+    function resetBooks() {
+      books = [];
+      bookIndex = 0;
+      currentPage = 1;
+      endOfResults = false;
+    }
+    
+    function nextBook(smooth = true) {
+      if (bookIndex < books.length - 1) {
+        bookIndex++;
+        if (smooth) animateBookSwap("up");
+        else showBook(bookIndex);
+        
+        // Preload next page if near end
+        if (bookIndex > books.length - 5 && !endOfResults) {
+          fetchBooks(++currentPage, currentCategory);
+        }
+      } else if (!endOfResults) {
+        fetchBooks(++currentPage, currentCategory);
+      }
+    }
+    
+    function prevBook(smooth = true) {
+      if (bookIndex > 0) {
+        bookIndex--;
+        if (smooth) animateBookSwap("down");
+        else showBook(bookIndex);
+      }
+    }
+    
+    // Enhanced touch/swipe support for mobile
+    let startY = null;
+    let startTime = null;
+    const minSwipeDistance = 50;
+    const maxSwipeTime = 300;
+    
+    bookContainer.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+      }
+    }, { passive: true });
+    
+    bookContainer.addEventListener('touchend', e => {
+      if (startY === null) return;
+      
+      const endY = e.changedTouches[0].clientY;
+      const deltaY = endY - startY;
+      const deltaTime = Date.now() - startTime;
+      
+      if (Math.abs(deltaY) > minSwipeDistance && deltaTime < maxSwipeTime) {
+        if (deltaY < 0) nextBook(); // Swipe up
+        else prevBook(); // Swipe down
+      }
+      
+      startY = null;
+      startTime = null;
+    }, { passive: true });
+    
+    // Mouse wheel support for desktop testing
+    bookContainer.addEventListener('wheel', e => {
+      e.preventDefault();
+      if (Math.abs(e.deltaY) < 20) return;
+      if (e.deltaY > 0) nextBook();
+      else prevBook();
+    }, { passive: false });
+    
+    // Keyboard support
+    document.addEventListener('keydown', e => {
+      if (e.key === "ArrowDown" || e.key === " ") {
+        e.preventDefault();
+        nextBook();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        prevBook();
+      }
+    });
+    
+    // Button controls
+    document.getElementById('next-btn').onclick = () => nextBook();
+    document.getElementById('prev-btn').onclick = () => prevBook();
+    
+    // Category change
+    catDropdown.addEventListener('change', () => {
+      currentCategory = catDropdown.value;
+      updateCategoryIcon();
+      resetBooks();
+      fetchBooks(1, currentCategory);
+    });
+    
+    // Initialize app
+    updateCategoryIcon();
+    fetchBooks();
+    
+    // Hide swipe indicator after 5 seconds
+    setTimeout(hideSwipeIndicator, 5000);
+  </script>
+</body>
+</html>
