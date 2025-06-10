@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFANS ERC1155 Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   <style>
+    :root {
+      --neon-green: #00ff88;
+      --neon-cyan: #00ffff;
+      --neon-yellow: #ffff00;
+      --neon-bg: #0a0a0f;
+      --neon-bg-gradient: linear-gradient(135deg, #0a0a0f 0%, #191922 100%);
+      --neon-card: linear-gradient(135deg, rgba(10, 10, 15, 0.96), rgba(20, 20, 30, 0.94));
+      --neon-bar: linear-gradient(90deg, rgba(0,255,136,0.09) 0%, rgba(0,255,255,0.09) 50%, rgba(255,255,0,0.09) 100%);
+      --neon-shadow: 0 0 10px var(--neon-green);
+      --neon-text-shadow: 0 0 2px var(--neon-green);
+      --neon-cyan-shadow: 0 0 2px var(--neon-cyan);
+      --neon-yellow-shadow: 0 0 2px var(--neon-yellow);
+    }
+    html, body {
+      background: var(--neon-bg);
+      font-family: 'Rajdhani', 'Orbitron', Arial, sans-serif;
+      color: var(--neon-green);
+      min-height: 100vh;
+      font-size: 9px;
+      overflow-x: hidden;
+      position: relative;
+      letter-spacing: 0.01em;
+    }
+    .cyber-grid {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+      background-size: 30px 30px;
+      animation: gridPulse 4s ease-in-out infinite alternate;
+      z-index: -1;
+      pointer-events: none;
+    }
+    @keyframes gridPulse { 0% { opacity: 0.18; } 100% { opacity: 0.03; } }
+    .wrapper {
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+      background: rgba(10,10,15,0.97);
+      border: 1px solid rgba(0,255,136,0.14);
+      box-shadow: var(--neon-shadow);
+      border-radius: 14px;
+      overflow: hidden;
+      font-size: 9px;
+    }
+    .header-bar {
+      background: var(--neon-bg-gradient);
+      border-bottom: 1px solid rgba(0,255,255,0.11);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 10px rgba(0,255,255,0.06);
+    }
+    .banner-area {
+      position: relative;
+      height: 84px;
+      overflow: hidden;
+    }
+    .banner-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0 0 12px 12px;
+      filter: brightness(0.85) saturate(1.15) drop-shadow(0 0 7px var(--neon-green));
+      box-shadow: 0 2px 13px rgba(0,255,136,0.09);
+    }
+    .banner-area .connect-btn {
+      position: absolute;
+      right: 10px; bottom: 10px; z-index: 2;
+      font-family: 'Orbitron', monospace;
+      background: #e3e869;
+      border: 1px solid rgba(0,255,255,0.36);
+      color: #192d99;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 5px 12px;
+      border-radius: 14px;
+      box-shadow: var(--neon-cyan-shadow);
+      font-size: 11px;
+      display: flex; align-items: center;
+      gap: 3px;
+      transition: all 0.16s;
+    }
+    .banner-area .connect-btn:hover {
+      box-shadow: 0 0 11px var(--neon-yellow);
+      border-color: var(--neon-yellow);
+      color: var(--neon-yellow);
+      background: rgba(255,255,0,0.09);
+      transform: scale(1.04);
+    }
+    .banner-area .connect-btn:active { background: #032; }
+    .banner-area .connect-btn:disabled {
+      color: #456;
+      background: #222;
+      border-color: #333;
+      cursor: not-allowed;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(10,10,15,0.92);
+    }
+    .nftfan-balance-bar {
+      display: flex; align-items: center; gap: 4px;
+      background: linear-gradient(135deg,rgba(0,255,136,0.06),rgba(255,255,0,0.06));
+      border: 1px solid rgba(0,255,136,0.25);
+      border-radius: 10px;
+      padding: 4px 8px;
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      color: var(--neon-green);
+      text-shadow: var(--neon-text-shadow);
+      box-shadow: 0 0 6px rgba(0,255,255,0.08);
+      font-size: 11px;
+    }
+    .nftfan-token-icon {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle,rgba(0,255,255,0.5),rgba(255,255,0,0.46));
+      animation: tokenSpin 3s linear infinite;
+      box-shadow: 0 0 7px rgba(0,255,255,0.2);
+    }
+    @keyframes tokenSpin {0%{transform:rotate(0)scale(1);}50%{transform:rotate(180deg)scale(1.07);}100%{transform:rotate(360deg)scale(1);}}
+    .tab-bar {
+      display: flex;
+      background: rgba(10,10,15,0.94);
+      border-bottom: 1px solid rgba(0,255,255,0.12);
+      border-radius: 8px 8px 0 0;
+      overflow: hidden;
+      margin: 0;
+      height: 36px;
+      align-items: center;
+      font-size: 11px;
+    }
+    .tab-btn {
+      flex: 1;
+      height: 36px;
+      background: transparent;
+      border: none;
+      color: rgba(0,255,136,0.6);
+      font-family: 'Orbitron', monospace;
+      font-weight: 600;
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 5px;
+      border-bottom: 2px solid transparent;
+      text-transform: uppercase;
+      transition: all 0.13s;
+    }
+    .tab-btn.active {
+      color: var(--neon-cyan);
+      background: linear-gradient(135deg,rgba(0,255,255,0.09),rgba(255,255,0,0.08));
+      border-bottom-color: rgba(0,255,255,0.68);
+      text-shadow: var(--neon-cyan-shadow);
+    }
+    .tab-btn:hover {
+      color: var(--neon-yellow);
+      background: rgba(255,255,0,0.10);
+      transform: translateY(-1.5px);
+    }
+    .fixed-status-bar {
+      background: var(--neon-bar);
+      border-bottom: 1px solid rgba(0,255,136,0.15);
+      padding: 7px 10px;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      max-width: 100vw;
+      box-shadow: 0 0 8px 0 rgba(0,255,255,0.09);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      border-radius: 0 0 15px 15px;
+      user-select: none;
+      margin-bottom: 1px;
+      /* futuristic neon blinking effect */
+      text-shadow: 0 0 6px #00ffed, 0 0 2px #00fff0, 0 0 7px #00ffed, 0 0 1px #fff;
+      animation: statusBlink 1.1s infinite alternate;
+    }
+    @keyframes statusBlink {
+      0%   { color: #00ffee; text-shadow: 0 0 6px #00fff0, 0 0 2px #00fff0, 0 0 7px #00ffed, 0 0 1px #fff; opacity: 1; }
+      60%  { color: #00fff0; text-shadow: 0 0 10px #00fff0, 0 0 3px #00ffed, 0 0 8px #00ffee, 0 0 2px #fff; opacity: 0.87; }
+      100% { color: #2ffffe; text-shadow: 0 0 14px #00fff0, 0 0 3px #00ffed, 0 0 8px #00ffee, 0 0 2px #fff; opacity: 1; }
+    }
+    .fixed-status-bar .material-icons {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      margin-right: 3px;
+      text-shadow: var(--neon-cyan-shadow);
+      vertical-align: middle;
+      opacity: 0.85;
+    }
+    .status-text {
+      white-space: nowrap;
+      text-shadow: var(--neon-cyan-shadow);
+      color: inherit;
+      font-size: 11px;
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 0.9px;
+    }
+    .fixed-status-bar.buying {
+      animation: statusBarPulse 0.65s infinite cubic-bezier(.4,2,.3,1);
+      background: linear-gradient(90deg, #101c2e 0%, #00fff0 55%, #101c2e 100%);
+      color: #fff;
+    }
+    @keyframes statusBarPulse {
+      0%   { box-shadow: 0 0 0 0 var(--neon-cyan, #00fff0); }
+      50%  { box-shadow: 0 0 14px 0 var(--neon-cyan, #00fff0); }
+      100% { box-shadow: 0 0 0 0 var(--neon-cyan, #00fff0); }
+    }
+    .tab-content {
+      padding: 11px 4px;
+      min-height: 250px;
+      background: transparent;
+      animation: fadeInUp 0.43s;
+      font-size: 11px;
+    }
+    .tab-panel {display: none;}
+    .tab-panel.active {display: block;}
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .start-message {
+      background: linear-gradient(135deg,rgba(0,255,136,0.06),rgba(0,255,255,0.06));
+      border: 1px solid rgba(0,255,136,0.23);
+      border-radius: 10px;
+      padding: 11px 14px;
+      text-align: center;
+      color: var(--neon-green);
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 18px auto 11px auto;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px;
+      box-shadow: 0 0 8px rgba(0,255,136,0.12);
+      text-shadow: var(--neon-text-shadow);
+    }
+    .shop-grid, .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 7px;
+      margin-top: 4px;
+      justify-items: stretch;
+      width: 100%;
+      padding: 0;
+      font-size: 11px;
+    }
+    @media (max-width: 575px) {
+      .wrapper { max-width: 100vw; margin: 0; }
+      .shop-grid, .nft-grid { gap: 4px; }
+      .tab-content { padding: 6px 1px; }
+    }
+    .shop-item, .nft-card {
+      background: var(--neon-card);
+      border: 1px solid rgba(0,255,136,0.13);
+      border-radius: 7px;
+      transition: all 0.17s;
+      position: relative;
+      box-shadow: 0 2px 7px 0 rgba(0,255,255,0.07);
+      overflow: hidden;
+      min-width: 0;
+      min-height: 120px;
+      display: flex; flex-direction: column;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .shop-item:hover, .nft-card:hover {
+      transform: translateY(-2.5px) scale(1.025);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 6px 15px var(--neon-cyan);
+      z-index: 1;
+    }
+    .shop-img, .nft-img {
+      width: 100%; height: 65px;
+      object-fit: contain;
+      background: linear-gradient(135deg,rgba(0,255,136,0.06),rgba(0,255,255,0.06),rgba(255,255,0,0.07));
+      border-radius: 7px 7px 0 0;
+      border-bottom: 1px solid rgba(0,255,136,0.11);
+      display: block;
+      filter: drop-shadow(0 0 6px var(--neon-green));
+    }
+    .shop-section, .nft-section { padding: 7px; display: flex; flex-direction: column; }
+    .shop-title, .nft-title {
+      color: var(--neon-cyan);
+      font-family: 'Orbitron', monospace;
+      font-weight: 600;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      text-shadow: var(--neon-cyan-shadow);
+      margin-bottom: 3px;
+    }
+    .shop-row, .nft-row { display: flex; align-items: flex-start; gap: 4px; }
+    .shop-price-row {
+      background: linear-gradient(135deg,rgba(255,255,0,0.09),rgba(0,255,255,0.07));
+      border: 1px solid rgba(255,255,0,0.21);
+      border-radius: 4px;
+      padding: 2px 5px;
+      color: var(--neon-yellow);
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 10px;
+      display: flex; align-items: center; gap: 2px;
+      margin-bottom: 4px;
+      text-shadow: var(--neon-yellow-shadow);
+    }
+    .shop-desc-row, .nft-desc-row {
+      color: rgba(0,255,136,0.67);
+      font-size: 9px;
+      line-height: 1.35;
+      margin-bottom: 7px;
+      font-family: 'Rajdhani', sans-serif;
+      text-shadow: var(--neon-text-shadow);
+    }
+    .nft-id-row {
+      color: var(--neon-cyan);
+      font-family: 'Orbitron', monospace;
+      font-size: 8px;
+      display: flex; align-items: center; gap: 2px;
+      margin: 4px 0;
+      text-transform: uppercase;
+      text-shadow: var(--neon-cyan-shadow);
+    }
+    .nft-own-row {
+      color: var(--neon-green);
+      font-family: 'Orbitron', monospace;
+      font-weight: 600;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      text-shadow: var(--neon-text-shadow);
+    }
+    .buy-btn {
+      background: linear-gradient(135deg,rgba(255,255,0,0.12),rgba(0,255,255,0.12));
+      border: 1px solid rgba(255,255,0,0.34);
+      color: var(--neon-yellow);
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 5px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.13s;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      margin-top: 3px;
+      margin-bottom: 2px;
+    }
+    .buy-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 8px var(--neon-yellow);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+    .buy-btn:disabled {
+      background: #232323;
+      color: #333;
+      border-color: #222;
+      cursor: not-allowed;
+      opacity: 0.73;
+    }
+    .shop-sold-row {
+      color: #ff2070;
+      font-weight: bold;
+      margin-bottom: 1px;
+      text-shadow: 0 0 3px #ff2070;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+    }
+    .hidden { display: none !important; }
+    .cyber-card-glitch {
+      animation: glitch 0.12s linear 1;
+    }
+    @keyframes glitch {
+      0% { filter: hue-rotate(0deg) contrast(1.1); }
+      30% { filter: hue-rotate(180deg) contrast(1.1); }
+      60% { filter: hue-rotate(90deg) contrast(1.1); }
+      100% { filter: none; }
+    }
+    @media (max-width: 575px) {
+      .tab-bar, .tab-content { margin-left: 0; margin-right: 0; }
+      .header-bar { max-width: 100vw; }
+      .shop-grid, .nft-grid { gap: 2px; }
+      .tab-content { padding: 4px 1px; }
+      .shop-img, .nft-img { height: 46px; }
+    }
+    /* Modal styles */
+    .modal-backdrop {
+      position: fixed;
+      z-index: 1111;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.67);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal-content {
+      background: var(--neon-bg-gradient);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 32px var(--neon-cyan), 0 3px 38px #000;
+      border-radius: 16px;
+      padding: 24px 14px 12px 14px;
+      min-width: 280px;
+      min-height: 180px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: var(--neon-green);
+      font-size: 12px;
+      position: relative;
+      animation: fadeInUp 0.23s;
+      font-family: 'Orbitron', monospace;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,255,136,0.12);
+      border: none;
+      color: var(--neon-cyan);
+      font-size: 22px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      z-index: 2;
+    }
+    .modal-close-btn:hover {
+      background: rgba(0,255,255,0.2);
+      color: var(--neon-yellow);
+    }
+    .modal-img {
+      width: 120px; height: 120px; object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto 12px auto;
+      display: block;
+      box-shadow: 0 0 23px var(--neon-cyan), 0 1px 14px #000;
+      background: linear-gradient(135deg,rgba(0,255,136,0.09),rgba(0,255,255,0.09),rgba(255,255,0,0.10));
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-shadow: var(--neon-cyan-shadow);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .modal-desc {
+      color: rgba(0,255,136,0.85);
+      font-size: 12px;
+      margin-bottom: 7px;
+      text-shadow: var(--neon-text-shadow);
+      text-align: center;
+    }
+    .modal-id-row, .modal-own-row, .modal-price-row, .modal-inv-row {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      font-size: 11px;
+      margin-bottom: 7px;
+      font-family: 'Orbitron', monospace;
+      color: var(--neon-yellow);
+      text-shadow: var(--neon-yellow-shadow);
+    }
+    .modal-shop-btn-row {
+      display: flex; justify-content: center; align-items: center; gap: 11px; margin-top: 13px;
+    }
+    .modal-shop-btn-row .buy-btn {
+      min-width: 80px;
+      font-size: 13px;
+      padding: 7px 14px;
+      margin: 0;
+    }
+    .modal-sold-row {
+      color: #ff2070;
+      font-weight: bold;
+      margin-bottom: 7px;
+      text-shadow: 0 0 3px #ff2070;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      text-align: center;
+    }
+    footer {
+      margin-top: 16px;
+      text-align: center;
+      font-family: 'Orbitron', monospace;
+      font-size: 6px;
+      color: var(--neon-cyan);
+      opacity: 0.95;
+      letter-spacing: 2px;
+      padding: 10px 0 4px 0;
+      background: transparent;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="cyber-grid"></div>
+  <div class="wrapper">
+    <div class="header-bar">
+      <div class="banner-area">
+        <img src="https://pbs.twimg.com/media/Gs758wIWEAEsq45?format=jpg&name=large" alt="NFTFANS Banner">
+        <button class="connect-btn" id="connect-btn" onclick="connectWallet()">
+          <span class="material-icons" style="font-size:13px;vertical-align:middle;">electric_bolt</span>
+          CONNECT
+        </button>
+      </div>
+      <div class="header-row">
+        <div class="nftfan-balance-bar" id="nftfanBalanceBar" style="display:none;">
+          <img class="nftfan-token-icon" src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN Token">
+          <span id="nftfanBalance">--</span>
+          <span style="font-size:11px;font-weight:400;color:#00ffff;margin-left:2px;">NFTFAN</span>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-shop" onclick="showTab('shop')">
+          <span class="material-icons">storefront</span>
+          MARKET
+        </button>
+        <button class="tab-btn" id="tab-mynfts" onclick="showTab('mynfts')">
+          <span class="material-icons">collections</span>
+          VAULT
+        </button>
+      </div>
+      <div class="fixed-status-bar" id="fixedStatusBar">
+        <span class="material-icons" id="statusIcon">electric_bolt</span>
+        <span class="status-text" id="statusText">Neon system initialized</span>
+      </div>
+    </div>
+    <div id="start-message" class="start-message">
+      <span class="material-icons" style="font-size:16px;color:#a377ff;vertical-align:middle;">stars</span>
+      Connect your wallet to start NFT Fans
+    </div>
+    <div class="tab-content hidden" id="tab-content-shop">
+      <div id="shop-loading" style="font-size:11px;color:#aaa;text-align:center;margin:10px;">Loading NFTs...</div>
+      <div id="shop-error" style="display:none;color:#ff2070;font-size:10px;margin:6px 0 9px 0;text-align:center;"></div>
+      <ul class="shop-grid" id="shopGrid" style="display: none;"></ul>
+    </div>
+    <div class="tab-content hidden" id="tab-content-mynfts">
+      <div id="my-loading" style="font-size:11px;color:#aaa;text-align:center;margin:10px;">Loading Your NFTs...</div>
+      <div id="my-error" style="display:none;color:#ff2070;font-size:10px;margin:6px 0 9px 0;text-align:center;"></div>
+      <ul class="nft-grid" id="myGrid" style="display: none;"></ul>
+      <div id="nft-demo-msg" style="font-size:10px;color:#aaa;text-align:center;margin-top:8px;">(Demo: connect wallet to show your NFTs)</div>
+    </div>
+  </div>
+  <footer>
+    COPYRIGHT NFT FANS TOKEN
+  </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+  <script>
+    // ------ BEGIN APP LOGIC ------
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/', 'https://rpc.polygon.technology/', 'https://rpc-mainnet.matic.network/'],
+      blockExplorerUrls: ['https://polygonscan.com/'],
+    };
+    const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+    const NFTFAN_SHOP_CA = "0x9ce8C0dDFc6600eC82ecc37B719e62e3248BE3AF";
+    const ERC20_ABI = [
+      {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
+      {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
+    ];
+    const NFTFAN_SHOP_ABI = [
+      { "constant": true, "inputs": [{ "name": "account", "type": "address" }, { "name": "id", "type": "uint256" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "type": "function" },
+      { "constant": true, "inputs": [{ "name": "user", "type": "address" }], "name": "tokensOfOwner", "outputs": [
+        { "name": "tokenIds", "type": "uint256[]" }, { "name": "amounts", "type": "uint256[]" }
+      ], "type": "function" },
+      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "uri", "outputs": [{ "name": "uri", "type": "string" }], "type": "function" },
+      { "constant": true, "inputs": [], "name": "getShopNFTs", "outputs": [
+        { "name": "ids", "type": "uint256[]" },
+        { "name": "uris", "type": "string[]" },
+        { "name": "prices", "type": "uint256[]" },
+        { "name": "isForSale", "type": "bool[]" },
+        { "name": "shopAmounts", "type": "uint256[]" },
+        { "name": "maxSupplies", "type": "uint256[]" },
+        { "name": "currentSupplies", "type": "uint256[]" }
+      ], "type": "function" },
+      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "nftInfo", "outputs": [
+        { "name": "tokenURI", "type": "string" },
+        { "name": "price", "type": "uint256" },
+        { "name": "forSale", "type": "bool" },
+        { "name": "originalCreator", "type": "address" },
+        { "name": "maxSupply", "type": "uint256" },
+        { "name": "currentSupply", "type": "uint256" }
+      ], "type": "function" },
+      { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "shopInventory", "outputs": [ { "name":"amount","type":"uint256" } ], "type": "function" },
+      { "inputs": [{ "name": "tokenId", "type": "uint256" }, { "name": "amount", "type": "uint256" }], "name": "buyNFT", "outputs": [], "stateMutability": "payable", "type": "function" }
+    ];
+    let userAccount = null;
+    let web3;
+    let nftfanContract = null;
+    let nftfanShop = null;
+    let statusBarQueue = [];
+    let statusBarIsShowing = false;
+    let currentStatus = {msg: "Initializing...", icon: "electric_bolt", buying: false};
+    function setStatusBar(message, icon = "electric_bolt", buying = false, timeout = 1700) {
+      let statusMsg = message;
+      statusBarQueue.push({ statusMsg, icon, buying, timeout });
+      if (!statusBarIsShowing) processStatusBarQueue();
+    }
+    function processStatusBarQueue() {
+      if (statusBarQueue.length === 0) {
+        document.getElementById('fixedStatusBar').classList.remove('buying');
+        statusBarIsShowing = false;
+        return;
+      }
+      statusBarIsShowing = true;
+      const { statusMsg, icon, buying, timeout } = statusBarQueue.shift();
+      currentStatus = {msg: statusMsg, icon: icon, buying: buying};
+      const statusBar = document.getElementById('fixedStatusBar');
+      document.getElementById('statusText').textContent = statusMsg;
+      document.getElementById('statusIcon').textContent = icon;
+      if (buying) statusBar.classList.add('buying');
+      else statusBar.classList.remove('buying');
+      clearTimeout(statusBar._hideTimeout);
+      statusBar._hideTimeout = setTimeout(() => {
+        statusBar.classList.remove('buying');
+        processStatusBarQueue();
+      }, timeout);
+    }
+    function showError(elementId, message) {
+      const errorEl = document.getElementById(elementId);
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      setStatusBar(message, "error", false, 2700);
+    }
+    function hideError(elementId) { document.getElementById(elementId).style.display = 'none'; }
+    function showStartMessage(show) {
+      document.getElementById("start-message").style.display = show ? "" : "none";
+      document.getElementById("tab-content-shop").classList.toggle("hidden", show);
+      document.getElementById("tab-content-mynfts").classList.toggle("hidden", show);
+    }
+    async function connectWallet() {
+      try {
+        setStatusBar('Connecting wallet...', "electric_bolt");
+        if (!window.ethereum) {
+          setStatusBar("Please install MetaMask or a compatible wallet!", "warning", false, 3400);
+          return;
+        }
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== POLYGON_PARAMS.chainId) {
+          setStatusBar('Switching to Polygon...', "cloud_done", false, 800);
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: POLYGON_PARAMS.chainId }],
+            });
+          } catch (switchError) {
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [POLYGON_PARAMS],
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        document.getElementById("connect-btn").textContent = "✔ Connected";
+        document.getElementById("connect-btn").style.background = "#e8f5e9";
+        document.getElementById("connect-btn").style.color = "#1b5e20";
+        document.getElementById("connect-btn").style.borderColor = "#c8e6c9";
+        await setupContracts();
+        await showNftfanBalance();
+        setStatusBar("Wallet connected", "check_circle");
+        showStartMessage(false);
+        loadShopNFTs();
+        loadUserNFTs();
+      } catch (error) {
+        setStatusBar("Connection failed: " + error.message, "error", false, 3400);
+      }
+    }
+    async function setupContracts() {
+      const rpcUrls = POLYGON_PARAMS.rpcUrls;
+      let provider = null;
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else {
+        for (const rpcUrl of rpcUrls) {
+          try {
+            const testWeb3 = new Web3(rpcUrl);
+            await testWeb3.eth.getBlockNumber();
+            provider = rpcUrl;
+            break;
+          } catch (e) {}
+        }
+      }
+      if (!provider) throw new Error('No working RPC provider found');
+      web3 = new Web3(provider);
+      nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_TOKEN_CA);
+      nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
+    }
+    async function showNftfanBalance() {
+      if (!nftfanContract || !userAccount) {
+        document.getElementById('nftfanBalanceBar').style.display = 'none';
+        return;
+      }
+      try {
+        let [balance, decimals] = await Promise.all([
+          nftfanContract.methods.balanceOf(userAccount).call(),
+          nftfanContract.methods.decimals().call()
+        ]);
+        const divisor = BigInt(10) ** BigInt(decimals);
+        let intBalance = (BigInt(balance) / divisor).toString();
+        intBalance = Number(intBalance).toLocaleString('en');
+        document.getElementById('nftfanBalance').textContent = intBalance;
+        document.getElementById('nftfanBalanceBar').style.display = '';
+      } catch (e) {
+        document.getElementById('nftfanBalanceBar').style.display = 'none';
+      }
+    }
+    async function fetchOpenSeaMeta(uri) {
+      if (!uri) return null;
+      try {
+        if (uri.startsWith("ipfs://")) {
+          uri = "https://ipfs.io/ipfs/" + uri.replace("ipfs://", "");
+        }
+        if (uri.startsWith("ar://")) {
+          uri = "https://arweave.net/" + uri.replace("ar://", "");
+        }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(uri, { mode: 'cors', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return await res.json();
+      } catch (e) { return null; }
+    }
+    // No Modal logic used anymore, so removed modal functions
+
+    // Render shop grid, with buy dropdown (no popups)
+    async function loadShopNFTs() {
+      const shopGrid = document.getElementById("shopGrid");
+      const loading = document.getElementById("shop-loading");
+      shopGrid.innerHTML = "";
+      loading.style.display = "block";
+      shopGrid.style.display = "none";
+      hideError("shop-error");
+      try {
+        if (!nftfanShop) await setupContracts();
+        const result = await nftfanShop.methods.getShopNFTs().call();
+        const { ids, uris, prices, isForSale, shopAmounts } = result;
+        if (!ids.length) {
+          loading.textContent = "No NFTs in Shop";
+          setStatusBar('No NFTs in the shop', "info");
+          return;
+        }
+        const metaArr = await Promise.all(uris.map(async (uri) => await fetchOpenSeaMeta(uri)));
+        let html = "";
+        for (let i = 0; i < ids.length; i++) {
+          const id = ids[i];
+          const meta = metaArr[i];
+          const openseaName = meta?.name || `NFTFAN #${id}`;
+          const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT";
+          const openseaDesc = meta?.description || "";
+          const price = web3.utils.fromWei(prices[i], "ether");
+          let status = "";
+          let btn = "";
+          let inv = "";
+          let amountDropdown = "";
+          let maxAmount = parseInt(shopAmounts[i] || "0");
+          let priceTab = `<div class="shop-price-row" style="margin-top:1px;">
+            <span class="material-icons" style="font-size:9px">sell</span>
+            ${price} POL
+          </div>`;
+          if (!isForSale[i] || shopAmounts[i] == "0") {
+            status = `
+            <div class="shop-sold-row">
+              <span class="material-icons" style="font-size:9px;color:#c92828;vertical-align:middle;">gavel</span>
+              Sold Out
+            </div>`;
+            btn = `<button class="buy-btn" disabled>Sold Out</button>`;
+          } else {
+            inv = `<div style="font-size:7px;color:#444;margin-bottom:1px;"><span class="material-icons" style="font-size:8px;vertical-align:middle">inventory_2</span>Avail: ${shopAmounts[i]}</div>`;
+            // Dropdown for amount selection (from 1 to max available)
+            amountDropdown = `<select style="margin:0 7px;width:54px;height:20px;font-size:10px;font-family:'Orbitron', monospace;" id="amount-dropdown-${id}">` +
+              Array.from({length: Math.min(maxAmount, 10)}, (_, k) => `<option value="${k+1}">${k+1}</option>`).join('') +
+              `</select>`;
+            btn = `<button class="buy-btn" id="buy-btn-${id}" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>
+            <span class="material-icons" style="font-size:9px;vertical-align:middle">shopping_cart</span>Buy</button>`;
+          }
+          html += `<li class="shop-item" tabindex="0">
+              <img class="shop-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+              <div class="shop-section">
+                <div class="shop-row">
+                  <span class="material-icons" style="font-size:9px;color:#5b42c2">collections</span>
+                  <span class="shop-title">${openseaName}</span>
+                </div>
+                ${priceTab}
+                <div class="shop-desc-row">
+                  <span class="material-icons" style="font-size:8px;color:#5e5e7e">description</span>
+                  ${openseaDesc ? openseaDesc.substring(0, 50) + (openseaDesc.length > 50 ? '…' : '') : ''}
+                </div>
+                ${inv}
+                ${status}
+                ${maxAmount > 1 && isForSale[i] ? `<div style="margin-bottom:3px;">Amount: ${amountDropdown}</div>` : ''}
+                ${btn}
+              </div>
+          </li>`;
+        }
+        shopGrid.innerHTML = html;
+        loading.style.display = "none";
+        shopGrid.style.display = "grid";
+        // No modal click handlers needed
+      } catch (error) {
+        shopGrid.innerHTML = "";
+        loading.style.display = "none";
+        showError("shop-error", "Failed to load NFTs: " + error.message);
+      }
+    }
+    // buyNFT now uses dropdown value, not prompt
+    async function buyNFT(tokenId, priceWei, availableAmount) {
+      if (!userAccount) {
+        setStatusBar("Connect your wallet first!", "warning");
+        return;
+      }
+      let amount = 1;
+      if (availableAmount > 1) {
+        const dropdown = document.getElementById(`amount-dropdown-${tokenId}`);
+        if (dropdown) {
+          amount = parseInt(dropdown.value);
+          if (isNaN(amount) || amount < 1 || amount > availableAmount) {
+            setStatusBar("Invalid amount", "warning");
+            return;
+          }
+        }
+      }
+      try {
+        setStatusBar('Buying...', "hourglass_empty", true, 1500);
+        const button = document.getElementById(`buy-btn-${tokenId}`);
+        if (button) button.disabled = true;
+        if (!nftfanShop) await setupContracts();
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
+          value: (BigInt(priceWei) * BigInt(amount)).toString()
+        });
+        setStatusBar("NFT bought! It will appear in 'Vault'", "celebration", false, 1800);
+        loadShopNFTs();
+        loadUserNFTs();
+      } catch (error) {
+        setStatusBar("Purchase failed: " + error.message, "error", false, 2000);
+      } finally {
+        setTimeout(() => {
+          loadShopNFTs();
+          loadUserNFTs();
+        }, 800);
+      }
+    }
+    // Vault: only static card display, not clickable
+    async function loadUserNFTs() {
+      const myGrid = document.getElementById("myGrid");
+      const loading = document.getElementById("my-loading");
+      const demoMsg = document.getElementById("nft-demo-msg");
+      myGrid.innerHTML = "";
+      loading.style.display = "block";
+      myGrid.style.display = "none";
+      hideError("my-error");
+      if (!userAccount) {
+        loading.textContent = "Connect wallet to view your NFTs.";
+        demoMsg.style.display = '';
+        return;
+      }
+      try {
+        if (!nftfanShop) await setupContracts();
+        const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
+        const { tokenIds, amounts } = tokens;
+        if (!tokenIds.length) {
+          loading.textContent = "You own no NFTs yet.";
+          demoMsg.style.display = 'none';
+          setStatusBar("You own no NFTs yet.", "info");
+          return;
+        }
+        demoMsg.style.display = 'none';
+        let metaArr = await Promise.all(tokenIds.map(async (id, index) => {
+          try {
+            let meta = await nftfanShop.methods.nftInfo(id).call();
+            let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+            return {id, amount: amounts[index], meta, metaJson};
+          } catch (e) {
+            return {id, amount: amounts[index], meta: null, metaJson: null};
+          }
+        }));
+        let html = "";
+        for (let item of metaArr) {
+          const {id, amount, meta, metaJson} = item;
+          const openseaName = metaJson?.name || `NFTFAN #${id}`;
+          const openseaImg = metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
+          const openseaDesc = metaJson?.description || "";
+          html += `<li class="nft-card" tabindex="0" style="cursor:default;">
+              <img class="nft-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+              <div class="nft-section">
+                <div class="nft-row">
+                  <span class="material-icons" style="font-size:9px;color:#5b42c2">collections</span>
+                  <span class="nft-title">${openseaName}</span>
+                </div>
+                <div class="nft-id-row">
+                  <span class="material-icons" style="font-size:7px;color:#aaa">tag</span>
+                  ID: ${id}
+                </div>
+                <div class="nft-desc-row">
+                  <span class="material-icons" style="font-size:7px;color:#5e5e7e">description</span>
+                  ${openseaDesc ? openseaDesc.substring(0, 50) + (openseaDesc.length > 50 ? '…' : '') : ''}
+                </div>
+                <div class="nft-own-row">
+                  <span class="material-icons" style="font-size:7px;color:#555;vertical-align:middle;">inventory_2</span>
+                  You own: ${amount}
+                </div>
+              </div>
+          </li>`;
+        }
+        myGrid.innerHTML = html;
+        loading.style.display = "none";
+        myGrid.style.display = "grid";
+        // No modal click handlers needed
+      } catch (error) {
+        myGrid.innerHTML = "";
+        loading.style.display = "none";
+        showError("my-error", "Failed to load your NFTs: " + error.message);
+      }
+    }
+    function showTab(tab) {
+      if (!userAccount) return;
+      document.getElementById('tab-content-shop').classList.toggle("hidden", tab !== 'shop');
+      document.getElementById('tab-content-mynfts').classList.toggle("hidden", tab !== 'mynfts');
+      document.getElementById('tab-shop').classList.toggle('active', tab === 'shop');
+      document.getElementById('tab-mynfts').classList.toggle('active', tab === 'mynfts');
+      if (tab === 'shop') loadShopNFTs();
+      else if (tab === 'mynfts') loadUserNFTs();
+      setTimeout(forceGridThreeColumns, 40);
+    }
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        userAccount = accounts[0] || null;
+        const connectBtn = document.getElementById("connect-btn");
+        if (userAccount) {
+          connectBtn.textContent = "✔ Connected";
+          connectBtn.style.background = "#e8f5e9";
+          connectBtn.style.color = "#1b5e20";
+          connectBtn.style.borderColor = "#c8e6c9";
+        } else {
+          connectBtn.textContent = "Connect Wallet";
+          connectBtn.style.background = "#f4f0ff";
+          connectBtn.style.color = "#7a3cff";
+          connectBtn.style.borderColor = "#ececec";
+        }
+        showStartMessage(!userAccount);
+        if (userAccount) {
+          setupContracts().then(() => {
+            showNftfanBalance();
+            loadShopNFTs();
+            loadUserNFTs();
+            setStatusBar('Account changed', "change_circle");
+          });
+        }
+      });
+      window.ethereum.on('chainChanged', function (chainId) {
+        setupContracts().then(() => {
+          showNftfanBalance();
+          loadShopNFTs();
+          loadUserNFTs();
+          setStatusBar('Network changed', "public");
+        });
+      });
+    }
+    window.addEventListener("DOMContentLoaded", async () => {
+      setStatusBar('Neon system initialized', "electric_bolt");
+      showStartMessage(true);
+      setStatusBar('Connect wallet to get started', "account_balance_wallet", false, 1700);
+    });
+    setInterval(() => {
+      const elements = document.querySelectorAll('.shop-item, .nft-card');
+      const randomElement = elements[Math.floor(Math.random() * elements.length)];
+      if (randomElement && Math.random() < 0.12) {
+        randomElement.classList.add('cyber-card-glitch');
+        setTimeout(() => {
+          randomElement.classList.remove('cyber-card-glitch');
+        }, 100);
+      }
+    }, 2200);
+    function forceGridThreeColumns() {
+      document.querySelectorAll('.shop-grid, .nft-grid').forEach(grid => {
+        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+      });
+    }
+    window.addEventListener('resize', forceGridThreeColumns);
+    window.addEventListener('DOMContentLoaded', forceGridThreeColumns);
+  </script>
+</body>
+</html>
