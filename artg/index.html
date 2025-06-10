@@ -661,25 +661,24 @@
     }
 
     // --------- METAMASK MOBILE AUTO-OPEN LOGIC ---------
-    function isMobile() {
-      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-    function isMetaMaskMobile() {
-      return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && /MetaMask/i.test(navigator.userAgent);
-    }
-    function getDappUrl() {
-      let dappUrl = window.location.href.replace(/^https?:\/\//, '');
-      
-      return dappUrl;
-    }
-    async function connectWallet() {
-      if (isMobile() && !isMetaMaskMobile() && !window.ethereum) {
-        const dappUrl = encodeURIComponent(getDappUrl());
-        const metamaskAppDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
-        window.location.href = metamaskAppDeepLink;
-        setStatusBar('Opening MetaMask...', "electric_bolt");
-        return;
-      }
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+function isMetaMaskMobile() {
+  return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && /MetaMask/i.test(navigator.userAgent);
+}
+function getDappUrl() {
+  // Remove protocol, keep path and search, do NOT encode slashes!
+  return window.location.host + window.location.pathname + window.location.search;
+}
+async function connectWallet() {
+  if (isMobile() && !isMetaMaskMobile() && !window.ethereum) {
+    const dappUrl = getDappUrl();
+    const metamaskAppDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
+    window.location.href = metamaskAppDeepLink;
+    setStatusBar('Opening MetaMask...', "electric_bolt");
+    return;
+  }
       try {
         setStatusBar('Connecting wallet...', "electric_bolt");
         if (!window.ethereum) {
