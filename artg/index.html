@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+  
 <head>
   <meta charset="UTF-8">
   <title>NFTFANS ERC1155 Shop</title>
@@ -659,32 +660,7 @@
       document.getElementById("tab-content-shop").classList.toggle("hidden", show);
       document.getElementById("tab-content-mynfts").classList.toggle("hidden", show);
     }
-    async function connectWallet() {
-      try {
-        setStatusBar('Connecting wallet...', "electric_bolt");
-        if (!window.ethereum) {
-          setStatusBar("Please install MetaMask or a compatible wallet!", "warning", false, 3400);
-          return;
-        }
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== POLYGON_PARAMS.chainId) {
-          setStatusBar('Switching to Polygon...', "cloud_done", false, 800);
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: POLYGON_PARAMS.chainId }],
-            });
-          } catch (switchError) {
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [POLYGON_PARAMS],
-              });
-            } else {
-              throw switchError;
-            }
-          }
-        }
+   
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         userAccount = accounts[0];
         document.getElementById("connect-btn").textContent = "✔ Connected";
@@ -1016,5 +992,37 @@
     window.addEventListener('resize', forceGridThreeColumns);
     window.addEventListener('DOMContentLoaded', forceGridThreeColumns);
   </script>
+  <!-- Web3Modal HTML CDN -->
+<!-- ...your <head> ... -->
+<script src="https://unpkg.com/@web3modal/html@2.5.4/dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<!-- ...your <body> ... -->
+<script>
+const projectId = "5a44043289649f7b3b13eb8e8d900214";
+const modal = new window.Web3Modal({
+  projectId,
+  walletConnectVersion: 2,
+  themeMode: "dark",
+  chains: [
+    {
+      chainId: 137,
+      name: 'Polygon',
+      currency: 'MATIC',
+      explorerUrl: 'https://polygonscan.com',
+      rpcUrl: 'https://polygon-rpc.com'
+    }
+  ]
+});
+let ethersProvider, signer, userAccount;
+async function connectWallet() {
+  try {
+    const session = await modal.connect();
+    ethersProvider = new ethers.providers.Web3Provider(session);
+    signer = ethersProvider.getSigner();
+    userAccount = await signer.getAddress();
+    // ...rest of your logic...
+  } catch (err) { alert("Connection failed: "+err.message); }
+}
+</script>
 </body>
 </html>
