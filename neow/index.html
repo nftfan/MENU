@@ -193,7 +193,6 @@
       border-radius: 0 0 15px 15px;
       user-select: none;
       margin-bottom: 1px;
-      /* futuristic neon blinking effect */
       text-shadow: 0 0 6px #00ffed, 0 0 2px #00fff0, 0 0 7px #00ffed, 0 0 1px #fff;
       animation: statusBlink 1.1s infinite alternate;
     }
@@ -420,7 +419,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.2s;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .modal-backdrop.visible {
+      opacity: 1;
     }
     .modal-content {
       background: var(--neon-bg-gradient);
@@ -762,61 +765,85 @@
       } catch (e) { return null; }
     }
     // Modal logic
-    function closeModal() {
-      document.getElementById('modalBackdrop').style.display = 'none';
-      document.body.style.overflow = '';
-    }
     function openModal(modalHtml) {
       document.getElementById('modalContent').innerHTML = modalHtml;
-      document.getElementById('modalBackdrop').style.display = '';
+      const backdrop = document.getElementById('modalBackdrop');
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        backdrop.classList.add('visible');
+      }, 10);
       document.body.style.overflow = 'hidden';
       document.onkeydown = function(e) {
         if (e.key === 'Escape') closeModal();
       };
     }
+    function closeModal() {
+      const backdrop = document.getElementById('modalBackdrop');
+      backdrop.classList.remove('visible');
+      setTimeout(() => {
+        backdrop.style.display = 'none';
+      }, 300);
+      document.body.style.overflow = '';
+    }
     document.getElementById('modalBackdrop').onclick = function(e) {
       if (e.target === this) closeModal();
     };
-
     function renderShopModal(item) {
-      let {
-        id, meta, metaJson, openseaName, openseaImg, openseaDesc, price,
-        isForSale, shopAmount, priceWei
-      } = item;
-      let inv = `<div class="modal-inv-row"><span class="material-icons" style="font-size:13px">inventory_2</span>Available: ${shopAmount}</div>`;
-      let priceTab = `<div class="modal-price-row"><span class="material-icons" style="font-size:13px">sell</span>${price} POL</div>`;
-      let sold = !isForSale || shopAmount == "0";
-      let status = sold ? `<div class="modal-sold-row"><span class="material-icons" style="font-size:13px;color:#c92828;vertical-align:middle;">gavel</span> Sold Out</div>` : '';
-      let btn = '';
-      if (!sold) {
-        btn = `<button class="buy-btn" style="min-width:90px;" onclick="buyNFT(${id}, '${priceWei}', ${shopAmount}); closeModal();">Buy Now</button>`;
+      let { id, openseaImg, isForSale, shopAmount } = item;
+      let buyButton = '';
+      if (isForSale && shopAmount > 0) {
+        buyButton = `<button class="buy-btn" onclick="initiateBuy(${id}, ${shopAmount})">Buy</button>`;
       }
       let html = `
         <button class="modal-close-btn" onclick="closeModal()" aria-label="Close"><span class="material-icons">close</span></button>
-        <img class="modal-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-        <div class="modal-title">${openseaName}</div>
-        <div class="modal-id-row"><span class="material-icons" style="font-size:11px;color:#aaa">tag</span>ID: ${id}</div>
-        <div class="modal-desc">${openseaDesc || ''}</div>
-        ${priceTab}
-        ${inv}
-        ${status}
-        <div class="modal-shop-btn-row">${btn}</div>
+        <img class="modal-img" src="${openseaImg}" alt="NFT Image" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+        <div class="modal-shop-btn-row">${buyButton}</div>
       `;
       return html;
     }
     function renderVaultModal(item) {
-      let {
-        id, amount, meta, metaJson, openseaName, openseaImg, openseaDesc
-      } = item;
+      let { openseaImg } = item;
       let html = `
         <button class="modal-close-btn" onclick="closeModal()" aria-label="Close"><span class="material-icons">close</span></button>
-        <img class="modal-img" src="${openseaImg}" alt="NFT ${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-        <div class="modal-title">${openseaName}</div>
-        <div class="modal-id-row"><span class="material-icons" style="font-size:11px;color:#aaa">tag</span>ID: ${id}</div>
-        <div class="modal-desc">${openseaDesc || ''}</div>
-        <div class="modal-own-row"><span class="material-icons" style="font-size:13px;color:#555;vertical-align:middle;">inventory_2</span>You own: ${amount}</div>
+        <img class="modal-img" src="${openseaImg}" alt="NFT Image" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
       `;
       return html;
+    }
+    function renderBuyModal(id, availableAmount, priceWei) {
+      let html = `
+        <button class="modal-close-btn" onclick="closeModal()" aria-label="Close"><span class="material-icons">close</span></button>
+        <div class="modal-title">Buy NFT #${id}</div>
+        <div class="modal-desc">Available: ${availableAmount}</div>
+        <div class="modal-price-row"><span class="material-icons" style="font-size:13px">sell</span>${web3.utils.fromWei(priceWei, "ether")} POL each</div>
+        <div style="margin:10px 0;">
+          <label for="buyAmount" style="font-size:12px;color:#aaa;">Quantity:</label>
+          <input type="number" id="buyAmount" min="1" max="${availableAmount}" value="1" style="width:60px;padding:4px;border-radius:4px;border:1px solid #333;background:#111;color:#fff;">
+        </div>
+        <div class="modal-shop-btn-row">
+          <button class="buy-btn" onclick="confirmBuy(${id}, '${priceWei}', ${availableAmount})">Confirm</button>
+        </div>
+      `;
+      return html;
+    }
+    function initiateBuy(id, availableAmount) {
+      const item = window._shopModalData.find(item => item.id == id);
+      if (!item) {
+        setStatusBar("Item not found", "error");
+        return;
+      }
+      const { priceWei } = item;
+      closeModal();
+      openModal(renderBuyModal(id, availableAmount, priceWei));
+    }
+    function confirmBuy(id, priceWei, availableAmount) {
+      const amountInput = document.getElementById('buyAmount');
+      const amount = parseInt(amountInput.value);
+      if (isNaN(amount) || amount < 1 || amount > availableAmount) {
+        setStatusBar("Invalid amount", "warning");
+        return;
+      }
+      closeModal();
+      buyNFT(id, priceWei, amount);
     }
     function addGridClickHandlers() {
       document.querySelectorAll('#shopGrid > .shop-item').forEach((el, i) => {
@@ -876,7 +903,7 @@
             btn = `<button class="buy-btn" disabled>Sold Out</button>`;
           } else {
             inv = `<div style="font-size:7px;color:#444;margin-bottom:1px;"><span class="material-icons" style="font-size:8px;vertical-align:middle">inventory_2</span>Avail: ${shopAmounts[i]}</div>`;
-            btn = `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>
+            btn = `<button class="buy-btn" onclick="initiateBuy(${id}, ${shopAmounts[i]})" ${!userAccount ? 'disabled' : ''}>
             <span class="material-icons" style="font-size:9px;vertical-align:middle">shopping_cart</span>Buy</button>`;
           }
           html += `<li class="shop-item" tabindex="0">
@@ -911,25 +938,13 @@
         showError("shop-error", "Failed to load NFTs: " + error.message);
       }
     }
-    async function buyNFT(tokenId, priceWei, availableAmount) {
+    async function buyNFT(tokenId, priceWei, amount) {
       if (!userAccount) {
         setStatusBar("Connect your wallet first!", "warning");
         return;
       }
-      let amount = 1;
-      if (availableAmount > 1) {
-        let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
-        if (!input) return;
-        amount = parseInt(input);
-        if (isNaN(amount) || amount < 1 || amount > availableAmount) {
-          setStatusBar("Invalid amount", "warning");
-          return;
-        }
-      }
       try {
         setStatusBar('Buying...', "hourglass_empty", true, 1500);
-        const button = document.querySelector(`button[onclick^="buyNFT(${tokenId},"]`);
-        if (button) button.disabled = true;
         if (!nftfanShop) await setupContracts();
         await nftfanShop.methods.buyNFT(tokenId, amount).send({
           from: userAccount,
