@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Google News - Custom Topics</title>
+  <title>Google News - Trending</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <!-- Favicon and Apple Touch Icon -->
@@ -16,7 +16,7 @@
   <!-- iOS Web App Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Google News - Custom Topics">
+  <meta name="apple-mobile-web-app-title" content="Google News - Trending">
 
   <style>
     html, body {
@@ -203,9 +203,9 @@
     <span class="title-bar-icon">
       <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Google News Icon" />
     </span>
-    <span class="title-bar-text">Google News - Custom Topics</span>
+    <span class="title-bar-text">Google News - Trending</span>
   </div>
-  <div class="subheading">World, Science, Technology. Or search for any topic!</div>
+  <div class="subheading">Infinite trending headlines from Google News. Search for any topic!</div>
   <div class="search-bar-container">
     <form class="search-form" id="search-form" autocomplete="off">
       <input class="search-input" id="search-input" type="text" placeholder="Search any topic…" aria-label="Search News" />
@@ -217,26 +217,15 @@
   <ul class="news-list" id="news-list"></ul>
   <div class="loading" id="loading" style="display:none;">Loading...</div>
   <script>
-    // RSS URLs for your selected topics
-    const topicFeeds = [
-      {
-        topic: "world",
-        name: "World Headlines",
-        url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en",
-        icon: "public"
-      },
-      {
-        topic: "science",
-        name: "Science",
-        url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en",
-        icon: "science"
-      },
-      {
-        topic: "technology",
-        name: "Technology",
-        url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en",
-        icon: "memory"
-      }
+    // Only world, science, technology feeds
+    const feeds = [
+      { name: "World", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en", icon: "public" },
+      { name: "Science", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en", icon: "science" },
+      { name: "Technology", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en", icon: "memory" }
+    ];
+    const trendingKeywords = [
+      "AI", "Elections", "Weather", "SpaceX", "Apple", "Google", "Bitcoin", "Climate Change",
+      "Ukraine", "Amazon", "Tesla", "Meta", "World Cup", "Covid", "Wimbledon"
     ];
     let feedIndex = 0;
     let headlines = [];
@@ -245,15 +234,10 @@
     let loading = false;
     let seenLinks = new Set();
     let searchMode = false;
-    let lastQuery = "";
 
-    // Assign the most relevant Material Icon based on headline/title and topic
-    function getRelevantMaterialIcon(title, topic) {
+    function getRelevantMaterialIcon(title, feedIcon) {
+      if (feedIcon) return feedIcon;
       const lower = title.toLowerCase();
-      if (topic === "world") return "public";
-      if (topic === "science") return "science";
-      if (topic === "technology") return "memory";
-      // Guess for search
       if (lower.match(/\b(science|space|nasa|research|physics|chemistry|biology|planet|astronomy|discovery)\b/)) return "science";
       if (lower.match(/\b(technology|tech|ai|computer|software|hardware|robot|gadget|internet|app|apps|smartphone)\b/)) return "memory";
       if (lower.match(/\b(world|international|global|summit|united nations)\b/)) return "public";
@@ -264,7 +248,6 @@
       let timeAgo = "";
       if (pubDate) {
         const pubTime = new Date(pubDate);
-        if (pubTime.toString() === "Invalid Date") return "";
         const now = new Date();
         const diff = (now - pubTime) / 1000;
         if (diff < 60) timeAgo = Math.floor(diff) + "s";
@@ -275,7 +258,7 @@
       return timeAgo;
     }
 
-    async function fetchFeed(url, topic) {
+    async function fetchFeed(url, icon) {
       try {
         const corsUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
         const response = await fetch(corsUrl);
@@ -296,7 +279,7 @@
             link,
             source,
             timeAgo: formatTimeAgo(pubDate),
-            icon: getRelevantMaterialIcon(title, topic)
+            icon: getRelevantMaterialIcon(title, icon)
           });
         }
         return newHeadlines;
@@ -307,7 +290,7 @@
 
     async function fetchSearchFeed(query) {
       const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
-      return await fetchFeed(url, "search");
+      return await fetchFeed(url, null);
     }
 
     function clearResults() {
@@ -340,22 +323,18 @@
       if (loading) return;
       loading = true;
       document.getElementById("loading").style.display = "block";
-      // If all loaded, fetch next batch
       while (loadedCount >= headlines.length) {
         let newBatch = [];
         if (!searchMode) {
-          // Cycle through topics for variety
-          const feed = topicFeeds[feedIndex % topicFeeds.length];
+          const feed = feeds[feedIndex % feeds.length];
           feedIndex++;
-          newBatch = await fetchFeed(feed.url, feed.topic);
+          newBatch = await fetchFeed(feed.url, feed.icon);
         } else {
-          // Search mode: only fetch once
           document.getElementById("loading").style.display = "none";
           loading = false;
           return;
         }
         if (newBatch.length > 0) {
-          // Shuffle for variety
           for (let i = newBatch.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [newBatch[i], newBatch[j]] = [newBatch[j], newBatch[i]];
