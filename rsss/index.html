@@ -32,11 +32,18 @@
     .title-bar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       background: #23272e;
       padding: 0.7em 1em 0.7em 0.8em;
       border-bottom: 1px solid rgba(255,255,255,0.07);
       box-shadow: 0 0.5px 1px 0 rgba(0,0,0,0.10);
       max-width: 100vw;
+    }
+    .title-bar-left {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      flex: 1;
     }
     .title-bar-icon {
       width: 27px;
@@ -64,7 +71,60 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 80vw;
+      max-width: 54vw;
+    }
+    .title-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.25em;
+      margin-left: 1em;
+    }
+    .title-bar-actions .material-icons {
+      font-size: 22px;
+      color: #fff;
+      cursor: pointer;
+      background: #32343a;
+      border-radius: 6px;
+      padding: 0.23em 0.23em;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .title-bar-actions .material-icons:hover {
+      background: #40444b;
+    }
+    .search-bar-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      padding: 0.6em 0.9em 0.2em 0.9em;
+      margin: 0;
+      background: #24272b;
+    }
+    .search-bar {
+      width: 100%;
+      max-width: 460px;
+      background: #23272e;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 7px;
+      font-size: 12px;
+      padding: 0.7em 1.8em 0.7em 1.1em;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .search-bar::placeholder {
+      color: #b0b0b5;
+      opacity: 1;
+    }
+    .search-bar-icon {
+      position: relative;
+      left: -26px;
+      color: #b0b0b5;
+      font-size: 18px;
+      pointer-events: none;
     }
     .news-list {
       list-style: none;
@@ -149,41 +209,45 @@
       margin: 2em 0 0.5em 0;
     }
     input, textarea, select { font-size: 16px; }
-    .subheading {
-      font-size: 12px;
-      color: #b0b0b5;
-      text-align: center;
-      margin: 0.5em 0 1.3em 0;
-      font-weight: 400;
+    @media (max-width: 600px) {
+      .title-bar-text { max-width: 34vw; }
+      .search-bar { font-size: 11px; }
     }
   </style>
 </head>
 <body>
   <div class="title-bar">
-    <span class="title-bar-icon">
-      <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Google News Icon" />
-    </span>
-    <span class="title-bar-text">Google News - Trending</span>
+    <div class="title-bar-left">
+      <span class="title-bar-icon">
+        <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Google News Icon" />
+      </span>
+      <span class="title-bar-text">iNews</span>
+    </div>
+    <div class="title-bar-actions">
+      <span class="material-icons" id="fav-btn" title="Favorites">star</span>
+      <span class="material-icons" id="latest-btn" title="Latest (1h)">schedule</span>
+      <span class="material-icons" id="refresh-btn" title="Refresh">refresh</span>
+    </div>
   </div>
-  <div class="subheading">Infinite trending headlines from Google News</div>
+  <div class="search-bar-container">
+    <input class="search-bar" id="search-bar" type="text" placeholder="Search news topics, e.g. AI, Olympics, Tesla..." autocomplete="off">
+    <span class="material-icons search-bar-icon">search</span>
+  </div>
   <ul class="news-list" id="news-list"></ul>
   <div class="loading" id="loading" style="display:none;">Loading...</div>
   <script>
     // Trending feeds to rotate for variety
     const feeds = [
-      // Top stories (global, US, UK, India, etc)
       { name: "Top Stories", url: "https://news.google.com/news/rss?hl=en-US&gl=US&ceid=US:en" },
       { name: "Top Stories UK", url: "https://news.google.com/news/rss?hl=en-GB&gl=GB&ceid=GB:en" },
       { name: "Top Stories India", url: "https://news.google.com/news/rss?hl=en-IN&gl=IN&ceid=IN:en" },
       { name: "Top Stories Australia", url: "https://news.google.com/news/rss?hl=en-AU&gl=AU&ceid=AU:en" },
-      // Topic feeds
       { name: "World", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en" },
       { name: "Technology", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
       { name: "Business", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
       { name: "Science", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
       { name: "Sports", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
       { name: "Health", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" }
-      // Add more as desired
     ];
     // Fallback: trending keyword search terms (could be dynamic)
     const trendingKeywords = [
@@ -191,24 +255,31 @@
       "Ukraine", "NBA Finals", "Euro 2024", "Amazon", "Tesla", "Meta", "World Cup", "Covid", "Wimbledon", "Music Awards"
     ];
 
-    // For each feed, fetch headlines, when exhausted go to next feed or random trending keyword.
+    // Favorite topics (user provided)
+    const favTopics = [
+      "Pakistan", "Bitcoin", "NFTs", "Leuven", "Belgium", "technology", "science", "physics", "chip", "porn", "visa"
+    ];
+
     let feedIndex = 0;
     let headlines = [];
     let loadedCount = 0;
     const batchSize = 12;
     let loading = false;
     let seenLinks = new Set();
+    let searchMode = false;
+    let searchQuery = "";
+    let latestMode = false;
+    let favMode = false;
 
-    // Assign the most relevant Material Icon based on headline/title
     function getRelevantMaterialIcon(title) {
       const keywordIconMap = [
         { keywords: ["sport", "football", "soccer", "nba", "wimbledon", "olympic", "cricket", "tennis", "fifa", "world cup"], icon: "sports_soccer" },
-        { keywords: ["technology", "tech", "ai", "computer", "gadget", "robot", "software", "hardware"], icon: "memory" },
+        { keywords: ["technology", "tech", "ai", "computer", "gadget", "robot", "software", "hardware", "chip"], icon: "memory" },
         { keywords: ["finance", "stock", "market", "bitcoin", "crypto", "tesla", "amazon", "nasdaq", "shares"], icon: "attach_money" },
         { keywords: ["music", "concert", "song", "album", "band", "awards", "grammy"], icon: "music_note" },
         { keywords: ["weather", "storm", "flood", "rain", "sunny", "hurricane", "typhoon", "cyclone"], icon: "wb_sunny" },
         { keywords: ["health", "covid", "medicine", "vaccine", "virus", "hospital", "doctor", "disease"], icon: "health_and_safety" },
-        { keywords: ["science", "space", "nasa", "astronomy", "planet", "research"], icon: "science" },
+        { keywords: ["science", "space", "nasa", "astronomy", "planet", "research", "physics"], icon: "science" },
         { keywords: ["politics", "election", "government", "president", "parliament", "senate", "minister"], icon: "account_balance" },
         { keywords: ["movie", "film", "cinema", "oscar", "actor", "actress", "hollywood"], icon: "movie" },
         { keywords: ["environment", "climate", "nature", "eco", "global warming", "pollution"], icon: "eco" },
@@ -217,17 +288,18 @@
         { keywords: ["award", "prize", "winner"], icon: "emoji_events" },
         { keywords: ["crime", "murder", "police", "court", "trial"], icon: "gavel" },
         { keywords: ["fire", "explosion", "burn"], icon: "whatshot" },
-        { keywords: ["travel", "flight", "plane", "airport", "holiday"], icon: "flight_takeoff" },
+        { keywords: ["travel", "flight", "plane", "airport", "holiday", "visa"], icon: "flight_takeoff" },
         { keywords: ["education", "university", "school", "student", "college"], icon: "school" },
         { keywords: ["fashion", "style", "designer", "model"], icon: "checkroom" },
         { keywords: ["food", "recipe", "restaurant", "cooking"], icon: "restaurant" },
-        { keywords: ["shopping", "sale", "retail"], icon: "local_offer" }
+        { keywords: ["shopping", "sale", "retail"], icon: "local_offer" },
+        { keywords: ["porn"], icon: "explicit" },
+        { keywords: ["nft"], icon: "auto_awesome" }
       ];
       const lower = title.toLowerCase();
       for (const {keywords, icon} of keywordIconMap) {
         if (keywords.some(k => lower.includes(k))) return icon;
       }
-      // fallback icon
       return "feed";
     }
 
@@ -266,6 +338,7 @@
             link,
             source,
             timeAgo: formatTimeAgo(pubDate),
+            pubDate,
             icon: getRelevantMaterialIcon(title)
           });
         }
@@ -276,8 +349,12 @@
     }
 
     async function fetchTrendingKeywordFeed(keyword) {
-      // Use Google News search RSS
       const url = `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=en-US&gl=US&ceid=US:en`;
+      return await fetchFeed(url);
+    }
+
+    async function fetchSearchFeed(query) {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
       return await fetchFeed(url);
     }
 
@@ -285,28 +362,36 @@
       if (loading) return;
       loading = true;
       document.getElementById("loading").style.display = "block";
+
+      if (searchMode || favMode) {
+        if (loadedCount >= headlines.length) {
+          document.getElementById("loading").style.display = "none";
+          loading = false;
+          return;
+        }
+        renderBatch();
+        loading = false;
+        document.getElementById("loading").style.display = "none";
+        return;
+      }
+
       // If all loaded, fetch next feed or trending keyword
       while (loadedCount >= headlines.length) {
         let newBatch = [];
-        // Try next trending feed
         if (feedIndex < feeds.length) {
           newBatch = await fetchFeed(feeds[feedIndex].url);
           feedIndex++;
         } else {
-          // Exhausted feeds, use random trending keyword search
           const keyword = trendingKeywords[Math.floor(Math.random() * trendingKeywords.length)];
           newBatch = await fetchTrendingKeywordFeed(keyword);
         }
-        // If newBatch is empty, try next
         if (newBatch.length > 0) {
-          // Shuffle for variety
           for (let i = newBatch.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [newBatch[i], newBatch[j]] = [newBatch[j], newBatch[i]];
           }
           headlines = headlines.concat(newBatch);
         } else if (feedIndex >= feeds.length && headlines.length === 0) {
-          // If nothing at all, show message and stop
           document.getElementById("loading").style.display = "none";
           const newsList = document.getElementById("news-list");
           const li = document.createElement('li');
@@ -317,7 +402,6 @@
           return;
         }
       }
-      // Render next batch
       renderBatch();
       loading = false;
       document.getElementById("loading").style.display = "none";
@@ -342,6 +426,119 @@
       loadedCount = end;
     }
 
+    function resetAndLoad(newHeadlines) {
+      headlines = newHeadlines;
+      loadedCount = 0;
+      seenLinks = new Set(headlines.map(h => h.link));
+      const newsList = document.getElementById("news-list");
+      newsList.innerHTML = "";
+      if (headlines.length === 0) {
+        const li = document.createElement('li');
+        li.className = "no-results";
+        li.textContent = "No news headlines found.";
+        newsList.appendChild(li);
+      } else {
+        renderBatch();
+      }
+    }
+
+    async function refreshFeeds() {
+      searchMode = false;
+      latestMode = false;
+      favMode = false;
+      searchQuery = "";
+      feedIndex = 0;
+      loadedCount = 0;
+      headlines = [];
+      seenLinks = new Set();
+      document.getElementById("search-bar").value = "";
+      document.getElementById("news-list").innerHTML = "";
+      await loadMore();
+    }
+
+    async function showLatest() {
+      searchMode = false;
+      latestMode = true;
+      favMode = false;
+      feedIndex = 0;
+      loadedCount = 0;
+      headlines = [];
+      seenLinks = new Set();
+      document.getElementById("news-list").innerHTML = "";
+      document.getElementById("search-bar").value = "";
+      document.getElementById("loading").style.display = "block";
+      let allHeadlines = [];
+      for (let f of feeds) {
+        const batch = await fetchFeed(f.url);
+        allHeadlines = allHeadlines.concat(batch);
+      }
+      const now = new Date();
+      const only1h = allHeadlines.filter(h => {
+        if (h.pubDate) {
+          const pubTime = new Date(h.pubDate);
+          return (now - pubTime) < 3600 * 1000;
+        }
+        return false;
+      });
+      const seen = new Set();
+      const dedup = [];
+      for (let h of only1h) {
+        if (!seen.has(h.link)) {
+          dedup.push(h);
+          seen.add(h.link);
+        }
+      }
+      dedup.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      resetAndLoad(dedup);
+      document.getElementById("loading").style.display = "none";
+    }
+
+    async function showFavorites() {
+      searchMode = false;
+      latestMode = false;
+      favMode = true;
+      feedIndex = 0;
+      loadedCount = 0;
+      headlines = [];
+      seenLinks = new Set();
+      document.getElementById("news-list").innerHTML = "";
+      document.getElementById("search-bar").value = "";
+      document.getElementById("loading").style.display = "block";
+      let allHeadlines = [];
+      for (let topic of favTopics) {
+        const batch = await fetchTrendingKeywordFeed(topic);
+        allHeadlines = allHeadlines.concat(batch);
+      }
+      // Remove duplicates
+      const seen = new Set();
+      const dedup = [];
+      for (let h of allHeadlines) {
+        if (!seen.has(h.link)) {
+          dedup.push(h);
+          seen.add(h.link);
+        }
+      }
+      dedup.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      resetAndLoad(dedup);
+      document.getElementById("loading").style.display = "none";
+    }
+
+    async function doSearch(query) {
+      searchMode = true;
+      latestMode = false;
+      favMode = false;
+      searchQuery = query;
+      feedIndex = 0;
+      loadedCount = 0;
+      headlines = [];
+      seenLinks = new Set();
+      document.getElementById("news-list").innerHTML = "";
+      document.getElementById("loading").style.display = "block";
+      const results = await fetchSearchFeed(query);
+      resetAndLoad(results);
+      document.getElementById("loading").style.display = "none";
+    }
+
     // Infinite scroll
     let scrollTimeout;
     window.addEventListener('scroll', () => {
@@ -358,6 +555,24 @@
       document.documentElement.style.width = '100vw';
       document.body.style.width = '100vw';
     });
+
+    // Search bar events
+    document.getElementById("search-bar").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        const q = this.value.trim();
+        if (q.length > 0) doSearch(q);
+      }
+    });
+    document.getElementById("search-bar").addEventListener("input", function (e) {
+      if (this.value.trim().length === 0 && searchMode) {
+        refreshFeeds();
+      }
+    });
+
+    // Refresh, Latest, and Favorites buttons
+    document.getElementById("refresh-btn").addEventListener("click", refreshFeeds);
+    document.getElementById("latest-btn").addEventListener("click", showLatest);
+    document.getElementById("fav-btn").addEventListener("click", showFavorites);
 
     // Initial load
     loadMore();
