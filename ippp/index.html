@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IPTV Channels Browser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png">
+
+  <!-- Material Icons and Roboto Font -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Video.js CSS -->
+  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
+
+  <style>
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      background: #24272b;
+      color: #fff;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-size: 10px;
+    }
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #23272e;
+      padding: 0.7em 1em 0.7em 0.8em;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 0.5px 1px 0 rgba(0,0,0,0.10);
+      max-width: 100vw;
+    }
+    .title-bar-left {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      flex: 1;
+    }
+    .title-bar-icon {
+      width: 27px;
+      height: 27px;
+      border-radius: 7px;
+      margin-right: 0.5em;
+      background: #fff;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px 0 rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .title-bar-icon img {
+      width: 22px;
+      height: 22px;
+      display: block;
+    }
+    .title-bar-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 65vw;
+    }
+    .search-bar-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      padding: 0.6em 0.9em 0.2em 0.9em;
+      margin: 0;
+      background: #24272b;
+    }
+    .search-bar {
+      width: 100%;
+      max-width: 460px;
+      background: #23272e;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 7px;
+      font-size: 12px;
+      padding: 0.7em 1.8em 0.7em 1.1em;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .search-bar::placeholder {
+      color: #b0b0b5;
+      opacity: 1;
+    }
+    .search-bar-icon {
+      position: relative;
+      left: -26px;
+      color: #b0b0b5;
+      font-size: 18px;
+      pointer-events: none;
+    }
+    .channels-list {
+      list-style: none;
+      margin: 0;
+      padding: 0 0.5em;
+      max-width: 100vw;
+    }
+    .channel-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5em 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      max-width: 100vw;
+      overflow: hidden;
+      font-size: 11px;
+    }
+    .channel-serial {
+      width: 2.2em;
+      text-align: right;
+      color: #b0b0b5;
+      font-size: 11px;
+      flex-shrink: 0;
+      margin-right: 0.8em;
+      font-weight: 500;
+    }
+    .channel-clickable {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      outline: none;
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      transition: background 0.13s;
+      border-radius: 8px;
+    }
+    .channel-clickable:hover, .channel-clickable:focus-visible {
+      background: #32343a;
+      outline: 2px solid #4caf50;
+    }
+    .channel-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #2d2f35;
+      margin-right: 0.7em;
+      object-fit: contain;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.13);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .channel-icon img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 8px;
+      background: #222;
+    }
+    .channel-name {
+      flex: 2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      color: #fff;
+      margin-right: 0.7em;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 0.2em;
+      cursor: pointer;
+    }
+    .channel-country {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0.15em;
+      min-width: 2.1em;
+      margin-right: 0.7em;
+      font-size: 10px;
+      color: #bbb;
+      opacity: 0.85;
+    }
+    .channel-country-flag {
+      font-size: 15px;
+      margin-right: 0.15em;
+    }
+    .channel-play {
+      flex: 0 0 auto;
+      margin-left: auto;
+      color: #fff;
+      background: #373a40;
+      border-radius: 7px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: background 0.14s;
+    }
+    .channel-play:hover {
+      background: #40444b;
+      color: #00e676;
+    }
+    .loading {
+      text-align: center;
+      color: #b0b0b5;
+      font-size: 10px;
+      margin: 1em 0;
+    }
+    .no-results {
+      text-align: center;
+      color: #b0b0b5;
+      font-size: 13px;
+      margin: 2em 0 0.5em 0;
+    }
+    .player-modal {
+      display: none;
+      position: fixed;
+      z-index: 1003;
+      left: 0; top: 0; right: 0; bottom: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(36, 39, 43, 0.98);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      transition: background 0.2s;
+    }
+    .player-modal.active {
+      display: flex;
+    }
+    .player-content {
+      background: #23272e;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.27);
+      padding: 1.1em 1.6em 1.3em 1.6em;
+      min-width: 330px;
+      max-width: 95vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .player-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.8em;
+      justify-content: space-between;
+    }
+    .player-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 250px;
+    }
+    .player-close {
+      color: #fff;
+      background: #373a40;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: background 0.14s;
+      margin-left: 1em;
+    }
+    .player-close:hover {
+      background: #40444b;
+      color: #ff5252;
+    }
+    .player-video {
+      width: 450px;
+      height: 254px;
+      max-width: 90vw;
+      max-height: 45vw;
+      background: #000;
+      border-radius: 7px;
+      outline: none;
+      margin-bottom: 0.6em;
+      display: block;
+    }
+    .player-country {
+      color: #b0b0b5;
+      font-size: 11px;
+      margin: 0.3em 0 0 0;
+      display: flex;
+      align-items: center;
+      gap: 0.27em;
+    }
+    @media (max-width: 600px) {
+      .title-bar-text { max-width: 45vw; }
+      .search-bar { font-size: 11px; }
+      .channel-name { font-size: 11px; }
+      .channel-country { font-size: 9px; }
+      .player-content { min-width: 0; padding: 0.6em 0.3em 1em 0.3em; }
+      .player-video { width: 92vw; height: 52vw; }
+      .player-title { max-width: 140px; }
+      .channel-icon { width: 26px; height: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="title-bar">
+    <div class="title-bar-left">
+      <span class="title-bar-icon">
+        <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="IPTV Icon" />
+      </span>
+      <span class="title-bar-text">IPTV Channels</span>
+    </div>
+  </div>
+  <div class="search-bar-container">
+    <input class="search-bar" id="search-bar" type="text" placeholder="Search channels, e.g. BBC, Belgium, Sports..." autocomplete="off">
+    <span class="material-icons search-bar-icon">search</span>
+  </div>
+  <ul class="channels-list" id="channels-list"></ul>
+  <div class="loading" id="loading" style="display:none;">Loading channels...</div>
+
+  <!-- Player Modal -->
+  <div class="player-modal" id="player-modal">
+    <div class="player-content">
+      <div class="player-header">
+        <span class="player-title" id="player-title"></span>
+        <span class="material-icons player-close" id="player-close" title="Close">close</span>
+      </div>
+      <!-- The video element will be dynamically created/removed -->
+      <video id="player-video" class="player-video video-js vjs-default-skin" controls autoplay playsinline></video>
+      <span class="player-country" id="player-country"></span>
+    </div>
+  </div>
+
+  <!-- Video.js library -->
+  <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+
+  <script>
+    // Helper: country code to emoji flag
+    function getFlagEmoji(countryCode) {
+      if (!countryCode || countryCode.length !== 2) return "";
+      const code = countryCode.toUpperCase();
+      return String.fromCodePoint(...[...code].map(c =>  0x1f1e6 - 65 + c.charCodeAt(0)));
+    }
+
+    // Helper: parse M3U
+    function parseM3U(m3u) {
+      const lines = m3u.split('\n');
+      const channels = [];
+      let current = {};
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        if (line.startsWith("#EXTINF:")) {
+          current = {};
+          // Parse attributes
+          const attrRe = /([a-zA-Z0-9\-_]+)="([^"]*)"/g;
+          let attrs = {};
+          let match;
+          while ((match = attrRe.exec(line)) !== null) {
+            attrs[match[1]] = match[2];
+          }
+          // Name
+          const nameMatch = line.match(/,(.*)$/);
+          current.name = nameMatch ? nameMatch[1].trim() : "";
+          current.tvg_id = attrs["tvg-id"] || "";
+          current.tvg_country = attrs["tvg-country"] || "";
+          current.tvg_logo = attrs["tvg-logo"] || "";
+          current.group_title = attrs["group-title"] || "";
+          current.country = attrs["tvg-country"] || "";
+        } else if (line.startsWith("http")) {
+          current.url = line;
+          channels.push(current);
+        }
+      }
+      return channels;
+    }
+
+    // State
+    let allChannels = [];
+    let filteredChannels = [];
+    let batchSize = 60;
+    let loadedCount = 0;
+    let player = null; // video.js player instance
+
+    function renderChannels(reset = false) {
+      const channelsList = document.getElementById("channels-list");
+      if (reset) {
+        channelsList.innerHTML = "";
+        loadedCount = 0;
+      }
+      const end = Math.min(filteredChannels.length, loadedCount + batchSize);
+      for (let i = loadedCount; i < end; ++i) {
+        const ch = filteredChannels[i];
+        // All play data attributes for clickable icon, title, and play button
+        const playAttrs = `
+          data-url="${encodeURIComponent(ch.url)}"
+          data-name="${encodeURIComponent(ch.name)}"
+          data-country="${encodeURIComponent(ch.country)}"
+          data-logo="${encodeURIComponent(ch.tvg_logo)}"
+        `;
+        const li = document.createElement("li");
+        li.className = "channel-item";
+        li.innerHTML = `
+          <span class="channel-serial">${i + 1}</span>
+          <span class="channel-clickable channel-icon"
+            tabindex="0"
+            role="button"
+            aria-label="Play ${ch.name} channel"
+            ${playAttrs}
+          >
+            ${ch.tvg_logo ? `<img src="${ch.tvg_logo}" alt="" onerror="this.style.display='none';"/>` : `<span class="material-icons" style="font-size:22px;color:#555;">live_tv</span>`}
+          </span>
+          <span class="channel-clickable channel-name"
+            tabindex="0"
+            role="button"
+            aria-label="Play ${ch.name} channel"
+            title="${ch.name}"
+            ${playAttrs}
+          >${ch.name}</span>
+          <span class="channel-country">
+            ${ch.country ? `<span class="channel-country-flag">${getFlagEmoji(ch.country.split(";")[0])}</span>` : ""}
+            ${ch.country ? ch.country.split(";")[0] : ""}
+          </span>
+          <span class="material-icons channel-play" title="Play"
+            ${playAttrs}
+          >play_arrow</span>
+        `;
+        channelsList.appendChild(li);
+      }
+      loadedCount = end;
+      if (filteredChannels.length === 0) {
+        channelsList.innerHTML = `<li class="no-results">No channels found.</li>`;
+      }
+    }
+
+    function applySearch() {
+      const q = document.getElementById("search-bar").value.trim().toLowerCase();
+      if (!q) {
+        filteredChannels = allChannels;
+      } else {
+        filteredChannels = allChannels.filter(ch =>
+          (ch.name && ch.name.toLowerCase().includes(q)) ||
+          (ch.country && ch.country.toLowerCase().includes(q)) ||
+          (ch.group_title && ch.group_title.toLowerCase().includes(q))
+        );
+      }
+      renderChannels(true);
+    }
+
+    // Infinite scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 120)) {
+          if (loadedCount < filteredChannels.length) renderChannels(false);
+        }
+      }, 80);
+    });
+
+    document.getElementById("search-bar").addEventListener("input", applySearch);
+
+    // Player modal logic using video.js
+    function showPlayer({url, name, country, logo}) {
+      const modal = document.getElementById("player-modal");
+      const title = document.getElementById("player-title");
+      const countryElem = document.getElementById("player-country");
+      // --- Recreate the video element ---
+      const playerContent = modal.querySelector('.player-content');
+      // Remove old video if any
+      const oldVideo = document.getElementById("player-video");
+      if (oldVideo) oldVideo.parentNode.removeChild(oldVideo);
+      // Create new video element
+      const videoElem = document.createElement("video");
+      videoElem.id = "player-video";
+      videoElem.className = "player-video video-js vjs-default-skin";
+      videoElem.setAttribute("controls", "");
+      videoElem.setAttribute("autoplay", "");
+      videoElem.setAttribute("playsinline", "");
+      if (logo) videoElem.poster = logo;
+      playerContent.insertBefore(videoElem, countryElem);
+
+      // Initialize video.js
+      if (player && player.dispose) player.dispose();
+      player = videojs(videoElem, {
+        autoplay: true,
+        controls: true,
+        fluid: true,
+        preload: 'auto',
+        sources: [{
+          src: url,
+          type: 'application/x-mpegURL'
+        }]
+      });
+
+      // Set title and country
+      title.textContent = decodeURIComponent(name);
+      let countryCode = (country || '').split(';')[0];
+      countryElem.innerHTML = countryCode ? `<span class="channel-country-flag">${getFlagEmoji(countryCode)}</span> ${countryCode}` : "";
+      modal.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
+
+    function hidePlayer() {
+      const modal = document.getElementById("player-modal");
+      modal.classList.remove("active");
+      document.body.style.overflow = "";
+      if (player && player.dispose) {
+        player.dispose();
+        player = null;
+      }
+      // Remove the video element so it can be recreated fresh next time
+      const videoElem = document.getElementById("player-video");
+      if (videoElem) videoElem.parentNode.removeChild(videoElem);
+    }
+
+    document.getElementById("player-close").addEventListener("click", hidePlayer);
+    document.getElementById("player-modal").addEventListener("click", function(e) {
+      if (e.target === this) hidePlayer();
+    });
+
+    // Click handling for play button, icon, and title
+    document.addEventListener("click", function(e) {
+      // Play icon
+      if (e.target.classList.contains("channel-play") || e.target.classList.contains("channel-icon") || e.target.classList.contains("channel-name")) {
+        const url = decodeURIComponent(e.target.getAttribute('data-url'));
+        const name = decodeURIComponent(e.target.getAttribute('data-name'));
+        const country = decodeURIComponent(e.target.getAttribute('data-country') || "");
+        const logo = decodeURIComponent(e.target.getAttribute('data-logo') || "");
+        showPlayer({url, name, country, logo});
+      }
+    });
+    // Keyboard accessibility: Enter/Space on icon/title
+    document.addEventListener("keydown", function(e) {
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement && document.activeElement.classList.contains("channel-clickable")) {
+        e.preventDefault();
+        const el = document.activeElement;
+        const url = decodeURIComponent(el.getAttribute('data-url'));
+        const name = decodeURIComponent(el.getAttribute('data-name'));
+        const country = decodeURIComponent(el.getAttribute('data-country') || "");
+        const logo = decodeURIComponent(el.getAttribute('data-logo') || "");
+        showPlayer({url, name, country, logo});
+      }
+    });
+
+    // Initial load
+    (async function() {
+      document.getElementById("loading").style.display = "block";
+      try {
+        // Use CORS proxy since fetch from github.io m3u is blocked by CORS
+        const url = "https://iptv-org.github.io/iptv/index.m3u";
+        const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const resp = await fetch(proxied);
+        const m3u = await resp.text();
+        allChannels = parseM3U(m3u);
+        filteredChannels = allChannels;
+        renderChannels(true);
+      } catch (e) {
+        document.getElementById("channels-list").innerHTML = `<li class="no-results">Failed to load channels.</li>`;
+      }
+      document.getElementById("loading").style.display = "none";
+    })();
+  </script>
+</body>
+</html>
