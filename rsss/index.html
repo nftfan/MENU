@@ -199,13 +199,36 @@
     let loading = false;
     let seenLinks = new Set();
 
-    // Material Icons for fun
-    const materialIcons = [
-      "public", "travel_explore", "star", "favorite", "bolt", "whatshot", "feed", "event", "insights", "sports_soccer", "science", "health_and_safety", "eco", "music_note", "videocam", "local_offer", "attach_money", "trending_up", "update", "analytics", "school", "check_circle", "info"
-    ];
-    function getRandomMaterialIcon() {
-      const idx = Math.floor(Math.random() * materialIcons.length);
-      return materialIcons[idx];
+    // Assign the most relevant Material Icon based on headline/title
+    function getRelevantMaterialIcon(title) {
+      const keywordIconMap = [
+        { keywords: ["sport", "football", "soccer", "nba", "wimbledon", "olympic", "cricket", "tennis", "fifa", "world cup"], icon: "sports_soccer" },
+        { keywords: ["technology", "tech", "ai", "computer", "gadget", "robot", "software", "hardware"], icon: "memory" },
+        { keywords: ["finance", "stock", "market", "bitcoin", "crypto", "tesla", "amazon", "nasdaq", "shares"], icon: "attach_money" },
+        { keywords: ["music", "concert", "song", "album", "band", "awards", "grammy"], icon: "music_note" },
+        { keywords: ["weather", "storm", "flood", "rain", "sunny", "hurricane", "typhoon", "cyclone"], icon: "wb_sunny" },
+        { keywords: ["health", "covid", "medicine", "vaccine", "virus", "hospital", "doctor", "disease"], icon: "health_and_safety" },
+        { keywords: ["science", "space", "nasa", "astronomy", "planet", "research"], icon: "science" },
+        { keywords: ["politics", "election", "government", "president", "parliament", "senate", "minister"], icon: "account_balance" },
+        { keywords: ["movie", "film", "cinema", "oscar", "actor", "actress", "hollywood"], icon: "movie" },
+        { keywords: ["environment", "climate", "nature", "eco", "global warming", "pollution"], icon: "eco" },
+        { keywords: ["business", "company", "startup", "industry", "ceo", "merger", "acquisition"], icon: "business_center" },
+        { keywords: ["world", "international", "global", "united nations", "summit"], icon: "public" },
+        { keywords: ["award", "prize", "winner"], icon: "emoji_events" },
+        { keywords: ["crime", "murder", "police", "court", "trial"], icon: "gavel" },
+        { keywords: ["fire", "explosion", "burn"], icon: "whatshot" },
+        { keywords: ["travel", "flight", "plane", "airport", "holiday"], icon: "flight_takeoff" },
+        { keywords: ["education", "university", "school", "student", "college"], icon: "school" },
+        { keywords: ["fashion", "style", "designer", "model"], icon: "checkroom" },
+        { keywords: ["food", "recipe", "restaurant", "cooking"], icon: "restaurant" },
+        { keywords: ["shopping", "sale", "retail"], icon: "local_offer" }
+      ];
+      const lower = title.toLowerCase();
+      for (const {keywords, icon} of keywordIconMap) {
+        if (keywords.some(k => lower.includes(k))) return icon;
+      }
+      // fallback icon
+      return "feed";
     }
 
     function formatTimeAgo(pubDate) {
@@ -243,7 +266,7 @@
             link,
             source,
             timeAgo: formatTimeAgo(pubDate),
-            icon: getRandomMaterialIcon()
+            icon: getRelevantMaterialIcon(title)
           });
         }
         return newHeadlines;
