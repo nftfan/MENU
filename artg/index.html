@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-   <style>
+  <style>
     :root {
       --neon-green: #00ff88;
       --neon-cyan: #00ffff;
@@ -659,7 +659,27 @@
       document.getElementById("tab-content-shop").classList.toggle("hidden", show);
       document.getElementById("tab-content-mynfts").classList.toggle("hidden", show);
     }
+
+    // --------- METAMASK MOBILE AUTO-OPEN LOGIC ---------
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    function isMetaMaskMobile() {
+      return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && /MetaMask/i.test(navigator.userAgent);
+    }
+    function getDappUrl() {
+      let dappUrl = window.location.href.replace(/^https?:\/\//, '');
+      dappUrl = dappUrl.replace(/[#?].*$/, '');
+      return dappUrl;
+    }
     async function connectWallet() {
+      if (isMobile() && !isMetaMaskMobile() && !window.ethereum) {
+        const dappUrl = encodeURIComponent(getDappUrl());
+        const metamaskAppDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
+        window.location.href = metamaskAppDeepLink;
+        setStatusBar('Opening MetaMask...', "electric_bolt");
+        return;
+      }
       try {
         setStatusBar('Connecting wallet...', "electric_bolt");
         if (!window.ethereum) {
@@ -757,9 +777,6 @@
         return await res.json();
       } catch (e) { return null; }
     }
-    // No Modal logic used anymore, so removed modal functions
-
-    // Render shop grid, with buy dropdown (no popups)
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
@@ -803,7 +820,6 @@
             btn = `<button class="buy-btn" disabled>Sold Out</button>`;
           } else {
             inv = `<div style="font-size:7px;color:#444;margin-bottom:1px;"><span class="material-icons" style="font-size:8px;vertical-align:middle">inventory_2</span>Avail: ${shopAmounts[i]}</div>`;
-            // Dropdown for amount selection (from 1 to max available)
             amountDropdown = `<select style="margin:0 7px;width:54px;height:20px;font-size:10px;font-family:'Orbitron', monospace;" id="amount-dropdown-${id}">` +
               Array.from({length: Math.min(maxAmount, 10)}, (_, k) => `<option value="${k+1}">${k+1}</option>`).join('') +
               `</select>`;
@@ -832,14 +848,12 @@
         shopGrid.innerHTML = html;
         loading.style.display = "none";
         shopGrid.style.display = "grid";
-        // No modal click handlers needed
       } catch (error) {
         shopGrid.innerHTML = "";
         loading.style.display = "none";
         showError("shop-error", "Failed to load NFTs: " + error.message);
       }
     }
-    // buyNFT now uses dropdown value, not prompt
     async function buyNFT(tokenId, priceWei, availableAmount) {
       if (!userAccount) {
         setStatusBar("Connect your wallet first!", "warning");
@@ -877,7 +891,6 @@
         }, 800);
       }
     }
-    // Vault: only static card display, not clickable
     async function loadUserNFTs() {
       const myGrid = document.getElementById("myGrid");
       const loading = document.getElementById("my-loading");
@@ -942,7 +955,6 @@
         myGrid.innerHTML = html;
         loading.style.display = "none";
         myGrid.style.display = "grid";
-        // No modal click handlers needed
       } catch (error) {
         myGrid.innerHTML = "";
         loading.style.display = "none";
