@@ -660,7 +660,7 @@
       document.getElementById("tab-content-mynfts").classList.toggle("hidden", show);
     }
 
-    // --------- METAMASK MOBILE AUTO-OPEN LOGIC ---------
+// --------- METAMASK MOBILE AUTO-OPEN LOGIC ---------
 function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
@@ -671,6 +671,54 @@ function getDappUrl() {
   // Remove protocol, keep path and search, do NOT encode slashes!
   return window.location.host + window.location.pathname + window.location.search;
 }
+function detectOtherInjectedWallet() {
+  // Example for Coinbase Wallet (many wallets mimic MetaMask API)
+  if (typeof window.ethereum !== 'undefined') {
+    if (window.ethereum.isCoinbaseWallet) return 'Coinbase Wallet';
+    if (window.ethereum.isTrust) return 'Trust Wallet';
+    // Add more wallet detections as needed
+    return 'Other Wallet';
+  }
+  return null;
+}
+async function connectWithInjectedWallet() {
+  try {
+    setStatusBar('Connecting wallet...', "electric_bolt");
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (chainId !== POLYGON_PARAMS.chainId) {
+      setStatusBar('Switching to Polygon...', "cloud_done", false, 800);
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_PARAMS.chainId }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [POLYGON_PARAMS],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    }
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAccount = accounts[0];
+    document.getElementById("connect-btn").textContent = "✔ Connected";
+    document.getElementById("connect-btn").style.background = "#e8f5e9";
+    document.getElementById("connect-btn").style.color = "#1b5e20";
+    document.getElementById("connect-btn").style.borderColor = "#c8e6c9";
+    await setupContracts();
+    await showNftfanBalance();
+    setStatusBar("Wallet connected", "check_circle");
+    showStartMessage(false);
+    loadShopNFTs();
+    loadUserNFTs();
+  } catch (error) {
+    setStatusBar("Connection failed: " + error.message, "error", false, 3400);
+  }
+}
 async function connectWallet() {
   if (isMobile() && !isMetaMaskMobile() && !window.ethereum) {
     const dappUrl = getDappUrl();
@@ -679,47 +727,20 @@ async function connectWallet() {
     setStatusBar('Opening MetaMask...', "electric_bolt");
     return;
   }
-      try {
-        setStatusBar('Connecting wallet...', "electric_bolt");
-        if (!window.ethereum) {
-          setStatusBar("Please install MetaMask or a compatible wallet!", "warning", false, 3400);
-          return;
-        }
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== POLYGON_PARAMS.chainId) {
-          setStatusBar('Switching to Polygon...', "cloud_done", false, 800);
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: POLYGON_PARAMS.chainId }],
-            });
-          } catch (switchError) {
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [POLYGON_PARAMS],
-              });
-            } else {
-              throw switchError;
-            }
-          }
-        }
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        userAccount = accounts[0];
-        document.getElementById("connect-btn").textContent = "✔ Connected";
-        document.getElementById("connect-btn").style.background = "#e8f5e9";
-        document.getElementById("connect-btn").style.color = "#1b5e20";
-        document.getElementById("connect-btn").style.borderColor = "#c8e6c9";
-        await setupContracts();
-        await showNftfanBalance();
-        setStatusBar("Wallet connected", "check_circle");
-        showStartMessage(false);
-        loadShopNFTs();
-        loadUserNFTs();
-      } catch (error) {
-        setStatusBar("Connection failed: " + error.message, "error", false, 3400);
-      }
-    }
+  if (window.ethereum && window.ethereum.isMetaMask) {
+    // MetaMask present
+    await connectWithInjectedWallet();
+    return;
+  }
+  if (window.ethereum) {
+    // Another injected wallet present
+    const walletName = detectOtherInjectedWallet();
+    setStatusBar(`Detected ${walletName}. Connecting...`, "electric_bolt");
+    await connectWithInjectedWallet();
+    return;
+  }
+  setStatusBar("Please install MetaMask or another compatible wallet!", "warning", false, 3400);
+}
     async function setupContracts() {
       const rpcUrls = POLYGON_PARAMS.rpcUrls;
       let provider = null;
