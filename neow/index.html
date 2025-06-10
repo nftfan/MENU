@@ -43,7 +43,34 @@
     .start-message { text-align: center; padding: 20px; font-size: 14px; color: #aaa; }
     .tab-content { margin-top: 10px; }
     .tab-content.hidden { display: none; }
-    .shop-grid, .nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; padding: 0; list-style: none; }
+
+    /* Option Selector for grid columns */
+    .shop-options-bar {
+      text-align: right;
+      margin-bottom: 6px;
+      margin-top: 2px;
+    }
+    .shop-options-bar label {
+      color: #aaa;
+      font-size: 11px;
+      margin-right: 5px;
+    }
+    .shop-columns-select {
+      background: #111;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+    }
+
+    .shop-grid, .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+      padding: 0;
+      list-style: none;
+    }
     .shop-item, .nft-card { background: #1a1a1a; border-radius: 8px; padding: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .shop-item:hover, .nft-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
     .shop-img, .nft-img { width: 100%; height: auto; border-radius: 4px; }
@@ -60,6 +87,23 @@
     footer { text-align: center; padding: 10px; font-size: 10px; color: #555; }
     .cyber-card-glitch { animation: glitch 0.1s infinite; }
     @keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
+
+    /* Responsive: Default 1 per row on mobile, 2 on small tablets, 3+ on big screens */
+    @media (max-width: 600px) {
+      .shop-grid, .nft-grid {
+        grid-template-columns: repeat(var(--mobile-cols, 1), 1fr) !important;
+      }
+    }
+    @media (min-width: 601px) and (max-width: 900px) {
+      .shop-grid, .nft-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 901px) {
+      .shop-grid, .nft-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
   </style>
 </head>
 <body>
@@ -100,6 +144,14 @@
       Connect your wallet to start NFT Fans
     </div>
     <div class="tab-content hidden" id="tab-content-shop">
+      <div class="shop-options-bar" id="shopOptionsBar" style="display: none;">
+        <label for="shop-columns-select">Mobile grid:</label>
+        <select class="shop-columns-select" id="shop-columns-select" onchange="setMobileCols()">
+          <option value="1">1 per row</option>
+          <option value="2">2 per row</option>
+          <option value="3">3 per row</option>
+        </select>
+      </div>
       <div id="shop-loading" style="font-size:11px;color:#aaa;text-align:center;margin:10px;">Loading NFTs...</div>
       <div id="shop-error" style="display:none;color:#ff2070;font-size:10px;margin:6px 0 9px 0;text-align:center;"></div>
       <ul class="shop-grid" id="shopGrid" style="display: none;"></ul>
@@ -116,6 +168,25 @@
   </footer>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script>
+    // Option to set grid columns on mobile
+    function setMobileCols() {
+      const sel = document.getElementById('shop-columns-select');
+      const cols = sel.value;
+      document.documentElement.style.setProperty('--mobile-cols', cols);
+    }
+    // Show option bar on mobile only
+    function updateMobileGridOptionVis() {
+      const shopOptionsBar = document.getElementById('shopOptionsBar');
+      if (window.innerWidth <= 600) {
+        shopOptionsBar.style.display = '';
+      } else {
+        shopOptionsBar.style.display = 'none';
+      }
+    }
+    window.addEventListener('resize', updateMobileGridOptionVis);
+    window.addEventListener('DOMContentLoaded', updateMobileGridOptionVis);
+
+    // Rest of your script (unchanged)
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -279,8 +350,6 @@
         return null;
       }
     }
-
-    // Remove all modal code
 
     async function buyNFT(tokenId, priceWei, amount) {
       if (!userAccount) {
