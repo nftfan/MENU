@@ -106,27 +106,12 @@
       display: flex;
       align-items: center;
     }
-    .topic-tabs {
-      display: flex;
-      justify-content: center;
-      gap: 1.1em;
-      margin: 1em 0 0.3em 0;
-    }
-    .topic-tab {
-      padding: 0.5em 1.1em;
-      font-size: 13px;
+    .subheading {
+      font-size: 12px;
       color: #b0b0b5;
-      background: #2c3136;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background 0.15s;
-    }
-    .topic-tab.selected {
-      color: #fff;
-      background: #38404a;
-      font-weight: 700;
+      text-align: center;
+      margin: 0.5em 0 1.3em 0;
+      font-weight: 400;
     }
     .news-list {
       list-style: none;
@@ -211,13 +196,6 @@
       margin: 2em 0 0.5em 0;
     }
     input, textarea, select { font-size: 16px; }
-    .subheading {
-      font-size: 12px;
-      color: #b0b0b5;
-      text-align: center;
-      margin: 0.5em 0 1.3em 0;
-      font-weight: 400;
-    }
   </style>
 </head>
 <body>
@@ -227,7 +205,7 @@
     </span>
     <span class="title-bar-text">Google News - Custom Topics</span>
   </div>
-  <div class="subheading">World, Science, Technology. Search for any topic!</div>
+  <div class="subheading">World, Science, Technology. Or search for any topic!</div>
   <div class="search-bar-container">
     <form class="search-form" id="search-form" autocomplete="off">
       <input class="search-input" id="search-input" type="text" placeholder="Search any topic…" aria-label="Search News" />
@@ -236,49 +214,46 @@
       </button>
     </form>
   </div>
-  <div class="topic-tabs">
-    <button class="topic-tab selected" data-topic="world">World Headlines</button>
-    <button class="topic-tab" data-topic="science">Science</button>
-    <button class="topic-tab" data-topic="technology">Technology</button>
-  </div>
   <ul class="news-list" id="news-list"></ul>
   <div class="loading" id="loading" style="display:none;">Loading...</div>
   <script>
     // RSS URLs for your selected topics
-    const topicFeeds = {
-      world: {
+    const topicFeeds = [
+      {
+        topic: "world",
         name: "World Headlines",
         url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en",
         icon: "public"
       },
-      science: {
+      {
+        topic: "science",
         name: "Science",
         url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en",
         icon: "science"
       },
-      technology: {
+      {
+        topic: "technology",
         name: "Technology",
         url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en",
         icon: "memory"
       }
-    };
-
-    let currentTopic = "world";
+    ];
+    let feedIndex = 0;
     let headlines = [];
     let loadedCount = 0;
     const batchSize = 12;
     let loading = false;
     let seenLinks = new Set();
+    let searchMode = false;
     let lastQuery = "";
 
     // Assign the most relevant Material Icon based on headline/title and topic
     function getRelevantMaterialIcon(title, topic) {
       const lower = title.toLowerCase();
-      // Topic icons
       if (topic === "world") return "public";
       if (topic === "science") return "science";
       if (topic === "technology") return "memory";
-      // Search mode: try to guess
+      // Guess for search
       if (lower.match(/\b(science|space|nasa|research|physics|chemistry|biology|planet|astronomy|discovery)\b/)) return "science";
       if (lower.match(/\b(technology|tech|ai|computer|software|hardware|robot|gadget|internet|app|apps|smartphone)\b/)) return "memory";
       if (lower.match(/\b(world|international|global|summit|united nations)\b/)) return "public";
@@ -365,54 +340,40 @@
       if (loading) return;
       loading = true;
       document.getElementById("loading").style.display = "block";
-      // If all loaded, fetch more (for RSS, only first ~100, so just stop)
-      if (loadedCount >= headlines.length) {
-        document.getElementById("loading").style.display = "none";
-        loading = false;
-        return;
+      // If all loaded, fetch next batch
+      while (loadedCount >= headlines.length) {
+        let newBatch = [];
+        if (!searchMode) {
+          // Cycle through topics for variety
+          const feed = topicFeeds[feedIndex % topicFeeds.length];
+          feedIndex++;
+          newBatch = await fetchFeed(feed.url, feed.topic);
+        } else {
+          // Search mode: only fetch once
+          document.getElementById("loading").style.display = "none";
+          loading = false;
+          return;
+        }
+        if (newBatch.length > 0) {
+          // Shuffle for variety
+          for (let i = newBatch.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newBatch[i], newBatch[j]] = [newBatch[j], newBatch[i]];
+          }
+          headlines = headlines.concat(newBatch);
+        } else if (headlines.length === 0) {
+          document.getElementById("loading").style.display = "none";
+          const newsList = document.getElementById("news-list");
+          const li = document.createElement('li');
+          li.className = "no-results";
+          li.textContent = "No news headlines found.";
+          newsList.appendChild(li);
+          loading = false;
+          return;
+        }
       }
       renderBatch();
       loading = false;
-      document.getElementById("loading").style.display = "none";
-    }
-
-    async function showTopic(topic) {
-      clearResults();
-      document.querySelectorAll('.topic-tab').forEach(btn => btn.classList.remove('selected'));
-      document.querySelector(`.topic-tab[data-topic="${topic}"]`).classList.add('selected');
-      document.getElementById("loading").style.display = "block";
-      lastQuery = "";
-      headlines = await fetchFeed(topicFeeds[topic].url, topic);
-      if (headlines.length === 0) {
-        document.getElementById("loading").style.display = "none";
-        const newsList = document.getElementById("news-list");
-        const li = document.createElement('li');
-        li.className = "no-results";
-        li.textContent = "No news headlines found.";
-        newsList.appendChild(li);
-        return;
-      }
-      loadedCount = 0;
-      renderBatch();
-      document.getElementById("loading").style.display = "none";
-    }
-
-    async function doSearch(query) {
-      clearResults();
-      document.getElementById("loading").style.display = "block";
-      lastQuery = query;
-      headlines = await fetchSearchFeed(query);
-      if (headlines.length === 0) {
-        document.getElementById("loading").style.display = "none";
-        const newsList = document.getElementById("news-list");
-        const li = document.createElement('li');
-        li.className = "no-results";
-        li.textContent = "No news headlines found for your search.";
-        newsList.appendChild(li);
-        return;
-      }
-      loadedCount = 0;
-      renderBatch();
       document.getElementById("loading").style.display = "none";
     }
 
@@ -427,25 +388,31 @@
       }, 80);
     });
 
-    // Topic tab click
-    document.querySelectorAll('.topic-tab').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        currentTopic = this.getAttribute('data-topic');
-        document.getElementById("search-input").value = "";
-        await showTopic(currentTopic);
-      });
-    });
-
     // Search form
     document.getElementById("search-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const val = document.getElementById("search-input").value.trim();
+      clearResults();
       if (val.length === 0) {
-        // Show current topic instead
-        await showTopic(currentTopic);
+        searchMode = false;
+        feedIndex = 0;
+        await loadMore();
         return;
       }
-      await doSearch(val);
+      searchMode = true;
+      headlines = await fetchSearchFeed(val);
+      if (headlines.length === 0) {
+        document.getElementById("loading").style.display = "none";
+        const newsList = document.getElementById("news-list");
+        const li = document.createElement('li');
+        li.className = "no-results";
+        li.textContent = "No news headlines found for your search.";
+        newsList.appendChild(li);
+        return;
+      }
+      loadedCount = 0;
+      renderBatch();
+      document.getElementById("loading").style.display = "none";
     });
 
     // Prevent horizontal scroll on resize as well
@@ -454,8 +421,12 @@
       document.body.style.width = '100vw';
     });
 
-    // Initial load
-    showTopic(currentTopic);
+    // Initial load: not in search mode
+    (async function() {
+      searchMode = false;
+      feedIndex = 0;
+      await loadMore();
+    })();
   </script>
 </body>
 </html>
