@@ -66,53 +66,6 @@
       text-overflow: ellipsis;
       max-width: 80vw;
     }
-    .search-bar-container {
-      padding: 0.8em 1em 0.45em 1em;
-      background: #23272e;
-      box-sizing: border-box;
-      max-width: 100vw;
-    }
-    .search-form {
-      display: flex;
-      align-items: center;
-      max-width: 480px;
-      margin: 0 auto;
-      background: #181a1e;
-      border-radius: 8px;
-      padding: 0.10em 0.7em;
-      box-sizing: border-box;
-      border: 1px solid #33353a;
-    }
-    .search-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-size: 16px; /* Prevent zoom on mobile */
-      padding: 0.5em 0.3em 0.5em 0.1em;
-      font-family: inherit;
-      letter-spacing: 0.02em;
-    }
-    .search-btn {
-      background: none;
-      border: none;
-      outline: none;
-      cursor: pointer;
-      color: #b0b0b5;
-      font-size: 22px;
-      margin-left: 0.2em;
-      padding: 0;
-      display: flex;
-      align-items: center;
-    }
-    .subheading {
-      font-size: 12px;
-      color: #b0b0b5;
-      text-align: center;
-      margin: 0.5em 0 1.3em 0;
-      font-weight: 400;
-    }
     .news-list {
       list-style: none;
       margin: 0;
@@ -196,6 +149,13 @@
       margin: 2em 0 0.5em 0;
     }
     input, textarea, select { font-size: 16px; }
+    .subheading {
+      font-size: 12px;
+      color: #b0b0b5;
+      text-align: center;
+      margin: 0.5em 0 1.3em 0;
+      font-weight: 400;
+    }
   </style>
 </head>
 <body>
@@ -205,42 +165,69 @@
     </span>
     <span class="title-bar-text">Google News - Trending</span>
   </div>
-  <div class="subheading">Infinite trending headlines from Google News. Search for any topic!</div>
-  <div class="search-bar-container">
-    <form class="search-form" id="search-form" autocomplete="off">
-      <input class="search-input" id="search-input" type="text" placeholder="Search any topic…" aria-label="Search News" />
-      <button class="search-btn" type="submit" aria-label="Search">
-        <span class="material-icons">search</span>
-      </button>
-    </form>
-  </div>
+  <div class="subheading">Infinite trending headlines from Google News</div>
   <ul class="news-list" id="news-list"></ul>
   <div class="loading" id="loading" style="display:none;">Loading...</div>
   <script>
-    // Only world, science, technology feeds
+    // Trending feeds to rotate for variety
     const feeds = [
-      { name: "World", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en", icon: "public" },
-      { name: "Science", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en", icon: "science" },
-      { name: "Technology", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en", icon: "memory" }
+      // Top stories (global, US, UK, India, etc)
+      { name: "Top Stories", url: "https://news.google.com/news/rss?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Top Stories UK", url: "https://news.google.com/news/rss?hl=en-GB&gl=GB&ceid=GB:en" },
+      { name: "Top Stories India", url: "https://news.google.com/news/rss?hl=en-IN&gl=IN&ceid=IN:en" },
+      { name: "Top Stories Australia", url: "https://news.google.com/news/rss?hl=en-AU&gl=AU&ceid=AU:en" },
+      // Topic feeds
+      { name: "World", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZ4ZERnc0VnVmxiaTFIUWlnQVAB?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Technology", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Business", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Science", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Sports", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" },
+      { name: "Health", url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1YlY4U0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en" }
+      // Add more as desired
     ];
+    // Fallback: trending keyword search terms (could be dynamic)
     const trendingKeywords = [
-      "AI", "Elections", "Weather", "SpaceX", "Apple", "Google", "Bitcoin", "Climate Change",
-      "Ukraine", "Amazon", "Tesla", "Meta", "World Cup", "Covid", "Wimbledon"
+      "AI", "Elections", "Weather", "Stock Market", "SpaceX", "Apple", "Google", "Olympics", "Bitcoin", "Climate Change",
+      "Ukraine", "NBA Finals", "Euro 2024", "Amazon", "Tesla", "Meta", "World Cup", "Covid", "Wimbledon", "Music Awards"
     ];
+
+    // For each feed, fetch headlines, when exhausted go to next feed or random trending keyword.
     let feedIndex = 0;
     let headlines = [];
     let loadedCount = 0;
     const batchSize = 12;
     let loading = false;
     let seenLinks = new Set();
-    let searchMode = false;
 
-    function getRelevantMaterialIcon(title, feedIcon) {
-      if (feedIcon) return feedIcon;
+    // Assign the most relevant Material Icon based on headline/title
+    function getRelevantMaterialIcon(title) {
+      const keywordIconMap = [
+        { keywords: ["sport", "football", "soccer", "nba", "wimbledon", "olympic", "cricket", "tennis", "fifa", "world cup"], icon: "sports_soccer" },
+        { keywords: ["technology", "tech", "ai", "computer", "gadget", "robot", "software", "hardware"], icon: "memory" },
+        { keywords: ["finance", "stock", "market", "bitcoin", "crypto", "tesla", "amazon", "nasdaq", "shares"], icon: "attach_money" },
+        { keywords: ["music", "concert", "song", "album", "band", "awards", "grammy"], icon: "music_note" },
+        { keywords: ["weather", "storm", "flood", "rain", "sunny", "hurricane", "typhoon", "cyclone"], icon: "wb_sunny" },
+        { keywords: ["health", "covid", "medicine", "vaccine", "virus", "hospital", "doctor", "disease"], icon: "health_and_safety" },
+        { keywords: ["science", "space", "nasa", "astronomy", "planet", "research"], icon: "science" },
+        { keywords: ["politics", "election", "government", "president", "parliament", "senate", "minister"], icon: "account_balance" },
+        { keywords: ["movie", "film", "cinema", "oscar", "actor", "actress", "hollywood"], icon: "movie" },
+        { keywords: ["environment", "climate", "nature", "eco", "global warming", "pollution"], icon: "eco" },
+        { keywords: ["business", "company", "startup", "industry", "ceo", "merger", "acquisition"], icon: "business_center" },
+        { keywords: ["world", "international", "global", "united nations", "summit"], icon: "public" },
+        { keywords: ["award", "prize", "winner"], icon: "emoji_events" },
+        { keywords: ["crime", "murder", "police", "court", "trial"], icon: "gavel" },
+        { keywords: ["fire", "explosion", "burn"], icon: "whatshot" },
+        { keywords: ["travel", "flight", "plane", "airport", "holiday"], icon: "flight_takeoff" },
+        { keywords: ["education", "university", "school", "student", "college"], icon: "school" },
+        { keywords: ["fashion", "style", "designer", "model"], icon: "checkroom" },
+        { keywords: ["food", "recipe", "restaurant", "cooking"], icon: "restaurant" },
+        { keywords: ["shopping", "sale", "retail"], icon: "local_offer" }
+      ];
       const lower = title.toLowerCase();
-      if (lower.match(/\b(science|space|nasa|research|physics|chemistry|biology|planet|astronomy|discovery)\b/)) return "science";
-      if (lower.match(/\b(technology|tech|ai|computer|software|hardware|robot|gadget|internet|app|apps|smartphone)\b/)) return "memory";
-      if (lower.match(/\b(world|international|global|summit|united nations)\b/)) return "public";
+      for (const {keywords, icon} of keywordIconMap) {
+        if (keywords.some(k => lower.includes(k))) return icon;
+      }
+      // fallback icon
       return "feed";
     }
 
@@ -258,7 +245,7 @@
       return timeAgo;
     }
 
-    async function fetchFeed(url, icon) {
+    async function fetchFeed(url) {
       try {
         const corsUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
         const response = await fetch(corsUrl);
@@ -279,7 +266,7 @@
             link,
             source,
             timeAgo: formatTimeAgo(pubDate),
-            icon: getRelevantMaterialIcon(title, icon)
+            icon: getRelevantMaterialIcon(title)
           });
         }
         return newHeadlines;
@@ -288,16 +275,52 @@
       }
     }
 
-    async function fetchSearchFeed(query) {
-      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
-      return await fetchFeed(url, null);
+    async function fetchTrendingKeywordFeed(keyword) {
+      // Use Google News search RSS
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=en-US&gl=US&ceid=US:en`;
+      return await fetchFeed(url);
     }
 
-    function clearResults() {
-      document.getElementById("news-list").innerHTML = "";
-      loadedCount = 0;
-      headlines = [];
-      seenLinks = new Set();
+    async function loadMore() {
+      if (loading) return;
+      loading = true;
+      document.getElementById("loading").style.display = "block";
+      // If all loaded, fetch next feed or trending keyword
+      while (loadedCount >= headlines.length) {
+        let newBatch = [];
+        // Try next trending feed
+        if (feedIndex < feeds.length) {
+          newBatch = await fetchFeed(feeds[feedIndex].url);
+          feedIndex++;
+        } else {
+          // Exhausted feeds, use random trending keyword search
+          const keyword = trendingKeywords[Math.floor(Math.random() * trendingKeywords.length)];
+          newBatch = await fetchTrendingKeywordFeed(keyword);
+        }
+        // If newBatch is empty, try next
+        if (newBatch.length > 0) {
+          // Shuffle for variety
+          for (let i = newBatch.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newBatch[i], newBatch[j]] = [newBatch[j], newBatch[i]];
+          }
+          headlines = headlines.concat(newBatch);
+        } else if (feedIndex >= feeds.length && headlines.length === 0) {
+          // If nothing at all, show message and stop
+          document.getElementById("loading").style.display = "none";
+          const newsList = document.getElementById("news-list");
+          const li = document.createElement('li');
+          li.className = "no-results";
+          li.textContent = "No news headlines found.";
+          newsList.appendChild(li);
+          loading = false;
+          return;
+        }
+      }
+      // Render next batch
+      renderBatch();
+      loading = false;
+      document.getElementById("loading").style.display = "none";
     }
 
     function renderBatch() {
@@ -319,43 +342,6 @@
       loadedCount = end;
     }
 
-    async function loadMore() {
-      if (loading) return;
-      loading = true;
-      document.getElementById("loading").style.display = "block";
-      while (loadedCount >= headlines.length) {
-        let newBatch = [];
-        if (!searchMode) {
-          const feed = feeds[feedIndex % feeds.length];
-          feedIndex++;
-          newBatch = await fetchFeed(feed.url, feed.icon);
-        } else {
-          document.getElementById("loading").style.display = "none";
-          loading = false;
-          return;
-        }
-        if (newBatch.length > 0) {
-          for (let i = newBatch.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newBatch[i], newBatch[j]] = [newBatch[j], newBatch[i]];
-          }
-          headlines = headlines.concat(newBatch);
-        } else if (headlines.length === 0) {
-          document.getElementById("loading").style.display = "none";
-          const newsList = document.getElementById("news-list");
-          const li = document.createElement('li');
-          li.className = "no-results";
-          li.textContent = "No news headlines found.";
-          newsList.appendChild(li);
-          loading = false;
-          return;
-        }
-      }
-      renderBatch();
-      loading = false;
-      document.getElementById("loading").style.display = "none";
-    }
-
     // Infinite scroll
     let scrollTimeout;
     window.addEventListener('scroll', () => {
@@ -367,45 +353,14 @@
       }, 80);
     });
 
-    // Search form
-    document.getElementById("search-form").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const val = document.getElementById("search-input").value.trim();
-      clearResults();
-      if (val.length === 0) {
-        searchMode = false;
-        feedIndex = 0;
-        await loadMore();
-        return;
-      }
-      searchMode = true;
-      headlines = await fetchSearchFeed(val);
-      if (headlines.length === 0) {
-        document.getElementById("loading").style.display = "none";
-        const newsList = document.getElementById("news-list");
-        const li = document.createElement('li');
-        li.className = "no-results";
-        li.textContent = "No news headlines found for your search.";
-        newsList.appendChild(li);
-        return;
-      }
-      loadedCount = 0;
-      renderBatch();
-      document.getElementById("loading").style.display = "none";
-    });
-
     // Prevent horizontal scroll on resize as well
     window.addEventListener('resize', () => {
       document.documentElement.style.width = '100vw';
       document.body.style.width = '100vw';
     });
 
-    // Initial load: not in search mode
-    (async function() {
-      searchMode = false;
-      feedIndex = 0;
-      await loadMore();
-    })();
+    // Initial load
+    loadMore();
   </script>
 </body>
 </html>
