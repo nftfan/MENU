@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Web3Modal and Ethers.js CDN for multiwallet support -->
-  <script src="https://unpkg.com/@web3modal/html@2.5.4/dist/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
    <style>
     :root {
       --neon-green: #00ff88;
@@ -576,26 +573,16 @@
   <footer>
     COPYRIGHT NFT FANS TOKEN
   </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script>
     // ------ BEGIN APP LOGIC ------
-    // Web3Modal + ethers.js for multiwallet support
-    const projectId = "5a44043289649f7b3b13eb8e8d900214"; // Your WalletConnect Project ID
-    const modal = new window.Web3Modal({
-      projectId,
-      walletConnectVersion: 2,
-      themeMode: "dark",
-      chains: [
-        {
-          chainId: 137,
-          name: 'Polygon',
-          currency: 'MATIC',
-          explorerUrl: 'https://polygonscan.com',
-          rpcUrl: 'https://polygon-rpc.com'
-        }
-      ]
-    });
-
-    // Contract addresses & ABIs
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/', 'https://rpc.polygon.technology/', 'https://rpc-mainnet.matic.network/'],
+      blockExplorerUrls: ['https://polygonscan.com/'],
+    };
     const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
     const NFTFAN_SHOP_CA = "0x9ce8C0dDFc6600eC82ecc37B719e62e3248BE3AF";
     const ERC20_ABI = [
@@ -628,18 +615,13 @@
       { "constant": true, "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "shopInventory", "outputs": [ { "name":"amount","type":"uint256" } ], "type": "function" },
       { "inputs": [{ "name": "tokenId", "type": "uint256" }, { "name": "amount", "type": "uint256" }], "name": "buyNFT", "outputs": [], "stateMutability": "payable", "type": "function" }
     ];
-
-    // App state
-    let ethersProvider = null;
-    let signer = null;
     let userAccount = null;
+    let web3;
     let nftfanContract = null;
     let nftfanShop = null;
     let statusBarQueue = [];
     let statusBarIsShowing = false;
     let currentStatus = {msg: "Initializing...", icon: "electric_bolt", buying: false};
-
-    // Status bar helpers
     function setStatusBar(message, icon = "electric_bolt", buying = false, timeout = 1700) {
       let statusMsg = message;
       statusBarQueue.push({ statusMsg, icon, buying, timeout });
@@ -677,15 +659,34 @@
       document.getElementById("tab-content-shop").classList.toggle("hidden", show);
       document.getElementById("tab-content-mynfts").classList.toggle("hidden", show);
     }
-
-    // Multiwallet connect logic
     async function connectWallet() {
       try {
         setStatusBar('Connecting wallet...', "electric_bolt");
-        const session = await modal.connect();
-        ethersProvider = new ethers.providers.Web3Provider(session);
-        signer = ethersProvider.getSigner();
-        userAccount = await signer.getAddress();
+        if (!window.ethereum) {
+          setStatusBar("Please install MetaMask or a compatible wallet!", "warning", false, 3400);
+          return;
+        }
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== POLYGON_PARAMS.chainId) {
+          setStatusBar('Switching to Polygon...', "cloud_done", false, 800);
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: POLYGON_PARAMS.chainId }],
+            });
+          } catch (switchError) {
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [POLYGON_PARAMS],
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
         document.getElementById("connect-btn").textContent = "✔ Connected";
         document.getElementById("connect-btn").style.background = "#e8f5e9";
         document.getElementById("connect-btn").style.color = "#1b5e20";
@@ -696,18 +697,30 @@
         showStartMessage(false);
         loadShopNFTs();
         loadUserNFTs();
-      } catch (err) {
-        setStatusBar("Connection failed: " + (err.message || err), "error", false, 3400);
+      } catch (error) {
+        setStatusBar("Connection failed: " + error.message, "error", false, 3400);
       }
     }
-
-    // Initialize contracts using ethers.js
     async function setupContracts() {
-      if (!ethersProvider || !signer || !userAccount) throw new Error('Wallet not connected');
-      nftfanContract = new ethers.Contract(NFTFAN_TOKEN_CA, ERC20_ABI, signer);
-      nftfanShop = new ethers.Contract(NFTFAN_SHOP_CA, NFTFAN_SHOP_ABI, signer);
+      const rpcUrls = POLYGON_PARAMS.rpcUrls;
+      let provider = null;
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else {
+        for (const rpcUrl of rpcUrls) {
+          try {
+            const testWeb3 = new Web3(rpcUrl);
+            await testWeb3.eth.getBlockNumber();
+            provider = rpcUrl;
+            break;
+          } catch (e) {}
+        }
+      }
+      if (!provider) throw new Error('No working RPC provider found');
+      web3 = new Web3(provider);
+      nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_TOKEN_CA);
+      nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
     }
-
     async function showNftfanBalance() {
       if (!nftfanContract || !userAccount) {
         document.getElementById('nftfanBalanceBar').style.display = 'none';
@@ -715,8 +728,8 @@
       }
       try {
         let [balance, decimals] = await Promise.all([
-          nftfanContract.balanceOf(userAccount),
-          nftfanContract.decimals()
+          nftfanContract.methods.balanceOf(userAccount).call(),
+          nftfanContract.methods.decimals().call()
         ]);
         const divisor = BigInt(10) ** BigInt(decimals);
         let intBalance = (BigInt(balance) / divisor).toString();
@@ -744,6 +757,7 @@
         return await res.json();
       } catch (e) { return null; }
     }
+    // No Modal logic used anymore, so removed modal functions
 
     // Render shop grid, with buy dropdown (no popups)
     async function loadShopNFTs() {
@@ -755,7 +769,7 @@
       hideError("shop-error");
       try {
         if (!nftfanShop) await setupContracts();
-        const result = await nftfanShop.getShopNFTs();
+        const result = await nftfanShop.methods.getShopNFTs().call();
         const { ids, uris, prices, isForSale, shopAmounts } = result;
         if (!ids.length) {
           loading.textContent = "No NFTs in Shop";
@@ -770,7 +784,7 @@
           const openseaName = meta?.name || `NFTFAN #${id}`;
           const openseaImg = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT";
           const openseaDesc = meta?.description || "";
-          const price = ethers.utils.formatEther(prices[i]);
+          const price = web3.utils.fromWei(prices[i], "ether");
           let status = "";
           let btn = "";
           let inv = "";
@@ -818,6 +832,7 @@
         shopGrid.innerHTML = html;
         loading.style.display = "none";
         shopGrid.style.display = "grid";
+        // No modal click handlers needed
       } catch (error) {
         shopGrid.innerHTML = "";
         loading.style.display = "none";
@@ -846,7 +861,8 @@
         const button = document.getElementById(`buy-btn-${tokenId}`);
         if (button) button.disabled = true;
         if (!nftfanShop) await setupContracts();
-        await nftfanShop.buyNFT(tokenId, amount, {
+        await nftfanShop.methods.buyNFT(tokenId, amount).send({
+          from: userAccount,
           value: (BigInt(priceWei) * BigInt(amount)).toString()
         });
         setStatusBar("NFT bought! It will appear in 'Vault'", "celebration", false, 1800);
@@ -877,7 +893,7 @@
       }
       try {
         if (!nftfanShop) await setupContracts();
-        const tokens = await nftfanShop.tokensOfOwner(userAccount);
+        const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
         const { tokenIds, amounts } = tokens;
         if (!tokenIds.length) {
           loading.textContent = "You own no NFTs yet.";
@@ -888,7 +904,7 @@
         demoMsg.style.display = 'none';
         let metaArr = await Promise.all(tokenIds.map(async (id, index) => {
           try {
-            let meta = await nftfanShop.nftInfo(id);
+            let meta = await nftfanShop.methods.nftInfo(id).call();
             let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
             return {id, amount: amounts[index], meta, metaJson};
           } catch (e) {
@@ -926,6 +942,7 @@
         myGrid.innerHTML = html;
         loading.style.display = "none";
         myGrid.style.display = "grid";
+        // No modal click handlers needed
       } catch (error) {
         myGrid.innerHTML = "";
         loading.style.display = "none";
@@ -942,8 +959,40 @@
       else if (tab === 'mynfts') loadUserNFTs();
       setTimeout(forceGridThreeColumns, 40);
     }
-    // No window.ethereum event listeners needed, as Web3Modal handles wallet changes
-
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        userAccount = accounts[0] || null;
+        const connectBtn = document.getElementById("connect-btn");
+        if (userAccount) {
+          connectBtn.textContent = "✔ Connected";
+          connectBtn.style.background = "#e8f5e9";
+          connectBtn.style.color = "#1b5e20";
+          connectBtn.style.borderColor = "#c8e6c9";
+        } else {
+          connectBtn.textContent = "Connect Wallet";
+          connectBtn.style.background = "#f4f0ff";
+          connectBtn.style.color = "#7a3cff";
+          connectBtn.style.borderColor = "#ececec";
+        }
+        showStartMessage(!userAccount);
+        if (userAccount) {
+          setupContracts().then(() => {
+            showNftfanBalance();
+            loadShopNFTs();
+            loadUserNFTs();
+            setStatusBar('Account changed', "change_circle");
+          });
+        }
+      });
+      window.ethereum.on('chainChanged', function (chainId) {
+        setupContracts().then(() => {
+          showNftfanBalance();
+          loadShopNFTs();
+          loadUserNFTs();
+          setStatusBar('Network changed', "public");
+        });
+      });
+    }
     window.addEventListener("DOMContentLoaded", async () => {
       setStatusBar('Neon system initialized', "electric_bolt");
       showStartMessage(true);
