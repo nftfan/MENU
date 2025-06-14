@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LibGen Edition Pages - 20 per page (100k group fast dropdown)</title>
+  <title>LibGen Edition Pages - 20 per page (100k group, with excluded range)</title>
   <style>
     body { font-family: sans-serif; }
     .container { max-width: 1200px; margin: 40px auto; }
@@ -15,7 +15,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>LibGen Edition Pages (20 per page, quick select)</h2>
+    <h2>LibGen Edition Pages (20 per page, quick select, groups skip 500001-135800000)</h2>
     <div class="selector">
       <label for="hundredKSelect">Select 100,000 Range:</label>
       <select id="hundredKSelect"></select>
@@ -29,20 +29,25 @@
     const maxId = 150999999;
     const perPage = 20;
     const hundredKSize = 100000;
+    const excludeStart = 500001;
+    const excludeEnd = 135800000;
 
     const hundredKSelect = document.getElementById('hundredKSelect');
     const pageSelect = document.getElementById('pageSelect');
     const gallery = document.getElementById('gallery');
 
-    // Populate 100,000-range dropdown
+    // Populate 100,000-range dropdown, skipping excluded range
     function populateHundredKDropdown() {
       for (let h = minId; h <= maxId; h += hundredKSize) {
         let startH = h;
         let endH = Math.min(h + hundredKSize - 1, maxId);
-        let option = document.createElement('option');
-        option.value = startH;
-        option.textContent = `IDs ${startH} - ${endH}`;
-        hundredKSelect.appendChild(option);
+        // Exclude range from 500001 to 135800000
+        if (endH < excludeStart || startH > excludeEnd) {
+          let option = document.createElement('option');
+          option.value = startH;
+          option.textContent = `IDs ${startH} - ${endH}`;
+          hundredKSelect.appendChild(option);
+        }
       }
     }
 
