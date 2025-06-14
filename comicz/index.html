@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LibGen Edition Pages - 20 per page with Grouped Dropdown</title>
+  <title>LibGen Edition Pages - 20 per page (100k group fast dropdown)</title>
   <style>
     body { font-family: sans-serif; }
     .container { max-width: 1200px; margin: 40px auto; }
     .selector { margin-bottom: 30px; }
+    .selector label { margin-right: 8px; }
     .grid { display: flex; flex-wrap: wrap; gap: 16px; }
     .cell { border: 1px solid #ccc; border-radius: 4px; overflow: hidden; width: 290px; background: #f9f9f9; }
     .cell iframe { width: 100%; height: 400px; border: none; }
@@ -14,37 +15,47 @@
 </head>
 <body>
   <div class="container">
-    <h2>LibGen Edition Pages (20 per page, select range)</h2>
+    <h2>LibGen Edition Pages (20 per page, quick select)</h2>
     <div class="selector">
-      <label for="pageSelect">Select ID Range (20 per page): </label>
+      <label for="hundredKSelect">Select 100,000 Range:</label>
+      <select id="hundredKSelect"></select>
+      <label for="pageSelect" style="margin-left: 18px;">Select 20-per-page Range:</label>
       <select id="pageSelect"></select>
     </div>
     <div class="grid" id="gallery"></div>
   </div>
   <script>
-    const maxId = 74982;
+    const minId = 1;
+    const maxId = 150999999;
     const perPage = 20;
+    const hundredKSize = 100000;
+
+    const hundredKSelect = document.getElementById('hundredKSelect');
     const pageSelect = document.getElementById('pageSelect');
     const gallery = document.getElementById('gallery');
-    const totalPages = Math.ceil(maxId/perPage);
 
-    // Fill the dropdown grouped by 1000s for easier navigation
-    function populateDropdown() {
-      let groupSize = 1000;
-      for (let g = 0; g < maxId; g += groupSize) {
-        let startG = g + 1;
-        let endG = Math.min(g + groupSize, maxId);
-        let optgroup = document.createElement('optgroup');
-        optgroup.label = `IDs ${startG} - ${endG}`;
-        // Add 20-per-page options within this group
-        for (let i = startG; i <= endG; i += perPage) {
-          let end = Math.min(i + perPage - 1, endG);
-          let option = document.createElement('option');
-          option.value = i;
-          option.textContent = `IDs ${i} - ${end}`;
-          optgroup.appendChild(option);
-        }
-        pageSelect.appendChild(optgroup);
+    // Populate 100,000-range dropdown
+    function populateHundredKDropdown() {
+      for (let h = minId; h <= maxId; h += hundredKSize) {
+        let startH = h;
+        let endH = Math.min(h + hundredKSize - 1, maxId);
+        let option = document.createElement('option');
+        option.value = startH;
+        option.textContent = `IDs ${startH} - ${endH}`;
+        hundredKSelect.appendChild(option);
+      }
+    }
+
+    // Populate 20-per-page dropdown for the given 100,000 range
+    function populatePageDropdown(hundredKStart) {
+      pageSelect.innerHTML = '';
+      let hundredKEnd = Math.min(hundredKStart + hundredKSize - 1, maxId);
+      for (let i = hundredKStart; i <= hundredKEnd; i += perPage) {
+        let end = Math.min(i + perPage - 1, hundredKEnd);
+        let option = document.createElement('option');
+        option.value = i;
+        option.textContent = `IDs ${i} - ${end}`;
+        pageSelect.appendChild(option);
       }
     }
 
@@ -64,11 +75,22 @@
     }
 
     // Initial setup
-    populateDropdown();
-    renderGallery(1);
-    pageSelect.value = 1;
+    populateHundredKDropdown();
+    let firstHundredKStart = Number(hundredKSelect.options[0].value);
+    populatePageDropdown(firstHundredKStart);
+    renderGallery(Number(pageSelect.options[0].value));
+    hundredKSelect.value = firstHundredKStart;
+    pageSelect.value = pageSelect.options[0].value;
 
-    // Change on dropdown
+    // When 100,000 group changes, repopulate pageSelect
+    hundredKSelect.onchange = function() {
+      let hundredKStart = Number(hundredKSelect.value);
+      populatePageDropdown(hundredKStart);
+      pageSelect.value = pageSelect.options[0].value;
+      renderGallery(Number(pageSelect.value));
+    };
+
+    // When pageSelect changes, render the gallery
     pageSelect.onchange = function() {
       renderGallery(Number(pageSelect.value));
     };
