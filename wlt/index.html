@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFANS Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NFTFANS Dashboard">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
+  <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
+  <style>
+    body { margin: 0; background: #0d0d0d; font-family: 'Rajdhani', sans-serif; color: #fff; overflow-x: hidden; }
+    .cyber-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 20px 20px; z-index: 0; pointer-events: none; }
+    .wrapper { max-width: 960px; margin: 0 auto; padding: 10px; position: relative; z-index: 1; }
+    .header-bar { background: #1a1a1a; border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; }
+    .banner-area { display: flex; justify-content: space-between; align-items: center; position: relative; }
+    .banner-area img { max-width: 100%; height: auto; border-radius: 4px; }
+    .tab-bar { display: flex; gap: 5px; justify-content: center; }
+    .tab-btn { flex: 1; background: #222; color: #fff; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 9px; transition: all 0.3s; display: flex; align-items: center; gap: 5px; justify-content: center; min-width: 90px; }
+    .tab-btn.active { background: #7a3cff; }
+    .tab-btn:hover { background: #333; }
+    .tab-btn .material-icons { font-size: 17px; vertical-align: middle; }
+    .tab-content { margin-top: 10px; }
+    .tab-content.hidden { display: none; }
+    .wallet-input-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      margin: 18px 0 18px 0;
+      width: 100%;
+    }
+    .wallet-input {
+      background: #16162a;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 7px 12px;
+      font-size: 15px;
+      font-family: 'Rajdhani', monospace;
+      width: 100%;
+      max-width: 330px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .wallet-input:focus { border: 1px solid #7a3cff; }
+    .wallet-go-btn {
+      background: #7a3cff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 7px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .wallet-go-btn .material-icons { font-size: 18px; }
+    .wallet-go-btn:hover { background: #9c27b0; }
+    .balance-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+    .balance-card {
+      background: #191927;
+      border-radius: 10px;
+      padding: 18px 15px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 4px #0004;
+      position: relative;
+    }
+    .token-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #222;
+      object-fit: cover;
+      border: 0.9px solid #fff;
+      box-shadow: 0 2px 6px #0008;
+      margin-right: 6px;
+    }
+    .token-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .token-symbol {
+      font-family: 'Orbitron', 'Rajdhani', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #00ffff;
+      margin-bottom: 1px;
+    }
+    .token-symbol .material-icons.token { color: #a377ff; font-size: 19px; margin-right: 3px; vertical-align: middle; }
+    .token-ca {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    .token-balance {
+      font-size: 21px;
+      font-family: 'Rajdhani', 'Orbitron', monospace;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+    .token-name {
+      color: #fff;
+      font-size: 13px;
+      margin-top: 1px;
+      margin-bottom: 2px;
+    }
+    .token-symbol.poldog .material-icons.token { color: #00cfff; }
+    .token-symbol.poldog { color: #00cfff; }
+    .nft-section { margin: 22px 0 8px 0; }
+    .nft-collection-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 7px;
+      margin-top: 24px;
+      margin-left: 2px;
+    }
+    .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      justify-content: start;
+      align-items: start;
+    }
+    .nft-card {
+      width: 110px;
+      height: 124px;
+      background: #191927;
+      border-radius: 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      position: relative;
+      border: 0.8px solid #fff;
+      box-sizing: border-box;
+      box-shadow: 0 1px 4px #0006;
+      font-size: 10px;
+      text-align: center;
+      padding: 0;
+    }
+    .nft-img {
+      width: 100%;
+      height: 70px;
+      object-fit: contain;
+      background: #232332;
+      display: block;
+      margin: 0;
+      padding: 0;
+      border-radius: 7px 7px 0 0;
+    }
+    .nft-title {
+      display: block;
+      margin: 7px 2px 2px 2px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      text-shadow: 0 1px 2px #000b;
+      background: rgba(24,24,32,0.74);
+      border-radius: 4px;
+      padding: 2px 4px;
+      max-width: 100px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .nft-count-badge {
+      position: absolute;
+      top: 3px;
+      right: 7px;
+      background: #00ff8b;
+      color: #000;
+      font-size: 10px;
+      font-family: 'Rajdhani', monospace;
+      padding: 2px 5px;
+      border-radius: 12px;
+      font-weight: bold;
+      box-shadow: 0 1px 3px #000a;
+    }
+    .nft-buy-btn {
+      margin-top: 8px;
+      background: #7a3cff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: 'Rajdhani', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      z-index: 3;
+      width: 90px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      box-shadow: 0 2px 4px #0005;
+    }
+    .nft-buy-btn:hover { background: #9c27b0; }
+    .nft-buy-btn .material-icons { font-size: 14px; vertical-align: middle;}
+    .nft-empty-msg {
+      margin: 12px 0 0 0;
+      color: #aaa;
+      text-align: center;
+      font-size: 13px;
+    }
+    .buy-section {
+      background: #18182d;
+      border-radius: 10px;
+      margin: 22px 0 16px 0;
+      padding: 19px 9px 19px 9px;
+      box-shadow: 0 1px 8px #0006;
+    }
+    .buy-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 13px;
+      flex-wrap: wrap;
+    }
+    .buy-row:last-child { margin-bottom: 0; }
+    .buy-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 0.7px solid #fff;
+      object-fit: cover;
+      box-shadow: 0 1px 6px #0006;
+      background: #222;
+    }
+    .buy-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .buy-symbol {
+      font-family: 'Orbitron', 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #00ffff;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .buy-symbol.poldog { color: #00cfff; }
+    .buy-balance {
+      font-size: 15px;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .buy-ca {
+      font-size: 10px;
+      color: #aaa;
+      word-break: break-all;
+    }
+    .buy-section-info {
+      background: #11182a;
+      color: #fffd;
+      border-radius: 8px;
+      padding: 13px 9px;
+      font-size: 13px;
+      margin: 18px 0 14px 0;
+      box-shadow: 0 1px 7px #0005;
+      line-height: 1.6;
+      text-align: center;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .buy-rates {
+      margin-top: 9px;
+      font-size: 12px;
+      color: #00ffff;
+      font-family: 'Orbitron', monospace;
+    }
+    .buy-nft-collections { margin-top: 20px; }
+    .buy-nft-grid-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin: 15px 0 10px 2px;
+    }
+    .buy-nft-grid .nft-card {
+      border: 0.8px solid #7a3cff;
+      box-shadow: 0 1px 10px #7a3cff33;
+      margin-bottom: 0;
+    }
+    .error-bar {
+      text-align: center;
+      color: #ff2070;
+      margin: 12px 0 0 0;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .news-section {
+      padding: 8px 0;
+    }
+    .news-list {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .news-card {
+      background: #18181d;
+      border-radius: 8px;
+      padding: 12px 13px;
+      box-shadow: 0 1px 4px #0004;
+      color: #dedede;
+      font-size: 13px;
+    }
+    .news-title {
+      font-weight: bold;
+      color: #7a3cff;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+    @media (max-width: 600px) {
+      body { font-size: 8px; }
+      .wrapper { padding: 5px; }
+      .balance-card { padding: 7px 3px; }
+      .token-icon, .buy-icon { width: 24px; height: 24px; }
+      .token-symbol, .buy-symbol { font-size: 9px; }
+      .token-name, .buy-ca { font-size: 7px; }
+      .token-balance, .buy-balance { font-size: 10px; }
+      .nft-card { width: 60px; height: 100px; font-size: 7px; }
+      .nft-title { font-size: 7px; max-width: 56px; }
+      .nft-count-badge { font-size: 7px; padding: 1px 3px; }
+      .nft-buy-btn { font-size: 8px; padding: 3px 6px; width: 45px; }
+      .buy-section { padding: 6px 2px; }
+      .buy-row { gap: 6px; }
+      .buy-section-info { padding: 6px 2px; font-size: 8px; }
+      .buy-nft-grid-title { font-size: 8px; margin: 7px 0 4px 1px; }
+      .nft-collection-title { font-size: 8px; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cyber-grid"></div>
+  <div class="wrapper">
+    <div class="header-bar">
+      <div class="banner-area">
+        <img src="https://pbs.twimg.com/media/Gs758wIWEAEsq45?format=jpg&name=large" alt="NFTFANS Banner">
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-balance" onclick="showTab('balance')">
+          <span class="material-icons">account_balance_wallet</span> Wallet
+        </button>
+        <button class="tab-btn" id="tab-buy" onclick="showTab('buy')">
+          <span class="material-icons">shopping_cart</span> Buy
+        </button>
+        <button class="tab-btn" id="tab-news" onclick="showTab('news')">
+          <span class="material-icons">feed</span> Airdrops
+        </button>
+      </div>
+    </div>
+    <div class="wallet-input-bar">
+      <input class="wallet-input" type="text" id="walletInput" placeholder="Enter wallet address" autocomplete="off" spellcheck="false" />
+      <button class="wallet-go-btn" onclick="fetchBalances()">
+        <span class="material-icons">search</span> GO
+      </button>
+    </div>
+    <div id="errorBar" class="error-bar" style="display:none;"></div>
+    <div class="tab-content" id="tab-content-balance">
+      <ul class="balance-list">
+        <li class="balance-card">
+          <img class="token-icon" src="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg" alt="NFTFAN">
+          <div class="token-details">
+            <span class="token-symbol"><span class="material-icons token">token</span>NFTFAN</span>
+            <span class="token-name">NFT Fans Token</span>
+            <span class="token-balance" id="nftfanBalance">--</span>
+            <span class="token-ca">CA: 0x2017Fcaea540d2925430586DC92818035Bfc2F50</span>
+          </div>
+        </li>
+        <li class="balance-card">
+          <img class="token-icon" src="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Untitled%20design%20(56).png" alt="POLDOG">
+          <div class="token-details">
+            <span class="token-symbol poldog"><span class="material-icons token">pets</span>POLDOG</span>
+            <span class="token-name">Polygon Dogs Token</span>
+            <span class="token-balance" id="poldogBalance">--</span>
+            <span class="token-ca">CA: 0xC504f9154B2f563879c9E25Cd564A47975326737</span>
+          </div>
+        </li>
+      </ul>
+      <div id="nftCollections"></div>
+    </div>
+    <div class="tab-content hidden" id="tab-content-buy">
+      <div class="buy-section">
+        <div class="buy-row">
+          <img class="buy-icon" src="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg" alt="NFTFAN">
+          <div class="buy-details">
+            <span class="buy-symbol"><span class="material-icons token">token</span>NFTFAN</span>
+            <span class="token-name">NFT Fans Token Sale</span>
+            <span class="buy-ca">SALE CA: <span id="nftfanSaleCA">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</span></span>
+            <span class="buy-balance" id="nftfanSaleBalance">--</span>
+          </div>
+        </div>
+        <div class="buy-row">
+          <img class="buy-icon" src="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Untitled%20design%20(56).png" alt="POLDOG">
+          <div class="buy-details">
+            <span class="buy-symbol poldog"><span class="material-icons token">pets</span>POLDOG</span>
+            <span class="token-name">Polygon Dogs Token Sale</span>
+            <span class="buy-ca">SALE CA: <span id="poldogSaleCA">0xb1a37c277986e13aa6c4f0763c2f06c4e9527d54</span></span>
+            <span class="buy-balance" id="poldogSaleBalance">--</span>
+          </div>
+        </div>
+        <div class="buy-section-info">
+          <div>To buy any Token, send <span style="color:#00ffff;">$POL</span> (<b>0.01 - 100</b>) to any above contract addresses.<br>
+          You will receive the tokens automatically.<br>
+          <span class="buy-rates">
+            1 POL = 1000T NFTFAN<br>
+            1 POL = 1,000,000 POLDOG
+          </span>
+          </div>
+        </div>
+        <div class="buy-nft-collections" id="buyNftCollections"></div>
+      </div>
+    </div>
+    <div class="tab-content hidden" id="tab-content-news">
+      <div class="news-section">
+        <ul class="news-list" id="newsList">
+          <li class="news-card">
+            <div class="news-title">Welcome to NFT Fans & Polygon Dogs!</div>
+            <div>Track your token balances and Coin Fun NFTs. Your wallet is always yours. We do not store any wallet data.</div>
+          </li>
+          <li class="news-card">
+            <div class="news-title">How to Buy Tokens?</div>
+            <div>Buy NFT Fans ($NFTFAN) and Polygon Dogs ($POLDOG) on supported Polygon DEXes like QuickSwap or Uniswap. Copy the contract address above and import in your wallet.</div>
+          </li>
+          <li class="news-card">
+            <div class="news-title">How to get Coin Fun NFTs?</div>
+            <div>Coin Fun NFTs are ERC1155 collectibles. You can get them via official events or community drops.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span class="material-icons" style="font-size:13px;vertical-align:middle;color:#7a3cff;">copyright</span>
+    NFT FANS TOKEN & POLYGON DOGS
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+  <script>
+    // --- Contracts ---
+    const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
+    const POLDOG_TOKEN_CA = "0xC504f9154B2f563879c9E25Cd564A47975326737";
+    const COINFUN_NFT_CA = "0x582E752646c6df16a14247994f1848C7Cd208211";
+    const EXTRA_NFT_CA = "0xabE0eEf268FfBE080D652daEE93d67b5Bb808bE2";
+    // Sale contracts
+    const NFTFAN_SALE_CA = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+    const POLDOG_SALE_CA = "0xb1a37c277986e13aa6c4f0763c2f06c4e9527d54";
+    const ERC20_ABI = [
+      {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
+      {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
+    ];
+    const ERC1155_ABI = [
+      {"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_id","type":"uint256"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
+      {"constant":true,"inputs":[{"name":"_id","type":"uint256"}],"name":"uri","outputs":[{"name":"","type":"string"}],"type":"function"},
+      // Optional, not always present:
+      {"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"}
+    ];
+    // For NFT enumeration: you may want to expand range if needed
+    const NFT_COLLECTIONS = [
+      { ca: COINFUN_NFT_CA, defaultName: "Coin Fun NFTs", ids: Array.from({length: 30}, (_, i) => i), buyUrl: "https://www.nftfanstoken.com/coinfun/" },
+      { ca: EXTRA_NFT_CA, defaultName: "NFT Fans 2.0", ids: Array.from({length: 30}, (_, i) => i), buyUrl: "https://opensea.io/collection/nft-fans-2-0" }
+    ];
+
+    let web3 = new Web3("https://polygon-rpc.com/");
+    let nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_TOKEN_CA);
+    let poldogContract = new web3.eth.Contract(ERC20_ABI, POLDOG_TOKEN_CA);
+
+    function showTab(tab) {
+      document.getElementById('tab-content-balance').classList.toggle("hidden", tab !== 'balance');
+      document.getElementById('tab-content-buy').classList.toggle("hidden", tab !== 'buy');
+      document.getElementById('tab-content-news').classList.toggle("hidden", tab !== 'news');
+      document.getElementById('tab-balance').classList.toggle('active', tab === 'balance');
+      document.getElementById('tab-buy').classList.toggle('active', tab === 'buy');
+      document.getElementById('tab-news').classList.toggle('active', tab === 'news');
+      if (tab === 'buy') fetchBuyTabBalances();
+    }
+
+    function formatNumberNoDecimals(numStr, decimals) {
+      if (!numStr) return "--";
+      try {
+        let num = BigInt(numStr);
+        let divisor = BigInt(10) ** BigInt(decimals);
+        let whole = num / divisor;
+        return whole.toLocaleString('en-US');
+      } catch (e) {
+        return "--";
+      }
+    }
+
+    async function fetchBalances() {
+      const addr = document.getElementById('walletInput').value.trim();
+      const errorBar = document.getElementById('errorBar');
+      errorBar.style.display = "none";
+      if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        errorBar.textContent = "Please enter a valid wallet address";
+        errorBar.style.display = "";
+        document.getElementById('nftfanBalance').textContent = "--";
+        document.getElementById('poldogBalance').textContent = "--";
+        document.getElementById('nftCollections').innerHTML = "";
+        return;
+      }
+      document.getElementById('nftfanBalance').textContent = "...";
+      document.getElementById('poldogBalance').textContent = "...";
+      try {
+        let [nftfanInfo, poldogInfo] = await Promise.all([
+          Promise.all([
+            nftfanContract.methods.balanceOf(addr).call(),
+            nftfanContract.methods.decimals().call()
+          ]),
+          Promise.all([
+            poldogContract.methods.balanceOf(addr).call(),
+            poldogContract.methods.decimals().call()
+          ])
+        ]);
+        document.getElementById('nftfanBalance').textContent = formatNumberNoDecimals(nftfanInfo[0], nftfanInfo[1]);
+        document.getElementById('poldogBalance').textContent = formatNumberNoDecimals(poldogInfo[0], poldogInfo[1]);
+      } catch (e) {
+        errorBar.textContent = "Failed to load balances. Please try again.";
+        errorBar.style.display = "";
+        document.getElementById('nftfanBalance').textContent = "--";
+        document.getElementById('poldogBalance').textContent = "--";
+      }
+      await renderAllCollections(addr, "nftCollections", false);
+    }
+
+    async function fetchCollectionName(contract) {
+      try {
+        if (contract.methods.name) {
+          let name = await contract.methods.name().call();
+          if (typeof name === "string" && name.length > 0) return name;
+        }
+      } catch {}
+      return null;
+    }
+
+    async function renderAllCollections(addr, targetDivId, buyMode) {
+      let html = "";
+      for (const {ca, defaultName, ids, buyUrl} of NFT_COLLECTIONS) {
+        let contract = new web3.eth.Contract(ERC1155_ABI, ca);
+        let name = await fetchCollectionName(contract) || defaultName;
+        html += `<div class="nft-collection-title">${name}</div>`;
+        html += `<div class="nft-grid${buyMode ? ' buy-nft-grid' : ''}" id="${buyMode ? 'buyNftGrid_' : 'nftGrid_'}${ca}"></div>`;
+        html += `<div class="nft-empty-msg" id="${buyMode ? 'buyNftEmptyMsg_' : 'nftEmptyMsg_'}${ca}" style="display:none;">No NFTs found for this collection.</div>`;
+        renderNFTGrid(contract, addr, ids, `${buyMode ? 'buyNftGrid_' : 'nftGrid_'}${ca}`, `${buyMode ? 'buyNftEmptyMsg_' : 'nftEmptyMsg_'}${ca}`, buyMode, buyUrl);
+      }
+      document.getElementById(targetDivId).innerHTML = html;
+    }
+
+    async function renderNFTGrid(contract, addr, ids, gridId, emptyMsgId, buyMode, buyUrl) {
+      const nftGrid = document.getElementById(gridId);
+      const nftEmptyMsg = document.getElementById(emptyMsgId);
+      nftGrid.innerHTML = '';
+      nftEmptyMsg.style.display = "none";
+      let nftPromises = ids.map(async id => {
+        try {
+          let bal = buyMode ? "1" : await contract.methods.balanceOf(addr, id).call();
+          let uri = await contract.methods.uri(id).call();
+          if ((bal && bal !== "0") || buyMode) {
+            let metaUrl = uri.replace('{id}', id.toString(16).padStart(64, '0'));
+            if (metaUrl.startsWith("ipfs://")) {
+              metaUrl = "https://ipfs.io/ipfs/" + metaUrl.substring(7);
+            }
+            let imgUrl = '', title = '';
+            try {
+              let meta = await fetch(metaUrl).then(r => r.json());
+              imgUrl = meta?.image || '';
+              title = meta?.name || '';
+              if (imgUrl && imgUrl.startsWith("ipfs://")) {
+                imgUrl = "https://ipfs.io/ipfs/" + imgUrl.substring(7);
+              }
+            } catch (err) {
+              imgUrl = '';
+              title = '';
+            }
+            if (!imgUrl) imgUrl = 'https://via.placeholder.com/110x70?text=NFT';
+            if (!title) title = `#${id}`;
+            let buyBtn = '';
+            if (buyMode) {
+              buyBtn = `<a class="nft-buy-btn" href="${buyUrl}" target="_blank" rel="noopener"><span class="material-icons">shopping_cart</span>Buy</a>`;
+            } else {
+              buyBtn = `<span class="nft-count-badge">x${bal}</span>`;
+            }
+            return `<div class="nft-card">
+              <img class="nft-img" src="${imgUrl}" alt="NFT #${id}" loading="lazy" onerror="this.src='https://via.placeholder.com/110x70?text=NFT'">
+              <span class="nft-title">${title}</span>
+              ${buyBtn}
+            </div>`;
+          } else {
+            return '';
+          }
+        } catch (e) {
+          return '';
+        }
+      });
+      let nfts = await Promise.all(nftPromises);
+      nfts = nfts.filter(x => x);
+      if (nfts.length === 0) {
+        nftGrid.innerHTML = '';
+        nftEmptyMsg.textContent = buyMode ? "NFT sale not available now." : "No NFTs found for this collection.";
+        nftEmptyMsg.style.display = "";
+      } else {
+        nftGrid.innerHTML = nfts.join("");
+        nftEmptyMsg.style.display = "none";
+      }
+    }
+
+    async function fetchBuyTabBalances() {
+      document.getElementById('nftfanSaleBalance').textContent = "...";
+      document.getElementById('poldogSaleBalance').textContent = "...";
+      try {
+        let [nftfanInfo, poldogInfo] = await Promise.all([
+          Promise.all([
+            nftfanContract.methods.balanceOf('0xaf2d132C8773bca3821C24EcF64e844E202A12e8').call(),
+            nftfanContract.methods.decimals().call()
+          ]),
+          Promise.all([
+            poldogContract.methods.balanceOf('0xb1a37c277986e13aa6c4f0763c2f06c4e9527d54').call(),
+            poldogContract.methods.decimals().call()
+          ])
+        ]);
+        document.getElementById('nftfanSaleBalance').textContent = formatNumberNoDecimals(nftfanInfo[0], nftfanInfo[1]);
+        document.getElementById('poldogSaleBalance').textContent = formatNumberNoDecimals(poldogInfo[0], poldogInfo[1]);
+      } catch (e) {
+        document.getElementById('nftfanSaleBalance').textContent = "--";
+        document.getElementById('poldogSaleBalance').textContent = "--";
+      }
+      await renderAllCollections("", "buyNftCollections", true);
+    }
+
+    document.getElementById('walletInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') fetchBalances();
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      showTab('balance');
+    });
+  </script>
+</body>
+</html>
