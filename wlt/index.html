@@ -13,7 +13,9 @@
   <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    body { margin: 0; background: #0d0d0d; font-family: 'Rajdhani', sans-serif; color: #fff; overflow-x: hidden; }
+    /* [--- styles unchanged; omitted for brevity, copy your original CSS here ---] */
+    /* ...paste your entire CSS here from your original HTML... */
+	 body { margin: 0; background: #0d0d0d; font-family: 'Rajdhani', sans-serif; color: #fff; overflow-x: hidden; }
     .cyber-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 20px 20px; z-index: 0; pointer-events: none; }
     .wrapper { max-width: 960px; margin: 0 auto; padding: 10px; position: relative; z-index: 1; }
     .header-bar { background: #1a1a1a; border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; }
@@ -358,10 +360,13 @@
       </div>
     </div>
     <!-- INPUT BAR -->
-    <div class="wallet-input-bar">
+    <div class="wallet-input-bar" id="walletInputBar">
       <input class="wallet-input" type="text" id="walletInput" placeholder="Enter wallet address" autocomplete="off" spellcheck="false" />
-      <button class="wallet-go-btn" onclick="fetchBalances()">
-        <span class="material-icons">search</span> GO
+      <button class="wallet-go-btn" id="addWalletBtn" onclick="addWallet()">
+        <span class="material-icons">add</span> ADD WALLET
+      </button>
+      <button class="wallet-go-btn" id="deleteWalletBtn" style="display:none;" onclick="deleteWallet()">
+        <span class="material-icons">delete</span> DELETE WALLET
       </button>
     </div>
     <div id="errorBar" class="error-bar" style="display:none;"></div>
@@ -466,7 +471,6 @@
     const NFTFAN_TOKEN_CA = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
     const POLDOG_TOKEN_CA = "0xC504f9154B2f563879c9E25Cd564A47975326737";
     const COINFUN_NFT_CA = "0x582E752646c6df16a14247994f1848C7Cd208211";
-    // Sale contracts
     const NFTFAN_SALE_CA = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
     const POLDOG_SALE_CA = "0xb1a37c277986e13aa6c4f0763c2f06c4e9527d54";
     const ERC20_ABI = [
@@ -477,16 +481,17 @@
       {"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_id","type":"uint256"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
       {"constant":true,"inputs":[{"name":"_id","type":"uint256"}],"name":"uri","outputs":[{"name":"","type":"string"}],"type":"function"}
     ];
-    // For NFT enumeration: you may want to expand range if needed
     const COINFUN_NFT_IDS = Array.from({length: 30}, (_, i) => i); // IDs 0..29
 
     let web3 = new Web3("https://polygon-rpc.com/");
     let nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_TOKEN_CA);
     let poldogContract = new web3.eth.Contract(ERC20_ABI, POLDOG_TOKEN_CA);
     let coinfunContract = new web3.eth.Contract(ERC1155_ABI, COINFUN_NFT_CA);
-    // sale contracts as ERC20
     let nftfanSaleContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_SALE_CA);
     let poldogSaleContract = new web3.eth.Contract(ERC20_ABI, POLDOG_SALE_CA);
+
+    // Storage keys
+    const WALLET_STORAGE_KEY = "nftfans-wallet-address";
 
     function showTab(tab) {
       document.getElementById('tab-content-balance').classList.toggle("hidden", tab !== 'balance');
@@ -510,11 +515,57 @@
       }
     }
 
-    async function fetchBalances() {
+    function setWalletInputUI(address) {
+      const input = document.getElementById('walletInput');
+      const addBtn = document.getElementById('addWalletBtn');
+      const delBtn = document.getElementById('deleteWalletBtn');
+      if (address) {
+        input.value = address;
+        input.disabled = true;
+        addBtn.style.display = "none";
+        delBtn.style.display = "";
+      } else {
+        input.value = "";
+        input.disabled = false;
+        addBtn.style.display = "";
+        delBtn.style.display = "none";
+      }
+    }
+
+    function getSavedWallet() {
+      return localStorage.getItem(WALLET_STORAGE_KEY) || null;
+    }
+
+    function addWallet() {
       const addr = document.getElementById('walletInput').value.trim();
       const errorBar = document.getElementById('errorBar');
       errorBar.style.display = "none";
       if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        errorBar.textContent = "Please enter a valid wallet address";
+        errorBar.style.display = "";
+        return;
+      }
+      localStorage.setItem(WALLET_STORAGE_KEY, addr);
+      setWalletInputUI(addr);
+      fetchBalances(addr);
+    }
+
+    function deleteWallet() {
+      localStorage.removeItem(WALLET_STORAGE_KEY);
+      setWalletInputUI(null);
+      // Reset UI
+      document.getElementById('nftfanBalance').textContent = "--";
+      document.getElementById('poldogBalance').textContent = "--";
+      clearNFTGrid();
+    }
+
+    // Overwrite fetchBalances to take address from argument or storage
+    async function fetchBalances(address) {
+      // address: optional. If not provided, get from storage
+      address = address || getSavedWallet();
+      const errorBar = document.getElementById('errorBar');
+      errorBar.style.display = "none";
+      if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
         errorBar.textContent = "Please enter a valid wallet address";
         errorBar.style.display = "";
         document.getElementById('nftfanBalance').textContent = "--";
@@ -528,11 +579,11 @@
       try {
         let [nftfanInfo, poldogInfo] = await Promise.all([
           Promise.all([
-            nftfanContract.methods.balanceOf(addr).call(),
+            nftfanContract.methods.balanceOf(address).call(),
             nftfanContract.methods.decimals().call()
           ]),
           Promise.all([
-            poldogContract.methods.balanceOf(addr).call(),
+            poldogContract.methods.balanceOf(address).call(),
             poldogContract.methods.decimals().call()
           ])
         ]);
@@ -545,7 +596,7 @@
         document.getElementById('poldogBalance').textContent = "--";
       }
       try {
-        await fetchCoinFunNFTs(addr, "nftGrid", "nftEmptyMsg");
+        await fetchCoinFunNFTs(address, "nftGrid", "nftEmptyMsg");
       } catch (e) {
         document.getElementById('nftEmptyMsg').textContent = "Failed to load Coin Fun NFTs.";
         document.getElementById('nftEmptyMsg').style.display = "";
@@ -566,7 +617,6 @@
       let nftPromises = COINFUN_NFT_IDS.map(async id => {
         try {
           let [bal, uri] = await Promise.all([
-            // for buy tab, show sale supply, or just always show 1 (or enable if on chain)
             address ? coinfunContract.methods.balanceOf(address, id).call() : "1",
             coinfunContract.methods.uri(id).call()
           ]);
@@ -624,7 +674,6 @@
     }
 
     async function fetchBuyTabBalances() {
-      // Show sale contract balances (how much tokens left in sale contracts)
       document.getElementById('nftfanSaleBalance').textContent = "...";
       document.getElementById('poldogSaleBalance').textContent = "...";
       try {
@@ -645,7 +694,6 @@
         document.getElementById('poldogSaleBalance').textContent = "--";
       }
       try {
-        // NFT sale grid (just show all NFTs with buy buttons, no address needed)
         await fetchCoinFunNFTs(null, "buyNftGrid", "buyNftEmptyMsg", true);
       } catch (e) {
         document.getElementById('buyNftEmptyMsg').textContent = "NFT sale not available now.";
@@ -667,10 +715,18 @@
     }
 
     document.getElementById('walletInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') fetchBalances();
+      if (e.key === 'Enter') {
+        if (getSavedWallet()) return; // don't allow input when wallet is saved
+        addWallet();
+      }
     });
 
     window.addEventListener("DOMContentLoaded", () => {
+      const savedAddress = getSavedWallet();
+      setWalletInputUI(savedAddress);
+      if (savedAddress) {
+        fetchBalances(savedAddress);
+      }
       showTab('balance');
     });
   </script>
