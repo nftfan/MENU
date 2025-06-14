@@ -186,7 +186,6 @@
     window.addEventListener('resize', updateMobileGridOptionVis);
     window.addEventListener('DOMContentLoaded', updateMobileGridOptionVis);
 
-    // Rest of your script (unchanged)
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -232,6 +231,7 @@
     let nftfanShop = null;
     let statusBarQueue = [];
     let statusBarIsShowing = false;
+    let userOwnedTokenIds = []; // <--- NEW: To store user vault token IDs
 
     function setStatusBar(message, icon = "electric_bolt", buying = false, timeout = 1700) {
       statusBarQueue.push({ statusMsg: message, icon, buying, timeout });
@@ -310,8 +310,8 @@
         await showNftfanBalance();
         setStatusBar("Wallet connected", "check_circle");
         showStartMessage(false);
-        loadShopNFTs();
-        loadUserNFTs();
+        await loadUserNFTs(); // <-- Load vault first to populate userOwnedTokenIds
+        await loadShopNFTs();
       } catch (error) {
         setStatusBar("Connection failed: " + error.message, "error", false, 3400);
       }
@@ -370,12 +370,66 @@
           value: totalCost
         });
         setStatusBar("NFT purchased successfully!", "celebration");
-        await Promise.all([loadShopNFTs(), loadUserNFTs()]);
+        await Promise.all([loadUserNFTs(), loadShopNFTs()]);
       } catch (error) {
         setStatusBar("Purchase failed: " + (error.message || "Unknown error"), "error", false, 3000);
       }
     }
 
+    // --- FIX: loadUserNFTs populates userOwnedTokenIds and then loadShopNFTs filters them ---
+
+    async function loadUserNFTs() {
+      const myGrid = document.getElementById("myGrid");
+      const loading = document.getElementById("my-loading");
+      myGrid.innerHTML = "";
+      loading.style.display = "block";
+      myGrid.style.display = "none";
+      hideError("my-error");
+      userOwnedTokenIds = []; // Reset before fetch
+      if (!userAccount) {
+        loading.textContent = "Connect wallet to view your NFTs.";
+        return;
+      }
+      try {
+        if (!nftfanShop) await setupContracts();
+        const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
+        const { tokenIds, amounts } = tokens;
+        if (!tokenIds.length) {
+          loading.textContent = "You own no NFTs yet.";
+          return;
+        }
+        // Save owned tokenIds for shop filtering
+        userOwnedTokenIds = tokenIds.map(t => t.toString());
+        const metaArr = await Promise.all(tokenIds.map(async (id, idx) => {
+          const meta = await nftfanShop.methods.nftInfo(id).call();
+          const metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+          return { id, amount: amounts[idx], meta, metaJson };
+        }));
+        let html = "";
+        for (const { id, amount, metaJson } of metaArr) {
+          const openseaName = metaJson?.name || `NFTFAN #${id}`;
+          const openseaImg = metaJson?.image || "https://via.placeholder.com/92x92?text=NFT";
+          html += `
+            <li class="nft-card" tabindex="0">
+              <img class="nft-img" src="${openseaImg}" alt="${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
+              <div class="nft-section">
+                <div class="nft-row">
+                  <span class="material-icons" style="font-size:9px;color:#5b42c2">collections</span>
+                  <span class="nft-title">${openseaName}</span>
+                </div>
+                <div class="nft-own-row">You own: ${amount}</div>
+              </div>
+            </li>`;
+        }
+        myGrid.innerHTML = html;
+        loading.style.display = "none";
+        myGrid.style.display = "grid";
+      } catch (error) {
+        showError("my-error", "Failed to load your NFTs: " + error.message);
+      }
+    }
+
+    // Only show in shop NFTs that user does NOT own
     async function loadShopNFTs() {
       const shopGrid = document.getElementById("shopGrid");
       const loading = document.getElementById("shop-loading");
@@ -391,11 +445,28 @@
           loading.textContent = "No NFTs available in shop";
           return;
         }
-        const metaArr = await Promise.all(uris.map(uri => fetchOpenSeaMeta(uri)));
+        // Filter out NFTs the user owns if wallet is connected and owns them
+        let filteredIdxs = [];
+        if (userAccount && userOwnedTokenIds.length > 0) {
+          // Only include NFTs whose id is NOT in userOwnedTokenIds
+          for (let i = 0; i < ids.length; ++i) {
+            if (!userOwnedTokenIds.includes(ids[i].toString())) filteredIdxs.push(i);
+          }
+        } else {
+          // If no user or owns nothing, show all
+          filteredIdxs = Array.from({length: ids.length}, (_, i) => i);
+        }
+        if (filteredIdxs.length === 0) {
+          loading.textContent = "No NFTs available for you to buy!";
+          shopGrid.style.display = "none";
+          return;
+        }
+        const metaArr = await Promise.all(filteredIdxs.map(i => fetchOpenSeaMeta(uris[i])));
         let html = "";
-        for (let i = 0; i < ids.length; i++) {
+        for (let idx = 0; idx < filteredIdxs.length; idx++) {
+          const i = filteredIdxs[idx];
           const id = ids[i];
-          const meta = metaArr[i];
+          const meta = metaArr[idx];
           const openseaName = meta?.name || `NFTFAN #${id}`;
           const openseaImg = meta?.image || "https://via.placeholder.com/92x92?text=NFT";
           const price = web3.utils.fromWei(prices[i], "ether");
@@ -453,54 +524,6 @@
       buyNFT(id, priceWei, amount);
     };
 
-    async function loadUserNFTs() {
-      const myGrid = document.getElementById("myGrid");
-      const loading = document.getElementById("my-loading");
-      myGrid.innerHTML = "";
-      loading.style.display = "block";
-      myGrid.style.display = "none";
-      hideError("my-error");
-      if (!userAccount) {
-        loading.textContent = "Connect wallet to view your NFTs.";
-        return;
-      }
-      try {
-        if (!nftfanShop) await setupContracts();
-        const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-        const { tokenIds, amounts } = tokens;
-        if (!tokenIds.length) {
-          loading.textContent = "You own no NFTs yet.";
-          return;
-        }
-        const metaArr = await Promise.all(tokenIds.map(async (id) => {
-          const meta = await nftfanShop.methods.nftInfo(id).call();
-          const metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-          return { id, amount: amounts[tokenIds.indexOf(id)], meta, metaJson };
-        }));
-        let html = "";
-        for (const { id, amount, metaJson } of metaArr) {
-          const openseaName = metaJson?.name || `NFTFAN #${id}`;
-          const openseaImg = metaJson?.image || "https://via.placeholder.com/92x92?text=NFT";
-          html += `
-            <li class="nft-card" tabindex="0">
-              <img class="nft-img" src="${openseaImg}" alt="${openseaName}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-              <div class="nft-section">
-                <div class="nft-row">
-                  <span class="material-icons" style="font-size:9px;color:#5b42c2">collections</span>
-                  <span class="nft-title">${openseaName}</span>
-                </div>
-                <div class="nft-own-row">You own: ${amount}</div>
-              </div>
-            </li>`;
-        }
-        myGrid.innerHTML = html;
-        loading.style.display = "none";
-        myGrid.style.display = "grid";
-      } catch (error) {
-        showError("my-error", "Failed to load your NFTs: " + error.message);
-      }
-    }
-
     function showTab(tab) {
       if (!userAccount) return;
       document.getElementById('tab-content-shop').classList.toggle("hidden", tab !== 'shop');
@@ -527,8 +550,7 @@
           connectBtn.style.borderColor = "#c8e6c9";
           setupContracts().then(() => {
             showNftfanBalance();
-            loadShopNFTs();
-            loadUserNFTs();
+            loadUserNFTs().then(() => loadShopNFTs());
           });
         } else {
           connectBtn.textContent = "CONNECT";
@@ -541,8 +563,7 @@
       window.ethereum.on('chainChanged', () => {
         setupContracts().then(() => {
           showNftfanBalance();
-          loadShopNFTs();
-          loadUserNFTs();
+          loadUserNFTs().then(() => loadShopNFTs());
         });
       });
     }
