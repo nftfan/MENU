@@ -2,48 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pakistan Map - OpenLayers</title>
+  <title>Pakistan Map - OpenLayers with Small Bottom Bar</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css"
-    type="text/css"
-  />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #0f2e14;
+      margin: 0; padding: 0; height: 100%; background: #0f2e14;
     }
     #map {
+      width: 100%; height: 100%; position: relative;
+    }
+    #bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
       width: 100%;
-      height: 100%;
+      height: 18px;
+      background: #0f2e14;
+      color: #a8d5a3;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 7px;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      box-shadow: none;
+      z-index: 9999;
+      user-select: none;
+    }
+    #bottom-bar a {
+      color: #a8d5a3;
+      text-decoration: none;
+      font-weight: 600;
+      line-height: 9px;
+      height: 9px;
+      display: inline-block;
+      white-space: nowrap;
+      transition: color 0.3s ease;
+    }
+    #bottom-bar a:hover {
+      color: #d4f7c4;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div id="bottom-bar"><a href="https://example.com" target="_blank" rel="noopener noreferrer">Hello</a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
 <script>
-  // Pakistan bounding box in lon/lat (EPSG:4326)
   const pakistanExtent = [60.8720, 23.6345, 77.8375, 37.0841];
-
-  // Transform bounding box to Web Mercator projection (EPSG:3857)
   const pakistanExtentWebMercator = ol.proj.transformExtent(pakistanExtent, 'EPSG:4326', 'EPSG:3857');
 
-  // Create map view centered on Pakistan
   const view = new ol.View({
-    center: ol.proj.fromLonLat([69.3451, 30.3753]), // lon, lat Pakistan center
+    center: ol.proj.fromLonLat([69.3451, 30.3753]),
     zoom: 6,
     minZoom: 6,
     maxZoom: 18,
     extent: pakistanExtentWebMercator
   });
 
-  // Create map with OSM layer
   const map = new ol.Map({
     target: 'map',
     layers: [
@@ -54,8 +73,7 @@
     view: view
   });
 
-  // Restrict map panning to Pakistan extent
-  map.on('moveend', function () {
+  map.on('moveend', () => {
     const viewExtent = view.calculateExtent(map.getSize());
     if (!ol.extent.containsExtent(pakistanExtentWebMercator, viewExtent)) {
       view.fit(pakistanExtentWebMercator, { size: map.getSize(), maxZoom: view.getZoom() });
@@ -65,3 +83,4 @@
 
 </body>
 </html>
+
