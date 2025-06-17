@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pakistan Map - OpenLayers with Top and Bottom Bars</title>
+  <title>Pakistan Map with Restaurant Pins</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
   <style>
@@ -12,7 +12,6 @@
     #map {
       width: 100%; height: 100%; position: relative;
     }
-    /* Shared bar style */
     .bar {
       position: fixed;
       left: 0;
@@ -51,14 +50,193 @@
       color: #d4f7c4;
       text-decoration: underline;
     }
+    /* Marker style */
+    .marker {
+      width: 16px;
+      height: 16px;
+      background: #d43f3f;
+      border: 2px solid white;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(212, 63, 63, 0.7);
+      transition: all 0.2s ease;
+    }
+    .marker:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 8px rgba(212, 63, 63, 0.9);
+    }
+    /* Popup label style */
+    .popup-label {
+      position: relative;
+      top: -24px;
+      left: 20px;
+      padding: 2px 6px;
+      background: #0f2e14;
+      color: #a8d5a3;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      white-space: nowrap;
+      user-select: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+      z-index: 9999;
+    }
+    
+    /* Price list popup */
+    .price-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0f2e14;
+      color: #a8d5a3;
+      border: 2px solid #224822;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      z-index: 10000;
+      min-width: 300px;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .price-popup-header {
+      background: #224822;
+      padding: 12px 16px;
+      border-bottom: 1px solid #336633;
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+    
+    .price-popup-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #d4f7c4;
+      margin: 0;
+      flex-grow: 1;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #a8d5a3;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+    
+    .close-btn:hover {
+      background: #336633;
+    }
+    
+    .price-list {
+      padding: 16px;
+    }
+    
+    .price-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1f3f1f;
+    }
+    
+    .price-item:last-child {
+      border-bottom: none;
+    }
+    
+    .item-name {
+      font-weight: 500;
+      color: #a8d5a3;
+    }
+    
+    .item-price {
+      font-weight: bold;
+      color: #d4f7c4;
+    }
+    
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      display: none;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
 
-<div id="top-bar" class="bar"><a href="" target="_blank" rel="noopener noreferrer">Explore Pakistani Food!</a></div>
+<div id="top-bar" class="bar"><a href="https://example.com" target="_blank" rel="noopener noreferrer">Hello</a></div>
 <div id="bottom-bar" class="bar"><a href="https://example.com" target="_blank" rel="noopener noreferrer">Hello</a></div>
+
+<!-- Popup overlay -->
+<div id="popup-overlay" class="popup-overlay"></div>
+
+<!-- Price popup for Gulam Chicken -->
+<div id="gulam-popup" class="price-popup" style="display: none;">
+  <div class="price-popup-header">
+    <h3 class="price-popup-title">Gulam Chicken</h3>
+    <button class="close-btn" onclick="closePricePopup()">&times;</button>
+  </div>
+  <div class="price-list">
+    <div class="price-item">
+      <span class="item-name">Chicken Karahi (Half)</span>
+      <span class="item-price">Rs. 850</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Chicken Karahi (Full)</span>
+      <span class="item-price">Rs. 1,500</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Mutton Karahi (Half)</span>
+      <span class="item-price">Rs. 1,200</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Mutton Karahi (Full)</span>
+      <span class="item-price">Rs. 2,200</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Chicken Handi</span>
+      <span class="item-price">Rs. 950</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Chicken Tikka (6 pcs)</span>
+      <span class="item-price">Rs. 700</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Seekh Kebab (4 pcs)</span>
+      <span class="item-price">Rs. 600</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Naan</span>
+      <span class="item-price">Rs. 40</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Garlic Naan</span>
+      <span class="item-price">Rs. 60</span>
+    </div>
+    <div class="price-item">
+      <span class="item-name">Raita</span>
+      <span class="item-price">Rs. 120</span>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
 <script>
@@ -81,13 +259,75 @@
       })
     ],
     view: view,
-    controls: []  // no default controls, so no zoom buttons
+    controls: []  // no zoom buttons
   });
 
   map.on('moveend', () => {
     const viewExtent = view.calculateExtent(map.getSize());
     if (!ol.extent.containsExtent(pakistanExtentWebMercator, viewExtent)) {
       view.fit(pakistanExtentWebMercator, { size: map.getSize(), maxZoom: view.getZoom() });
+    }
+  });
+
+  // Function to create a marker with label
+  function createMarker(name, clickable = false) {
+    const markerEl = document.createElement('div');
+    markerEl.className = 'marker';
+    
+    if (clickable) {
+      markerEl.onclick = () => showPricePopup();
+    }
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'popup-label';
+    labelEl.textContent = name;
+
+    const containerEl = document.createElement('div');
+    containerEl.style.position = 'relative';
+    containerEl.appendChild(markerEl);
+    containerEl.appendChild(labelEl);
+
+    return containerEl;
+  }
+
+  // Create Butt Tikka marker
+  const buttTikkaMarker = new ol.Overlay({
+    element: createMarker('Butt Tikka'),
+    positioning: 'bottom-left',
+    stopEvent: false,
+    offset: [0, -10],
+  });
+  buttTikkaMarker.setPosition(ol.proj.fromLonLat([74.3587, 31.5204]));
+  map.addOverlay(buttTikkaMarker);
+
+  // Create Gulam Chicken marker (clickable)
+  const gulamChickenMarker = new ol.Overlay({
+    element: createMarker('Gulam Chicken', true),
+    positioning: 'bottom-left',
+    stopEvent: false,
+    offset: [0, -10],
+  });
+  gulamChickenMarker.setPosition(ol.proj.fromLonLat([74.32427, 31.53751]));
+  map.addOverlay(gulamChickenMarker);
+
+  // Price popup functions
+  function showPricePopup() {
+    document.getElementById('popup-overlay').style.display = 'block';
+    document.getElementById('gulam-popup').style.display = 'block';
+  }
+
+  function closePricePopup() {
+    document.getElementById('popup-overlay').style.display = 'none';
+    document.getElementById('gulam-popup').style.display = 'none';
+  }
+
+  // Close popup when clicking overlay
+  document.getElementById('popup-overlay').onclick = closePricePopup;
+
+  // Close popup with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePricePopup();
     }
   });
 </script>
