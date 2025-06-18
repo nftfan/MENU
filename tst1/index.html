@@ -2,51 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WalletKit Integration Test</title>
+  <title>Connect Wallet Example</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/@web3modal/ui@2.7.2/dist/style.css" />
 </head>
 <body>
   <button id="connectBtn">Connect Wallet</button>
   <div id="info"></div>
-
-  <!-- WalletConnect Core UMD -->
-  <script src="https://unpkg.com/@walletconnect/core@2.13.4/dist/umd/index.min.js"></script>
-  <!-- WalletKit UMD -->
-  <script src="https://unpkg.com/@reown/walletkit@0.3.5/dist/umd/walletkit.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3modal@2.7.2/dist/web3modal.umd.js"></script>
+  <script src="https://unpkg.com/viem@2.8.0/dist/index.umd.js"></script>
   <script>
-    async function connectWallet() {
-      if (typeof window.WalletConnectCore === 'undefined' || typeof window.WalletKit === 'undefined') {
-        document.getElementById('info').innerHTML = 'WalletConnectCore or WalletKit not loaded!';
-        return;
+    const projectId = "5a44043289649f7b3b13eb8e8d900214"; // your WalletConnect Project ID
+    const chains = [
+      {
+        chainId: 1,
+        name: "Ethereum",
+        currency: "ETH",
+        rpcUrl: "https://rpc.ankr.com/eth"
       }
+    ];
+    const modal = new window.Web3Modal({
+      projectId,
+      chains: chains.map(c => ({
+        chainId: c.chainId,
+        name: c.name,
+        rpcUrl: c.rpcUrl
+      })),
+      themeMode: "light"
+    });
+    let provider, account;
+    document.getElementById('connectBtn').onclick = async () => {
       try {
-        const core = new window.WalletConnectCore.Core({
-          projectId: '5a44043289649f7b3b13eb8e8d900214'
-        });
-
-        const metadata = {
-          name: 'artg',
-          description: 'AppKit Example',
-          url: 'http://nftfanstoken.com/tst1',
-          icons: ['https://assets.reown.com/reown-profile-pic.png']
-        };
-
-        const walletKit = await window.WalletKit.WalletKit.init({
-          core,
-          metadata
-        });
-
-        const session = await walletKit.connect();
-        document.getElementById('info').innerHTML =
-          `<b>Connected!</b> Address: ${session.accounts[0]}`;
+        provider = await modal.connect();
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        account = accounts[0];
+        document.getElementById('info').innerHTML = `<b>Connected address:</b> ${account}`;
       } catch (err) {
-        document.getElementById('info').innerHTML =
-          `<b>Connection canceled or failed:</b> ${err.message}`;
+        document.getElementById('info').innerHTML = `<b>Connection canceled or failed.</b>`;
         console.error(err);
       }
-    }
-
-    document.getElementById('connectBtn').onclick = connectWallet;
+    };
   </script>
 </body>
 </html>
