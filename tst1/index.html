@@ -4,60 +4,58 @@
   <meta charset="UTF-8" />
   <title>Connect Wallet - OpenSea Style Modal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Web3Modal styles for the modal look -->
   <link rel="stylesheet" href="https://unpkg.com/@web3modal/ui@2.7.2/dist/style.css" />
 </head>
-<body style="background: #181a20; color: #fff; font-family: sans-serif; text-align: center; min-height: 100vh;">
+<body style="background: #181a20; color: #fff; font-family: sans-serif; text-align: center;">
   <div style="margin-top:60px;">
     <img src="https://assets.reown.com/reown-profile-pic.png" alt="App Icon" style="width:80px;height:80px;border-radius:40px;" />
-    <h1 style="margin: 20px 0 10px 0;">Connect with tst1</h1>
+    <h1>Connect with tst1</h1>
     <button id="connectBtn" style="padding:16px 36px;border:none;border-radius:8px;background:#2081e2;color:#fff;font-size:1.2rem;cursor:pointer;">Connect Wallet</button>
     <div id="info" style="margin-top: 24px;"></div>
   </div>
-  <!-- Web3Modal UMD bundle -->
+  <!-- Libraries loaded at end of body to ensure they are ready -->
   <script src="https://unpkg.com/@walletconnect/web3modal@2.7.2/dist/web3modal.umd.js"></script>
-  <script src="https://unpkg.com/viem@2.8.0/dist/index.umd.js"></script>
   <script>
-    // Only declare provider and account ONCE!
-    let provider, account;
-
-    const projectId = "101df18a95437bb88e3859e26a1f9310";
-    const chains = [
-      {
-        chainId: 1,
-        name: "Ethereum",
-        currency: "ETH",
-        rpcUrl: "https://rpc.ankr.com/eth"
+    // Wait until the DOM is fully ready
+    window.onload = function() {
+      if (!window.Web3Modal) {
+        document.getElementById('info').innerText = "Web3Modal lib failed to load.";
+        return;
       }
-    ];
-
-    // Initialize Web3Modal
-    const modal = new window.Web3Modal({
-      projectId,
-      chains: chains.map(c => ({
-        chainId: c.chainId,
-        name: c.name,
-        rpcUrl: c.rpcUrl
-      })),
-      themeMode: "dark",
-      metadata: {
-        name: "tst1",
-        description: "tst1",
-        url: "https://www.nftfanstoken.com/tst1/",
-        icons: ["https://assets.reown.com/reown-profile-pic.png"]
-      }
-    });
-
-    document.getElementById('connectBtn').onclick = async () => {
-      try {
-        provider = await modal.connect();
-        const accounts = await provider.request({ method: 'eth_accounts' });
-        account = accounts[0];
-        document.getElementById('info').innerHTML = `<b>Connected address:</b> <span style="color:#58c;">${account}</span>`;
-      } catch (err) {
-        document.getElementById('info').innerHTML = `<b>Connection canceled or failed.</b>`;
-        console.error(err);
-      }
+      const projectId = "101df18a95437bb88e3859e26a1f9310";
+      const chains = [
+        {
+          chainId: 1,
+          name: "Ethereum",
+          currency: "ETH",
+          rpcUrl: "https://rpc.ankr.com/eth"
+        }
+      ];
+      const modal = new window.Web3Modal({
+        projectId,
+        chains: chains.map(c => ({
+          chainId: c.chainId,
+          name: c.name,
+          rpcUrl: c.rpcUrl
+        })),
+        themeMode: "dark",
+        metadata: {
+          name: "tst1",
+          description: "tst1",
+          url: "https://www.nftfanstoken.com/tst1/",
+          icons: ["https://assets.reown.com/reown-profile-pic.png"]
+        }
+      });
+      document.getElementById('connectBtn').onclick = async () => {
+        try {
+          const provider = await modal.connect();
+          const accounts = await provider.request({ method: 'eth_accounts' });
+          document.getElementById('info').innerHTML = `<b>Connected address:</b> <span style="color:#58c;">${accounts[0]}</span>`;
+        } catch (err) {
+          document.getElementById('info').innerText = "Connection canceled or failed. See console.";
+          console.error(err);
+        }
+      };
     };
   </script>
 </body>
