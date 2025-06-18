@@ -2,42 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WalletKit Integration Example</title>
+  <title>WalletKit Integration Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
   <button id="connectBtn">Connect Wallet</button>
   <div id="info"></div>
 
-  <!-- Load WalletConnect Core UMD -->
+  <!-- WalletConnect Core UMD -->
   <script src="https://unpkg.com/@walletconnect/core@2.13.4/dist/umd/index.min.js"></script>
-  <!-- Load WalletKit UMD (if available) -->
+  <!-- WalletKit UMD -->
   <script src="https://unpkg.com/@reown/walletkit@0.3.5/dist/umd/walletkit.min.js"></script>
   <script>
     async function connectWallet() {
-      // Initialize WalletConnect Core
-      const core = new window.WalletConnectCore.Core({
-        projectId: '5a44043289649f7b3b13eb8e8d900214'
-      });
+      if (typeof window.WalletConnectCore === 'undefined' || typeof window.WalletKit === 'undefined') {
+        document.getElementById('info').innerHTML = 'WalletConnectCore or WalletKit not loaded!';
+        return;
+      }
+      try {
+        const core = new window.WalletConnectCore.Core({
+          projectId: '5a44043289649f7b3b13eb8e8d900214'
+        });
 
-      // Define dApp metadata
-      const metadata = {
-        name: 'artg',
-        description: 'AppKit Example',
-        url: 'http://nftfanstoken.com/tst1',
-        icons: ['https://assets.reown.com/reown-profile-pic.png']
-      };
+        const metadata = {
+          name: 'artg',
+          description: 'AppKit Example',
+          url: 'http://nftfanstoken.com/tst1',
+          icons: ['https://assets.reown.com/reown-profile-pic.png']
+        };
 
-      // Initialize WalletKit
-      const walletKit = await window.WalletKit.WalletKit.init({
-        core,
-        metadata
-      });
+        const walletKit = await window.WalletKit.WalletKit.init({
+          core,
+          metadata
+        });
 
-      // Open wallet selection modal and connect
-      const session = await walletKit.connect();
-      document.getElementById('info').innerHTML =
-        `<b>Connected!</b> Address: ${session.accounts[0]}`;
+        const session = await walletKit.connect();
+        document.getElementById('info').innerHTML =
+          `<b>Connected!</b> Address: ${session.accounts[0]}`;
+      } catch (err) {
+        document.getElementById('info').innerHTML =
+          `<b>Connection canceled or failed:</b> ${err.message}`;
+        console.error(err);
+      }
     }
 
     document.getElementById('connectBtn').onclick = connectWallet;
