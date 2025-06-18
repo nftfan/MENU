@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WalletConnect Web3Modal Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Web3Modal style -->
+  <link rel="stylesheet" href="https://unpkg.com/@web3modal/ui@2.7.2/dist/style.css" />
+</head>
+<body>
+  <h1>Connect Wallet (Mobile Browser Example)</h1>
+  <button id="connectBtn">Connect Wallet</button>
+  <div id="info"></div>
+
+  <!-- WalletConnect Web3Modal UMD bundle -->
+  <script src="https://unpkg.com/@walletconnect/web3modal@2.7.2/dist/web3modal.umd.js"></script>
+  <script src="https://unpkg.com/viem@2.8.0/dist/index.umd.js"></script>
+
+  <script>
+    // Replace with your actual WalletConnect Project ID
+    const projectId = "YOUR_WALLETCONNECT_PROJECT_ID";
+
+    // Supported chain (Ethereum Mainnet)
+    const chains = [
+      {
+        chainId: 1,
+        name: "Ethereum",
+        currency: "ETH",
+        rpcUrl: "https://rpc.ankr.com/eth",
+      },
+    ];
+
+    // Create Web3Modal instance
+    const modal = new window.Web3Modal({
+      projectId,
+      chains: chains.map(c => ({
+        chainId: c.chainId,
+        name: c.name,
+        rpcUrl: c.rpcUrl
+      })),
+      themeMode: "light",
+    });
+
+    let provider;
+    let account;
+
+    document.getElementById('connectBtn').onclick = async () => {
+      try {
+        // Open modal and connect
+        provider = await modal.connect();
+        // Use viem to get accounts
+        const client = window.viem.createPublicClient({
+          transport: window.viem.custom(provider),
+        });
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        account = accounts[0];
+        document.getElementById('info').innerHTML = `<b>Connected address:</b> ${account}`;
+      } catch (err) {
+        document.getElementById('info').innerHTML = `<b>Connection canceled or failed.</b>`;
+        console.error(err);
+      }
+    };
+  </script>
+</body>
+</html>
