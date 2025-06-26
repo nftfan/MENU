@@ -1682,7 +1682,8 @@ const POLYGON_CHAIN_ID = "0x89";
 const RPC_URLS = [
     "https://polygon-rpc.com",
     "https://rpc-mainnet.matic.network",
-    "https://matic-mainnet.chainstacklabs.com"
+    "https://matic-mainnet.chainstacklabs.com",
+    "https://rpc-mainnet.maticvigil.com"
 ];
 const DEFAULT_IMAGE = "https://via.placeholder.com/42?text=NFT";
 
@@ -1706,20 +1707,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function setupWeb3() {
     for (let i = 0; i < retryAttempts; i++) {
         try {
-            web3 = new Web3(window.ethereum);
-            const chainId = await web3.eth.getChainId();
-            if (chainId !== parseInt(POLYGON_CHAIN_ID, 16)) {
-                await switchToPolygon();
+            web3 = new Web3(RPC_URLS[i % RPC_URLS.length]);
+            if (window.ethereum) {
+                web3.setProvider(window.ethereum);
+                const chainId = await web3.eth.getChainId();
+                if (chainId !== parseInt(POLYGON_CHAIN_ID, 16)) {
+                    await switchToPolygon();
+                }
             }
-            updateStatus("info", "Connected to Polygon network");
+            updateStatus("info", `Connected to Polygon network via RPC ${i + 1}`);
             return;
         } catch (error) {
             console.error(`Web3 setup attempt ${i + 1} failed:`, error);
             if (i < retryAttempts - 1) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
-                web3 = new Web3(RPC_URLS[i % RPC_URLS.length]);
             } else {
-                updateStatus("error", "Failed to connect to Polygon network. Please check your connection.");
+                updateStatus("error", "Failed to connect to Polygon network. Please check your connection or try again later.");
             }
         }
     }
@@ -1733,18 +1736,24 @@ async function switchToPolygon() {
         });
     } catch (switchError) {
         if (switchError.code === 4902) {
-            await window.ethereum.request({
-                method: "wallet_addEthereumChain",
-                params: [{
-                    chainId: POLYGON_CHAIN_ID,
-                    chainName: "Polygon Mainnet",
-                    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-                    rpcUrls: RPC_URLS,
-                    blockExplorerUrls: ["https://polygonscan.com/"]
-                }]
-            });
+            try {
+                await window.ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [{
+                        chainId: POLYGON_CHAIN_ID,
+                        chainName: "Polygon Mainnet",
+                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                        rpcUrls: RPC_URLS,
+                        blockExplorerUrls: ["https://polygonscan.com/"]
+                    }]
+                });
+            } catch (addError) {
+                console.error("Failed to add Polygon network:", addError);
+                updateStatus("error", "Failed to add Polygon network. Please add it manually in MetaMask.");
+            }
         } else {
-            throw switchError;
+            console.error("Failed to switch to Polygon:", switchError);
+            updateStatus("error", `Failed to switch to Polygon: ${switchError.message}`);
         }
     }
 }
@@ -1752,11 +1761,13 @@ async function switchToPolygon() {
 async function setupContracts() {
     try {
         contract = new web3.eth.Contract(contractABI, contractAddress);
+        // Test contract call to verify ABI compatibility
+        await contract.methods.getShopNFTs().call();
         isInitialized = true;
         updateStatus("success", "Contract initialized successfully");
     } catch (error) {
         console.error("Contract setup failed:", error);
-        updateStatus("error", "Failed to initialize contract. Please refresh and try again.");
+        updateStatus("error", `Failed to initialize contract: ${error.message}. Please ensure the contract ABI is correct.`);
     }
 }
 
@@ -1835,10 +1846,15 @@ function setupEventListeners() {
 
 async function loadInitialData() {
     updateStatus("info", "Loading initial data...");
-    await Promise.all([
-        showTab("shop"),
-        userAddress ? loadUserNFTs() : Promise.resolve()
-    ]);
+    try {
+        await Promise.all([
+            showTab("shop"),
+            userAddress ? loadUserNFTs() : Promise.resolve()
+        ]);
+    } catch (error) {
+        console.error("Failed to load initial data:", error);
+        updateStatus("error", `Failed to load initial data: ${error.message}`);
+    }
 }
 
 async function showTab(tabId) {
@@ -1883,7 +1899,15 @@ async function loadShopNFTs() {
     grid.innerHTML = "";
     try {
         const nfts = await contract.methods.getShopNFTs().call();
+        if (!Array.isArray(nfts) || nfts.length === 0) {
+            grid.innerHTML = "<li>No NFTs available in the shop.</li>";
+            return;
+        }
         for (const nft of nfts) {
+            if (!nft || !nft.tokenId || !nft.tokenURI || !nft.price || !nft.availableSupply || !nft.totalSupply) {
+                console.warn(`Invalid NFT data for tokenId ${nft?.tokenId}:`, nft);
+                continue;
+            }
             if (localStorage.getItem(`soldout_${nft.tokenId}`)) continue;
             const metadata = await fetchMetadata(nft.tokenURI, nft.tokenId);
             if (nft.availableSupply === "0") {
@@ -1899,7 +1923,9 @@ async function loadShopNFTs() {
     } catch (error) {
         console.error("Failed to load shop NFTs:", error);
         document.getElementById("shop-error").style.display = "block";
-        document.getElementById("shop-error").textContent = `Error: ${error.message}`;
+        document.getElementById("shop-error").textContent = error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is up to date."
+            : `Error: ${error.message}`;
     }
 }
 
@@ -1909,11 +1935,25 @@ async function loadUserNFTs() {
     grid.innerHTML = "";
     try {
         const tokens = await contract.methods.tokensOfOwner(userAddress).call();
+        if (!Array.isArray(tokens)) {
+            grid.innerHTML = "<li>You don't own any NFTs.</li>";
+            return;
+        }
         for (const token of tokens) {
-            const { tokenURI, price, availableSupply } = await contract.methods.nftInfo(token.tokenId).call();
+            if (!token || !token.tokenId || !token.amount) {
+                console.warn(`Invalid token data for tokenId ${token?.tokenId}:`, token);
+                continue;
+            }
+            let nftInfo;
+            try {
+                nftInfo = await contract.methods.nftInfo(token.tokenId).call();
+            } catch (error) {
+                console.warn(`Failed to fetch nftInfo for tokenId ${token.tokenId}:`, error);
+                continue;
+            }
             const listings = await contract.methods.getListings(token.tokenId).call();
-            const metadata = await fetchMetadata(tokenURI, token.tokenId);
-            const li = createNFTElement({ ...token, tokenURI, price, availableSupply }, metadata, "mynfts", listings);
+            const metadata = await fetchMetadata(nftInfo.tokenURI, token.tokenId);
+            const li = createNFTElement({ ...token, tokenURI: nftInfo.tokenURI, price: nftInfo.price, availableSupply: nftInfo.availableSupply }, metadata, "mynfts", listings);
             grid.appendChild(li);
         }
         if (grid.children.length === 0) {
@@ -1922,7 +1962,9 @@ async function loadUserNFTs() {
     } catch (error) {
         console.error("Failed to load user NFTs:", error);
         document.getElementById("my-error").style.display = "block";
-        document.getElementById("my-error").textContent = `Error: ${error.message}`;
+        document.getElementById("my-error").textContent = error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is up to date."
+            : `Error: ${error.message}`;
     }
 }
 
@@ -1932,8 +1974,22 @@ async function loadUserListings() {
     grid.innerHTML = "";
     try {
         const nfts = await contract.methods.getShopNFTs().call();
+        if (!Array.isArray(nfts)) {
+            grid.innerHTML = "<li>No user listings available.</li>";
+            return;
+        }
         for (const nft of nfts) {
-            const listings = await contract.methods.getListings(nft.tokenId).call();
+            if (!nft || !nft.tokenId || !nft.tokenURI) {
+                console.warn(`Invalid NFT data for tokenId ${nft?.tokenId}:`, nft);
+                continue;
+            }
+            let listings;
+            try {
+                listings = await contract.methods.getListings(nft.tokenId).call();
+            } catch (error) {
+                console.warn(`Failed to fetch listings for tokenId ${nft.tokenId}:`, error);
+                continue;
+            }
             const filteredListings = listings.filter(listing => listing.seller !== contractAddress);
             if (filteredListings.length === 0) continue;
             const metadata = await fetchMetadata(nft.tokenURI, nft.tokenId);
@@ -1948,7 +2004,9 @@ async function loadUserListings() {
     } catch (error) {
         console.error("Failed to load user listings:", error);
         document.getElementById("listings-error").style.display = "block";
-        document.getElementById("listings-error").textContent = `Error: ${error.message}`;
+        document.getElementById("listings-error").textContent = error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is up to date."
+            : `Error: ${error.message}`;
     }
 }
 
@@ -1956,7 +2014,9 @@ async function fetchMetadata(tokenURI, tokenId) {
     if (metadataCache.has(tokenURI)) return metadataCache.get(tokenURI);
     try {
         const response = await fetch(tokenURI, { mode: "cors" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch metadata`);
         const data = await response.json();
+        if (!data || typeof data !== "object") throw new Error("Invalid metadata format");
         const metadata = {
             name: data.name || `NFT #${tokenId}`,
             image: data.image || DEFAULT_IMAGE,
@@ -2026,11 +2086,13 @@ async function buyNFT(tokenId, price, seller = null) {
         updateStatus("warn", "Please connect your wallet first");
         return;
     }
-    updateStatus("info", "Initiating purchase...");
+    updateStatus("info", `Initiating purchase for NFT #${tokenId}...`);
     try {
         const gasEstimate = await contract.methods.buyNFT(tokenId, 1).estimateGas({
             from: userAddress,
             value: price
+        }).catch(error => {
+            throw new Error(`Gas estimation failed: ${error.message}`);
         });
         const tx = await contract.methods.buyNFT(tokenId, 1).send({
             from: userAddress,
@@ -2041,7 +2103,9 @@ async function buyNFT(tokenId, price, seller = null) {
         await showTab(currentTab);
     } catch (error) {
         console.error("Buy NFT failed:", error);
-        updateStatus("error", `Failed to buy NFT: ${error.message}`);
+        updateStatus("error", error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is correct."
+            : `Failed to buy NFT #${tokenId}: ${error.message}`);
     }
 }
 
@@ -2078,7 +2142,7 @@ async function confirmSellNFT() {
         return;
     }
 
-    updateStatus("info", "Listing NFT for sale...");
+    updateStatus("info", `Listing NFT #${tokenId} for sale...`);
     try {
         const gasEstimate = await contract.methods.sellNFT(tokenId, amount, price).estimateGas({ from: userAddress });
         const tx = await contract.methods.sellNFT(tokenId, amount, price).send({
@@ -2090,7 +2154,9 @@ async function confirmSellNFT() {
         await showTab("mynfts");
     } catch (error) {
         console.error("Sell NFT failed:", error);
-        updateStatus("error", `Failed to list NFT: ${error.message}`);
+        updateStatus("error", error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is correct."
+            : `Failed to list NFT #${tokenId}: ${error.message}`);
     }
 }
 
@@ -2099,7 +2165,7 @@ async function delistNFT(tokenId) {
         updateStatus("warn", "Please connect your wallet first");
         return;
     }
-    updateStatus("info", "Canceling listing...");
+    updateStatus("info", `Canceling listing for NFT #${tokenId}...`);
     try {
         const gasEstimate = await contract.methods.cancelListing(tokenId).estimateGas({ from: userAddress });
         const tx = await contract.methods.cancelListing(tokenId).send({
@@ -2110,7 +2176,9 @@ async function delistNFT(tokenId) {
         await showTab("mynfts");
     } catch (error) {
         console.error("Delist NFT failed:", error);
-        updateStatus("error", `Failed to cancel listing: ${error.message}`);
+        updateStatus("error", error.message.includes("data out-of-bounds") 
+            ? "Error: Invalid contract response. Please check if the contract ABI is correct."
+            : `Failed to cancel listing for NFT #${tokenId}: ${error.message}`);
     }
 }
 
