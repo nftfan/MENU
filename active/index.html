@@ -343,6 +343,39 @@
             color: var(--text-primary);
             font-weight: 700;
         }
+        .reward-row {
+            display: flex;
+            align-items: center;
+            font-size: 0.96rem;
+            gap: 6px;
+            margin: 5px 0 0 0px;
+            color: var(--success);
+            font-family: 'Orbitron', monospace;
+        }
+        .reward-icon {
+            color: var(--success);
+            font-size: 1.12em !important;
+            vertical-align: middle;
+        }
+        .reward-amount {
+            font-size: 0.95em;
+            color: var(--success);
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            padding-left: 1px;
+        }
+       .reward-label {
+    color: #000000;
+    font-size: 0.93em;
+    opacity: 0.66;
+    margin-left: 2px;
+    font-family: 'Montserrat', monospace;
+    font-weight: 400;
+    background-color: #ffc94b; /* semi-transparent black */
+    padding: 2px 6px; /* optional: adds spacing inside the label */
+    border-radius: 4px; /* optional: rounds the corners */
+}
+
         .submit-section {
             margin-bottom: 15px;
             display: flex;
@@ -433,10 +466,10 @@
             color: #fff;
             font-size: 0.95em;
             font-family: 'Orbitron', monospace;
-            border-radius: 10px;
+            border-radius: 50px;
             padding: 2px 10px;
             margin-left: 9px;
-            font-weight: 900;
+            font-weight: 600;
             vertical-align: middle;
         }
         /* --- Task card improvements --- */
@@ -560,12 +593,81 @@
         @media (max-width: 340px) {
             html { font-size: 8px;}
         }
+		/* Add this to your <style> section */
+.total-earned-bar {
+  width: 100%;
+  margin: 0 auto 16px auto;
+  background: linear-gradient(90deg, #00bcd4 0%, #ff00ff 100%);
+  border-radius: 13px;
+  box-shadow: 0 2px 15px #00bcd422, 0 1px 1.5px #ff00ff22;
+  padding: 2.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  max-width: 430px;
+}
+.total-earned-content {
+  background: #18191aee;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 7px 18px 7px 12px;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Orbitron', monospace;
+}
+.total-earned-icon {
+  color: #ffd600;
+  font-size: 0.75em !important;
+  vertical-align: middle;
+  margin-right: 8px;
+  filter: drop-shadow(0 0 8px #ffd60088);
+}
+.total-earned-label {
+  color: #fff;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.78;
+  margin-right: 8px;
+}
+.total-earned-amount {
+  color: #00e676;
+  font-size: 0.66em;
+  font-weight: 900;
+  background: #222b;
+  border-radius: 8px;
+  padding: 3px 11px;
+  margin-left: 2px;
+  letter-spacing: 0.02em;
+  font-family: 'Orbitron', monospace;
+  box-shadow: 0 0 8px #00e67644;
+}
+@media (max-width: 480px) {
+  .total-earned-bar {
+    max-width: 99vw;
+    font-size: 0.95em;
+  }
+  .total-earned-content {
+    padding: 6px 7px 6px 7px;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .total-earned-label {
+    font-size: 1em;
+  }
+  .total-earned-amount {
+    font-size: 1.1em;
+    padding: 3px 7px;
+  }
+}
     </style>
 </head>
 <body>
     <div class="particles"></div>
     <div class="container">
-       
         <img 
             class="banner-img" 
             src="https://pbs.twimg.com/profile_banners/1462505560142667777/1743232308/1500x500"
@@ -575,7 +677,14 @@
             <h1 class="title">NFT Fans Active</h1>
             <div class="subtitle">Be Active to earn more.</div>
         </div>
-		 <!-- Campaign Time Section -->
+		<div class="total-earned-bar">
+  <div class="total-earned-content">
+    <span class="material-icons total-earned-icon">paid</span>
+    <span class="total-earned-label">Total Tokens Earned in this Campaign:</span>
+    <span class="total-earned-amount" id="totalEarnedTokens">0 $NFTFAN</span>
+  </div>
+</div>
+        <!-- Campaign Time Section -->
         <div id="campaign-timer" style="text-align:center; margin-bottom:13px; font-family:'Orbitron',monospace;">
             <span style="color:#ffeb3b;font-weight:900;font-size:1.12rem;">
                 This campaign ends on <span id="end-date">1 July 2025</span>
@@ -739,6 +848,16 @@
             table.innerHTML = '';
             for (const [i, member] of membersWithCount.entries()) {
                 const walletId = `walletCopy${i}`;
+                // Calculate reward: postCount * 1T $NFTFAN
+                let rewardStr = '';
+                if (member.postCount > 0) {
+                    rewardStr = `
+                        <div class="reward-row">
+                            <span class="material-icons reward-icon">paid</span>
+                            <span class="reward-amount">${member.postCount}T $NFTFAN</span>
+                            <span class="reward-label">Earned</span>
+                        </div>`;
+                }
                 table.innerHTML += `
                     <tr>
                         <td class="serial-cell">${i + 1}</td>
@@ -757,6 +876,7 @@
                                     </button>
                                 </li>
                             </ul>
+                            ${rewardStr}
                         </td>
                         <td>
                             <span class="post-count-badge" title="X Posts">${member.postCount}</span>
@@ -1055,6 +1175,50 @@
             updateCampaignTimer();
             setInterval(updateCampaignTimer, 1000 * 60 * 60); // update every hour
         });
+		
+		// Add this inside your <script> section
+
+// Utility for formatting numbers as 1,234,567,890
+function formatNumber(n) {
+  return n.toLocaleString('en-US');
+}
+
+// Add this function to update the bar after rendering members table
+async function updateTotalEarnedBar() {
+    const {members, xposts} = await fetchBasket();
+    // Calculate total tokens earned (sum of all members' rewards)
+    // Each post = 1T $NFTFAN (1,000,000,000,000)
+    let total = 0;
+    // Count posts per user
+    const postCountMap = {};
+    for (const xp of xposts) {
+        const uname = (xp.x||'').toLowerCase();
+        if (!postCountMap[uname]) postCountMap[uname] = 0;
+        postCountMap[uname]++;
+    }
+    for (const m of members) {
+        const count = postCountMap[(m.x||'').toLowerCase()] || 0;
+        total += count * 1_000_000_000_000;
+    }
+    // Format as "X $NFTFAN"
+    let display = total === 0 ? '0 $NFTFAN'
+        : `${formatNumber(total)} $NFTFAN`;
+    document.getElementById('totalEarnedTokens').textContent = display;
+}
+
+// After every renderMembersTable(), also call updateTotalEarnedBar()
+const originalRenderMembersTable = renderMembersTable;
+renderMembersTable = async function() {
+    await originalRenderMembersTable();
+    await updateTotalEarnedBar();
+};
+
+// Also call after initial load (for safety)
+window.addEventListener('load', async () => {
+    // ... your other logic ...
+    await updateTotalEarnedBar();
+});
+
     </script>
 </body>
 </html>
