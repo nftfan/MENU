@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Day Manager</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    html, body {
+      background: #181a1b;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10px;
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      overflow-x: hidden;
+    }
+    body {
+      width: 100vw;
+      max-width: 100vw;
+    }
+    .day-manager-container {
+      width: 100vw;
+      max-width: 100vw;
+      margin: 0;
+      background: #212325;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .header-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: #181a1b;
+      border-bottom: 1.5px solid #2d2d2d;
+      padding: 10px 0 0 0;
+    }
+    .header-title {
+      color: #fff9c4;
+      font-size: 15px;
+      letter-spacing: 0.6px;
+      font-weight: bold;
+      padding: 0 16px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-title .material-icons {
+      font-size: 20px;
+      color: #ffd54f;
+    }
+    .add-period-controls {
+      background: #23272b;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .add-period-controls label {
+      font-size: 10px;
+      color: #bdbdbd;
+    }
+    .add-period-controls input {
+      font-size: 10px;
+      border-radius: 2px;
+      border: 1px solid #444;
+      background: #181a1b;
+      color: #fbc02d;
+      padding: 1px 3px;
+    }
+    .add-period-controls input[type="color"] {
+      width: 16px;
+      height: 16px;
+      border: none;
+      padding: 0;
+    }
+    .add-period-controls button {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      font-size: 10px;
+      border-radius: 2px;
+      padding: 2px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .add-period-controls button:hover {
+      background: #1565c0;
+    }
+    .clear-data-btn {
+      background: #d32f2f !important;
+      margin-left: 10px;
+    }
+    .clear-data-btn:hover {
+      background: #c62828 !important;
+    }
+    .storage-status {
+      padding: 3px 18px 8px; 
+      color: #4caf50; 
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .storage-status.error {
+      color: #f44336;
+    }
+    .month-group {
+      margin-top: 10px;
+      margin-bottom: 24px;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    .month-title {
+      font-size: 13px;
+      color: #ffd54f;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin: 18px 0 5px 0;
+      padding-left: 5px;
+      padding-top: 10px;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    .week-group {
+      margin-bottom: 8px;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    .week-title {
+      font-size: 11px;
+      color: #90caf9;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      margin: 6px 0 4px 12px;
+      padding-top: 3px;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    .period-bar {
+      display: flex;
+      align-items: center;
+      height: 20px;
+      margin-bottom: 3px;
+      background: #292c2f;
+      position: relative;
+      font-size: 10px;
+      width: 100vw;
+      min-width: 100vw;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+    .period-bar .day-num-label {
+      min-width: 38px;
+      font-weight: bold;
+      color: #ffd54f;
+      font-size: 11px;
+      text-align: right;
+      padding-right: 7px;
+      flex-shrink: 0;
+    }
+    .period-bar .date-label {
+      min-width: 95px;
+      font-weight: 600;
+      color: #90caf9;
+      text-align: right;
+      padding-right: 8px;
+      flex-shrink: 0;
+    }
+    .period-bar .timeline {
+      flex: 1;
+      height: 10px;
+      margin: 0 8px;
+      position: relative;
+      background: #444;
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      box-sizing: border-box;
+      border-radius: 0;
+      min-width: 0;
+      max-width: none;
+    }
+    .hour-sections {
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .hour-section {
+      flex: 1;
+      border-right: 1px solid #555;
+      height: 100%;
+      position: relative;
+      background: transparent;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .hour-section:last-child { border-right: none; }
+    .hour-label {
+      color: #90caf9;
+      font-size: 8px;
+      font-weight: bold;
+      opacity: 0.22;
+      position: absolute;
+      left: 2px;
+      bottom: 0px;
+      pointer-events: none;
+      background: transparent;
+      transition: opacity 0.2s;
+    }
+    .period-segment {
+      position: absolute;
+      height: 10px;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 0;
+      padding: 0 4px;
+      font-weight: bold;
+      color: #ffffff;
+      font-size: 7px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      box-shadow: none;
+      z-index: 3;
+      cursor: pointer;
+      
+      mix-blend-mode: lighten;
+      opacity: 0.92;
+      background-clip: padding-box;
+      filter: saturate(1.8) brightness(1.15) contrast(1.25);
+      text-align: center;
+    }
+    .period-segment:hover {
+      opacity: 1;
+      filter: saturate(2) brightness(1.25) contrast(1.35);
+    }
+    .period-segment .period-title-span {
+      width: 100%;
+      text-align: center;
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: #181a1b;
+      pointer-events: none;
+      opacity: 0.98;
+      text-shadow: 0 1px 3px #fff6, 0 0 3px #000a;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      z-index: 5;
+    }
+    .period-segment .period-point { display: none !important; }
+    .delete-period {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 12px;
+      height: 12px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 8px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .period-segment:hover .delete-period {
+      display: flex;
+    }
+    .now-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: #ff5252cc;
+      z-index: 10;
+      pointer-events: none;
+      mix-blend-mode: lighten;
+      box-shadow: 0 0 8px #ff525299;
+    }
+    @media (max-width: 700px) {
+      .period-bar .date-label { min-width: 74px; }
+      .period-bar .day-num-label { min-width: 28px; font-size: 9px; }
+      .hour-label { font-size: 7px; }
+      .day-manager-container, .month-group, .week-group, .period-bar, .timeline {
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+        width: 100vw !important;
+      }
+    }
+    .day-list {
+      margin-top: 140px;
+      padding: 10px 0 10px 0;
+      width: 100vw;
+      max-width: 100vw;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    /* Hide scrollbars for aesthetics */
+    ::-webkit-scrollbar { width: 0 !important; background: transparent !important; }
+    ::-webkit-scrollbar-thumb { background: transparent !important; }
+  </style>
+</head>
+<body>
+  <div class="day-manager-container">
+    <div class="header-bar">
+      <div class="header-title">
+        <span class="material-icons">calendar_month</span>
+        Day Manager
+      </div>
+      <div class="add-period-controls">
+        <label>Date:</label>
+        <input type="date" id="periodDate">
+        <label>From:</label>
+        <input type="time" id="periodFrom" value="09:00">
+        <label>To:</label>
+        <input type="time" id="periodTo" value="10:00">
+        <label>Color:</label>
+        <input type="color" id="periodColor" value="#66bb6a">
+        <label>Title:</label>
+        <input type="text" id="periodTitle" placeholder="Title (optional)">
+        <button id="addPeriodBtn">
+          <span class="material-icons" style="font-size: 12px;">add</span>
+          Add Period
+        </button>
+        <button id="clearDataBtn" class="clear-data-btn">
+          <span class="material-icons" style="font-size: 12px;">delete</span>
+          Clear All
+        </button>
+      </div>
+      <div style="padding: 3px 18px 4px; color:#90caf9; font-size:11px;">
+        Current UTC Time: <span id="currentUtcTime"></span>
+      </div>
+      <div id="storageStatus" class="storage-status">
+        <span class="material-icons" style="font-size: 12px;">check_circle</span>
+        Data saved locally
+      </div>
+    </div>
+    <div id="dayList" class="day-list"></div>
+  </div>
+  <script>
+    // Storage configuration
+    const STORAGE_KEY = 'day-manager-periods-v3';
+    const BACKUP_KEY = 'day-manager-backup-v3';
+    
+    // Global periods array
+    let periods = [];
+
+    // Utility functions
+    function pad(n) { return n.toString().padStart(2,"0"); }
+    function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    function getDayLabel(d) {
+      const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      return `${days[d.getDay()]} ${ymd(d)}`;
+    }
+    function minutesOfDay(t) {
+      if (!t) return 0;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+    function clamp(x, min, max) { return Math.max(min, Math.min(max, x)); }
+    function todayStr() {
+      const t = new Date();
+      return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+    }
+    function getWeekNumber(d) {
+      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+      var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+      var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+      return weekNo;
+    }
+    function getMonthName(i) {
+      return ["January","February","March","April","May","June","July","August","September","October","November","December"][i];
+    }
+
+    // Enhanced Local Storage functions with error handling and backup
+    function savePeriodsToStorage(periodsData) {
+      // Check if localStorage is available
+      if (typeof(Storage) === "undefined" || !window.localStorage) {
+        console.warn('⚠️ localStorage not available - using session storage');
+        updateStorageStatus('error', 'localStorage not supported in this environment');
+        return false;
+      }
+
+      try {
+        const dataToSave = {
+          periods: periodsData,
+          timestamp: new Date().toISOString(),
+          version: '3.0'
+        };
+        
+        // Save main data
+        const jsonData = JSON.stringify(dataToSave);
+        localStorage.setItem(STORAGE_KEY, jsonData);
+        
+        // Create backup
+        localStorage.setItem(BACKUP_KEY, jsonData);
+        
+        // Update status indicator
+        updateStorageStatus('success', `${periodsData.length} periods saved`);
+        
+        console.log('✅ Data saved successfully:', periodsData.length, 'periods');
+        return true;
+      } catch (error) {
+        console.error('❌ Failed to save data:', error);
+        if (error.name === 'QuotaExceededError') {
+          updateStorageStatus('error', 'Storage quota exceeded');
+        } else {
+          updateStorageStatus('error', 'Failed to save data - localStorage may not be available');
+        }
+        return false;
+      }
+    }
+
+    function loadPeriodsFromStorage() {
+      // Check if localStorage is available
+      if (typeof(Storage) === "undefined" || !window.localStorage) {
+        console.warn('⚠️ localStorage not available');
+        updateStorageStatus('error', 'localStorage not supported in this environment');
+        return [];
+      }
+
+      try {
+        // Try to load main data
+        let rawData = localStorage.getItem(STORAGE_KEY);
+        
+        // If main data fails, try backup
+        if (!rawData) {
+          rawData = localStorage.getItem(BACKUP_KEY);
+          if (rawData) {
+            console.log('📦 Loaded from backup storage');
+          }
+        }
+        
+        if (rawData) {
+          const parsedData = JSON.parse(rawData);
+          
+          // Handle different data formats for backward compatibility
+          let loadedPeriods = [];
+          if (Array.isArray(parsedData)) {
+            // Old format - direct array
+            loadedPeriods = parsedData;
+          } else if (parsedData.periods && Array.isArray(parsedData.periods)) {
+            // New format - object with metadata
+            loadedPeriods = parsedData.periods;
+          }
+          
+          console.log('✅ Data loaded successfully:', loadedPeriods.length, 'periods');
+          updateStorageStatus('success', `${loadedPeriods.length} periods loaded`);
+          return loadedPeriods;
+        }
+      } catch (error) {
+        console.error('❌ Failed to load data:', error);
+        updateStorageStatus('error', 'Failed to load data');
+      }
+      
+      console.log('ℹ️ No existing data found, starting fresh');
+      updateStorageStatus('success', 'No existing data - starting fresh');
+      return [];
+    }
+
+    function updateStorageStatus(type, message) {
+      const statusEl = document.getElementById('storageStatus');
+      const icon = statusEl.querySelector('.material-icons');
+      
+      statusEl.className = `storage-status ${type === 'error' ? 'error' : ''}`;
+      
+      if (type === 'success') {
+        icon.textContent = 'check_circle';
+        statusEl.lastChild.textContent = message;
+      } else if (type === 'error') {
+        icon.textContent = 'error';
+        statusEl.lastChild.textContent = message;
+      } else if (type === 'saving') {
+        icon.textContent = 'sync';
+        statusEl.lastChild.textContent = 'Saving...';
+      }
+    }
+
+    function clearAllData() {
+      if (confirm('Are you sure you want to delete all periods? This cannot be undone.')) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(BACKUP_KEY);
+          periods = [];
+          renderDayLines();
+          updateStorageStatus('success', 'All data cleared');
+          console.log('🗑️ All data cleared');
+        } catch (error) {
+          console.error('❌ Failed to clear data:', error);
+          updateStorageStatus('error', 'Failed to clear data');
+        }
+      }
+    }
+
+    // Generate 365 days for this year
+    const now = new Date();
+    const year = now.getFullYear();
+    const dayLines = [];
+    let temp = new Date(year, 0, 1, 0, 0, 0, 0);
+    for (let i=0; i<365; i++) {
+      dayLines.push({
+        date: new Date(temp),
+        label: getDayLabel(temp),
+        lineIndex: i,
+        week: getWeekNumber(temp),
+        month: temp.getMonth()
+      });
+      temp.setDate(temp.getDate() + 1);
+    }
+
+    function groupByMonthWeek(dayLines) {
+      const months = [];
+      let lastMonth = -1;
+      let lastWeek = -1;
+      let monthObj, weekObj;
+      for (const d of dayLines) {
+        if (d.month !== lastMonth) {
+          monthObj = {
+            month: d.month,
+            monthName: getMonthName(d.month),
+            weeks: []
+          };
+          months.push(monthObj);
+          lastMonth = d.month;
+          lastWeek = -1;
+        }
+        if (d.week !== lastWeek) {
+          weekObj = {
+            week: d.week,
+            days: []
+          };
+          monthObj.weeks.push(weekObj);
+          lastWeek = d.week;
+        }
+        weekObj.days.push(d);
+      }
+      return months;
+    }
+
+    function loadAndRenderPeriods() {
+      updateStorageStatus('saving', 'Loading data...');
+      periods = loadPeriodsFromStorage();
+      renderDayLines();
+    }
+
+    // Set default date to today
+    document.getElementById('periodDate').value = todayStr();
+
+    function createHourSections() {
+      const hourSections = document.createElement('div');
+      hourSections.className = 'hour-sections';
+      for(let i=0; i<24; i++) {
+        const section = document.createElement('div');
+        section.className = 'hour-section';
+        const label = document.createElement('span');
+        label.className = 'hour-label';
+        label.textContent = i;
+        section.appendChild(label);
+        hourSections.appendChild(section);
+      }
+      return hourSections;
+    }
+
+    function deletePeriod(periodIndex) {
+      if (confirm('Delete this period?')) {
+        periods.splice(periodIndex, 1);
+        savePeriodsToStorage(periods);
+        renderDayLines();
+      }
+    }
+
+    function renderDayLines() {
+      const dayList = document.getElementById('dayList');
+      dayList.innerHTML = '';
+      const months = groupByMonthWeek(dayLines);
+      let globalDayNum = 1;
+      let todayDateStr = todayStr();
+      
+      for (const m of months) {
+        // Month title
+        const monthDiv = document.createElement('div');
+        monthDiv.className = "month-group";
+        const monthTitle = document.createElement('div');
+        monthTitle.className = "month-title";
+        monthTitle.textContent = m.monthName;
+        monthDiv.appendChild(monthTitle);
+        
+        for (const w of m.weeks) {
+          // Week title
+          const weekDiv = document.createElement('div');
+          weekDiv.className = "week-group";
+          const weekTitle = document.createElement('div');
+          weekTitle.className = "week-title";
+          weekTitle.textContent = `Week ${w.week}`;
+          weekDiv.appendChild(weekTitle);
+          
+          for (const line of w.days) {
+            const ymdStr = ymd(line.date);
+            const linePeriods = periods.filter(p => p.date === ymdStr);
+            const bar = document.createElement('div');
+            bar.className = 'period-bar';
+            
+            const dayNumLabel = document.createElement('span');
+            dayNumLabel.className = 'day-num-label';
+            dayNumLabel.textContent = `Day ${globalDayNum++}`;
+            bar.appendChild(dayNumLabel);
+            
+            const dateLabel = document.createElement('span');
+            dateLabel.className = 'date-label';
+            dateLabel.textContent = line.label;
+            bar.appendChild(dateLabel);
+            
+            // Timeline
+            const timeline = document.createElement('div');
+            timeline.className = 'timeline';
+            timeline.appendChild(createHourSections());
+            
+            // Period segments with delete functionality
+            linePeriods.forEach((p, idx) => {
+              let fromMin = clamp(minutesOfDay(p.from), 0, 1440);
+              let toMin = clamp(minutesOfDay(p.to), 0, 1440);
+              if(toMin < fromMin) toMin = 1440;
+              
+              const leftPct = (fromMin / 1440) * 100;
+              const widthPct = ((toMin - fromMin) / 1440) * 100;
+              
+              const seg = document.createElement('div');
+              seg.className = 'period-segment';
+              seg.style.left = `${leftPct}%`;
+              seg.style.width = `${widthPct}%`;
+              seg.style.background = hexToRgbaStrong(p.color, 0.98);
+              seg.title = p.title ? `${p.title} (${p.from} - ${p.to})` : `${p.from} - ${p.to}`;
+              
+              // Add delete button
+              const deleteBtn = document.createElement('button');
+              deleteBtn.className = 'delete-period';
+              deleteBtn.innerHTML = '×';
+              deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                const periodIndex = periods.findIndex(period => 
+                  period.date === p.date && 
+                  period.from === p.from && 
+                  period.to === p.to && 
+                  period.color === p.color &&
+                  period.title === p.title
+                );
+                if (periodIndex !== -1) {
+                  deletePeriod(periodIndex);
+                }
+              };
+              seg.appendChild(deleteBtn);
+              
+              // Center the period title
+              if (p.title) {
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'period-title-span';
+                titleSpan.textContent = p.title;
+                seg.appendChild(titleSpan);
+              }
+              
+              timeline.appendChild(seg);
+            });
+            
+            // Dynamic now-line (only on today)
+            if (ymdStr === todayDateStr) {
+              const nowLine = document.createElement('div');
+              nowLine.className = 'now-line';
+              nowLine.id = 'nowLine-' + ymdStr;
+              timeline.appendChild(nowLine);
+            }
+            
+            bar.appendChild(timeline);
+            weekDiv.appendChild(bar);
+          }
+          monthDiv.appendChild(weekDiv);
+        }
+        dayList.appendChild(monthDiv);
+      }
+      updateNowLine();
+    }
+
+    // Utility: convert hex color to strong rgba with alpha
+    function hexToRgbaStrong(hex, alpha) {
+      hex = hex.replace('#','');
+      if (hex.length === 3) {
+        hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+      }
+      let r = parseInt(hex.substr(0,2),16);
+      let g = parseInt(hex.substr(2,2),16);
+      let b = parseInt(hex.substr(4,2),16);
+      r = Math.min(255, Math.round(r*1.18+22));
+      g = Math.min(255, Math.round(g*1.18+22));
+      b = Math.min(255, Math.round(b*1.18+22));
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    function updateNowLine() {
+      const now = new Date();
+      const todayId = 'nowLine-' + todayStr();
+      const nowLine = document.getElementById(todayId);
+      if (!nowLine) return;
+      const seconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      const left = (seconds / 86400) * 100;
+      nowLine.style.left = `${left}%`;
+    }
+
+    function updateCurrentTimeHeader() {
+      const now = new Date();
+      const y = now.getUTCFullYear();
+      const m = pad(now.getUTCMonth() + 1);
+      const d = pad(now.getUTCDate());
+      const hh = pad(now.getUTCHours());
+      const mm = pad(now.getUTCMinutes());
+      const ss = pad(now.getUTCSeconds());
+      document.getElementById('currentUtcTime').textContent = `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+    }
+
+    function addPeriod() {
+      const date = document.getElementById('periodDate').value;
+      const from = document.getElementById('periodFrom').value;
+      const to = document.getElementById('periodTo').value;
+      const color = document.getElementById('periodColor').value;
+      const title = document.getElementById('periodTitle').value.trim();
+      
+      if (!date || !from || !to || !color) {
+        alert('Please fill in all required fields (Date, From, To, Color)');
+        return;
+      }
+      
+      // Validate time range
+      if (from >= to) {
+        if (!confirm('End time is before or equal to start time. This will create a period that spans to the end of the day. Continue?')) {
+          return;
+        }
+      }
+      
+      updateStorageStatus('saving', 'Saving period...');
+      
+      const newPeriod = {
+        date,
+        from,
+        to,
+        color,
+        title: title || '',
+        id: Date.now() + Math.random() // Add unique ID for better tracking
+      };
+      
+      periods.push(newPeriod);
+      
+      if (savePeriodsToStorage(periods)) {
+        // Clear form after successful save
+        document.getElementById('periodTitle').value = '';
+        // Keep other fields for easy re-entry
+        renderDayLines();
+      }
+    }
+
+    // Auto-save functionality
+    function autoSave() {
+      if (periods.length > 0) {
+        savePeriodsToStorage(periods);
+      }
+    }
+
+    // Event listeners
+    document.getElementById('addPeriodBtn').onclick = addPeriod;
+    document.getElementById('clearDataBtn').onclick = clearAllData;
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addPeriod();
+        } else if (e.key === 's') {
+          e.preventDefault();
+          autoSave();
+        }
+      }
+    });
+
+    // Enhanced page lifecycle management
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        // Save when page becomes hidden
+        autoSave();
+      }
+    });
+
+    // Save on page unload with multiple fallbacks
+    window.addEventListener('beforeunload', (e) => {
+      autoSave();
+    });
+
+    window.addEventListener('unload', () => {
+      autoSave();
+    });
+
+    // Save periodically (every 30 seconds as backup)
+    setInterval(autoSave, 30000);
+
+    // Initialize application
+    function initializeApp() {
+      console.log('🚀 Initializing Day Manager...');
+      
+      // Load periods from storage
+      loadAndRenderPeriods();
+      
+      // Update current time
+      updateCurrentTimeHeader();
+      
+      // Start real-time updates
+      setInterval(() => {
+        updateCurrentTimeHeader();
+        updateNowLine();
+      }, 1000);
+      
+      console.log('✅ Day Manager initialized successfully');
+    }
+
+    // Start the application when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+  </script>
+</body>
+</html>
