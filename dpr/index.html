@@ -298,6 +298,7 @@
       pointer-events: none;
       mix-blend-mode: lighten;
       box-shadow: 0 0 8px #ff525299;
+      transition: left 0.1s linear;
     }
     @media (max-width: 700px) {
       .period-bar .date-label { min-width: 74px; }
@@ -359,6 +360,9 @@
     </div>
     <div id="dayList" class="day-list"></div>
   </div>
+  <audio id="periodAlertAudio" preload="auto">
+    <source src="https://github.com/nftfan/delivery/raw/refs/heads/main/mixkit-software-interface-start-2574.wav" type="audio/wav">
+  </audio>
   <script>
     // Storage configuration
     const STORAGE_KEY = 'day-manager-periods-v3';
@@ -397,30 +401,21 @@
 
     // Enhanced Local Storage functions with error handling and backup
     function savePeriodsToStorage(periodsData) {
-      // Check if localStorage is available
       if (typeof(Storage) === "undefined" || !window.localStorage) {
         console.warn('⚠️ localStorage not available - using session storage');
         updateStorageStatus('error', 'localStorage not supported in this environment');
         return false;
       }
-
       try {
         const dataToSave = {
           periods: periodsData,
           timestamp: new Date().toISOString(),
           version: '3.0'
         };
-        
-        // Save main data
         const jsonData = JSON.stringify(dataToSave);
         localStorage.setItem(STORAGE_KEY, jsonData);
-        
-        // Create backup
         localStorage.setItem(BACKUP_KEY, jsonData);
-        
-        // Update status indicator
         updateStorageStatus('success', `${periodsData.length} periods saved`);
-        
         console.log('✅ Data saved successfully:', periodsData.length, 'periods');
         return true;
       } catch (error) {
@@ -435,38 +430,27 @@
     }
 
     function loadPeriodsFromStorage() {
-      // Check if localStorage is available
       if (typeof(Storage) === "undefined" || !window.localStorage) {
         console.warn('⚠️ localStorage not available');
         updateStorageStatus('error', 'localStorage not supported in this environment');
         return [];
       }
-
       try {
-        // Try to load main data
         let rawData = localStorage.getItem(STORAGE_KEY);
-        
-        // If main data fails, try backup
         if (!rawData) {
           rawData = localStorage.getItem(BACKUP_KEY);
           if (rawData) {
             console.log('📦 Loaded from backup storage');
           }
         }
-        
         if (rawData) {
           const parsedData = JSON.parse(rawData);
-          
-          // Handle different data formats for backward compatibility
           let loadedPeriods = [];
           if (Array.isArray(parsedData)) {
-            // Old format - direct array
             loadedPeriods = parsedData;
           } else if (parsedData.periods && Array.isArray(parsedData.periods)) {
-            // New format - object with metadata
             loadedPeriods = parsedData.periods;
           }
-          
           console.log('✅ Data loaded successfully:', loadedPeriods.length, 'periods');
           updateStorageStatus('success', `${loadedPeriods.length} periods loaded`);
           return loadedPeriods;
@@ -475,7 +459,6 @@
         console.error('❌ Failed to load data:', error);
         updateStorageStatus('error', 'Failed to load data');
       }
-      
       console.log('ℹ️ No existing data found, starting fresh');
       updateStorageStatus('success', 'No existing data - starting fresh');
       return [];
@@ -484,9 +467,7 @@
     function updateStorageStatus(type, message) {
       const statusEl = document.getElementById('storageStatus');
       const icon = statusEl.querySelector('.material-icons');
-      
       statusEl.className = `storage-status ${type === 'error' ? 'error' : ''}`;
-      
       if (type === 'success') {
         icon.textContent = 'check_circle';
         statusEl.lastChild.textContent = message;
@@ -598,63 +579,57 @@
       const months = groupByMonthWeek(dayLines);
       let globalDayNum = 1;
       let todayDateStr = todayStr();
-      
       for (const m of months) {
-        // Month title
         const monthDiv = document.createElement('div');
         monthDiv.className = "month-group";
         const monthTitle = document.createElement('div');
         monthTitle.className = "month-title";
         monthTitle.textContent = m.monthName;
         monthDiv.appendChild(monthTitle);
-        
+
         for (const w of m.weeks) {
-          // Week title
           const weekDiv = document.createElement('div');
           weekDiv.className = "week-group";
           const weekTitle = document.createElement('div');
           weekTitle.className = "week-title";
           weekTitle.textContent = `Week ${w.week}`;
           weekDiv.appendChild(weekTitle);
-          
+
           for (const line of w.days) {
             const ymdStr = ymd(line.date);
             const linePeriods = periods.filter(p => p.date === ymdStr);
             const bar = document.createElement('div');
             bar.className = 'period-bar';
-            
+
             const dayNumLabel = document.createElement('span');
             dayNumLabel.className = 'day-num-label';
             dayNumLabel.textContent = `Day ${globalDayNum++}`;
             bar.appendChild(dayNumLabel);
-            
+
             const dateLabel = document.createElement('span');
             dateLabel.className = 'date-label';
             dateLabel.textContent = line.label;
             bar.appendChild(dateLabel);
-            
-            // Timeline
+
             const timeline = document.createElement('div');
             timeline.className = 'timeline';
             timeline.appendChild(createHourSections());
-            
-            // Period segments with delete functionality
+
             linePeriods.forEach((p, idx) => {
               let fromMin = clamp(minutesOfDay(p.from), 0, 1440);
               let toMin = clamp(minutesOfDay(p.to), 0, 1440);
               if(toMin < fromMin) toMin = 1440;
-              
+
               const leftPct = (fromMin / 1440) * 100;
               const widthPct = ((toMin - fromMin) / 1440) * 100;
-              
+
               const seg = document.createElement('div');
               seg.className = 'period-segment';
               seg.style.left = `${leftPct}%`;
               seg.style.width = `${widthPct}%`;
               seg.style.background = hexToRgbaStrong(p.color, 0.98);
               seg.title = p.title ? `${p.title} (${p.from} - ${p.to})` : `${p.from} - ${p.to}`;
-              
-              // Add delete button
+
               const deleteBtn = document.createElement('button');
               deleteBtn.className = 'delete-period';
               deleteBtn.innerHTML = '×';
@@ -672,18 +647,16 @@
                 }
               };
               seg.appendChild(deleteBtn);
-              
-              // Center the period title
+
               if (p.title) {
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'period-title-span';
                 titleSpan.textContent = p.title;
                 seg.appendChild(titleSpan);
               }
-              
               timeline.appendChild(seg);
             });
-            
+
             // Dynamic now-line (only on today)
             if (ymdStr === todayDateStr) {
               const nowLine = document.createElement('div');
@@ -691,7 +664,6 @@
               nowLine.id = 'nowLine-' + ymdStr;
               timeline.appendChild(nowLine);
             }
-            
             bar.appendChild(timeline);
             weekDiv.appendChild(bar);
           }
@@ -699,7 +671,7 @@
         }
         dayList.appendChild(monthDiv);
       }
-      updateNowLine();
+      updateNowLine(true);
     }
 
     // Utility: convert hex color to strong rgba with alpha
@@ -717,14 +689,61 @@
       return `rgba(${r},${g},${b},${alpha})`;
     }
 
-    function updateNowLine() {
+    // Audio alert
+    let periodsStartedToday = {};
+    let audioEl;
+    function playPeriodAlert() {
+      if (!audioEl) {
+        audioEl = document.getElementById('periodAlertAudio');
+      }
+      if (!audioEl) return;
+      // Play only if not already playing (avoid overlap)
+      if (audioEl.paused) {
+        audioEl.currentTime = 0;
+        audioEl.play();
+      } else {
+        // If already playing, restart
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        audioEl.play();
+      }
+    }
+
+    // Real-time now-line updater and period start detection
+    function updateNowLine(forceReset=false) {
       const now = new Date();
       const todayId = 'nowLine-' + todayStr();
       const nowLine = document.getElementById(todayId);
+      if (forceReset) {
+        periodsStartedToday = {}; // Reset for today on re-render
+      }
       if (!nowLine) return;
-      const seconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      // More accurate to use seconds including ms for smooth line
+      const seconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
       const left = (seconds / 86400) * 100;
       nowLine.style.left = `${left}%`;
+
+      // --- Audio alert logic ---
+      // Only check periods of today
+      const todayPeriods = periods.filter(p => p.date === todayStr());
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const nowSeconds = now.getSeconds();
+
+      todayPeriods.forEach(p => {
+        // Only fire once per period per page day
+        if (!p.from) return;
+        if (!periodsStartedToday[p.from]) periodsStartedToday[p.from] = false;
+        const periodStartMin = minutesOfDay(p.from);
+        // Alert if now is within first 2 seconds of period start
+        if (!periodsStartedToday[p.from] && nowMinutes === periodStartMin && nowSeconds < 2) {
+          playPeriodAlert();
+          periodsStartedToday[p.from] = true;
+        }
+        // If time has moved past, reset for next day
+        if (nowMinutes < periodStartMin) {
+          periodsStartedToday[p.from] = false;
+        }
+      });
     }
 
     function updateCurrentTimeHeader() {
@@ -744,36 +763,27 @@
       const to = document.getElementById('periodTo').value;
       const color = document.getElementById('periodColor').value;
       const title = document.getElementById('periodTitle').value.trim();
-      
       if (!date || !from || !to || !color) {
         alert('Please fill in all required fields (Date, From, To, Color)');
         return;
       }
-      
-      // Validate time range
       if (from >= to) {
         if (!confirm('End time is before or equal to start time. This will create a period that spans to the end of the day. Continue?')) {
           return;
         }
       }
-      
       updateStorageStatus('saving', 'Saving period...');
-      
       const newPeriod = {
         date,
         from,
         to,
         color,
         title: title || '',
-        id: Date.now() + Math.random() // Add unique ID for better tracking
+        id: Date.now() + Math.random()
       };
-      
       periods.push(newPeriod);
-      
       if (savePeriodsToStorage(periods)) {
-        // Clear form after successful save
         document.getElementById('periodTitle').value = '';
-        // Keep other fields for easy re-entry
         renderDayLines();
       }
     }
@@ -789,7 +799,6 @@
     document.getElementById('addPeriodBtn').onclick = addPeriod;
     document.getElementById('clearDataBtn').onclick = clearAllData;
 
-    // Add keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'Enter') {
@@ -802,15 +811,12 @@
       }
     });
 
-    // Enhanced page lifecycle management
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
-        // Save when page becomes hidden
         autoSave();
       }
     });
 
-    // Save on page unload with multiple fallbacks
     window.addEventListener('beforeunload', (e) => {
       autoSave();
     });
@@ -819,29 +825,27 @@
       autoSave();
     });
 
-    // Save periodically (every 30 seconds as backup)
     setInterval(autoSave, 30000);
+
+    // --- 60 fps update loop for now-line and audio alert ---
+    function startNowLineAnimation() {
+      function frame() {
+        updateNowLine();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
 
     // Initialize application
     function initializeApp() {
       console.log('🚀 Initializing Day Manager...');
-      
-      // Load periods from storage
       loadAndRenderPeriods();
-      
-      // Update current time
       updateCurrentTimeHeader();
-      
-      // Start real-time updates
-      setInterval(() => {
-        updateCurrentTimeHeader();
-        updateNowLine();
-      }, 1000);
-      
+      setInterval(updateCurrentTimeHeader, 1000);
+      startNowLineAnimation();
       console.log('✅ Day Manager initialized successfully');
     }
 
-    // Start the application when DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeApp);
     } else {
