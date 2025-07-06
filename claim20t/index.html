@@ -61,6 +61,24 @@
       justify-content: center;
       box-shadow: 0 2px 16px #0004;
       overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.3s;
+      /* For z-index stacking context in popup */
+      z-index: 11;
+      /* Animation for hue border */
+      border-image: linear-gradient(90deg, #ff00cc, #3333ff, #00e676, #ffeb3b, #ff00cc) 1;
+      animation: hue-rotate-border 3.5s linear infinite;
+    }
+    @keyframes hue-rotate-border {
+      0% {
+        border-color: #7C3AED;
+        filter: hue-rotate(0deg);
+      }
+      100% {
+        border-color: #7C3AED;
+        filter: hue-rotate(360deg);
+      }
     }
     .logo-circle img {
       width: 58px;
@@ -187,6 +205,90 @@
     }
     .status.success { color: var(--success);}
     .status.error { color: var(--error);}
+    /* Popup styles */
+    .modal-backdrop {
+      position: fixed;
+      z-index: 9999;
+      inset: 0;
+      background: rgba(24,30,39,0.66);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-popup {
+      background: var(--surface);
+      border-radius: 1.2rem;
+      box-shadow: 0 8px 32px 0 rgba(31,38,135,0.23);
+      padding: 2.1rem 1.2rem 1.5rem 1.2rem;
+      min-width: 270px;
+      max-width: 92vw;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      animation: popup-in 0.25s cubic-bezier(.21,1.13,.63,1.11);
+    }
+    @keyframes popup-in {
+      from { opacity: 0; transform: scale(0.88);}
+      to { opacity:1; transform: scale(1);}
+    }
+    .modal-popup .modal-title {
+      font-size: 1.24rem;
+      font-weight: 700;
+      margin-bottom: 0.7rem;
+      color: var(--primary);
+    }
+    .modal-popup .modal-desc {
+      font-size: 1.05rem;
+      margin-bottom: 1.1rem;
+      color: #b8e1ff;
+      text-align: center;
+      line-height: 1.6;
+      padding: 0 0.3rem;
+    }
+    .modal-popup .modal-btn {
+      font-size: 1.07rem;
+      font-weight: 700;
+      padding: 0.78rem 1.7rem;
+      border-radius: 0.7rem;
+      border: none;
+      background: var(--button);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0003;
+      transition: background 0.2s;
+      margin-top: 0.4rem;
+      margin-bottom: 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+      justify-content: center;
+    }
+    .modal-popup .modal-btn:active,
+    .modal-popup .modal-btn:hover {
+      background: var(--button-hover);
+    }
+    .modal-popup .close-modal {
+      position: absolute;
+      right: 1.1rem;
+      top: 1.05rem;
+      background: none;
+      border: none;
+      color: #b8e1ff;
+      font-size: 1.6rem;
+      cursor: pointer;
+      transition: color 0.15s;
+      z-index: 1;
+    }
+    .modal-popup .close-modal:hover {
+      color: var(--error);
+    }
     @media (max-width: 550px) {
       .banner { height: 70px; border-radius: 0 0 0.9rem 0.9rem;}
       .top-info { margin-top: -32px; margin-left: 3vw; }
@@ -196,6 +298,7 @@
       .main-card { width: 95vw; padding: 0.7rem 0.1rem 0.8rem 0.1rem;}
       .desc { font-size: 0.98rem; }
       .balance-row { padding: 0.5rem 0.3rem; font-size: 1.01rem;}
+      .modal-popup { padding: 1.3rem 0.4rem 1.1rem 0.4rem;}
     }
     @media (max-width: 400px) {
       .main-card { width: 99vw; }
@@ -206,7 +309,7 @@
 <body>
   <div class="banner"></div>
   <div class="top-info">
-    <div class="logo-circle">
+    <div class="logo-circle" id="logoCircle" title="Buy more NFTFANS">
       <img src="https://pbs.twimg.com/media/GvMZI-kXAAASZdZ?format=jpg&name=small" alt="NFT FANS TOKEN Logo" />
     </div>
     <div class="token-title">
@@ -236,6 +339,28 @@
     </button>
     <div id="status" class="status"></div>
   </div>
+
+  <!-- Popup Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-popup" id="modalPopup" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="close-modal" id="closeModalBtn" aria-label="Close">&times;</button>
+      <div class="modal-title" id="modalTitle">Buy More NFTFANS</div>
+      <div class="modal-desc">
+        Want more NFTFANS tokens? Top up easily.<br>
+        <strong>Instructions:</strong>
+        <ol style="text-align:left; color:#b8e1ff; margin:0.7em 0 0.6em 1.2em; font-size:0.98em;">
+          <li>Go to our top-up page.</li>
+          <li>Connect your wallet and follow the instructions.</li>
+          <li>Receive more NFTFANS directly in your wallet!</li>
+        </ol>
+      </div>
+      <a href="https://nftfanstoken.com/topup" target="_blank" rel="noopener" class="modal-btn" id="buyBtn">
+        <span class="material-icons">shopping_cart</span>
+        BUY
+      </a>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     // NFTFAN Token Info
@@ -407,6 +532,33 @@
       window.ethereum.on('accountsChanged', async () => { window.location.reload(); });
       window.ethereum.on('chainChanged', async () => { window.location.reload(); });
     }
+
+    // Modal logic
+    const logoCircle = document.getElementById('logoCircle');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    // open popup on logo click
+    logoCircle.addEventListener('click', () => {
+      modalBackdrop.classList.add('active');
+      // Trap focus:
+      closeModalBtn.focus();
+    });
+    // close popup on button
+    closeModalBtn.addEventListener('click', () => {
+      modalBackdrop.classList.remove('active');
+    });
+    // close popup on outside click
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) {
+        modalBackdrop.classList.remove('active');
+      }
+    });
+    // close popup on Escape key
+    document.addEventListener('keydown', function (e) {
+      if (modalBackdrop.classList.contains('active') && e.key === "Escape") {
+        modalBackdrop.classList.remove('active');
+      }
+    });
   </script>
 </body>
 </html>
