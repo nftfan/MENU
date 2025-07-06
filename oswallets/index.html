@@ -1,0 +1,727 @@
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet Snippets Mobile Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a0a;
+      color: #eee;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .header {
+      position: sticky;
+      top: 0;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      padding: 16px 20px;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      color: #77f8e0;
+      font-weight: 700;
+      text-align: center;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 12px;
+    }
+    
+    .stat-item {
+      background: #2d5e5e;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid #36e8d6;
+    }
+    
+    .container {
+      padding: 20px;
+      max-width: 100%;
+    }
+    
+    .snippet {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .snippet-header {
+      background: #222;
+      padding: 16px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .wallet-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .wallet-count {
+      background: #4a9;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-pending {
+      background: #ff9800;
+      color: #fff;
+    }
+    
+    .status-completed {
+      background: #4caf50;
+      color: #fff;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      touch-action: manipulation;
+    }
+    
+    .btn-copy {
+      background: #2196f3;
+      color: #fff;
+    }
+    
+    .btn-copy:hover, .btn-copy:active {
+      background: #1976d2;
+      transform: translateY(-1px);
+    }
+    
+    .btn-delete {
+      background: #f44336;
+      color: #fff;
+    }
+    
+    .btn-delete:hover, .btn-delete:active {
+      background: #d32f2f;
+      transform: translateY(-1px);
+    }
+    
+    .btn-status {
+      background: #9c27b0;
+      color: #fff;
+    }
+    
+    .btn-status:hover, .btn-status:active {
+      background: #7b1fa2;
+      transform: translateY(-1px);
+    }
+    
+    .wallets-preview {
+      padding: 16px;
+      background: #111;
+      border-bottom: 1px solid #333;
+    }
+    
+    .wallets-preview h4 {
+      margin: 0 0 12px 0;
+      color: #77f8e0;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    
+    .wallet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .wallet-item {
+      background: #4a9;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      position: relative;
+    }
+    
+    .wallet-item.truncated {
+      background: #666;
+    }
+    
+    .show-more {
+      color: #77f8e0;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      text-decoration: underline;
+    }
+    
+    .code-content {
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      background: #0d0d0d;
+      color: #d9d9d9;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+      border-bottom: 1px solid #333;
+    }
+    
+    .wallet-highlight {
+      background: #4a9;
+      color: #fff;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    
+    .snippet-footer {
+      padding: 12px 16px;
+      color: #888;
+      font-size: 0.8rem;
+      background: #1a1a1a;
+    }
+    
+    .no-wallets {
+      text-align: center;
+      color: #888;
+      font-size: 1.1rem;
+      margin-top: 50px;
+      padding: 40px 20px;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90%;
+      width: 400px;
+      border: 1px solid #333;
+    }
+    
+    .modal-header {
+      margin-bottom: 20px;
+    }
+    
+    .modal-title {
+      margin: 0;
+      color: #77f8e0;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .modal-body {
+      margin-bottom: 24px;
+    }
+    
+    .status-select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #222;
+      color: #eee;
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+    
+    .modal-text {
+      color: #ccc;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .btn-modal {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .btn-cancel {
+      background: #666;
+      color: #fff;
+    }
+    
+    .btn-confirm {
+      background: #4caf50;
+      color: #fff;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #77f8e0;
+      font-size: 1.1rem;
+    }
+    
+    .refresh-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #77f8e0;
+      color: #000;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(119, 248, 224, 0.3);
+      z-index: 50;
+    }
+    
+    @media (max-width: 480px) {
+      .header {
+        padding: 12px 16px;
+      }
+      
+      .container {
+        padding: 16px;
+      }
+      
+      .stats {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .button-group {
+        width: 100%;
+      }
+      
+      .btn {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .modal-content {
+        max-width: 95%;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💰 Wallet Tracker</h1>
+    <div class="stats">
+      <div class="stat-item">
+        <span id="totalSnippets">0</span> Snippets
+      </div>
+      <div class="stat-item">
+        <span id="totalWallets">0</span> Wallets
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Loading wallet data...</div>
+    <div id="htmlList"></div>
+  </div>
+
+  <button class="refresh-btn" onclick="location.reload()">↻</button>
+
+  <!-- Status Modal -->
+  <div id="statusModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Update Status</h3>
+      </div>
+      <div class="modal-body">
+        <div class="modal-text">Change the status of this wallet snippet:</div>
+        <select id="statusSelect" class="status-select">
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+        <div class="modal-text">This action will update the status for all wallets in this snippet.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel" onclick="closeStatusModal()">Cancel</button>
+        <button class="btn-modal btn-confirm" onclick="confirmStatusChange()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
+      authDomain: "trackingclients.firebaseapp.com",
+      projectId: "trackingclients",
+      storageBucket: "trackingclients.appspot.com",
+      messagingSenderId: "27490943622",
+      appId: "1:27490943622:web:d6c87547aa5df440508707",
+      databaseURL: "https://trackingclients-default-rtdb.firebaseio.com/"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const dataRef = ref(database, 'html_snippets');
+
+    const htmlList = document.getElementById('htmlList');
+    const loading = document.getElementById('loading');
+    const totalSnippetsSpan = document.getElementById('totalSnippets');
+    const totalWalletsSpan = document.getElementById('totalWallets');
+    const statusModal = document.getElementById('statusModal');
+    const statusSelect = document.getElementById('statusSelect');
+
+    let currentSnippetId = null;
+    let allSnippets = [];
+
+    // Modal functions
+    window.openStatusModal = function(snippetId, currentStatus) {
+      currentSnippetId = snippetId;
+      statusSelect.value = currentStatus || 'pending';
+      statusModal.classList.add('show');
+    };
+
+    window.closeStatusModal = function() {
+      statusModal.classList.remove('show');
+      currentSnippetId = null;
+    };
+
+    window.confirmStatusChange = async function() {
+      if (!currentSnippetId) return;
+      
+      const newStatus = statusSelect.value;
+      try {
+        const snippetRef = ref(database, `html_snippets/${currentSnippetId}`);
+        await update(snippetRef, { status: newStatus });
+        closeStatusModal();
+      } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update status');
+      }
+    };
+
+    // Close modal when clicking outside
+    statusModal.addEventListener('click', function(e) {
+      if (e.target === statusModal) {
+        closeStatusModal();
+      }
+    });
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#4caf50';
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.style.background = '#2196f3';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for mobile browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        const original = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#4caf50';
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.style.background = '#2196f3';
+        }, 2000);
+      });
+    }
+
+    async function deleteSnippet(snippetId, btn) {
+      if (confirm('Are you sure you want to delete this snippet?')) {
+        try {
+          const snippetRef = ref(database, `html_snippets/${snippetId}`);
+          await remove(snippetRef);
+          btn.textContent = '✓ Deleted!';
+          btn.style.background = '#4caf50';
+          setTimeout(() => {
+            btn.closest('.snippet').remove();
+          }, 500);
+        } catch (error) {
+          console.error('Error deleting snippet:', error);
+          alert('Failed to delete snippet');
+        }
+      }
+    }
+
+    function findWallets(text) {
+      const walletPatterns = [
+        /0x[a-fA-F0-9]{40}/g,
+        /[13][a-km-zA-HJ-NP-Z1-9]{25,34}/g,
+        /bc1[a-z0-9]{39,59}/g,
+        /[1-9A-HJ-NP-Za-km-z]{32,44}/g,
+        /addr1[a-z0-9]{98}/g
+      ];
+
+      const foundWallets = new Set();
+      
+      for (const pattern of walletPatterns) {
+        const matches = text.match(pattern);
+        if (matches) {
+          matches.forEach(match => {
+            if (isValidWallet(match)) {
+              foundWallets.add(match);
+            }
+          });
+        }
+      }
+
+      return Array.from(foundWallets);
+    }
+
+    function isValidWallet(address) {
+      if (address.startsWith('0x') && address.length === 42) {
+        return /^0x[a-fA-F0-9]{40}$/.test(address);
+      }
+      if (address.startsWith('bc1')) {
+        return address.length >= 42 && address.length <= 62;
+      }
+      if (address.startsWith('addr1')) {
+        return address.length === 103;
+      }
+      if (/^[13]/.test(address)) {
+        return address.length >= 26 && address.length <= 35;
+      }
+      if (address.length >= 32 && address.length <= 44) {
+        return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
+      }
+      return false;
+    }
+
+    function highlightWallets(text, wallets) {
+      let highlightedText = escapeHtml(text);
+      wallets.forEach(wallet => {
+        const escapedWallet = escapeHtml(wallet);
+        highlightedText = highlightedText.replace(
+          new RegExp(escapedWallet, 'g'),
+          `<span class="wallet-highlight">${escapedWallet}</span>`
+        );
+      });
+      return highlightedText;
+    }
+
+    function createWalletPreview(wallets) {
+      const preview = document.createElement('div');
+      preview.className = 'wallets-preview';
+      
+      const title = document.createElement('h4');
+      title.textContent = `Found ${wallets.length} wallet${wallets.length !== 1 ? 's' : ''}:`;
+      preview.appendChild(title);
+
+      const walletList = document.createElement('div');
+      walletList.className = 'wallet-list';
+
+      // Show first 3 wallets
+      const walletsToShow = wallets.slice(0, 3);
+      walletsToShow.forEach(wallet => {
+        const walletItem = document.createElement('div');
+        walletItem.className = 'wallet-item';
+        walletItem.textContent = wallet;
+        walletList.appendChild(walletItem);
+      });
+
+      // If there are more wallets, show count
+      if (wallets.length > 3) {
+        const moreItem = document.createElement('div');
+        moreItem.className = 'wallet-item truncated';
+        moreItem.textContent = `+ ${wallets.length - 3} more wallet${wallets.length - 3 !== 1 ? 's' : ''}`;
+        walletList.appendChild(moreItem);
+      }
+
+      preview.appendChild(walletList);
+      return preview;
+    }
+
+    function renderSnippets(snippets) {
+      loading.style.display = 'none';
+      htmlList.innerHTML = '';
+      
+      if (snippets.length === 0) {
+        htmlList.innerHTML = '<div class="no-wallets">No snippets with wallets found.</div>';
+        return;
+      }
+
+      let totalWallets = 0;
+      
+      snippets.forEach(snip => {
+        const wallets = findWallets(snip.html_content || '');
+        totalWallets += wallets.length;
+
+        const snippet = document.createElement('div');
+        snippet.className = 'snippet';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'snippet-header';
+
+        const walletInfo = document.createElement('div');
+        walletInfo.className = 'wallet-info';
+
+        const walletCount = document.createElement('div');
+        walletCount.className = 'wallet-count';
+        walletCount.textContent = `${wallets.length} wallet${wallets.length !== 1 ? 's' : ''}`;
+
+        const statusBadge = document.createElement('div');
+        statusBadge.className = `status-badge status-${snip.status || 'pending'}`;
+        statusBadge.textContent = snip.status || 'pending';
+
+        walletInfo.appendChild(walletCount);
+        walletInfo.appendChild(statusBadge);
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-copy';
+        copyBtn.textContent = 'Copy';
+        copyBtn.onclick = () => copyToClipboard(snip.html_content, copyBtn);
+
+        const statusBtn = document.createElement('button');
+        statusBtn.className = 'btn btn-status';
+        statusBtn.textContent = 'Status';
+        statusBtn.onclick = () => openStatusModal(snip.id, snip.status);
+
+        buttonGroup.appendChild(copyBtn);
+        buttonGroup.appendChild(statusBtn);
+
+        header.appendChild(walletInfo);
+        header.appendChild(buttonGroup);
+
+        // Code content
+        const codeDiv = document.createElement('div');
+        codeDiv.className = 'code-content';
+        codeDiv.innerHTML = highlightWallets(snip.html_content || '', wallets);
+
+        // Footer
+        const footer = document.createElement('div');
+        footer.className = 'snippet-footer';
+        footer.textContent = snip.timestamp
+          ? new Date(snip.timestamp * 1000 > 1e12 ? snip.timestamp : snip.timestamp * 1000).toLocaleString()
+          : '';
+
+        snippet.appendChild(header);
+        snippet.appendChild(codeDiv);
+        snippet.appendChild(footer);
+
+        htmlList.appendChild(snippet);
+      });
+
+      // Update stats
+      totalSnippetsSpan.textContent = snippets.length;
+      totalWalletsSpan.textContent = totalWallets;
+    }
+
+    function filterSnippetsWithWallets(snippets) {
+      return snippets.filter(snip => {
+        const wallets = findWallets(snip.html_content || '');
+        return wallets.length > 0;
+      });
+    }
+
+    onValue(dataRef, (snapshot) => {
+      allSnippets = [];
+      snapshot.forEach(childSnapshot => {
+        allSnippets.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+      
+      const snippetsWithWallets = filterSnippetsWithWallets(allSnippets);
+      snippetsWithWallets.sort((a, b) => b.timestamp - a.timestamp);
+      
+      renderSnippets(snippetsWithWallets);
+    });
+  </script>
+</body>
+</html>
