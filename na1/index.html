@@ -16,7 +16,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <style>
-        /* ... all previous CSS unchanged ... */
+        /* All your existing CSS remains unchanged */
+        /* ... (keep all the CSS as is) ... */
+ /* ... all previous CSS unchanged ... */
         /* Keep all your existing CSS here, unchanged */
         /* ... */
 		
@@ -1151,6 +1153,77 @@
                 <span id="totalMembersCount">0</span> Registered Members
             </div>
         </div>
+
+        <!-- Campaign Time Section -->
+        <div id="campaign-timer" style="text-align:center; margin-bottom:13px; font-family:'Orbitron',monospace;">
+            <span style="color:#ffeb3b;font-weight:900;font-size:1.12rem;">
+                This campaign ends on <span id="end-date">7 July 2025</span>
+            </span>
+            <br>
+            <span style="color: #00e676; font-size:1.04rem;">
+                <span id="days-left"></span> days left
+            </span>
+        </div>
+
+        <div class="total-earned-bar">
+            <div class="total-earned-content">
+                <span class="material-icons total-earned-icon">paid</span>
+                <span class="total-earned-label">Tokens Rewarded</span>
+                <span class="total-earned-amount" id="totalEarnedTokens">0 $NFTFAN</span>
+            </div>
+        </div>
+
+        <!-- Modified Tab Bar (Removed X Posts tab) -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="membersTab" onclick="switchTab('members')">
+                <span class="material-icons">people</span> Members
+            </button>
+            <button class="tab-btn" id="tasksTab" onclick="switchTab('tasks')">
+                <span class="material-icons">task_alt</span>
+                Tasks
+                <span class="tab-count-badge" id="taskCountBadge">3</span>
+            </button>
+        </div>
+
+        <!-- Members Tab -->
+        <div id="membersSection">
+            <!-- Added X Post Submit Form here -->
+            <form class="submit-section" onsubmit="return handleXPostSubmit(event)" style="margin-bottom: 15px;">
+                <input type="text" class="input-wallet" id="xPostUrlInput" inputmode="url" autocomplete="off" 
+                       placeholder="X Post URL e.g. https://x.com/..." required>
+                <button type="submit" class="submit-btn">
+                    <span class="material-icons">send</span> Submit X Post
+                </button>
+            </form>
+            <div class="search-bar">
+                <span class="material-icons">search</span>
+                <input class="search-input" id="searchInput" type="text" inputmode="text" 
+                       autocomplete="off" placeholder="Search members, X or wallet" oninput="filterTable()">
+            </div>
+            <div class="card">
+                <div class="table-container">
+                    <table id="membersTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Photo</th>
+                                <th>Active NFTFans</th>
+                                <th>Posts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div id="tasksSection" style="display:none;">
+            <!-- Tasks are rendered by JS -->
+        </div>
+
         <!-- Popup Modal for Register -->
         <div id="popupBackdrop" class="popup-backdrop" style="display:none;">
             <div class="popup">
@@ -1177,109 +1250,21 @@
                 </form>
             </div>
         </div>
-        <!-- Campaign Time Section -->
-        <div id="campaign-timer" style="text-align:center; margin-bottom:13px; font-family:'Orbitron',monospace;">
-            <span style="color:#ffeb3b;font-weight:900;font-size:1.12rem;">
-                This campaign ends on <span id="end-date">7 July 2025</span>
-            </span>
-            <br>
-            <span style="color: #00e676; font-size:1.04rem;">
-                <span id="days-left"></span> days left
-            </span>
-        </div>
-        <div class="total-earned-bar">
-          <div class="total-earned-content">
-            <span class="material-icons total-earned-icon">paid</span>
-            <span class="total-earned-label">Tokens Rewarded</span>
-            <span class="total-earned-amount" id="totalEarnedTokens">0 $NFTFAN</span>
-          </div>
-        </div>
-        <div class="tab-bar">
-            <button class="tab-btn active" id="membersTab" onclick="switchTab('members')">
-                <span class="material-icons">people</span> Members
-            </button>
-            <button class="tab-btn" id="tasksTab" onclick="switchTab('tasks')">
-                <span class="material-icons">task_alt</span>
-                Tasks
-                <span class="tab-count-badge" id="taskCountBadge">3</span>
-            </button>
-            <button class="tab-btn" id="xpostsTab" onclick="switchTab('xposts')">
-                <span class="material-icons">link</span>
-                X Posts
-                <span class="tab-xposts-badge" id="xpostsCountBadge">0</span>
-            </button>
-        </div>
-        <!-- Members Tab -->
-        <div id="membersSection">
-            <!-- Removed the submit-section here -->
-            <div class="search-bar">
-                <span class="material-icons">search</span>
-                <input class="search-input" id="searchInput" type="text" inputmode="text" autocomplete="off" placeholder="Search members, X or wallet" oninput="filterTable()">
-            </div>
-            <div class="card">
-                <div class="table-container">
-                    <table id="membersTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Photo</th>
-                                <th>Active NFTFans</th>
-                                <th>Posts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <!-- Tasks Tab -->
-        <div id="tasksSection" style="display:none;">
-            <!-- Tasks are rendered by JS -->
-        </div>
-        <!-- X Posts Tab -->
-        <div id="xpostsSection" style="display:none;">
-            <form class="submit-section" onsubmit="return handleXPostSubmit(event)">
-                <input type="text" class="input-wallet" id="xPostUrlInput" inputmode="url" autocomplete="off" placeholder="X Post URL e.g. https://x.com/..." required>
-                <button type="submit" class="submit-btn">
-                    <span class="material-icons">send</span> Submit X Post
-                </button>
-            </form>
-            <!-- ADDED SEARCH BAR FOR X POSTS -->
-            <div class="search-bar">
-                <span class="material-icons">search</span>
-                <input class="search-input" id="searchXPostInput" type="text" inputmode="text" autocomplete="off" placeholder="Search X posts or usernames" oninput="filterXPostsTable()">
-            </div>
-            <div class="card">
-                <div class="table-container">
-                    <table id="xpostsTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>X Post URL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- X posts loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
+
     <script>
         // Firebase config
         const firebaseConfig = {
-          apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
-          authDomain: "nftfanactive.firebaseapp.com",
-          databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
-          projectId: "nftfanactive",
-          storageBucket: "nftfanactive.appspot.com",
-          messagingSenderId: "311309982791",
-          appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
-          measurementId: "G-3TRDL9749N"
+            apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+            authDomain: "nftfanactive.firebaseapp.com",
+            databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+            projectId: "nftfanactive",
+            storageBucket: "nftfanactive.appspot.com",
+            messagingSenderId: "311309982791",
+            appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+            measurementId: "G-3TRDL9749N"
         };
+
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         firebase.analytics();
@@ -1287,150 +1272,167 @@
 
         // Get basket: members and xposts
         async function fetchBasket() {
-          const snapshot = await db.ref().once('value');
-          const data = snapshot.val() || {};
-          return {
-            members: Array.isArray(data.members) ? data.members : [],
-            xposts: Array.isArray(data.xposts) ? data.xposts : [],
-          };
+            const snapshot = await db.ref().once('value');
+            const data = snapshot.val() || {};
+            return {
+                members: Array.isArray(data.members) ? data.members : [],
+                xposts: Array.isArray(data.xposts) ? data.xposts : [],
+            };
         }
+
         // Save basket
         async function saveBasket(members, xposts) {
-          await db.ref().update({
-            members: members || [],
-            xposts: xposts || [],
-          });
+            await db.ref().update({
+                members: members || [],
+                xposts: xposts || [],
+            });
         }
+
         async function getXProfile(username) {
-          const uname = username.replace('@','').trim();
-          const xpic = 'https://unavatar.io/x/' + uname;
-          try {
-            const resp = await fetch('https://unavatar.io/x/' + uname + '?json');
-            const data = await resp.json();
-            let displayname = data.name;
-            if (!displayname || displayname.toLowerCase().includes(uname.toLowerCase())) {
-              displayname = uname;
+            const uname = username.replace('@','').trim();
+            const xpic = 'https://unavatar.io/x/' + uname;
+            try {
+                const resp = await fetch('https://unavatar.io/x/' + uname + '?json');
+                const data = await resp.json();
+                let displayname = data.name;
+                if (!displayname || displayname.toLowerCase().includes(uname.toLowerCase())) {
+                    displayname = uname;
+                }
+                return {
+                    displayname: displayname,
+                    xpic: xpic
+                };
+            } catch {
+                return {
+                    displayname: uname,
+                    xpic: xpic
+                };
             }
-            return {
-              displayname: displayname,
-              xpic: xpic
-            };
-          } catch {
-            return {
-              displayname: uname,
-              xpic: xpic
-            };
-          }
         }
+
         function shortenWallet(address) {
-          if (!address) return '';
-          return address.slice(0,6) + '...' + address.slice(-4);
+            if (!address) return '';
+            return address.slice(0,6) + '...' + address.slice(-4);
         }
-        // Render Members Table (with X post count, sorted by count desc)
+
+        // Render Members Table
         async function renderMembersTable() {
-          const {members, xposts} = await fetchBasket();
-          // Count posts per user
-          const postCountMap = {};
-          for (const xp of xposts) {
-            const uname = (xp.x||'').toLowerCase();
-            if (!postCountMap[uname]) postCountMap[uname] = 0;
-            postCountMap[uname]++;
-          }
-          // Map members to include post count
-          const membersWithCount = members.map(m => ({
-            ...m,
-            postCount: postCountMap[(m.x||'').toLowerCase()] || 0
-          }));
-          // Sort by post count desc, then original order for stable ordering
-          membersWithCount.sort((a, b) => b.postCount - a.postCount);
-
-          const table = document.querySelector('#membersTable tbody');
-          table.innerHTML = '';
-          for (const [i, member] of membersWithCount.entries()) {
-            const walletId = `walletCopy${i}`;
-            // Calculate reward: postCount * 1T $NFTFAN
-            let rewardStr = '';
-            if (member.postCount > 0) {
-              rewardStr = `
-                <div class="reward-row">
-                  <span class="material-icons reward-icon">paid</span>
-                  <span class="reward-amount">${member.postCount}T $NFTFAN</span>
-                  <span class="reward-label">Earned</span>
-                </div>`;
-            }
-            table.innerHTML += `
-              <tr>
-                <td class="serial-cell">${i + 1}</td>
-                <td>
-                  <img src="${member.xpic}" class="xdpi" alt="X Profile" onerror="this.onerror=null;this.src='https://unavatar.io/x/${member.x.replace('@','')}'">
-                </td>
-                <td>
-                  <ul class="user-info-list">
-                    <li><span class="material-icons">badge</span> <span class="list-name">${member.displayname}</span></li>
-                    <li><span class="material-icons">alternate_email</span> <span class="list-username">${member.x}</span></li>
-                    <li>
-                      <span class="material-icons wallet-icon">account_balance_wallet</span>
-                      <span class="list-wallet" id="${walletId}">${shortenWallet(member.wallet)}</span>
-                      <button class="copy-btn" style="margin-left:3px;" onclick="copyWallet('${member.wallet}', '${walletId}', this)">
-                        <span class="material-icons">content_copy</span>
-                      </button>
-                    </li>
-                  </ul>
-                  ${rewardStr}
-                </td>
-                <td>
-                  <span class="post-count-badge" title="X Posts">${member.postCount}</span>
-                </td>
-              </tr>
-            `;
-          }
-          // Update total members count
-          document.getElementById('totalMembersCount').textContent = members.length;
-        }
-        function extractXUsernameFromUrl(url) {
-          // e.g. https://x.com/nftfanstoken/status/1937947437403922850
-          const match = url.match(/^https:\/\/x\.com\/([\w\d_]{1,20})\/status\/\d+/);
-          if (match) {
-            return '@' + match[1];
-          }
-          return null;
-        }
-        // Task data (with 3rd card for tweet)
-        const tasks = [
+            const {members, xposts} = await fetchBasket();
             
-		     {
-  "title": "Win $20 in the NFTFANS Lottery!",
-  "icon": "gift",
-  "desc": "Enter with just $0.15 and get a chance to win $20 in $POL!",
-  "tweet": "💸 NFTFANS LOTTERY 💸\n\nEnter with only $0.15 and you could win $20 in $POL!\n\n🎁 1 winner every 150 entries\n🔁 Unlimited entries allowed\n\n🎯 Join now: https://www.nftfanstoken.com/lotto/\n\n#NFTFAN #CryptoLottery #Polygon #DeFi #WinBig",
-  "reward": "Enter for $0.15 – Win $20 in $POL!",
-  "isTweet": true
-},
+            // Count posts per user
+            const postCountMap = {};
+            for (const xp of xposts) {
+                const uname = (xp.x||'').toLowerCase();
+                if (!postCountMap[uname]) postCountMap[uname] = 0;
+                postCountMap[uname]++;
+            }
 
-		{
-              "title": "Post and share this tweet in X communities and get 100 Views",
-              "icon": "send",
-              "desc": "Guide your followers to buy $NFTFAN easily. Share this step-by-step tweet!",
-              "tweet": "🚀 HOW TO BUY $NFTFAN\n\n1️⃣ Open your wallet\n2️⃣ Select Polygon network\n3️⃣ Add $NFTFAN CA:\n0x2017Fcaea540d2925430586DC92818035Bfc2F50\n4️⃣ Send $POL [0.01–100] to:\n0xaf2d132C8773bca3821C24EcF64e844E202A12e8\n5️⃣ Check wallet: https://nftfanstoken.com/topup\n\n#NFTFAN #Crypto #DeFi #Polygon #Metamask #TrustWallet",
-              "reward": "Share and earn 1T $NFTFAN TOKENS",
-              "isTweet": true
+            // Map members to include post count
+            const membersWithCount = members.map(m => ({
+                ...m,
+                postCount: postCountMap[(m.x||'').toLowerCase()] || 0
+            }));
+
+            // Sort by post count desc
+            membersWithCount.sort((a, b) => b.postCount - a.postCount);
+
+            const table = document.querySelector('#membersTable tbody');
+            table.innerHTML = '';
+
+            for (const [i, member] of membersWithCount.entries()) {
+                const walletId = `walletCopy${i}`;
+                
+                // Calculate reward string
+                let rewardStr = '';
+                if (member.postCount > 0) {
+                    rewardStr = `
+                        <div class="reward-row">
+                            <span class="material-icons reward-icon">paid</span>
+                            <span class="reward-amount">${member.postCount}T $NFTFAN</span>
+                            <span class="reward-label">Earned</span>
+                        </div>`;
+                }
+
+                table.innerHTML += `
+                    <tr>
+                        <td class="serial-cell">${i + 1}</td>
+                        <td>
+                            <img src="${member.xpic}" class="xdpi" alt="X Profile" onerror="this.onerror=null;this.src='https://unavatar.io/x/${member.x.replace('@','')}'">
+                        </td>
+                        <td>
+                            <ul class="user-info-list">
+                                <li><span class="material-icons">badge</span> <span class="list-name">${member.displayname}</span></li>
+                                <li><span class="material-icons">alternate_email</span> <span class="list-username">${member.x}</span></li>
+                                <li>
+                                    <span class="material-icons wallet-icon">account_balance_wallet</span>
+                                    <span class="list-wallet" id="${walletId}">${shortenWallet(member.wallet)}</span>
+                                    <button class="copy-btn" style="margin-left:3px;" onclick="copyWallet('${member.wallet}', '${walletId}', this)">
+                                        <span class="material-icons">content_copy</span>
+                                    </button>
+                                </li>
+                            </ul>
+                            ${rewardStr}
+                        </td>
+                        <td>
+                            <span class="post-count-badge" title="X Posts">${member.postCount}</span>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            // Update total members count
+            document.getElementById('totalMembersCount').textContent = members.length;
+            
+            // Update total earned tokens
+            await updateTotalEarnedBar();
+        }
+
+    function extractXUsernameFromUrl(url) {
+    // Updated regex to properly handle X post URLs
+    const match = url.match(/^https:\/\/x\.com\/([a-zA-Z0-9_]{1,20})\/status\/\d+/);
+    if (match) {
+        return '@' + match[1];
+    }
+    return null;
+}
+
+        // Task data
+        const tasks = [
+            {
+                "title": "Win $20 in the NFTFANS Lottery!",
+                "icon": "gift",
+                "desc": "Enter with just $0.15 and get a chance to win $20 in $POL!",
+                "tweet": "💸 NFTFANS LOTTERY 💸\n\nEnter with only $0.15 and you could win $20 in $POL!\n\n🎁 1 winner every 150 entries\n🔁 Unlimited entries allowed\n\n🎯 Join now: https://www.nftfanstoken.com/lotto/\n\n#NFTFAN #CryptoLottery #Polygon #DeFi #WinBig",
+                "reward": "Enter for $0.15 – Win $20 in $POL!",
+                "isTweet": true
             },
             {
-                title: "Create NFTFans AI Art",
-                icon: "brush",
-                desc: "Design and share a creative NFTFans AI art on X. Add #NFTFANART in your post.",
-                reward: "1T NFTFAN"
+                "title": "Post and share this tweet in X communities and get 100 Views",
+                "icon": "send",
+                "desc": "Guide your followers to buy $NFTFAN easily. Share this step-by-step tweet!",
+                "tweet": "🚀 HOW TO BUY $NFTFAN\n\n1️⃣ Open your wallet\n2️⃣ Select Polygon network\n3️⃣ Add $NFTFAN CA:\n0x2017Fcaea540d2925430586DC92818035Bfc2F50\n4️⃣ Send $POL [0.01–100] to:\n0xaf2d132C8773bca3821C24EcF64e844E202A12e8\n5️⃣ Check wallet: https://nftfanstoken.com/topup\n\n#NFTFAN #Crypto #DeFi #Polygon #Metamask #TrustWallet",
+                "reward": "Share and earn 1T $NFTFAN TOKENS",
+                "isTweet": true
+            },
+            {
+                "title": "Create NFTFans AI Art",
+                "icon": "brush",
+                "desc": "Design and share a creative NFTFans AI art on X. Add #NFTFANART in your post.",
+                "reward": "1T NFTFAN"
             }
         ];
+
         function updateTaskCountBadge() {
             document.getElementById('taskCountBadge').textContent = tasks.length;
         }
+
         function renderTasks() {
             const container = document.getElementById('tasksSection');
             container.innerHTML = '';
             tasks.forEach((task, idx) => {
                 let tweetSection = '';
                 let rewardAndShare = '';
+                
                 if (task.isTweet) {
                     tweetSection = `
                         <div class="task-desc" style="margin-bottom:5px;">
@@ -1449,25 +1451,28 @@
                         </div>
                     `;
                 }
+
                 container.innerHTML += `
-                <div class="task-card">
-                    <div class="task-title">
-                        <span class="material-icons task-icon">${task.icon}</span>
-                        ${task.title}
+                    <div class="task-card">
+                        <div class="task-title">
+                            <span class="material-icons task-icon">${task.icon}</span>
+                            ${task.title}
+                        </div>
+                        <div class="task-desc">
+                            ${task.desc}
+                        </div>
+                        ${tweetSection}
+                        ${rewardAndShare || (task.reward ? `<div class="task-reward"><span class="material-icons">paid</span>${task.reward}</div>` : '')}
                     </div>
-                    <div class="task-desc">
-                        ${task.desc}
-                    </div>
-                    ${tweetSection}
-                    ${rewardAndShare || (task.reward ? `<div class="task-reward"><span class="material-icons">paid</span>${task.reward}</div>` : '')}
-                </div>
                 `;
             });
         }
+
         function shareOnX(text) {
             const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text);
             window.open(url, "_blank");
         }
+
         function createParticles() {
             const particlesContainer = document.querySelector('.particles');
             for (let i = 0; i < 40; i++) {
@@ -1480,6 +1485,7 @@
                 particlesContainer.appendChild(particle);
             }
         }
+
         function filterTable() {
             const value = document.getElementById('searchInput').value.toLowerCase();
             const rows = document.querySelectorAll('#membersTable tbody tr');
@@ -1488,6 +1494,7 @@
                 row.style.display = text.includes(value) ? '' : 'none';
             });
         }
+
         function copyWallet(wallet, walletId, btn) {
             navigator.clipboard.writeText(wallet).then(() => {
                 const originalHTML = btn.innerHTML;
@@ -1501,7 +1508,8 @@
                 alert('Failed to copy address. Please copy manually.');
             });
         }
-        // -------- POPUP LOGIC --------
+
+        // Popup Logic
         function openRegisterPopup() {
             document.getElementById('popupBackdrop').style.display = '';
             document.getElementById('popupXInput').value = '';
@@ -1509,13 +1517,16 @@
             document.getElementById('popupError').style.display = 'none';
             document.getElementById('popupSuccess').style.display = 'none';
         }
+
         function closeRegisterPopup() {
             document.getElementById('popupBackdrop').style.display = 'none';
         }
+
         // Handle popup form submit
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('popupRegisterForm').onsubmit = handlePopupRegisterSubmit;
         });
+
         async function handlePopupRegisterSubmit(e) {
             e.preventDefault();
             const x = document.getElementById('popupXInput').value.trim();
@@ -1526,146 +1537,104 @@
             successDiv.style.display = 'none';
 
             // Validate X username
-            if (!/^@[\w\d_]{1,20}$/i.test(x)) {
+            if (!/^@[\\w\\d_]{1,20}$/i.test(x)) {
                 errorDiv.textContent = 'Enter valid X username in format @username';
                 errorDiv.style.display = '';
                 return false;
             }
+
             // Validate EVM address
             if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
                 errorDiv.textContent = 'Enter valid EVM wallet address.';
                 errorDiv.style.display = '';
                 return false;
             }
+
             let {displayname, xpic} = await getXProfile(x);
             let {members, xposts} = await fetchBasket();
+
             if (members.some(m => m.wallet.toLowerCase() === wallet.toLowerCase() || m.x.toLowerCase() === x.toLowerCase())) {
                 errorDiv.textContent = 'This X username or wallet is already registered.';
                 errorDiv.style.display = '';
                 return false;
             }
+
             members.unshift({
                 x,
                 displayname,
                 xpic,
                 wallet
             });
+
             await saveBasket(members, xposts);
+            
             document.getElementById('popupXInput').value = '';
             document.getElementById('popupWalletInput').value = '';
             successDiv.textContent = 'Successfully registered!';
             successDiv.style.display = '';
+            
             await renderMembersTable();
+            
             setTimeout(() => {
                 closeRegisterPopup();
             }, 1200);
+            
             return false;
         }
-        // -------- END POPUP LOGIC --------
 
-        async function handleXPostSubmit(e) {
-            e.preventDefault();
-            const url = document.getElementById('xPostUrlInput').value.trim();
-            if (!/^https:\/\/x\.com\/[\w\d_]{1,20}\/status\/\d+/.test(url)) {
-                alert('Enter a valid X post URL (https://x.com/username/status/123...)');
-                return false;
-            }
-            // Extract username from url
-            const xUser = extractXUsernameFromUrl(url);
-            if (!xUser) {
-                alert("Couldn't detect username from URL.");
-                return false;
-            }
-            let {members, xposts} = await fetchBasket();
-            // ** Prevent duplicate URLs (case-insensitive) **
-            if (xposts.some(post => (post.url || '').toLowerCase() === url.toLowerCase())) {
-                alert('This X Post URL has already been submitted.');
-                return false;
-            }
-            // Check if this username is already registered (case-insensitive)
-            const member = members.find(m => m.x.toLowerCase() === xUser.toLowerCase());
-            if (!member) {
-                alert('That X username is not registered as a member. Please register first.');
-                return false;
-            }
-            xposts.unshift({
-                x: xUser,
-                url,
-                time: Date.now()
-            });
-            await saveBasket(members, xposts);
-            document.getElementById('xPostUrlInput').value = '';
-            renderXPostsTable();
-            renderMembersTable();
-            filterXPostsTable();
-            return false;
-        }
-        // Render and filter X Posts Table
-        let lastXPostsData = [];
-        async function renderXPostsTable() {
-            const {xposts, members} = await fetchBasket();
-            lastXPostsData = xposts.map(xp => {
-                const uname = xp.x && xp.x.startsWith('@') ? xp.x.substring(1) : '';
-                let dp = '';
-                let member = null;
-                if (uname) {
-                    member = members.find(m => m.x.toLowerCase() === xp.x.toLowerCase());
-                }
-                if (member && member.xpic) {
-                    dp = member.xpic;
-                } else if (uname) {
-                    dp = 'https://unavatar.io/x/' + uname;
-                } else {
-                    dp = 'https://unavatar.io/x';
-                }
-                return {
-                    ...xp,
-                    dp
-                };
-            });
-            updateXPostsTableFiltered();
-            document.getElementById('xpostsCountBadge').textContent = lastXPostsData.length;
-        }
-        function filterXPostsTable() {
-            updateXPostsTableFiltered();
-        }
-        function updateXPostsTableFiltered() {
-            const input = document.getElementById('searchXPostInput');
-            const filterValue = (input ? input.value : '').toLowerCase();
-            const table = document.querySelector('#xpostsTable tbody');
-            table.innerHTML = '';
-            let serial = 1;
-            for (const xp of lastXPostsData) {
-                // Filter by url or username
-                const uname = xp.x || '';
-                if (
-                    !filterValue ||
-                    xp.url.toLowerCase().includes(filterValue) ||
-                    uname.toLowerCase().includes(filterValue)
-                ) {
-                    table.innerHTML += `
-                        <tr>
-                            <td class="serial-cell">${serial++}</td>
-                            <td>
-                                <a class="xposts-link" href="${xp.url}" target="_blank" rel="noopener">
-                                    <img src="${xp.dp}" class="xposts-dp" width="30" height="30" loading="lazy" alt="X Profile" onerror="this.onerror=null;this.src='https://unavatar.io/x/${uname.replace('@','')}'">
-                                    ${xp.url}
-                                </a>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-        }
+        // Handle X Post Submit
+      async function handleXPostSubmit(e) {
+    e.preventDefault();
+    const url = document.getElementById('xPostUrlInput').value.trim();
+    
+    // Remove double escaping of backslashes
+    if (!/^https:\/\/x\.com\/[a-zA-Z0-9_]{1,20}\/status\/\d+/.test(url)) {
+        alert('Enter a valid X post URL (https://x.com/username/status/123...)');
+        return false;
+    }
+    
+    // Rest of the function remains the same
+    const xUser = extractXUsernameFromUrl(url);
+    if (!xUser) {
+        alert("Couldn't detect username from URL.");
+        return false;
+    }
+
+    let {members, xposts} = await fetchBasket();
+
+    // Prevent duplicate URLs
+    if (xposts.some(post => (post.url || '').toLowerCase() === url.toLowerCase())) {
+        alert('This X Post URL has already been submitted.');
+        return false;
+    }
+
+    // Check if username is registered
+    const member = members.find(m => m.x.toLowerCase() === xUser.toLowerCase());
+    if (!member) {
+        alert('That X username is not registered as a member. Please register first.');
+        return false;
+    }
+
+    xposts.unshift({
+        x: xUser,
+        url,
+        time: Date.now()
+    });
+
+    await saveBasket(members, xposts);
+    document.getElementById('xPostUrlInput').value = '';
+    await renderMembersTable();
+    return false;
+}
+
+        // Modified switchTab function (removed xposts)
         function switchTab(tab) {
             document.getElementById('membersTab').classList.toggle('active', tab==='members');
             document.getElementById('tasksTab').classList.toggle('active', tab==='tasks');
-            document.getElementById('xpostsTab').classList.toggle('active', tab==='xposts');
             document.getElementById('membersSection').style.display = tab==='members' ? '' : 'none';
             document.getElementById('tasksSection').style.display = tab==='tasks' ? '' : 'none';
-            document.getElementById('xpostsSection').style.display = tab==='xposts' ? '' : 'none';
-            if (tab === 'xposts') renderXPostsTable();
         }
+
         // Campaign countdown logic
         function updateCampaignTimer() {
             const endDate = new Date("2025-07-07T23:59:59Z");
@@ -1675,25 +1644,17 @@
             if (daysLeft < 0) daysLeft = 0;
             document.getElementById('days-left').textContent = daysLeft;
         }
-        window.addEventListener('load', async () => {
-            createParticles();
-            await renderMembersTable();
-            renderTasks();
-            updateTaskCountBadge();
-            renderXPostsTable();
-            updateCampaignTimer();
-            setInterval(updateCampaignTimer, 1000 * 60 * 60); // update every hour
-        });
-        // Utility for formatting numbers as 1,234,567,890
+
+        // Number formatting utility
         function formatNumber(n) {
-          return n.toLocaleString('en-US');
+            return n.toLocaleString('en-US');
         }
-        // Add this function to update the bar after rendering members table
+
+        // Update total earned tokens
         async function updateTotalEarnedBar() {
             const {members, xposts} = await fetchBasket();
-            // Calculate total tokens earned (sum of all members' rewards)
-            // Each post = 1T $NFTFAN (1,000,000,000,000)
             let total = 0;
+            
             // Count posts per user
             const postCountMap = {};
             for (const xp of xposts) {
@@ -1701,24 +1662,26 @@
                 if (!postCountMap[uname]) postCountMap[uname] = 0;
                 postCountMap[uname]++;
             }
+
+            // Calculate total tokens
             for (const m of members) {
                 const count = postCountMap[(m.x||'').toLowerCase()] || 0;
                 total += count * 1_000_000_000_000;
             }
-            // Format as "X $NFTFAN"
-            let display = total === 0 ? '0 $NFTFAN'
-                : `${formatNumber(total)} $NFTFAN`;
+
+            // Format display
+            let display = total === 0 ? '0 $NFTFAN' : `${formatNumber(total)} $NFTFAN`;
             document.getElementById('totalEarnedTokens').textContent = display;
         }
-        // After every renderMembersTable(), also call updateTotalEarnedBar()
-        const originalRenderMembersTable = renderMembersTable;
-        renderMembersTable = async function() {
-            await originalRenderMembersTable();
-            await updateTotalEarnedBar();
-        };
-        // Also call after initial load (for safety)
+
+        // Initialize
         window.addEventListener('load', async () => {
-            await updateTotalEarnedBar();
+            createParticles();
+            await renderMembersTable();
+            renderTasks();
+            updateTaskCountBadge();
+            updateCampaignTimer();
+            setInterval(updateCampaignTimer, 1000 * 60 * 60); // update every hour
         });
 
         // Allow closing popup by clicking outside or pressing ESC
@@ -1731,9 +1694,11 @@
                 }
             }
         });
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeRegisterPopup();
         });
     </script>
 </body>
 </html>
+
