@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NFT Photography - Withdraw MATIC</title>
+  <meta name="description" content="Withdraw MATIC from the NFTPhotography1155 contract">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 380px;
+      margin: 40px auto;
+      padding: 24px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      color: #333;
+    }
+    .btn {
+      background: #8247e5;
+      color: #fff;
+      border: none;
+      padding: 14px 0;
+      width: 100%;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      margin: 12px 0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn[disabled] {
+      background: #bbb;
+      cursor: not-allowed;
+    }
+    .info {
+      background: #f3f0fa;
+      color: #6d4ed6;
+      padding: 10px 8px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 0.98rem;
+      word-break: break-all;
+    }
+    .alert {
+      color: #d63c23;
+      margin-top: 8px;
+    }
+    .success {
+      color: #1eae64;
+      margin-top: 8px;
+    }
+    .small {
+      color: #888;
+      font-size: 0.90rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Withdraw MATIC</h1>
+    <div id="wallet-info" class="info">Connect your wallet</div>
+    <button class="btn" id="connectBtn">Connect Wallet</button>
+    <button class="btn" id="withdrawBtn" disabled>Withdraw</button>
+    <div id="feedback" class="alert"></div>
+    <div class="small" style="margin-top:20px;">
+      Contract: <span id="ca">0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC</span>
+    </div>
+  </div>
+  <script>
+    // -- Contract ABI fragment (only withdraw()) --
+    const ABI = [
+      {
+        "inputs": [],
+        "name": "withdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const POLYGON_CHAIN_ID = "0x89"; // 137
+
+    const connectBtn = document.getElementById('connectBtn');
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const walletInfo = document.getElementById('wallet-info');
+    const feedback = document.getElementById('feedback');
+
+    let provider, signer, contract, userAddress;
+
+    async function checkMetaMask() {
+      if (!window.ethereum) {
+        walletInfo.textContent = "MetaMask or another wallet is required.";
+        connectBtn.disabled = true;
+        withdrawBtn.disabled = true;
+        return false;
+      }
+      return true;
+    }
+
+    async function connectWallet() {
+      if (!await checkMetaMask()) return;
+      try {
+        feedback.textContent = '';
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        // Check if owner
+        // Call owner() from contract to compare with userAddress
+        const contractRead = new ethers.Contract(CONTRACT_ADDRESS, [
+          { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}
+        ], provider);
+        const ownerAddress = await contractRead.owner();
+
+        if (userAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+          walletInfo.textContent = "Connected: " + userAddress + " (Not contract owner)";
+          withdrawBtn.disabled = true;
+          feedback.textContent = "Only the contract owner can withdraw.";
+          feedback.className = "alert";
+        } else {
+          walletInfo.textContent = "Connected: " + userAddress + " (Owner)";
+          withdrawBtn.disabled = false;
+          feedback.textContent = "";
+          feedback.className = "";
+        }
+
+        connectBtn.textContent = "Connected";
+        connectBtn.disabled = true;
+
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      } catch (err) {
+        walletInfo.textContent = "Connection failed.";
+        feedback.textContent = err.message;
+        feedback.className = "alert";
+      }
+    }
+
+    async function withdrawFunds() {
+      if (!contract) return;
+      feedback.textContent = '';
+      withdrawBtn.disabled = true;
+      withdrawBtn.textContent = "Withdrawing...";
+      try {
+        // Try to withdraw
+        const tx = await contract.withdraw();
+        feedback.textContent = "Waiting for confirmation...";
+        feedback.className = "info";
+        await tx.wait();
+        feedback.textContent = "Withdrawal successful!";
+        feedback.className = "success";
+      } catch (err) {
+        feedback.textContent = err.reason || err.message || "Transaction failed";
+        feedback.className = "alert";
+      }
+      withdrawBtn.disabled = false;
+      withdrawBtn.textContent = "Withdraw";
+    }
+
+    connectBtn.onclick = connectWallet;
+    withdrawBtn.onclick = withdrawFunds;
+
+    // If already connected, try to auto-connect
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (!window.ethereum) return;
+      // Load ethers.js from CDN if not present
+      if (!window.ethers) {
+        let script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js";
+        script.onload = () => { if (window.ethereum.selectedAddress) connectWallet(); };
+        document.body.appendChild(script);
+      } else if (window.ethereum.selectedAddress) {
+        connectWallet();
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</body>
+</html>
