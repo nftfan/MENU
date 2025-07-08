@@ -33,6 +33,9 @@
       "function mintPrice() view returns (uint256)"
     ];
 
+    // Use your new NFT.Storage JWT API key!
+    const NFT_STORAGE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDU0N2NlYjI0Njg4QWNFQTRCNGE2MjIzZjRDNTkwOTRCNTI5Yjc2RmQiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTc1MTk2MDIwNTY4OCwibmFtZSI6Im5mdG1pbnQifQ.I6UsX6jvuqSxhNenaqnb8NMRK_k3PrceTLlXvJQz22k";
+
     let provider, signer, userAddress;
 
     // Wallet connect logic
@@ -95,27 +98,29 @@
     });
 
     async function uploadImageToNftStorage(file) {
-      // Using nft.storage API
-      const apiKey = "2903dd16.ab2ae14e2d5045d1a811b5761d6090d7";
       const endpoint = "https://api.nft.storage/upload";
       const formData = new FormData();
       formData.append("file", file);
 
-      const resp = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + apiKey
-        },
-        body: formData
-      });
-
-      if (!resp.ok) {
-        throw new Error("Upload failed: " + resp.statusText);
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + NFT_STORAGE_API_KEY
+          },
+          body: formData
+        });
+        if (!resp.ok) {
+          throw new Error("Upload failed: " + resp.status + " " + resp.statusText);
+        }
+        const data = await resp.json();
+        if (!data.ok) {
+          throw new Error("Upload failed: " + (data.error && data.error.message ? data.error.message : JSON.stringify(data)));
+        }
+        return "https://ipfs.io/ipfs/" + data.value.cid;
+      } catch (err) {
+        throw err;
       }
-      const data = await resp.json();
-      if (!data.ok) throw new Error("Upload failed: " + data.error.message);
-      // Returns the IPFS gateway url
-      return "https://ipfs.io/ipfs/" + data.value.cid;
     }
 
     async function mintNFT(imageUrl) {
@@ -140,7 +145,7 @@
       try {
         // If file is selected, upload to nft.storage
         if (file) {
-          document.getElementById('status').innerText = "Uploading image to IPFS...";
+          document.getElementById('status').innerText = "Uploading image to IPFS via nft.storage...";
           const ipfsUrl = await uploadImageToNftStorage(file);
           imageUrl = ipfsUrl;
         }
