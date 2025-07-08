@@ -228,6 +228,15 @@
   </form>
   <div id="status"></div>
   <script>
+    // Polygon Mainnet (for Polygon Mumbai testnet, change chainId, chainName, rpcUrls, blockExplorerUrls accordingly)
+    const POLYGON_PARAMS = {
+      chainId: '0x89', // 137 in hex
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
     // Contract address and ABI
     const CONTRACT_ADDRESS = "0x99314CCeCe30ef9B4b85Ca1c76e8474DB584B314";
     const CONTRACT_ABI = [
@@ -242,6 +251,36 @@
 
     let provider, signer, userAddress;
 
+    // Status message helper
+    function setStatus(msg, isError = false) {
+      const statusEl = document.getElementById('status');
+      statusEl.innerHTML = msg;
+      statusEl.className = isError ? "error" : (msg ? "success" : "");
+    }
+
+    // Switch to Polygon network
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
+        return true;
+      } catch (switchError) {
+        // If the chain has not been added to MetaMask, add it
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+            return true;
+          } catch (addError) {
+            setStatus("Failed to add Polygon network. " + addError.message, true);
+            return false;
+          }
+        } else {
+          setStatus("Failed to switch network. " + switchError.message, true);
+          return false;
+        }
+      }
+    }
+
     // Wallet connect logic
     async function connectWallet() {
       if (!window.ethereum) {
@@ -249,6 +288,9 @@
         return;
       }
       try {
+        // Switch to Polygon BEFORE connecting wallet
+        const switched = await switchToPolygon();
+        if (!switched) return;
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
@@ -256,6 +298,7 @@
         document.getElementById('walletAddress').innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
         document.getElementById('connectWalletBtn').innerHTML = '<span class="material-icons" style="vertical-align:middle;">check_circle</span> Connected';
         document.getElementById('connectWalletBtn').disabled = true;
+        setStatus("");
       } catch (err) {
         document.getElementById('walletAddress').innerText = "Failed to connect wallet";
         setStatus("Failed to connect wallet.", true);
@@ -263,6 +306,7 @@
     }
     document.getElementById('connectWalletBtn').onclick = connectWallet;
     window.addEventListener('load', async () => {
+      // Optionally, auto-connect if wallet already selected and on Polygon
       if (window.ethereum && window.ethereum.selectedAddress) {
         await connectWallet();
       }
@@ -292,13 +336,6 @@
         previewImg.style.display = 'none';
       }
     });
-
-    // Status message helper
-    function setStatus(msg, isError = false) {
-      const statusEl = document.getElementById('status');
-      statusEl.innerHTML = msg;
-      statusEl.className = isError ? "error" : (msg ? "success" : "");
-    }
 
     // Upload image to Cloudinary
     async function uploadToCloudinary(file) {
