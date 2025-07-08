@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mint Image as NFT (ERC-1155)</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; }
+    input[type="url"], input[type="file"] { width: 100%; padding: 8px; margin-bottom: 8px;}
+    img { max-width: 100%; margin: 10px 0;}
+    button { padding: 10px 20px; margin-top: 10px; }
+    #status { margin-top: 12px; color: #444; }
+    #walletAddress { margin-bottom: 10px; color: #006400; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Mint Your Image as NFT (ERC-1155)</h2>
+  <button id="connectWalletBtn">Connect Wallet</button>
+  <div id="walletAddress"></div>
+  <form id="mintForm">
+    <label>Upload Image or Enter Image URL:</label><br>
+    <input type="file" id="imageFile" accept="image/*"><br>
+    <input type="url" id="imageUrl" placeholder="Or enter image URL" /><br>
+    <img id="preview" src="" alt="Image preview" style="display:none;" /><br>
+    <button type="submit">Mint as NFT</button>
+  </form>
+  <div id="status"></div>
+  <script>
+    // Contract address and ABI
+    const CONTRACT_ADDRESS = "0x99314CCeCe30ef9B4b85Ca1c76e8474DB584B314";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "function mintPrice() view returns (uint256)"
+    ];
+
+    // Cloudinary config
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft"; // <-- your unsigned preset
+    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
+    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+    let provider, signer, userAddress;
+
+    // Wallet connect logic
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("MetaMask is not installed!");
+        return;
+      }
+      try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        document.getElementById('walletAddress').innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+        document.getElementById('connectWalletBtn').innerText = "Connected";
+        document.getElementById('connectWalletBtn').disabled = true;
+      } catch (err) {
+        document.getElementById('walletAddress').innerText = "Failed to connect wallet";
+      }
+    }
+    document.getElementById('connectWalletBtn').onclick = connectWallet;
+    window.addEventListener('load', async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+      }
+    });
+
+    // Image preview logic
+    const imageUrlInput = document.getElementById('imageUrl');
+    const imageFileInput = document.getElementById('imageFile');
+    const previewImg = document.getElementById('preview');
+    imageUrlInput.addEventListener('input', function() {
+      const url = imageUrlInput.value;
+      if (url) {
+        previewImg.src = url;
+        previewImg.style.display = 'block';
+        imageFileInput.value = "";
+      } else if (!imageFileInput.files.length) {
+        previewImg.style.display = 'none';
+      }
+    });
+    imageFileInput.addEventListener('change', function() {
+      if (imageFileInput.files.length > 0) {
+        const file = imageFileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        imageUrlInput.value = "";
+      } else if (!imageUrlInput.value) {
+        previewImg.style.display = 'none';
+      }
+    });
+
+    // Upload image to Cloudinary
+    async function uploadToCloudinary(file) {
+      document.getElementById('status').innerText = "Uploading image to Cloudinary...";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET); // REQUIRED for unsigned upload
+
+      const resp = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: "POST",
+        body: formData
+      });
+      const data = await resp.json();
+      if (!data || !data.secure_url) {
+        throw new Error("Image upload failed: " + (data.error && data.error.message ? data.error.message : "Unknown error"));
+      }
+      return data.secure_url;
+    }
+
+    async function mintNFT(imageUrl) {
+      if (!provider || !signer) throw new Error("Please connect your wallet first!");
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const mintPrice = await contract.mintPrice();
+      let tx = await contract.mintWithURI(imageUrl, { value: mintPrice });
+      await tx.wait();
+      return tx.hash;
+    }
+
+    document.getElementById('mintForm').onsubmit = async function(e) {
+      e.preventDefault();
+      document.getElementById('status').innerText = "Processing...";
+      let imageUrl = imageUrlInput.value.trim();
+      let file = imageFileInput.files[0];
+
+      try {
+        if (file) {
+          imageUrl = await uploadToCloudinary(file);
+        }
+        if (!imageUrl) {
+          document.getElementById('status').innerText = "Please upload an image or enter an image URL.";
+          return;
+        }
+        document.getElementById('status').innerText = "Minting NFT...";
+        const txHash = await mintNFT(imageUrl);
+        document.getElementById('status').innerHTML = `NFT minted!<br>Transaction Hash: <a href="https://polygonscan.com/tx/${txHash}" target="_blank">${txHash}</a><br>Image URI: <a href="${imageUrl}" target="_blank">${imageUrl}</a>`;
+      } catch (err) {
+        document.getElementById('status').innerText = "Error: " + (err.data && err.data.message ? err.data.message : err.message);
+      }
+    };
+  </script>
+</body>
+</html>
