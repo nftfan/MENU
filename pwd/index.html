@@ -128,7 +128,7 @@
         });
         return true;
       } catch (switchError) {
-        // This error code indicates that the chain has not been added to MetaMask.
+        // If the chain has not been added to MetaMask, add it
         if (switchError.code === 4902) {
           try {
             await window.ethereum.request({
@@ -169,27 +169,11 @@
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
 
-        // Check if owner
-        // Call owner() from contract to compare with userAddress
-        const contractRead = new ethers.Contract(CONTRACT_ADDRESS, [
-          { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}
-        ], provider);
-        const ownerAddress = await contractRead.owner();
-
-        if (userAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
-          walletInfo.textContent = "Connected: " + userAddress + " (Not contract owner)";
-          withdrawBtn.disabled = true;
-          feedback.textContent = "Only the contract owner can withdraw.";
-          feedback.className = "alert";
-        } else {
-          walletInfo.textContent = "Connected: " + userAddress + " (Owner)";
-          withdrawBtn.disabled = false;
-          feedback.textContent = "";
-          feedback.className = "";
-        }
-
-        connectBtn.textContent = "Connected";
-        connectBtn.disabled = true;
+        // No owner check, just enable Withdraw for any connected address
+        walletInfo.textContent = "Connected: " + userAddress;
+        withdrawBtn.disabled = false;
+        feedback.textContent = "";
+        feedback.className = "";
 
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
       } catch (err) {
@@ -213,7 +197,8 @@
         feedback.textContent = "Withdrawal successful!";
         feedback.className = "success";
       } catch (err) {
-        feedback.textContent = err.reason || err.message || "Transaction failed";
+        // If revert, show message
+        feedback.textContent = err.reason || err.data?.message || err.message || "Transaction failed";
         feedback.className = "alert";
       }
       withdrawBtn.disabled = false;
