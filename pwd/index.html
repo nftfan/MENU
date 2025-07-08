@@ -91,6 +91,18 @@
     const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
     const POLYGON_CHAIN_ID = "0x89"; // 137
 
+    const POLYGON_PARAMS = {
+      chainId: POLYGON_CHAIN_ID,
+      chainName: "Polygon Mainnet",
+      nativeCurrency: {
+        name: "MATIC",
+        symbol: "MATIC",
+        decimals: 18
+      },
+      rpcUrls: ["https://polygon-rpc.com"],
+      blockExplorerUrls: ["https://polygonscan.com"]
+    };
+
     const connectBtn = document.getElementById('connectBtn');
     const withdrawBtn = document.getElementById('withdrawBtn');
     const walletInfo = document.getElementById('wallet-info');
@@ -108,10 +120,50 @@
       return true;
     }
 
+    async function switchToPolygon() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_CHAIN_ID }]
+        });
+        return true;
+      } catch (switchError) {
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [POLYGON_PARAMS]
+            });
+            return true;
+          } catch (addError) {
+            feedback.textContent = "Failed to add Polygon network. " + (addError.message || "");
+            feedback.className = "alert";
+            return false;
+          }
+        } else {
+          feedback.textContent = "Failed to switch to Polygon. " + (switchError.message || "");
+          feedback.className = "alert";
+          return false;
+        }
+      }
+    }
+
     async function connectWallet() {
       if (!await checkMetaMask()) return;
+      feedback.textContent = '';
+      // Switch to Polygon before connecting
+      const network = await window.ethereum.request({ method: 'eth_chainId' });
+      if (network !== POLYGON_CHAIN_ID) {
+        walletInfo.textContent = "Switching to Polygon...";
+        const switched = await switchToPolygon();
+        if (!switched) {
+          walletInfo.textContent = "Switch to Polygon network to continue.";
+          return;
+        }
+      }
+
       try {
-        feedback.textContent = '';
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
         signer = provider.getSigner();
