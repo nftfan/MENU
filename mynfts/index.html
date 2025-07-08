@@ -2,233 +2,639 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mint Image as NFT (ERC-1155)</title>
+  <title>NFT Agents - Sell Your Photos Instantly as NFTs</title>
   <!-- Material Icons CDN -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
-      --primary: #ff4081;
-      --secondary: #2196f3;
-      --accent: #ffd600;
-      --bg: #fafafa;
-      --card: #ffffff;
-      --text: #222;
-      --success: #00c853;
-      --error: #d50000;
-      --radius: 18px;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --bg-main: #0f0f23;
+      --bg-secondary: #1a1a2e;
+      --bg-card: #16213e;
+      --text-primary: #ffffff;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --shadow: rgba(0, 0, 0, 0.3);
+      --glow: rgba(99, 102, 241, 0.3);
+      --radius: 16px;
+      --radius-lg: 24px;
     }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     html, body {
-      background: var(--bg);
-      margin: 0; padding: 0;
-      font-family: 'Roboto', Arial, sans-serif;
-      color: var(--text);
+      background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-secondary) 100%);
       min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      overflow-x: hidden;
     }
+
     body {
-      max-width: 420px;
+      max-width: 480px;
       margin: 0 auto;
-      padding: 0 0 40px 0;
-    }
-    .collection-info {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 18px 18px 14px 18px;
-      margin: 22px 0 16px 0;
-      border-left: 8px solid var(--primary);
-      box-shadow: 0 2px 12px #0001;
-    }
-    .collection-info strong {
-      font-size: 1.15em;
-      color: var(--primary);
-      letter-spacing: 1px;
-    }
-    .collection-info a {
-      color: var(--secondary);
-      text-decoration: underline;
-      word-break: break-all;
-      font-size: 1em;
-    }
-    h2 {
-      margin: 18px 0 8px 0;
-      font-size: 1.5em;
-      font-weight: 700;
-      color: var(--primary);
-      letter-spacing: 1px;
-      text-align: center;
+      padding: 0 16px 60px 16px;
       position: relative;
     }
-    #connectWalletBtn {
-      background: linear-gradient(90deg, var(--primary) 60%, var(--accent) 100%);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      padding: 13px 22px;
-      font-size: 1.08em;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 8px auto 10px auto;
-      display: block;
-      box-shadow: 0 2px 10px #0001;
-      transition: background .15s;
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 40% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+      z-index: -1;
+      animation: float 20s ease-in-out infinite;
     }
-    #connectWalletBtn:active {
-      background: linear-gradient(90deg, var(--primary) 50%, var(--accent) 100%);
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(120deg); }
+      66% { transform: translate(-20px, 20px) rotate(240deg); }
     }
-    #walletAddress {
+
+    /* Header Section */
+    .header {
       text-align: center;
-      margin-bottom: 8px;
-      color: var(--success);
-      font-weight: bold;
-      letter-spacing: 1px;
-      font-size: 1em;
+      padding: 40px 0 30px 0;
+      position: relative;
     }
-    form {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: 0 2px 12px #0002;
-      padding: 18px 18px 12px 18px;
-      margin: 0 0 18px 0;
-    }
-    label {
-      font-size: 1.05em;
-      font-weight: 600;
-      color: var(--secondary);
-      letter-spacing: 0.5px;
-    }
-    .camera-btn {
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px auto;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      background: linear-gradient(90deg, var(--secondary) 60%, var(--primary) 100%);
-      color: #fff;
+      justify-content: center;
+      box-shadow: 0 10px 30px var(--shadow);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 10px 30px var(--shadow); }
+      50% { transform: scale(1.05); box-shadow: 0 15px 40px var(--glow); }
+    }
+
+    .logo .material-icons {
+      font-size: 40px;
+      color: white;
+    }
+
+    .main-title {
+      font-size: 2.2em;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1em;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .value-prop {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px var(--shadow);
+    }
+
+    .value-prop h3 {
+      color: var(--accent);
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .benefits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .benefit {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 0.9em;
+    }
+
+    .benefit .material-icons {
+      font-size: 18px;
+      color: var(--success);
+    }
+
+    /* Steps Section */
+    .steps-container {
+      margin: 30px 0;
+    }
+
+    .steps-title {
+      text-align: center;
+      font-size: 1.4em;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      z-index: 1;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      flex: 1;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 3px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .step.active .step-circle {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 0 20px var(--glow);
+    }
+
+    .step.completed .step-circle {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .step-label {
+      font-size: 0.85em;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .step.active .step-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Collection Info */
+    .collection-info {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px var(--shadow);
+      border-left: 4px solid var(--accent);
+    }
+
+    .collection-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .collection-header .material-icons {
+      font-size: 24px;
+      color: var(--accent);
+    }
+
+    .collection-info h4 {
+      color: var(--accent);
+      font-size: 1.1em;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .collection-name {
+      font-size: 1.2em;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 8px 0;
+    }
+
+    .collection-link {
+      color: var(--secondary);
+      text-decoration: none;
+      font-size: 0.9em;
+      word-break: break-all;
+      transition: color 0.3s ease;
+    }
+
+    .collection-link:hover {
+      color: var(--primary);
+    }
+
+    /* Wallet Section */
+    .wallet-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px var(--shadow);
+      text-align: center;
+    }
+
+    #connectWalletBtn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
       border: none;
       border-radius: var(--radius);
-      padding: 13px 18px;
-      font-size: 1.12em;
-      font-weight: 500;
+      padding: 16px 32px;
+      font-size: 1.1em;
+      font-weight: 600;
       cursor: pointer;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 10px #0001;
-      transition: background .15s;
-      width: 100%;
+      display: flex;
+      align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
+      margin: 0 auto;
+      min-width: 200px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
     }
+
+    #connectWalletBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+    }
+
+    #connectWalletBtn:active {
+      transform: translateY(0);
+    }
+
+    #connectWalletBtn:disabled {
+      background: var(--success);
+      cursor: default;
+      transform: none;
+    }
+
+    #walletAddress {
+      margin-top: 16px;
+      color: var(--success);
+      font-weight: 600;
+      font-size: 1em;
+    }
+
+    /* Upload Section */
+    .upload-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px var(--shadow);
+    }
+
+    .upload-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .upload-header .material-icons {
+      font-size: 24px;
+      color: var(--accent);
+    }
+
+    .upload-header h3 {
+      color: var(--text-primary);
+      font-size: 1.2em;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .camera-btn {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 20px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+      margin-bottom: 20px;
+    }
+
+    .camera-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+    }
+
     .camera-btn .material-icons {
       font-size: 28px;
     }
-    .camera-btn:active {
-      background: linear-gradient(90deg, var(--secondary) 70%, var(--primary) 100%);
-    }
+
     input[type="file"] {
-      width: 1px; height: 1px;
-      opacity: 0;
-      pointer-events: none;
       position: absolute;
-      left: -999px;
+      left: -9999px;
+      opacity: 0;
     }
-    img#preview {
-      max-width: 100%;
+
+    #preview {
       width: 100%;
-      min-height: 0;
-      border-radius: 15px;
-      margin: 14px 0 10px 0;
-      box-shadow: 0 2px 12px #0002;
-      display: none;
+      max-height: 300px;
+      border-radius: var(--radius);
       object-fit: cover;
-      background: #eee;
+      display: none;
+      box-shadow: 0 8px 30px var(--shadow);
+      margin-bottom: 20px;
     }
-    button[type="submit"] {
-      background: linear-gradient(90deg, var(--primary) 60%, var(--secondary) 100%);
-      color: #fff;
+
+    /* Mint Button */
+    .mint-btn {
+      background: linear-gradient(135deg, var(--accent), #f97316);
+      color: white;
       border: none;
       border-radius: var(--radius);
-      padding: 13px 18px;
-      font-size: 1.1em;
-      font-weight: bold;
+      padding: 20px 32px;
+      font-size: 1.2em;
+      font-weight: 700;
       cursor: pointer;
       width: 100%;
-      margin-top: 12px;
-      box-shadow: 0 2px 10px #0001;
-      transition: background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+      margin-top: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
-    button[type="submit"]:active {
-      background: linear-gradient(90deg, var(--primary) 50%, var(--secondary) 100%);
+
+    .mint-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5);
     }
+
+    .mint-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Status Messages */
     #status {
-      margin-top: 15px;
-      text-align: center;
-      padding: 10px 14px;
+      margin: 20px 0;
+      padding: 20px;
       border-radius: var(--radius);
-      font-size: 1.09em;
-      min-height: 35px;
-      word-break: break-word;
-      box-shadow: 0 1px 6px #0001;
+      font-size: 1em;
+      font-weight: 500;
+      text-align: center;
+      border: 1px solid var(--border);
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
     }
-    #status:not(:empty) {
-      margin-bottom: 15px;
+
+    #status:empty {
+      display: none;
     }
+
     #status.success {
-      background: #e8ffe8;
+      background: rgba(16, 185, 129, 0.1);
       color: var(--success);
-      border: 1.5px solid var(--success);
+      border-color: var(--success);
     }
+
     #status.error {
-      background: #ffeaea;
+      background: rgba(239, 68, 68, 0.1);
       color: var(--error);
-      border: 1.5px solid var(--error);
+      border-color: var(--error);
     }
-    @media (max-width: 520px) {
+
+    /* Loading Animation */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
       body {
-        max-width: 100vw;
-        padding: 0 0 32px 0;
+        padding: 0 12px 60px 12px;
       }
-      .collection-info, form {
-        padding: 13px 6vw 10px 6vw;
+      
+      .main-title {
+        font-size: 1.8em;
       }
-      img#preview {
-        max-width: 96vw;
+      
+      .benefits {
+        grid-template-columns: 1fr;
+      }
+      
+      .steps {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .steps::before {
+        display: none;
       }
     }
-    @media (max-width: 420px) {
-      .collection-info, form {
-        padding: 10px 2vw 8px 2vw;
-      }
+
+    /* Utility Classes */
+    .text-center { text-align: center; }
+    .mb-20 { margin-bottom: 20px; }
+    .mt-20 { margin-top: 20px; }
+    
+    /* Animations */
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="collection-info">
-    <span class="material-icons" style="vertical-align:middle;color:var(--secondary);font-size:25px;position:relative;top:4px;">collections</span>
-    <span style="font-size:1em;">Your NFT will be available in this collection:</span><br>
-    <strong>NFT AGENTS</strong><br>
-    <a href="https://opensea.io/collection/nft-agents" target="_blank">https://opensea.io/collection/nft-agents</a>
+  <!-- Header Section -->
+  <div class="header">
+    <div class="logo">
+      <span class="material-icons">auto_awesome</span>
+    </div>
+    <h1 class="main-title">NFT Agents</h1>
+    <p class="subtitle">Sell Your Photos Instantly as NFTs</p>
+    
+    <div class="value-prop">
+      <h3><span class="material-icons">trending_up</span>Turn Your Photos Into Profit</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 16px;">Transform any photo into a valuable NFT in minutes. No technical knowledge required.</p>
+      <div class="benefits">
+        <div class="benefit">
+          <span class="material-icons">flash_on</span>
+          <span>Instant Minting</span>
+        </div>
+        <div class="benefit">
+          <span class="material-icons">security</span>
+          <span>Blockchain Secured</span>
+        </div>
+        <div class="benefit">
+          <span class="material-icons">sell</span>
+          <span>Ready to Sell</span>
+        </div>
+        <div class="benefit">
+          <span class="material-icons">account_balance_wallet</span>
+          <span>Low Gas Fees</span>
+        </div>
+      </div>
+    </div>
   </div>
-  <h2>
-    <span class="material-icons" style="vertical-align:middle; font-size:30px; color:var(--accent);margin-right:5px;">auto_awesome</span>
-    Mint Your Image as NFT
-  </h2>
-  <button id="connectWalletBtn"><span class="material-icons" style="vertical-align:middle;">account_balance_wallet</span> Connect Wallet</button>
-  <div id="walletAddress"></div>
+
+  <!-- Steps Section -->
+  <div class="steps-container">
+    <h2 class="steps-title">Simple 3-Step Process</h2>
+    <div class="steps">
+      <div class="step" id="step1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Connect Wallet</div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Upload Photo</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Mint NFT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collection Info -->
+  <div class="collection-info">
+    <div class="collection-header">
+      <span class="material-icons">collections</span>
+      <h4>Your NFT Collection</h4>
+    </div>
+    <div class="collection-name">NFT AGENTS</div>
+    <a href="https://opensea.io/collection/nft-agents" target="_blank" class="collection-link">
+      View on OpenSea →
+    </a>
+  </div>
+
+  <!-- Wallet Connection -->
+  <div class="wallet-section">
+    <button id="connectWalletBtn">
+      <span class="material-icons">account_balance_wallet</span>
+      <span>Connect Wallet</span>
+    </button>
+    <div id="walletAddress"></div>
+  </div>
+
+  <!-- Upload Section -->
   <form id="mintForm" autocomplete="off">
-    <label for="imageFile">
-      <span class="material-icons" style="vertical-align:middle; color:var(--accent);margin-right:2px;">image</span>
-      Take Photo or Upload Image:
-    </label><br>
-    <button type="button" id="cameraBtn" class="camera-btn">
-      <span class="material-icons">photo_camera</span> <span>Camera / Upload</span>
-    </button>
-    <input type="file" id="imageFile" accept="image/*" capture="environment">
-    <img id="preview" src="" alt="Image preview" /><br>
-    <button type="submit">
-      <span class="material-icons" style="vertical-align:middle;margin-right:4px;">flare</span>
-      Mint as NFT
-    </button>
+    <div class="upload-section">
+      <div class="upload-header">
+        <span class="material-icons">photo_camera</span>
+        <h3>Upload Your Photo</h3>
+      </div>
+      
+      <button type="button" id="cameraBtn" class="camera-btn">
+        <span class="material-icons">add_a_photo</span>
+        <span>Take Photo or Choose File</span>
+      </button>
+      
+      <input type="file" id="imageFile" accept="image/*" capture="environment">
+      <img id="preview" src="" alt="Photo preview" />
+      
+      <button type="submit" class="mint-btn" id="mintBtn" disabled>
+        <span class="material-icons">rocket_launch</span>
+        <span>Mint as NFT</span>
+      </button>
+    </div>
   </form>
+
+  <!-- Status Messages -->
   <div id="status"></div>
+
   <script>
-    // Polygon Mainnet (for Polygon Mumbai testnet, change chainId, chainName, rpcUrls, blockExplorerUrls accordingly)
+    // Polygon Mainnet configuration
     const POLYGON_PARAMS = {
       chainId: '0x89', // 137 in hex
       chainName: 'Polygon Mainnet',
@@ -237,160 +643,265 @@
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
-    // Contract address and ABI
+    // Contract configuration
     const CONTRACT_ADDRESS = "0x99314CCeCe30ef9B4b85Ca1c76e8474DB584B314";
     const CONTRACT_ABI = [
       "function mintWithURI(string tokenURI) external payable returns (uint256)",
       "function mintPrice() view returns (uint256)"
     ];
 
-    // Cloudinary config
-    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft"; // your unsigned preset
+    // Cloudinary configuration
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
     const CLOUDINARY_CLOUD_NAME = "dvndw130d";
     const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
     let provider, signer, userAddress;
+    let currentStep = 1;
 
-    // Status message helper
-    function setStatus(msg, isError = false) {
-      const statusEl = document.getElementById('status');
-      statusEl.innerHTML = msg;
-      statusEl.className = isError ? "error" : (msg ? "success" : "");
+    // UI Helper Functions
+    function updateSteps(step) {
+      currentStep = step;
+      for (let i = 1; i <= 3; i++) {
+        const stepEl = document.getElementById(`step${i}`);
+        stepEl.classList.remove('active', 'completed');
+        
+        if (i < step) {
+          stepEl.classList.add('completed');
+          stepEl.querySelector('.step-circle').innerHTML = '<span class="material-icons" style="font-size: 20px;">check</span>';
+        } else if (i === step) {
+          stepEl.classList.add('active');
+          stepEl.querySelector('.step-circle').textContent = i;
+        } else {
+          stepEl.querySelector('.step-circle').textContent = i;
+        }
+      }
     }
 
-    // Switch to Polygon network
+    function setStatus(msg, isError = false, isLoading = false) {
+      const statusEl = document.getElementById('status');
+      
+      if (!msg) {
+        statusEl.innerHTML = '';
+        statusEl.className = '';
+        return;
+      }
+      
+      statusEl.innerHTML = isLoading ? 
+        `<div class="loading"></div><span>${msg}</span>` : 
+        msg;
+      statusEl.className = isError ? "error" : "success";
+      statusEl.classList.add('fade-in');
+    }
+
+    // Wallet Connection
     async function switchToPolygon() {
       if (!window.ethereum) return false;
       try {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
+        await window.ethereum.request({ 
+          method: 'wallet_switchEthereumChain', 
+          params: [{ chainId: POLYGON_PARAMS.chainId }] 
+        });
         return true;
       } catch (switchError) {
-        // If the chain has not been added to MetaMask, add it
         if (switchError.code === 4902) {
           try {
-            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+            await window.ethereum.request({ 
+              method: 'wallet_addEthereumChain', 
+              params: [POLYGON_PARAMS] 
+            });
             return true;
           } catch (addError) {
-            setStatus("Failed to add Polygon network. " + addError.message, true);
+            setStatus("Failed to add Polygon network: " + addError.message, true);
             return false;
           }
         } else {
-          setStatus("Failed to switch network. " + switchError.message, true);
+          setStatus("Failed to switch to Polygon network: " + switchError.message, true);
           return false;
         }
       }
     }
 
-    // Wallet connect logic
     async function connectWallet() {
       if (!window.ethereum) {
-        setStatus("MetaMask is not installed!", true);
+        setStatus("Please install MetaMask to continue", true);
         return;
       }
+      
       try {
-        // Switch to Polygon BEFORE connecting wallet
+        setStatus("Connecting to wallet...", false, true);
+        
         const switched = await switchToPolygon();
         if (!switched) return;
+        
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
-        document.getElementById('walletAddress').innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
-        document.getElementById('connectWalletBtn').innerHTML = '<span class="material-icons" style="vertical-align:middle;">check_circle</span> Connected';
+        
+        // Update UI
+        document.getElementById('walletAddress').innerText = 
+          `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+        document.getElementById('connectWalletBtn').innerHTML = 
+          '<span class="material-icons">check_circle</span><span>Wallet Connected</span>';
         document.getElementById('connectWalletBtn').disabled = true;
-        setStatus("");
+        
+        updateSteps(2);
+        setStatus("Wallet connected successfully! Now upload your photo.", false);
+        
       } catch (err) {
-        document.getElementById('walletAddress').innerText = "Failed to connect wallet";
-        setStatus("Failed to connect wallet.", true);
+        setStatus("Failed to connect wallet: " + err.message, true);
       }
     }
-    document.getElementById('connectWalletBtn').onclick = connectWallet;
-    window.addEventListener('load', async () => {
-      // Optionally, auto-connect if wallet already selected and on Polygon
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        await connectWallet();
-      }
-    });
 
-    // Camera and file upload logic
+    // File Upload
     const imageFileInput = document.getElementById('imageFile');
     const previewImg = document.getElementById('preview');
     const cameraBtn = document.getElementById('cameraBtn');
+    const mintBtn = document.getElementById('mintBtn');
 
-    cameraBtn.addEventListener('click', function() {
-      imageFileInput.accept = "image/*";
-      imageFileInput.capture = "environment";
+    cameraBtn.addEventListener('click', () => {
       imageFileInput.click();
     });
 
     imageFileInput.addEventListener('change', function() {
-      if (imageFileInput.files.length > 0) {
-        const file = imageFileInput.files[0];
+      if (this.files.length > 0) {
+        const file = this.files[0];
         const reader = new FileReader();
+        
         reader.onload = function(e) {
           previewImg.src = e.target.result;
           previewImg.style.display = 'block';
+          previewImg.classList.add('fade-in');
+          mintBtn.disabled = !userAddress;
+          
+          if (userAddress) {
+            updateSteps(3);
+            setStatus("Photo uploaded! Ready to mint your NFT.", false);
+          }
         };
+        
         reader.readAsDataURL(file);
       } else {
         previewImg.style.display = 'none';
+        mintBtn.disabled = true;
       }
     });
 
-    // Upload image to Cloudinary
+    // Upload to Cloudinary
     async function uploadToCloudinary(file) {
-      setStatus('<span class="material-icons" style="vertical-align:middle;">cloud_upload</span> Uploading image to Cloudinary...');
+      setStatus("Uploading your photo to secure cloud storage...", false, true);
+      
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET); // REQUIRED for unsigned upload
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
       const resp = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: "POST",
         body: formData
       });
+      
       const data = await resp.json();
       if (!data || !data.secure_url) {
-        throw new Error("Image upload failed: " + (data.error && data.error.message ? data.error.message : "Unknown error"));
+        throw new Error("Image upload failed: " + (data.error?.message || "Unknown error"));
       }
+      
       return data.secure_url;
     }
 
+    // Mint NFT
     async function mintNFT(imageUrl) {
-      if (!provider || !signer) throw new Error("Please connect your wallet first!");
+      if (!provider || !signer) {
+        throw new Error("Please connect your wallet first!");
+      }
+      
+      setStatus("Minting your NFT on the blockchain...", false, true);
+      
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
       const mintPrice = await contract.mintPrice();
+      
       let tx = await contract.mintWithURI(imageUrl, { value: mintPrice });
       await tx.wait();
+      
       return true;
     }
 
+    // Form Submission
     document.getElementById('mintForm').onsubmit = async function(e) {
       e.preventDefault();
-      setStatus('<span class="material-icons" style="vertical-align:middle;">pending</span> Processing...');
-      let file = imageFileInput.files[0];
-
+      
+      const file = imageFileInput.files[0];
+      
       try {
         if (!file) {
-          setStatus('<span class="material-icons" style="vertical-align:middle;">error</span> Please take a photo or upload an image.', true);
+          setStatus("Please select a photo to mint as NFT", true);
           return;
         }
+        
+        if (!userAddress) {
+          setStatus("Please connect your wallet first", true);
+          return;
+        }
+        
+        mintBtn.disabled = true;
+        
+        // Upload image
         const imageUrl = await uploadToCloudinary(file);
-        setStatus('<span class="material-icons" style="vertical-align:middle;">pending</span> Minting NFT...');
+        
+        // Mint NFT
         await mintNFT(imageUrl);
+        
+        // Success
         setStatus(`
-          <span class="material-icons" style="vertical-align:middle;color:var(--success);">check_circle</span>
-          NFT minted.<br>
-          <span class="material-icons" style="vertical-align:middle;color:var(--secondary);">sell</span>
-          You can sell your NFT on OPENSEA.<br>
-          <span class="material-icons" style="vertical-align:middle;color:var(--primary);">collections</span>
-          This is the collection url: <a href="https://opensea.io/collection/nft-agents" target="_blank">https://opensea.io/collection/nft-agents</a><br>
-          Name: <strong>NFT AGENTS</strong>
+          <div style="text-align: center;">
+            <div style="margin-bottom: 16px;">
+              <span class="material-icons" style="font-size: 48px; color: var(--success);">celebration</span>
+            </div>
+            <div style="font-size: 1.2em; font-weight: 600; margin-bottom: 12px;">
+              🎉 NFT Successfully Minted! 🎉
+            </div>
+            <div style="margin-bottom: 16px; color: var(--text-secondary);">
+              Your photo is now a valuable NFT on the blockchain
+            </div>
+            <div style="background: rgba(99, 102, 241, 0.1); padding: 16px; border-radius: 12px; margin: 16px 0;">
+              <div style="font-weight: 600; margin-bottom: 8px;">🏪 Ready to Sell</div>
+              <div style="margin-bottom: 12px;">View & sell your NFT on OpenSea:</div>
+              <a href="https://opensea.io/collection/nft-agents" target="_blank" 
+                 style="color: var(--secondary); text-decoration: none; font-weight: 600;">
+                NFT AGENTS Collection →
+              </a>
+            </div>
+          </div>
         `, false);
+        
+        // Reset form
+        setTimeout(() => {
+          imageFileInput.value = '';
+          previewImg.style.display = 'none';
+          mintBtn.disabled = false;
+          updateSteps(2);
+        }, 3000);
+        
       } catch (err) {
-        setStatus('<span class="material-icons" style="vertical-align:middle;">error</span> ' +
-          (err.data && err.data.message ? err.data.message : err.message), true);
+        mintBtn.disabled = false;
+        setStatus(
+          `<span class="material-icons">error</span> ${err.data?.message || err.message}`, 
+          true
+        );
       }
     };
+
+    // Event Listeners
+    document.getElementById('connectWalletBtn').onclick = connectWallet;
+
+    // Auto-connect if already connected
+    window.addEventListener('load', async () => {
+      if (window.ethereum?.selectedAddress) {
+        await connectWallet();
+      }
+    });
+
+    // Initialize
+    updateSteps(1);
   </script>
 </body>
 </html>
