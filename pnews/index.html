@@ -1,0 +1,548 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google News - Keywords Shuffle</title>
+  <!-- iOS Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="G News">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/323/323352.png">
+  <!-- Material Icons CDN -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Noto Nastaliq Urdu for beautiful Urdu font -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: #000;
+      color: #fff;
+      margin: 0;
+      padding: 1rem;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    .news-article {
+      border-bottom: 1px solid #222;
+      padding: 1rem 0;
+    }
+    .publisher-time-row {
+      margin-bottom: 0.15em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex-wrap: wrap;
+    }
+    .publisher {
+      font-weight: bold;
+      color: #888;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline;
+      margin-right: 0.6em;
+    }
+    .publisher:hover {
+      color: #aaa;
+    }
+    .time {
+      color: #777;
+      font-size: 13px;
+      display: inline;
+      margin-right: 0.6em;
+    }
+    .category-tag {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      background: #222;
+      color: #fff;
+      border-radius: 3px;
+      text-transform: uppercase;
+      padding: 2px 7px 2px 3px;
+      letter-spacing: 1px;
+      vertical-align: middle;
+      line-height: 1;
+      transition: background 0.2s;
+      margin-left: 0.2em;
+    }
+    .tag-icon {
+      font-size: 14px !important;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+    .chat-icon-btn {
+      margin-left: 0.6em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      vertical-align: middle;
+      display: inline-flex;
+      align-items: center;
+      padding: 0;
+    }
+    .chat-icon {
+      font-size: 28px !important;
+      color: #1d9bf0;
+      transition: color 0.2s;
+      vertical-align: middle;
+    }
+    .chat-icon-btn:hover .chat-icon {
+      color: #39f;
+    }
+    .link {
+      color: #d9d9d9;
+      word-break: break-word;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 0.1em;
+      font-size: 1em;
+      transition: color 0.2s;
+    }
+    .link:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+    .section-title {
+      color: #1d9bf0;
+      font-weight: bold;
+      font-size: 17px;
+      margin: 2rem 0 1rem;
+      letter-spacing: 1px;
+    }
+    .back-link {
+      color: #1d9bf0;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-bottom: 1em;
+      display: inline-block;
+    }
+    .back-link:hover {
+      color: #39f;
+    }
+    .loading {
+      color: #1d9bf0;
+      text-align: center;
+      margin: 2em 0 1em 0;
+      font-size: 1.1em;
+    }
+    /* Popup styles */
+    .chat-popup {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 280px;
+      max-width: 96vw;
+      max-height: 80vh;
+      background: #121212;
+      color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 38px #000c, 0 0 0 1px #222;
+      z-index: 11111;
+      padding: 2em 1.5em 1.3em 1.5em;
+      text-align: center;
+      font-size: 1.05em;
+      animation: fadein 0.2s;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    @keyframes fadein {
+      from { transform: translate(-50%, -60%) scale(0.98); opacity:0; }
+      to   { transform: translate(-50%, -50%) scale(1); opacity:1; }
+    }
+    .chat-popup .close-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
+      z-index: 1;
+    }
+    .chat-popup .close-btn:hover {
+      color: #fff;
+    }
+    .chat-popup .summary-loading {
+      margin: 20px 0 10px 0;
+      color: #1d9bf0;
+    }
+    .chat-popup .summary-error {
+      margin: 20px 0 10px 0;
+      color: #e74c3c;
+    }
+    .urdu-summary-box {
+      font-family: 'Noto Nastaliq Urdu', serif;
+      font-size: 1.24em;
+      direction: rtl;
+      text-align: right;
+      color: #f9f9f9;
+      margin: 1.2em 0 0 0;
+      line-height: 2.0;
+      letter-spacing: 0.2px;
+      padding: 0.5em 0.5em 0.5em 0.2em;
+      overflow-y: auto;
+      max-height: 38vh;
+      background: #181818;
+      border-radius: 8px;
+      box-shadow: 0 1px 7px #000a;
+    }
+  </style>
+</head>
+<body>
+  <div class="section-title">Google News (Keywords Shuffle)</div>
+  <div id="news-feed">
+    Loading news...
+  </div>
+  <div id="loading" class="loading" style="display:none;">Loading more headlines...</div>
+  <script>
+    const materialIcons = [
+      "public", "star", "science", "psychology", "bolt", "sports_soccer", "eco", "health_and_safety", "flight", "business"
+    ];
+    const keywords = [
+  // ... (existing keywords)
+
+  // Pakistan - Geography, Cities, Provinces
+  'Pakistan', 'Islamabad', 'Karachi', 'Lahore', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan', 'Faisalabad', 'Sialkot', 'Hyderabad', 'Gujranwala', 'Abbottabad',
+  'Sindh', 'Punjab', 'Khyber Pakhtunkhwa', 'Balochistan', 'Gilgit-Baltistan', 'Azad Kashmir',
+
+  // Politics, Government & Current Events
+  'Pakistani politics', 'Imran Khan', 'PTI', 'Nawaz Sharif', 'PMLN', 'PPP', 'Bilawal Bhutto', 'Benazir Bhutto', 'Pervez Musharraf', 'Shehbaz Sharif',
+  'General elections Pakistan', 'Pakistani parliament', 'National Assembly', 'Senate of Pakistan', 'Supreme Court of Pakistan', 'ECP', 'CPEC', 'China Pakistan Economic Corridor',
+  'ISI', 'Pak Army', 'Pak Navy', 'Pak Air Force', 'military establishment', 'civil-military relations', 'corruption Pakistan', 'Supreme Court decisions Pakistan',
+
+  // Economy, Business & Technology
+  'Pakistan economy', 'Pakistani rupee', 'State Bank of Pakistan', 'PSX', 'Pakistan Stock Exchange', 'remittances Pakistan', 'startup Pakistan', 'Pakistani IT sector',
+  'freelancing Pakistan', 'e-commerce Pakistan', 'Careem Pakistan', 'Foodpanda Pakistan', 'Jazz', 'Telenor Pakistan', 'Zong', 'Ufone', 'NADRA', 'PTCL', 'FBR', 'SECP',
+
+  // Society, Culture & Education
+  'Pakistani culture', 'Pakistani weddings', 'Shalwar kameez', 'truck art', 'Pakistani food', 'biryani', 'nihari', 'pakora', 'gol gappay', 'chai', 'desi food',
+  'Pakistan Day', 'Independence Day Pakistan', 'Eid in Pakistan', 'Ramadan Pakistan', 'religious minorities Pakistan', 'Hafiz Saeed', 'Madrassa', 'Urdu', 'Punjabi', 'Sindhi',
+  'Pashto', 'Balochi', 'Saraiki', 'Gilgiti', 'languages of Pakistan', 'literacy rate Pakistan', 'HEC', 'Pakistani universities', 'LUMS', 'NUST', 'IBA Karachi', 'UET Lahore',
+
+  // History & Landmarks
+  'Pakistan history', 'Partition', '1947', 'Indus Valley Civilization', 'Mohenjo Daro', 'Taxila', 'Badshahi Mosque', 'Minar-e-Pakistan', 'Lahore Fort', 'Karakoram Highway',
+  'Pakistan monuments',
+
+  // Science, Technology, Health
+  'science in Pakistan', 'Pakistani scientists', 'Abdus Salam', 'nuclear program Pakistan', 'atomic bomb Pakistan', 'HEC', 'COVID-19 Pakistan', 'healthcare in Pakistan',
+  'polio Pakistan', 'education reforms Pakistan',
+
+  // Sports
+  'Pakistan cricket', 'Babar Azam', 'PCB', 'PSL', 'Pakistan Super League', 'Wasim Akram', 'Shahid Afridi', 'Hockey Pakistan', 'Squash Pakistan', 'Jahangir Khan', 'Shoaib Akhtar',
+  'Pakistani athletes', 'Olympics Pakistan', 'mountaineering Pakistan', 'K2', 'Nanga Parbat',
+
+  // Entertainment, Media & Celebrities
+  'Lollywood', 'Pakistani drama', 'Pakistani TV', 'Hum TV', 'ARY Digital', 'Geo TV', 'Pakistani movies', 'Mahira Khan', 'Atif Aslam', 'Ali Zafar', 'Fawad Khan', 'Mehwish Hayat',
+  'Pakistani YouTubers', 'Irfan Junejo', 'Sham Idrees', 'YouTube Pakistan', 'TikTok Pakistan', 'Pakistani influencers',
+
+  // Social Issues & Trends
+  'women rights Pakistan', 'education for girls Pakistan', 'child labor Pakistan', 'poverty in Pakistan', 'urbanization Pakistan', 'load shedding Pakistan', 'internet shutdown Pakistan',
+  'blasphemy laws Pakistan', 'minority rights Pakistan', 'youth bulge Pakistan',
+
+  // Environment
+  'climate change Pakistan', 'floods in Pakistan', 'water crisis Pakistan', 'tree plantation Pakistan', 'billion tree tsunami', 'Mangla Dam', 'Tarbela Dam', 'Indus River',
+
+  // Travel & Tourism
+  'tourism in Pakistan', 'Hunza Valley', 'Skardu', 'Fairy Meadows', 'Swat Valley', 'Murree', 'Northern Areas Pakistan', 'Kashmir', 'Pakistani hospitality', 'Pakistani visa',
+
+  // Miscellaneous
+  'Pakistani memes', 'Pakistani trends', 'Pakistani social media', 'Pakistan news', 'Dawn News', 'Geo News', 'ARY News', 'Express Tribune', 'The News International'
+];
+    function getTagColor(keyword) {
+      const idx = keywords.indexOf(keyword);
+      const hue = (idx * 360 / keywords.length) % 360;
+      return `hsl(${hue},65%,45%)`;
+    }
+    function getRandomIcon(keyword) {
+      const idx = keywords.indexOf(keyword);
+      if (idx < 0) return materialIcons[Math.floor(Math.random() * materialIcons.length)];
+      return materialIcons[idx % materialIcons.length];
+    }
+    const feeds = keywords.map(keyword => ({
+      category: keyword,
+      url: `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=en-US&gl=US&ceid=US:en`
+    }));
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+    async function fetchCategory(category, url) {
+      try {
+        const rss2jsonUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url);
+        const resp = await fetch(rss2jsonUrl);
+        const data = await resp.json();
+        if (!data.items) return [];
+        return data.items.map(item => {
+          let publisher = "Unknown";
+          if (item.author && item.author !== "") {
+            publisher = item.author;
+          } else if (item.title && item.title.includes(" - ")) {
+            publisher = item.title.split(" - ").pop().trim();
+          }
+          let headline = item.title || "";
+          if (headline.endsWith(" - " + publisher)) {
+            headline = headline.replace(" - " + publisher, "").trim();
+          }
+          return {
+            category,
+            publisher,
+            headline,
+            link: item.link,
+            pubDate: item.pubDate,
+            description: item.description || ""
+          };
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+    function timeAgo(date) {
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000);
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      return `${Math.floor(diff/86400)}d ago`;
+    }
+    function filterNewsLastDay(newsArray) {
+      const now = new Date();
+      return newsArray.filter(item => {
+        if (!item.pubDate) return false;
+        const itemDate = new Date(item.pubDate);
+        const diffMs = now - itemDate;
+        return diffMs < 24 * 60 * 60 * 1000 && diffMs >= 0;
+      });
+    }
+    let allNews = [];
+    let loadedCount = 0;
+    const PAGE_SIZE = 20;
+    async function loadAllNews() {
+      const newsFeed = document.getElementById('news-feed');
+      newsFeed.innerHTML = "Loading news...";
+      allNews = [];
+      loadedCount = 0;
+      await Promise.all(
+        feeds.map(async feed =>
+          allNews.push(...await fetchCategory(feed.category, feed.url))
+        )
+      );
+      allNews = Array.from(new Map(allNews.map(i => [i.link, i])).values());
+      allNews = allNews.filter(a => a.pubDate);
+      allNews = filterNewsLastDay(allNews);
+      shuffleArray(allNews);
+      newsFeed.innerHTML = '';
+      if (allNews.length === 0) {
+        newsFeed.innerHTML = "<div>No news found from the last 24 hours.</div>";
+        return;
+      }
+      loadedCount = 0;
+      renderNextBatch();
+      window.addEventListener('scroll', handleScroll);
+    }
+    function renderNextBatch() {
+      const newsFeed = document.getElementById('news-feed');
+      const nextNews = allNews.slice(loadedCount, loadedCount + PAGE_SIZE);
+      nextNews.forEach(item => {
+        const article = document.createElement('div');
+        article.className = 'news-article';
+        const tagColor = getTagColor(item.category);
+        const tagIcon = getRandomIcon(item.category);
+        article.innerHTML = `
+          <div class="publisher-time-row">
+            <span class="publisher" data-publisher="${item.publisher}">${item.publisher}</span>
+            <span class="time">${item.pubDate ? timeAgo(new Date(item.pubDate)) : ""}</span>
+            <span class="category-tag" style="background:${tagColor}">
+              <span class="material-icons tag-icon">${tagIcon}</span>
+              ${item.category}
+            </span>
+            <button class="chat-icon-btn" 
+                title="Show AI summary"
+                data-article-headline="${encodeURIComponent(item.headline)}"
+                data-article-link="${encodeURIComponent(item.link)}"
+                data-article-description="${encodeURIComponent(item.description)}">
+              <span class="material-icons chat-icon">chat</span>
+            </button>
+          </div>
+          <a class="link" href="${item.link}" target="_blank">${item.headline}</a>
+        `;
+        newsFeed.appendChild(article);
+      });
+      Array.from(document.querySelectorAll('.publisher')).forEach(el => {
+        el.onclick = (e) => {
+          const pub = e.target.getAttribute('data-publisher');
+          if (pub) {
+            showPublisher(pub);
+          }
+        };
+      });
+      Array.from(document.querySelectorAll('.chat-icon-btn')).forEach(el => {
+        el.onclick = function(e) {
+          e.stopPropagation();
+          const headline = decodeURIComponent(this.getAttribute('data-article-headline'));
+          const link = decodeURIComponent(this.getAttribute('data-article-link'));
+          const description = decodeURIComponent(this.getAttribute('data-article-description'));
+          showChatPopupSummary(headline, link, description, this);
+        };
+      });
+      loadedCount += PAGE_SIZE;
+    }
+    function handleScroll() {
+      const loading = document.getElementById('loading');
+      if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200)) {
+        if (loadedCount < allNews.length) {
+          loading.style.display = 'block';
+          setTimeout(() => {
+            loading.style.display = 'none';
+            renderNextBatch();
+          }, 600);
+        }
+      }
+    }
+    function showPublisher(publisher) {
+      window.removeEventListener('scroll', handleScroll);
+      const newsFeed = document.getElementById('news-feed');
+      newsFeed.innerHTML = '';
+      const back = document.createElement('div');
+      back.className = 'back-link';
+      back.textContent = '← Back to all news';
+      back.onclick = () => {
+        newsFeed.innerHTML = '';
+        loadedCount = 0;
+        renderNextBatch();
+        window.addEventListener('scroll', handleScroll);
+      };
+      newsFeed.appendChild(back);
+      const section = document.createElement('div');
+      section.className = 'section-title';
+      section.textContent = `More from ${publisher}`;
+      newsFeed.appendChild(section);
+      const filtered = filterNewsLastDay(allNews.filter(i => i.publisher === publisher));
+      if (filtered.length === 0) {
+        newsFeed.innerHTML += '<div>No articles found from the last 24 hours.</div>';
+        return;
+      }
+      filtered.forEach(item => {
+        const article = document.createElement('div');
+        article.className = 'news-article';
+        const tagColor = getTagColor(item.category);
+        const tagIcon = getRandomIcon(item.category);
+        article.innerHTML = `
+          <div class="publisher-time-row">
+            <span class="publisher" data-publisher="${item.publisher}">${item.publisher}</span>
+            <span class="time">${item.pubDate ? timeAgo(new Date(item.pubDate)) : ""}</span>
+            <span class="category-tag" style="background:${tagColor}">
+              <span class="material-icons tag-icon">${tagIcon}</span>
+              ${item.category}
+            </span>
+            <button class="chat-icon-btn" 
+                title="Show AI summary"
+                data-article-headline="${encodeURIComponent(item.headline)}"
+                data-article-link="${encodeURIComponent(item.link)}"
+                data-article-description="${encodeURIComponent(item.description)}">
+              <span class="material-icons chat-icon">chat</span>
+            </button>
+          </div>
+          <a class="link" href="${item.link}" target="_blank">${item.headline}</a>
+        `;
+        newsFeed.appendChild(article);
+      });
+      Array.from(document.querySelectorAll('.chat-icon-btn')).forEach(el => {
+        el.onclick = function(e) {
+          e.stopPropagation();
+          const headline = decodeURIComponent(this.getAttribute('data-article-headline'));
+          const link = decodeURIComponent(this.getAttribute('data-article-link'));
+          const description = decodeURIComponent(this.getAttribute('data-article-description'));
+          showChatPopupSummary(headline, link, description, this);
+        };
+      });
+    }
+    function showChatPopupSummary(headline, link, description, btn) {
+      let oldPopup = document.getElementById('ai-chat-popup');
+      if (oldPopup) oldPopup.remove();
+      const popup = document.createElement('div');
+      popup.className = 'chat-popup';
+      popup.id = 'ai-chat-popup';
+      popup.innerHTML = `
+        <button class="close-btn" title="Close" onclick="this.parentElement.remove();">&times;</button>
+        <span class="material-icons" style="font-size:38px;color:#1d9bf0;margin-bottom:7px;">smart_toy</span>
+        <div style="margin-top:8px;min-width:180px"><b>AI خلاصہ</b></div>
+        <div class="summary-loading">خلاصہ لوڈ ہو رہا ہے...</div>
+      `;
+      document.body.appendChild(popup);
+      setTimeout(() => {
+        window.addEventListener('click', windowClosePopup, { once: true });
+        window.addEventListener('keydown', escClosePopup, { once: true });
+      }, 100);
+      function windowClosePopup(e) {
+        if (!popup.contains(e.target)) popup.remove();
+      }
+      function escClosePopup(e) {
+        if (e.key === 'Escape') popup.remove();
+      }
+      fetchGeminiSummary(headline, link, description, popup);
+    }
+    function fetchGeminiSummary(headline, link, description, popup) {
+      let contextText = `Summarize the following news article in 3-4 sentences and then provide the translation in Urdu (اردو) script, using simple language for a general audience. Respond ONLY with Urdu summary.\n\nTitle: ${headline}\nURL: ${link}\n`;
+      if (description && description.length > 20) {
+        contextText += `Description: ${description.replace(/<[^>]*>?/gm, '').slice(0, 600)}\n`;
+      }
+      fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCOncL485Nr5ktYvWeeF9uFMumZ_yjz7Pk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: contextText }
+              ]
+            }
+          ]
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        let summary = "";
+        if (
+          data &&
+          data.candidates &&
+          data.candidates.length &&
+          data.candidates[0].content &&
+          data.candidates[0].content.parts &&
+          data.candidates[0].content.parts.length
+        ) {
+          summary = data.candidates[0].content.parts[0].text;
+        } else {
+          summary = "";
+        }
+        const loadingDiv = popup.querySelector('.summary-loading');
+        if (loadingDiv) {
+          if (summary) {
+            loadingDiv.outerHTML = `<div class="urdu-summary-box">${summary.replace(/\n/g, '<br>')}</div>`;
+          } else {
+            loadingDiv.outerHTML = `<div class="summary-error">کوئی خلاصہ دستیاب نہیں۔</div>`;
+          }
+        }
+      })
+      .catch(err => {
+        const loadingDiv = popup.querySelector('.summary-loading');
+        if (loadingDiv) loadingDiv.outerHTML = `<div class="summary-error">خلاصہ لوڈ کرنے میں مسئلہ۔</div>`;
+      });
+    }
+    window.showChatPopupSummary = showChatPopupSummary;
+    loadAllNews();
+  </script>
+</body>
+</html>
