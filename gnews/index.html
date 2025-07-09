@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Google News - Keywords Shuffle</title>
-    <!-- iOS Web App Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="G News">
-    <link rel="apple-touch-icon" href="https://grin2b.com/wp-content/uploads/2017/01/Grin2B_icon_NEWS.png">
+  <!-- iOS Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="G News">
+  <link rel="apple-touch-icon" href="https://grin2b.com/wp-content/uploads/2017/01/Grin2B_icon_NEWS.png">
+  <!-- Material Icons CDN -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Noto Nastaliq Urdu for beautiful Urdu font -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -25,6 +29,10 @@
     }
     .publisher-time-row {
       margin-bottom: 0.15em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex-wrap: wrap;
     }
     .publisher {
       font-weight: bold;
@@ -44,19 +52,44 @@
       margin-right: 0.6em;
     }
     .category-tag {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
       font-size: 10px;
       font-weight: 700;
       background: #222;
       color: #fff;
       border-radius: 3px;
       text-transform: uppercase;
-      padding: 2px 7px;
-      margin-left: 0.5em;
+      padding: 2px 7px 2px 3px;
       letter-spacing: 1px;
       vertical-align: middle;
       line-height: 1;
       transition: background 0.2s;
+      margin-left: 0.2em;
+    }
+    .tag-icon {
+      font-size: 14px !important;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+    .chat-icon-btn {
+      margin-left: 0.6em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      vertical-align: middle;
+      display: inline-flex;
+      align-items: center;
+      padding: 0;
+    }
+    .chat-icon {
+      font-size: 28px !important;
+      color: #1d9bf0;
+      transition: color 0.2s;
+      vertical-align: middle;
+    }
+    .chat-icon-btn:hover .chat-icon {
+      color: #39f;
     }
     .link {
       color: #d9d9d9;
@@ -94,6 +127,73 @@
       margin: 2em 0 1em 0;
       font-size: 1.1em;
     }
+    /* Popup styles */
+    .chat-popup {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 280px;
+      max-width: 96vw;
+      max-height: 80vh;
+      background: #121212;
+      color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 38px #000c, 0 0 0 1px #222;
+      z-index: 11111;
+      padding: 2em 1.5em 1.3em 1.5em;
+      text-align: center;
+      font-size: 1.05em;
+      animation: fadein 0.2s;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    @keyframes fadein {
+      from { transform: translate(-50%, -60%) scale(0.98); opacity:0; }
+      to   { transform: translate(-50%, -50%) scale(1); opacity:1; }
+    }
+    .chat-popup .close-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
+      z-index: 1;
+    }
+    .chat-popup .close-btn:hover {
+      color: #fff;
+    }
+    .chat-popup .summary-loading {
+      margin: 20px 0 10px 0;
+      color: #1d9bf0;
+    }
+    .chat-popup .summary-error {
+      margin: 20px 0 10px 0;
+      color: #e74c3c;
+    }
+    .urdu-summary-box {
+      font-family: 'Noto Nastaliq Urdu', serif;
+      font-size: 1.24em;
+      direction: rtl;
+      text-align: right;
+      color: #f9f9f9;
+      margin: 1.2em 0 0 0;
+      line-height: 2.0;
+      letter-spacing: 0.2px;
+      padding: 0.5em 0.5em 0.5em 0.2em;
+      overflow-y: auto;
+      max-height: 38vh;
+      background: #181818;
+      border-radius: 8px;
+      box-shadow: 0 1px 7px #000a;
+    }
   </style>
 </head>
 <body>
@@ -103,91 +203,32 @@
   </div>
   <div id="loading" class="loading" style="display:none;">Loading more headlines...</div>
   <script>
-    // 500+ keywords: includes countries, companies, cities, crypto, science, health, physics, marketing, etc.
-    const keywords = [
-      // Previous keywords (first 100+)
-      'Leuven', 'robot', 'iPhone', 'chip', 'AI', 'Pakistan', 'blockchain', 'climate', 'Ukraine', 'crypto', 'Mars', 'Tesla', 'health', 'inflation', 'Google', 'Microsoft',
-      'Samsung', 'Amazon', 'China', 'USA', 'Europe', 'India', 'election', 'startup', 'quantum', 'energy', 'football', 'Olympics', 'volcano', 'earthquake', 'nuclear',
-      'biodiversity', 'education', 'medicine', 'vaccine', 'cybersecurity', 'privacy', 'electric car', 'biotech', 'finance', 'stock', 'space', 'nasa', 'moon', 'weather',
-      'travel', 'tourism', 'fashion', 'music', 'movies', 'AI art', 'machine learning', '5G', 'internet', 'gaming', 'esports', 'virtual reality', 'augmented reality',
-      'metaverse', 'bitcoin', 'dogecoin', 'politics','science','arts','food','coffee','tea','covid','virus','pandemic','lockdown','rain','flood','drought','hurricane',
-      'wildfire','earth','planet','ocean','river','mountain','forest','jungle','desert','city','village','transport','car','train','plane','airport','hotel','university',
-      'school','teacher','student','children','parent','wedding','festival','holiday','shopping','market','startup','investment','mobile','app','software','hardware',
-      'research','innovation',
-
-      // Countries (UN member states, ~195)
-      "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan",
-      "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",
-      "Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
-      "Denmark","Djibouti","Dominica","Dominican Republic",
-      "Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia",
-      "Fiji","Finland","France",
-      "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana",
-      "Haiti","Honduras","Hungary",
-      "Iceland","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
-      "Jamaica","Japan","Jordan",
-      "Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan",
-      "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",
-      "Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
-      "Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",
-      "Oman",
-      "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",
-      "Qatar",
-      "Romania","Russia","Rwanda",
-      "Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",
-      "Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu",
-      "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
-      "Vanuatu","Vatican City","Venezuela","Vietnam",
-      "Yemen",
-      "Zambia","Zimbabwe",
-
-      // Famous cities (global, 70+)
-      "New York","London","Paris","Tokyo","Moscow","Beijing","Berlin","Sydney","Dubai","Los Angeles","San Francisco","Chicago","Toronto","Hong Kong","Singapore","Bangkok","Madrid","Barcelona","Rome","Amsterdam","Vienna","Istanbul","Cairo","Mumbai","Delhi","Shanghai","Seoul","Mexico City","Johannesburg","Lagos","Rio de Janeiro","Buenos Aires","Sao Paulo","Cape Town","Jakarta","Kuala Lumpur","Manila","Melbourne","Brussels","Zurich","Prague","Warsaw","Budapest","Dublin","Lisbon","Stockholm","Oslo","Helsinki","Copenhagen","Geneva","Monaco","Doha","Abu Dhabi","Riyadh","Santiago","Bogota","Lima","Caracas","Casablanca","Auckland","Brisbane","Perth","Edinburgh","Glasgow","Venice","Florence","Nice","Marseille",
-
-      // Companies (big brands)
-      "Apple","Google","Amazon","Microsoft","Facebook","Meta","Tesla","Nvidia","Intel","AMD","IBM","Oracle","Dell","HP","Cisco","Twitter","Snapchat","TikTok","Netflix","Disney","Sony","Panasonic","LG","Xiaomi","Huawei","Lenovo","Uber","Airbnb","SpaceX","Boeing","Ford","General Motors","Volkswagen","Toyota","Honda","Pepsi","Coca-Cola","Nestle","Unilever","Procter & Gamble","Johnson & Johnson","Pfizer","Moderna","Novartis","Shell","BP","ExxonMobil","Chevron","TotalEnergies","Visa","Mastercard","PayPal","Stripe","Goldman Sachs","JPMorgan","Morgan Stanley","HSBC","Barclays","Santander","ING","Allianz","Siemens","BASF","SAP","Philips","Bosch","Mitsubishi","Sumitomo","SoftBank","Tencent","Alibaba","ByteDance","Ant Group","JD.com","Samsung","SK Hynix","TSMC","Foxconn","ASML","ABB","Ericsson",
-
-      // Cryptocurrencies
-      "Bitcoin","Ethereum","Ripple","Litecoin","Dogecoin","Cardano","Polkadot","Solana","Polygon","Shiba Inu","Avalanche","Chainlink","Stellar","Monero","Uniswap","TRON","VeChain","Tezos","Aave","EOS","Cosmos","Maker","Synthetix","Filecoin","Algorand","Zcash","Dash","NEO","IOTA","BitTorrent","Theta","Compound","Decred","Waves","Ontology","0x","PancakeSwap","Terra","Yearn Finance","Chiliz","Enjin","Basic Attention Token","Ren","Nano","Celo","Reserve Rights","Serum","Elrond","ICON","Flow","BakeryToken","Civic","Balancer","RenBTC","UMA","Ampleforth","1inch","Ocean Protocol","Orchid","Band Protocol","Loopring","Storj","Siacoin","Golem","Augur","Status","Kyber Network","DigiByte",
-
-      // Marketing & Business
-      "marketing","advertising","SEO","SEM","branding","copywriting","public relations","PR","influencer marketing","email marketing","social media","content marketing","affiliate marketing","digital marketing","analytics","growth hacking","sales","lead generation","customer relationship","CRM","retargeting","remarketing","conversion rate","e-commerce","dropshipping","market research","brand strategy","B2B","B2C","direct marketing","viral marketing","outbound marketing","inbound marketing","media buying","programmatic advertising","native advertising","sponsorship","event marketing","trade show","retail marketing","mobile marketing","product launch","brand management","guerrilla marketing","experiential marketing","word of mouth","branding agency","market segmentation",
-
-      // Physics, science, technology
-      "physics","quantum mechanics","relativity","astrophysics","cosmology","particle physics","nuclear physics","thermodynamics","optics","acoustics","electromagnetism","general relativity","string theory","dark matter","dark energy","gravitational waves","plasma physics","condensed matter","solid state physics","materials science","nanotechnology","quantum computing","artificial intelligence","robotics","data science","cloud computing","blockchain technology","cybersecurity","machine learning","deep learning","neural networks","computer vision","natural language processing","genomics","biotechnology","bioinformatics","CRISPR","gene editing","stem cells","regenerative medicine","immunotherapy","epidemiology","virology","bacteriology","microbiology","ecology","climate science","earth science","oceanography","meteorology","geology","seismology","volcanology","paleontology","zoology","botany","agronomy","hydrology","astronomy","exoplanet","space exploration","satellite","rocketry","aerospace","drone","autonomous vehicles","electric vehicles","solar energy","wind energy","hydrogen","fuel cell","smart grid","internet of things","wearable technology","augmented reality","virtual reality","blockchain","fintech","edtech","medtech","agritech","cleantech","proptech",
-
-      // Health, medicine, wellness
-      "health","wellness","fitness","nutrition","mental health","anxiety","depression","therapy","psychology","psychiatry","neurology","cardiology","oncology","diabetes","hypertension","cholesterol","weight loss","diet","exercise","yoga","meditation","mindfulness","sleep","insomnia","obesity","cancer","heart disease","stroke","Alzheimer's","Parkinson's","autism","ADHD","arthritis","osteoporosis","immunology","vaccination","pandemic","epidemic","public health","telemedicine","healthcare","primary care","urgent care","emergency medicine","surgery","medical device","hospital","clinic","doctor","nurse","pharmacy","pharmacology","prescription","OTC","rehabilitation","physical therapy","occupational therapy","speech therapy","sports medicine","alternative medicine","acupuncture","herbal medicine","supplements","vitamins","personal trainer","dietitian","nutritionist","wellbeing","spa","massage",
-
-      // More world cities (50+)
-      "Athens","Istanbul","Beirut","Jerusalem","Alexandria","Tehran","Baghdad","Riyadh","Jeddah","Mecca","Medina","Ankara","Tbilisi","Yerevan","Baku","Astana","Almaty","Tashkent","Ashgabat","Dushanbe","Bishkek","Kabul","Karachi","Lahore","Dhaka","Kathmandu","Colombo","Yangon","Bangkok","Hanoi","Ho Chi Minh City","Kuala Lumpur","Jakarta","Bali","Singapore","Manila","Hong Kong","Macau","Taipei","Shanghai","Beijing","Shenzhen","Guangzhou","Chengdu","Chongqing","Wuhan","Nanjing","Xi'an","Suzhou","Hangzhou","Seoul","Busan","Incheon","Tokyo","Osaka","Kyoto","Nagoya","Sapporo","Fukuoka","Yokohama","Sendai","Kobe","Hiroshima","Nagasaki",
-
-      // Additional countries & major cities (50+ to reach 500+ keywords)
-      "Tallinn","Riga","Vilnius","Minsk","Bratislava","Ljubljana","Zagreb","Belgrade","Sarajevo","Skopje","Podgorica","Pristina","Tirana","Sofia","Bucharest","Chisinau","Kiev","Odessa","Lviv","Kharkiv","Dnipro","Donetsk","Simferopol","Tbilisi","Batumi","Kutaisi","Yerevan","Gyumri","Vanadzor","Baku","Ganja","Sumqayit","Minsk","Grodno","Brest","Vitebsk","Mogilev","Homel","Kaliningrad","St Petersburg","Yekaterinburg","Novosibirsk","Kazan","Nizhny Novgorod","Samara","Omsk","Rostov-on-Don","Chelyabinsk","Ufa","Volgograd",
-
-      // A few tech & science buzzwords (to go past 500)
-      "LLM","chatbot","openai","GPT-3","GPT-4","Copilot","stable diffusion","midjourney","quantum supremacy","blockchain wallet","NFT","DAO","DeFi","Web3","smart contract","tokenization","cryptography","homomorphic encryption","differential privacy","edge computing","fog computing","swarm robotics","digital twin","synthetic biology","precision medicine","telehealth","remote work","hybrid work","digital nomad","gig economy","creator economy","subscription economy","crowdfunding","crowdsourcing","open source","hackathon","bootcamp","MOOC","microlearning","edutainment","infographic","podcast","vlog","livestream","influencer","microinfluencer","macroinfluencer","personal branding","brand ambassador"
+    const materialIcons = [
+      "public", "star", "science", "psychology", "bolt", "sports_soccer", "eco", "health_and_safety", "flight", "business"
     ];
-
+    const keywords = [
+      "AI", "robot", "climate", "bitcoin", "Tesla", "health", "Google", "Microsoft", "Amazon", "Ukraine"
+    ];
     function getTagColor(keyword) {
       const idx = keywords.indexOf(keyword);
       const hue = (idx * 360 / keywords.length) % 360;
-      // Use 65% saturation, 45% lightness for vivid but dark bg
       return `hsl(${hue},65%,45%)`;
     }
-
+    function getRandomIcon(keyword) {
+      const idx = keywords.indexOf(keyword);
+      if (idx < 0) return materialIcons[Math.floor(Math.random() * materialIcons.length)];
+      return materialIcons[idx % materialIcons.length];
+    }
     const feeds = keywords.map(keyword => ({
       category: keyword,
       url: `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=en-US&gl=US&ceid=US:en`
     }));
-
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
       }
     }
-
     async function fetchCategory(category, url) {
       try {
         const rss2jsonUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url);
@@ -210,14 +251,14 @@
             publisher,
             headline,
             link: item.link,
-            pubDate: item.pubDate
+            pubDate: item.pubDate,
+            description: item.description || ""
           };
         });
       } catch (e) {
         return [];
       }
     }
-
     function timeAgo(date) {
       const now = new Date();
       const diff = Math.floor((now - date) / 1000);
@@ -226,8 +267,6 @@
       if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
       return `${Math.floor(diff/86400)}d ago`;
     }
-
-    // Helper function: filter only news from last 24 hours
     function filterNewsLastDay(newsArray) {
       const now = new Date();
       return newsArray.filter(item => {
@@ -237,30 +276,23 @@
         return diffMs < 24 * 60 * 60 * 1000 && diffMs >= 0;
       });
     }
-
     let allNews = [];
     let loadedCount = 0;
     const PAGE_SIZE = 20;
-
     async function loadAllNews() {
       const newsFeed = document.getElementById('news-feed');
       newsFeed.innerHTML = "Loading news...";
       allNews = [];
       loadedCount = 0;
-      // Parallel fetch all feeds (many! be careful with API limits)
       await Promise.all(
         feeds.map(async feed =>
           allNews.push(...await fetchCategory(feed.category, feed.url))
         )
       );
-      // Remove duplicates (same link), filter for last day, mix, and sort
       allNews = Array.from(new Map(allNews.map(i => [i.link, i])).values());
       allNews = allNews.filter(a => a.pubDate);
       allNews = filterNewsLastDay(allNews);
-
-      // Shuffle for randomness
       shuffleArray(allNews);
-
       newsFeed.innerHTML = '';
       if (allNews.length === 0) {
         newsFeed.innerHTML = "<div>No news found from the last 24 hours.</div>";
@@ -270,7 +302,6 @@
       renderNextBatch();
       window.addEventListener('scroll', handleScroll);
     }
-
     function renderNextBatch() {
       const newsFeed = document.getElementById('news-feed');
       const nextNews = allNews.slice(loadedCount, loadedCount + PAGE_SIZE);
@@ -278,17 +309,27 @@
         const article = document.createElement('div');
         article.className = 'news-article';
         const tagColor = getTagColor(item.category);
+        const tagIcon = getRandomIcon(item.category);
         article.innerHTML = `
           <div class="publisher-time-row">
             <span class="publisher" data-publisher="${item.publisher}">${item.publisher}</span>
             <span class="time">${item.pubDate ? timeAgo(new Date(item.pubDate)) : ""}</span>
-            <span class="category-tag" style="background:${tagColor}">${item.category}</span>
+            <span class="category-tag" style="background:${tagColor}">
+              <span class="material-icons tag-icon">${tagIcon}</span>
+              ${item.category}
+            </span>
+            <button class="chat-icon-btn" 
+                title="Show AI summary"
+                data-article-headline="${encodeURIComponent(item.headline)}"
+                data-article-link="${encodeURIComponent(item.link)}"
+                data-article-description="${encodeURIComponent(item.description)}">
+              <span class="material-icons chat-icon">chat</span>
+            </button>
           </div>
           <a class="link" href="${item.link}" target="_blank">${item.headline}</a>
         `;
         newsFeed.appendChild(article);
       });
-      // Publisher click: more from same publisher (from all loaded news)
       Array.from(document.querySelectorAll('.publisher')).forEach(el => {
         el.onclick = (e) => {
           const pub = e.target.getAttribute('data-publisher');
@@ -297,9 +338,17 @@
           }
         };
       });
+      Array.from(document.querySelectorAll('.chat-icon-btn')).forEach(el => {
+        el.onclick = function(e) {
+          e.stopPropagation();
+          const headline = decodeURIComponent(this.getAttribute('data-article-headline'));
+          const link = decodeURIComponent(this.getAttribute('data-article-link'));
+          const description = decodeURIComponent(this.getAttribute('data-article-description'));
+          showChatPopupSummary(headline, link, description, this);
+        };
+      });
       loadedCount += PAGE_SIZE;
     }
-
     function handleScroll() {
       const loading = document.getElementById('loading');
       if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200)) {
@@ -312,12 +361,10 @@
         }
       }
     }
-
     function showPublisher(publisher) {
       window.removeEventListener('scroll', handleScroll);
       const newsFeed = document.getElementById('news-feed');
       newsFeed.innerHTML = '';
-      // Back link
       const back = document.createElement('div');
       back.className = 'back-link';
       back.textContent = '← Back to all news';
@@ -328,12 +375,10 @@
         window.addEventListener('scroll', handleScroll);
       };
       newsFeed.appendChild(back);
-      // Section title
       const section = document.createElement('div');
       section.className = 'section-title';
       section.textContent = `More from ${publisher}`;
       newsFeed.appendChild(section);
-      // Filter and show only last 24h for this publisher
       const filtered = filterNewsLastDay(allNews.filter(i => i.publisher === publisher));
       if (filtered.length === 0) {
         newsFeed.innerHTML += '<div>No articles found from the last 24 hours.</div>';
@@ -343,18 +388,112 @@
         const article = document.createElement('div');
         article.className = 'news-article';
         const tagColor = getTagColor(item.category);
+        const tagIcon = getRandomIcon(item.category);
         article.innerHTML = `
           <div class="publisher-time-row">
             <span class="publisher" data-publisher="${item.publisher}">${item.publisher}</span>
             <span class="time">${item.pubDate ? timeAgo(new Date(item.pubDate)) : ""}</span>
-            <span class="category-tag" style="background:${tagColor}">${item.category}</span>
+            <span class="category-tag" style="background:${tagColor}">
+              <span class="material-icons tag-icon">${tagIcon}</span>
+              ${item.category}
+            </span>
+            <button class="chat-icon-btn" 
+                title="Show AI summary"
+                data-article-headline="${encodeURIComponent(item.headline)}"
+                data-article-link="${encodeURIComponent(item.link)}"
+                data-article-description="${encodeURIComponent(item.description)}">
+              <span class="material-icons chat-icon">chat</span>
+            </button>
           </div>
           <a class="link" href="${item.link}" target="_blank">${item.headline}</a>
         `;
         newsFeed.appendChild(article);
       });
+      Array.from(document.querySelectorAll('.chat-icon-btn')).forEach(el => {
+        el.onclick = function(e) {
+          e.stopPropagation();
+          const headline = decodeURIComponent(this.getAttribute('data-article-headline'));
+          const link = decodeURIComponent(this.getAttribute('data-article-link'));
+          const description = decodeURIComponent(this.getAttribute('data-article-description'));
+          showChatPopupSummary(headline, link, description, this);
+        };
+      });
     }
-
+    function showChatPopupSummary(headline, link, description, btn) {
+      let oldPopup = document.getElementById('ai-chat-popup');
+      if (oldPopup) oldPopup.remove();
+      const popup = document.createElement('div');
+      popup.className = 'chat-popup';
+      popup.id = 'ai-chat-popup';
+      popup.innerHTML = `
+        <button class="close-btn" title="Close" onclick="this.parentElement.remove();">&times;</button>
+        <span class="material-icons" style="font-size:38px;color:#1d9bf0;margin-bottom:7px;">smart_toy</span>
+        <div style="margin-top:8px;min-width:180px"><b>AI خلاصہ</b></div>
+        <div class="summary-loading">خلاصہ لوڈ ہو رہا ہے...</div>
+      `;
+      document.body.appendChild(popup);
+      setTimeout(() => {
+        window.addEventListener('click', windowClosePopup, { once: true });
+        window.addEventListener('keydown', escClosePopup, { once: true });
+      }, 100);
+      function windowClosePopup(e) {
+        if (!popup.contains(e.target)) popup.remove();
+      }
+      function escClosePopup(e) {
+        if (e.key === 'Escape') popup.remove();
+      }
+      fetchGeminiSummary(headline, link, description, popup);
+    }
+    function fetchGeminiSummary(headline, link, description, popup) {
+      let contextText = `Summarize the following news article in 3-4 sentences and then provide the translation in Urdu (اردو) script, using simple language for a general audience. Respond ONLY with Urdu summary.\n\nTitle: ${headline}\nURL: ${link}\n`;
+      if (description && description.length > 20) {
+        contextText += `Description: ${description.replace(/<[^>]*>?/gm, '').slice(0, 600)}\n`;
+      }
+      fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCOncL485Nr5ktYvWeeF9uFMumZ_yjz7Pk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: contextText }
+              ]
+            }
+          ]
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        let summary = "";
+        if (
+          data &&
+          data.candidates &&
+          data.candidates.length &&
+          data.candidates[0].content &&
+          data.candidates[0].content.parts &&
+          data.candidates[0].content.parts.length
+        ) {
+          summary = data.candidates[0].content.parts[0].text;
+        } else {
+          summary = "";
+        }
+        const loadingDiv = popup.querySelector('.summary-loading');
+        if (loadingDiv) {
+          if (summary) {
+            loadingDiv.outerHTML = `<div class="urdu-summary-box">${summary.replace(/\n/g, '<br>')}</div>`;
+          } else {
+            loadingDiv.outerHTML = `<div class="summary-error">کوئی خلاصہ دستیاب نہیں۔</div>`;
+          }
+        }
+      })
+      .catch(err => {
+        const loadingDiv = popup.querySelector('.summary-loading');
+        if (loadingDiv) loadingDiv.outerHTML = `<div class="summary-error">خلاصہ لوڈ کرنے میں مسئلہ۔</div>`;
+      });
+    }
+    window.showChatPopupSummary = showChatPopupSummary;
     loadAllNews();
   </script>
 </body>
