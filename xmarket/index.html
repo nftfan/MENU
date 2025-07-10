@@ -185,6 +185,79 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
+    .list-nft-btn {
+      background: transparent;
+      border: none;
+      color: #43e97b;
+      cursor: pointer;
+      padding: 0 2px;
+      margin-left: 4px;
+      vertical-align: middle;
+      font-size: 10px !important;
+    }
+    .list-nft-btn .material-symbols-outlined {
+      margin: 0;
+      font-size: 14px !important;
+      color: #43e97b;
+      vertical-align: middle;
+    }
+    .mint-table .nft-price {
+      color: #ffca28;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: 6px;
+      letter-spacing: 0.01em;
+      background: #1f2633;
+      border-radius: 4px;
+      padding: 1px 4px;
+      display: inline-block;
+    }
+    /* Modal overrides */
+    .modal {
+      max-width: 300px;
+      border-radius: 8px;
+      background: #181d23;
+      padding: 16px 8px 12px 8px;
+    }
+    .modal .modal-content {
+      padding: 12px 8px 0 8px;
+    }
+    .modal .modal-footer {
+      background: none;
+      border-top: none;
+      padding: 0 8px 8px 8px;
+    }
+    .modal input[type="number"] {
+      font-size: 10px !important;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: #10151b;
+      border: 1px solid #21cbf3;
+      color: #fff;
+      margin-bottom: 10px;
+      width: 80px;
+      display: inline-block;
+    }
+    .modal .modal-close, .modal .list-confirm-btn {
+      background: linear-gradient(45deg,#21cbf3,#2196f3);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 10px !important;
+      padding: 2px 8px;
+      margin-right: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 2px;
+      transition: background 0.2s;
+    }
+    .modal .modal-close {
+      background: #181d23;
+      color: #7fc9ff;
+      border: 1px solid #21cbf3;
+      margin-right: 0;
+      margin-left: 6px;
+    }
     @media (max-width: 600px) {
       .container {
         padding: 4px 0 0 0;
@@ -207,6 +280,7 @@
         height: 22px;
         min-height: 22px;
       }
+      .profile-pic { width: 24px; height: 24px; }
     }
   </style>
 </head>
@@ -249,6 +323,22 @@
       </tbody>
     </table>
   </div>
+
+  <!-- List NFT Modal -->
+  <div id="listNftModal" class="modal">
+    <div class="modal-content">
+      <h6 style="margin:0 0 8px 0;font-size:10px;">List NFT for Sale</h6>
+      <div style="margin-bottom: 10px;">
+        <label for="nftPrice" style="font-size:10px;color:#7fc9ff;">Enter price in <b>$POL</b></label>
+        <input id="nftPrice" type="number" min="0" step="0.0001" placeholder="Amount" required />
+      </div>
+    </div>
+    <div class="modal-footer" style="padding-bottom:8px;">
+      <button class="list-confirm-btn" id="confirmListBtn" type="button">List</button>
+      <button class="modal-close" id="cancelListBtn" type="button">Cancel</button>
+    </div>
+  </div>
+
   <!-- Materialize JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
@@ -300,6 +390,14 @@
       });
     }
 
+    // Save NFT listing price in Firebase
+    async function saveNftListingToFirebase(username, price) {
+      const key = username.toLowerCase().replace(/\./g, "_");
+      await db.ref('minted/' + key + '/listing').set({
+        price: price
+      });
+    }
+
     // Load all minted usernames from Firebase and display
     async function loadMintedUsernames() {
       const table = document.getElementById('mintedTable').getElementsByTagName('tbody')[0];
@@ -315,9 +413,28 @@
         const cellPic = row.insertCell(0);
         const cellUser = row.insertCell(1);
         const cellWallet = row.insertCell(2);
+
+        // List NFT button
+        let priceHtml = '';
+        if (entry.listing && entry.listing.price) {
+          priceHtml = `<span class="nft-price">${entry.listing.price} $POL</span>`;
+        }
         cellPic.innerHTML = `<img class="profile-pic" src="${picUrl}" alt="${entry.username} profile picture" onerror="this.onerror=null;this.src='${defaultPic}';" />`;
-        cellUser.innerHTML = `<b style="font-size:10px;">${entry.username}</b>`;
+        cellUser.innerHTML = `<b style="font-size:10px;">${entry.username}</b>
+          <button class="list-nft-btn" title="List NFT" data-username="${entry.username}">
+            <span class="material-symbols-outlined">sell</span>
+          </button>
+          ${priceHtml}`;
         cellWallet.innerHTML = `<span class="material-symbols-outlined" style="font-size:10px;">account_balance_wallet</span> <span style="font-family:monospace;">${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}</span>`;
+      });
+
+      // Add event listeners for list buttons
+      document.querySelectorAll('.list-nft-btn').forEach(btn => {
+        btn.onclick = function(e) {
+          e.preventDefault();
+          const username = btn.getAttribute('data-username');
+          showListModal(username);
+        }
       });
     }
 
@@ -440,6 +557,38 @@
       usernameInput.value = "";
     });
 
+    // Modal logic for NFT listing
+    let currentModalUsername = null;
+    function showListModal(username) {
+      currentModalUsername = username;
+      document.getElementById('nftPrice').value = '';
+      const modal = document.getElementById('listNftModal');
+      modal.style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('nftPrice').focus();
+      }, 50);
+    }
+    function hideListModal() {
+      document.getElementById('listNftModal').style.display = 'none';
+      currentModalUsername = null;
+    }
+    document.getElementById('cancelListBtn').onclick = hideListModal;
+    document.getElementById('listNftModal').onclick = function(e){
+      if(e.target === this) hideListModal();
+    };
+    document.getElementById('confirmListBtn').onclick = async function() {
+      const price = document.getElementById('nftPrice').value.trim();
+      if (!price || isNaN(price) || Number(price) <= 0) {
+        M.toast({html: 'Enter a valid price', classes: 'red'});
+        return;
+      }
+      if (!currentModalUsername) return;
+      await saveNftListingToFirebase(currentModalUsername, price);
+      hideListModal();
+      await loadMintedUsernames();
+      M.toast({html: 'NFT listed for sale!', classes: 'green'});
+    };
+
     // On load: show minted usernames and wallet if already connected
     window.addEventListener('DOMContentLoaded', async () => {
       await loadMintedUsernames();
@@ -450,6 +599,12 @@
         if (currentWallet) await saveWalletToFirebase(currentWallet);
       }
     });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === "Escape") hideListModal();
+    });
   </script>
 </body>
 </html>
+
