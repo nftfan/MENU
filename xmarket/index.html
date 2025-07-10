@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Buy and Sell X Profiles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Material Icons (Sleek Theme) -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Materialize CSS for modern mobile look -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet" />
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      background: #121212;
+      color: #fff;
+    }
+    .material-symbols-outlined {
+      vertical-align: middle;
+      font-size: 24px;
+      color: #2196f3;
+    }
+    .mint-btn {
+      background: linear-gradient(45deg,#2196f3,#21cbf3);
+      color: #fff;
+      border-radius: 8px;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .wallet-btn {
+      background: linear-gradient(45deg,#8e24aa,#43e97b);
+      color: #fff;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      width: 100%;
+      font-weight: bold;
+    }
+    .wallet-address {
+      font-family: monospace;
+      background: rgba(33,150,243,0.1);
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin-left: 8px;
+      color: #21cbf3;
+    }
+    .input-field input[type="text"] {
+      color: #fff;
+      border-bottom: 1px solid #2196f3;
+    }
+    .input-field input[type="text"]:focus {
+      border-bottom: 2px solid #21cbf3;
+      box-shadow: 0 1px 0 0 #21cbf3;
+    }
+    .profile-pic {
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      object-fit: cover;
+      border: 2px solid #2196f3;
+    }
+    .mint-table th, .mint-table td {
+      color: #fff;
+      vertical-align: middle;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 8px;
+      }
+      .mint-table th, .mint-table td {
+        font-size: 13px;
+        padding: 6px 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h5>
+      <span class="material-symbols-outlined">shopping_cart</span>
+      Buy and Sell X Profiles
+    </h5>
+    <button id="connectWalletBtn" class="btn wallet-btn">
+      <span class="material-symbols-outlined">account_balance_wallet</span>
+      <span id="walletBtnText">Connect Wallet</span>
+    </button>
+    <div id="connectedWalletDisplay" style="display:none; margin-bottom: 16px;">
+      Connected: <span id="connectedWallet" class="wallet-address"></span>
+      <span id="networkName" style="margin-left:10px; color:#8e24aa;"></span>
+    </div>
+    <form id="mintForm" autocomplete="off">
+      <div class="input-field">
+        <input id="username" type="text" placeholder="@username" pattern="^@[\w\d_]+$" required />
+        <label for="username">X Username</label>
+      </div>
+      <button type="submit" class="btn mint-btn">
+        <span class="material-symbols-outlined">local_offer</span> Mint
+      </button>
+    </form>
+    <h6 class="mt-4" style="margin-top:2em;">Minted Profiles</h6>
+    <table class="highlight mint-table" id="mintedTable">
+      <thead>
+        <tr>
+          <th>Profile</th>
+          <th>Username</th>
+          <th>Minted By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Minted rows appear here -->
+      </tbody>
+    </table>
+  </div>
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Polygon (Mainnet) info
+    const POLYGON_CHAIN_ID = '0x89';
+    const POLYGON_PARAMS = {
+      chainId: POLYGON_CHAIN_ID,
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: {
+        name: 'MATIC',
+        symbol: 'MATIC',
+        decimals: 18
+      },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    let currentWallet = null;
+    let currentNetwork = null;
+
+    // Save wallet in Firebase upon connection
+    async function saveWalletToFirebase(wallet) {
+      if (!wallet) return;
+      await db.ref('wallets/' + wallet.toLowerCase()).set({
+        address: wallet
+      });
+    }
+
+    // Save minted username in Firebase
+    async function saveMintedUsernameToFirebase(username, wallet) {
+      const key = username.toLowerCase().replace(/\./g, "_");
+      await db.ref('minted/' + key).set({
+        username: username,
+        wallet: wallet
+      });
+    }
+
+    // Load all minted usernames from Firebase and display
+    async function loadMintedUsernames() {
+      const table = document.getElementById('mintedTable').getElementsByTagName('tbody')[0];
+      table.innerHTML = '';
+      const snapshot = await db.ref('minted').once('value');
+      const data = snapshot.val();
+      if (!data) return;
+      Object.values(data).forEach(entry => {
+        const user = entry.username.replace("@", "");
+        const picUrl = `https://unavatar.io/twitter/${user}`;
+        const defaultPic = "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png";
+        const row = table.insertRow(-1);
+        const cellPic = row.insertCell(0);
+        const cellUser = row.insertCell(1);
+        const cellWallet = row.insertCell(2);
+        cellPic.innerHTML = `<img class="profile-pic" src="${picUrl}" alt="${entry.username} profile picture" onerror="this.onerror=null;this.src='${defaultPic}';" />`;
+        cellUser.innerHTML = `<b>${entry.username}</b>`;
+        cellWallet.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">account_balance_wallet</span> <span style="font-family:monospace;">${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}</span>`;
+      });
+    }
+
+    // Helper: get all existing minted usernames, case-insensitive
+    async function getMintedUsernamesSet() {
+      const snapshot = await db.ref('minted').once('value');
+      const data = snapshot.val();
+      const set = new Set();
+      if (data) Object.values(data).forEach(entry => set.add(entry.username.toLowerCase()));
+      return set;
+    }
+
+    // Connect Wallet Button
+    document.getElementById('connectWalletBtn').onclick = async function() {
+      if (!window.ethereum) {
+        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
+        return;
+      }
+      try {
+        // Switch to Polygon
+        await switchToPolygon();
+
+        // Request accounts
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        currentWallet = accounts[0];
+        currentNetwork = await getNetworkName();
+
+        displayWallet(currentWallet, currentNetwork);
+
+        await saveWalletToFirebase(currentWallet);
+
+        // Listen for account/network changes
+        window.ethereum.on('accountsChanged', async (accounts) => {
+          currentWallet = accounts[0] || null;
+          displayWallet(currentWallet, currentNetwork);
+          if (currentWallet) await saveWalletToFirebase(currentWallet);
+        });
+        window.ethereum.on('chainChanged', async (chainId) => {
+          currentNetwork = await getNetworkName();
+          displayWallet(currentWallet, currentNetwork);
+        });
+      } catch (err) {
+        M.toast({html: 'Wallet connection failed', classes: 'red'});
+      }
+    };
+
+    async function switchToPolygon() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_CHAIN_ID }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [POLYGON_PARAMS],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    }
+
+    async function getNetworkName() {
+      if (!window.ethereum) return null;
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId === POLYGON_CHAIN_ID) return 'Polygon';
+      return 'Unknown';
+    }
+
+    function displayWallet(wallet, network) {
+      const walletDiv = document.getElementById('connectedWalletDisplay');
+      const walletSpan = document.getElementById('connectedWallet');
+      const networkSpan = document.getElementById('networkName');
+      const btnText = document.getElementById('walletBtnText');
+      if (wallet) {
+        walletDiv.style.display = '';
+        walletSpan.textContent = wallet.slice(0,6) + '...' + wallet.slice(-4);
+        networkSpan.textContent = network ? `(${network})` : '';
+        btnText.textContent = 'Wallet Connected';
+      } else {
+        walletDiv.style.display = 'none';
+        btnText.textContent = 'Connect Wallet';
+      }
+    }
+
+    document.getElementById('mintForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const usernameInput = document.getElementById('username');
+      const usernameRaw = usernameInput.value.trim();
+      const username = usernameRaw.toLowerCase();
+
+      if (!/^@[\w\d_]+$/.test(usernameRaw)) {
+        M.toast({html: 'Invalid username format. Use @username', classes: 'red'});
+        return;
+      }
+      if (!currentWallet) {
+        M.toast({html: 'Please connect your wallet first.', classes: 'red'});
+        return;
+      }
+      if (currentNetwork !== 'Polygon') {
+        M.toast({html: 'Please switch to Polygon network in your wallet.', classes: 'red'});
+        return;
+      }
+
+      // Ensure no duplicate usernames (get latest from Firebase)
+      const mintedUsernamesSet = await getMintedUsernamesSet();
+      if (mintedUsernamesSet.has(username)) {
+        M.toast({html: 'Username already minted!', classes: 'orange'});
+        return;
+      }
+
+      // Save to Firebase
+      await saveMintedUsernameToFirebase(usernameRaw, currentWallet);
+
+      // Reload display
+      await loadMintedUsernames();
+
+      usernameInput.value = "";
+    });
+
+    // On load: show minted usernames and wallet if already connected
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadMintedUsernames();
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        currentWallet = window.ethereum.selectedAddress;
+        currentNetwork = await getNetworkName();
+        displayWallet(currentWallet, currentNetwork);
+        if (currentWallet) await saveWalletToFirebase(currentWallet);
+      }
+    });
+  </script>
+</body>
+</html>
