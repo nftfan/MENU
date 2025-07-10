@@ -339,6 +339,18 @@
     </div>
   </div>
 
+  <!-- Buy NFT Modal -->
+  <div id="buyNftModal" class="modal">
+    <div class="modal-content">
+      <h6 style="margin:0 0 8px 0;font-size:10px;">Buy NFT</h6>
+      <div id="buyNftModalText" style="margin-bottom:10px;color:#fff;font-size:10px;"></div>
+    </div>
+    <div class="modal-footer" style="padding-bottom:8px;">
+      <button class="list-confirm-btn" id="confirmBuyBtn" type="button">Buy</button>
+      <button class="modal-close" id="cancelBuyBtn" type="button">Cancel</button>
+    </div>
+  </div>
+
   <!-- Materialize JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
@@ -398,6 +410,13 @@
       });
     }
 
+    // Transfer NFT on buy (simulate by changing the wallet owner in Firebase)
+    async function transferNftOwnership(username, newWallet) {
+      const key = username.toLowerCase().replace(/\./g, "_");
+      await db.ref('minted/' + key + '/wallet').set(newWallet);
+      await db.ref('minted/' + key + '/listing').remove(); // Remove listing after buy
+    }
+
     // Load all minted usernames from Firebase and display
     async function loadMintedUsernames() {
       const table = document.getElementById('mintedTable').getElementsByTagName('tbody')[0];
@@ -408,6 +427,7 @@
       Object.values(data).forEach(entry => {
         const user = entry.username.replace("@", "");
         const picUrl = `https://unavatar.io/twitter/${user}`;
+        const profileUrl = `https://x.com/${user}`;
         const defaultPic = "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png";
         const row = table.insertRow(-1);
         const cellPic = row.insertCell(0);
@@ -416,24 +436,47 @@
 
         // List NFT button
         let priceHtml = '';
+        let buyBtnHtml = '';
         if (entry.listing && entry.listing.price) {
           priceHtml = `<span class="nft-price">${entry.listing.price} $POL</span>`;
+          // Only show buy button if the NFT is not owned by the current wallet
+          if (!currentWallet || entry.wallet.toLowerCase() !== currentWallet.toLowerCase()) {
+            buyBtnHtml = `<button class="list-nft-btn buy-nft-btn" title="Buy NFT" data-username="${entry.username}" data-price="${entry.listing.price}">
+              <span class="material-symbols-outlined" style="color:#ffca28;">shopping_bag</span>
+            </button>`;
+          }
         }
-        cellPic.innerHTML = `<img class="profile-pic" src="${picUrl}" alt="${entry.username} profile picture" onerror="this.onerror=null;this.src='${defaultPic}';" />`;
-        cellUser.innerHTML = `<b style="font-size:10px;">${entry.username}</b>
-          <button class="list-nft-btn" title="List NFT" data-username="${entry.username}">
-            <span class="material-symbols-outlined">sell</span>
-          </button>
-          ${priceHtml}`;
+        // Make photo and username clickable and open profile in new tab
+        cellPic.innerHTML = `<a href="${profileUrl}" target="_blank" rel="noopener noreferrer" tabindex="-1">
+          <img class="profile-pic" src="${picUrl}" alt="${entry.username} profile picture" onerror="this.onerror=null;this.src='${defaultPic}';" />
+        </a>`;
+        cellUser.innerHTML = `<a href="${profileUrl}" target="_blank" rel="noopener noreferrer" style="color:#7fc9ff;text-decoration:none;font-weight:700;font-size:10px;">
+          ${entry.username}
+        </a>
+        <button class="list-nft-btn" title="List NFT" data-username="${entry.username}">
+          <span class="material-symbols-outlined">sell</span>
+        </button>
+        ${priceHtml} ${buyBtnHtml}`;
         cellWallet.innerHTML = `<span class="material-symbols-outlined" style="font-size:10px;">account_balance_wallet</span> <span style="font-family:monospace;">${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}</span>`;
       });
 
       // Add event listeners for list buttons
       document.querySelectorAll('.list-nft-btn').forEach(btn => {
+        if (btn.classList.contains('buy-nft-btn')) return; // handled below
         btn.onclick = function(e) {
           e.preventDefault();
           const username = btn.getAttribute('data-username');
           showListModal(username);
+        }
+      });
+
+      // Add event listeners for buy buttons
+      document.querySelectorAll('.buy-nft-btn').forEach(btn => {
+        btn.onclick = function(e) {
+          e.preventDefault();
+          const username = btn.getAttribute('data-username');
+          const price = btn.getAttribute('data-price');
+          showBuyModal(username, price);
         }
       });
     }
@@ -471,11 +514,14 @@
           currentWallet = accounts[0] || null;
           displayWallet(currentWallet, currentNetwork);
           if (currentWallet) await saveWalletToFirebase(currentWallet);
+          await loadMintedUsernames();
         });
         window.ethereum.on('chainChanged', async (chainId) => {
           currentNetwork = await getNetworkName();
           displayWallet(currentWallet, currentNetwork);
+          await loadMintedUsernames();
         });
+        await loadMintedUsernames();
       } catch (err) {
         M.toast({html: 'Wallet connection failed', classes: 'red'});
       }
@@ -589,6 +635,37 @@
       M.toast({html: 'NFT listed for sale!', classes: 'green'});
     };
 
+    // Modal logic for NFT buying
+    let currentBuyUsername = null;
+    let currentBuyPrice = null;
+    function showBuyModal(username, price) {
+      currentBuyUsername = username;
+      currentBuyPrice = price;
+      document.getElementById('buyNftModalText').innerHTML = `Are you sure you want to buy <span style="color:#7fc9ff">${username}</span> for <b>${price} $POL</b>?`;
+      document.getElementById('buyNftModal').style.display = 'block';
+    }
+    function hideBuyModal() {
+      document.getElementById('buyNftModal').style.display = 'none';
+      currentBuyUsername = null;
+      currentBuyPrice = null;
+    }
+    document.getElementById('cancelBuyBtn').onclick = hideBuyModal;
+    document.getElementById('buyNftModal').onclick = function(e){
+      if(e.target === this) hideBuyModal();
+    };
+    document.getElementById('confirmBuyBtn').onclick = async function() {
+      // Simulate buy by transferring NFT ownership
+      if (!currentBuyUsername) return;
+      if (!currentWallet) {
+        M.toast({html: 'Please connect your wallet to buy.', classes: 'red'});
+        return;
+      }
+      await transferNftOwnership(currentBuyUsername, currentWallet);
+      hideBuyModal();
+      await loadMintedUsernames();
+      M.toast({html: 'NFT bought! Ownership transferred to you.', classes: 'green'});
+    };
+
     // On load: show minted usernames and wallet if already connected
     window.addEventListener('DOMContentLoaded', async () => {
       await loadMintedUsernames();
@@ -597,14 +674,17 @@
         currentNetwork = await getNetworkName();
         displayWallet(currentWallet, currentNetwork);
         if (currentWallet) await saveWalletToFirebase(currentWallet);
+        await loadMintedUsernames();
       }
     });
 
     // Close modal with Escape key
     document.addEventListener('keydown', function(event) {
-      if (event.key === "Escape") hideListModal();
+      if (event.key === "Escape") {
+        hideListModal();
+        hideBuyModal();
+      }
     });
   </script>
 </body>
 </html>
-
