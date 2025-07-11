@@ -16,6 +16,7 @@
       --default-primary: #00ffc2;
       --default-secondary: #00ffc222;
       --default-bubble: #00ffc2;
+      --error-color: #ff4b4b;
       --anim-fast: 0.15s;
       --anim-normal: 0.25s;
       --anim-slow: 0.35s;
@@ -656,6 +657,18 @@
       font-size: 20px;
       color: #ffbc0d;
     }
+    .error-message {
+      color: var(--error-color);
+      font-size: 0.85rem;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .error-message .material-icons-round {
+      font-size: 16px;
+      color: var(--error-color);
+    }
     .active-users {
       display: flex;
       align-items: center;
@@ -677,6 +690,18 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--default-primary);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
     @media (max-width: 450px) {
       html, body { font-size: 15px; }
@@ -773,6 +798,7 @@
     let currentUser = null;
     let activeUsers = {};
     let chatActiveUsers = Array(chats.length).fill().map(() => ({}));
+    let isProcessingUsername = false;
     
     // Wallet connection
     const connectWalletBtn = document.getElementById('connect-wallet');
@@ -790,23 +816,33 @@
           if (userData.wallet && userData.username) {
             currentUser = userData;
             updateAuthUI();
-            const userRef = ref(db, `foodchat/users/${userData.wallet}`);
-            const snapshot = await get(userRef);
-            if (snapshot.exists()) {
-              // User exists, update last seen
-              await set(userRef, {
-                ...snapshot.val(),
-                lastSeen: Date.now()
-              });
-            } else {
-              // User doesn't exist in DB anymore
-              localStorage.removeItem('foodchat_user');
-              currentUser = null;
-              updateAuthUI();
+            
+            try {
+              const userRef = ref(db, `foodchat/users/${userData.wallet}`);
+              const snapshot = await get(userRef);
+              if (snapshot.exists()) {
+                // User exists, update last seen
+                await set(userRef, {
+                  ...snapshot.val(),
+                  lastSeen: Date.now()
+                });
+              } else {
+                // User doesn't exist in DB anymore, try to recreate
+                await set(userRef, {
+                  username: userData.username,
+                  wallet: userData.wallet,
+                  avatar: getUserAvatar(userData.username),
+                  createdAt: Date.now(),
+                  lastSeen: Date.now()
+                });
+              }
+            } catch (error) {
+              console.error("Error checking existing connection:", error);
+              // Don't clear user data, they can still use the app offline
             }
           }
         } catch (error) {
-          console.error("Error checking existing connection:", error);
+          console.error("Error parsing stored user data:", error);
           localStorage.removeItem('foodchat_user');
         }
       }
@@ -815,35 +851,82 @@
     async function connectWallet() {
       if (typeof window.ethereum !== 'undefined') {
         try {
+          const connectBtn = document.getElementById('connect-wallet');
+          connectBtn.innerHTML = '<div class="spinner"></div> Connecting...';
+          connectBtn.disabled = true;
+          
           // Request account access
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           const wallet = accounts[0];
           
           // Check if user exists in Firebase
-          const userRef = ref(db, `foodchat/users/${wallet}`);
-          const snapshot = await get(userRef);
-          
-          if (snapshot.exists()) {
-            // User exists, load their data
-            const userData = snapshot.val();
-            currentUser = {
-              wallet,
-              username: userData.username,
-              avatar: userData.avatar
-            };
-            localStorage.setItem('foodchat_user', JSON.stringify(currentUser));
-            updateAuthUI();
-          } else {
-            // New user, show X username input modal
-            showUsernameModal(wallet);
+          try {
+            const userRef = ref(db, `foodchat/users/${wallet}`);
+            const snapshot = await get(userRef);
+            
+            if (snapshot.exists()) {
+              // User exists, load their data
+              const userData = snapshot.val();
+              currentUser = {
+                wallet,
+                username: userData.username,
+                avatar: userData.avatar
+              };
+              localStorage.setItem('foodchat_user', JSON.stringify(currentUser));
+              updateAuthUI();
+            } else {
+              // New user, show X username input modal
+              showUsernameModal(wallet);
+            }
+          } catch (dbError) {
+            console.error("Database error:", dbError);
+            showErrorMessage("Database connection failed. Please try again.");
+            connectBtn.innerHTML = '<span class="material-icons-round">account_balance_wallet</span> Connect Wallet';
+            connectBtn.disabled = false;
           }
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
-          alert("Failed to connect wallet. Please try again.");
+        } catch (walletError) {
+          console.error("Wallet connection error:", walletError);
+          showErrorMessage("Failed to connect wallet. Please try again.");
+          const connectBtn = document.getElementById('connect-wallet');
+          if (connectBtn) {
+            connectBtn.innerHTML = '<span class="material-icons-round">account_balance_wallet</span> Connect Wallet';
+            connectBtn.disabled = false;
+          }
         }
       } else {
         showWalletNotFoundModal();
       }
+    }
+    
+    function showErrorMessage(message, duration = 3000) {
+      // Create a floating error message
+      const errorDiv = document.createElement('div');
+      errorDiv.style.position = 'fixed';
+      errorDiv.style.top = '70px';
+      errorDiv.style.left = '50%';
+      errorDiv.style.transform = 'translateX(-50%)';
+      errorDiv.style.backgroundColor = 'rgba(255, 75, 75, 0.9)';
+      errorDiv.style.color = 'white';
+      errorDiv.style.padding = '10px 16px';
+      errorDiv.style.borderRadius = '8px';
+      errorDiv.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+      errorDiv.style.zIndex = '3000';
+      errorDiv.style.maxWidth = '280px';
+      errorDiv.style.textAlign = 'center';
+      errorDiv.style.animation = 'fadeIn 0.3s ease';
+      errorDiv.style.fontSize = '0.9rem';
+      errorDiv.innerHTML = `
+        <span class="material-icons-round" style="font-size: 16px; margin-right: 6px; vertical-align: middle;">error</span>
+        ${message}
+      `;
+      document.body.appendChild(errorDiv);
+      
+      setTimeout(() => {
+        errorDiv.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+          document.body.removeChild(errorDiv);
+        }, 300);
+      }, duration);
     }
     
     function disconnectWallet() {
@@ -895,6 +978,7 @@
               <form id="username-form" class="form-group">
                 <label for="username">Your X username (e.g. @boofoolo)</label>
                 <input type="text" id="username-input" placeholder="@username" required>
+                <div id="username-error"></div>
               </form>
               <div class="wallet-alert">
                 <span class="material-icons-round">info</span>
@@ -914,24 +998,71 @@
       });
       
       document.getElementById('save-username').addEventListener('click', async () => {
-        const usernameInput = document.getElementById('username-input').value.trim();
-        if (!usernameInput) return;
+        if (isProcessingUsername) return; // Prevent multiple submissions
         
-        // Ensure username starts with @
+        const usernameInput = document.getElementById('username-input').value.trim();
+        const errorDiv = document.getElementById('username-error');
+        
+        // Validate username
+        if (!usernameInput) {
+          errorDiv.innerHTML = `
+            <div class="error-message">
+              <span class="material-icons-round">error_outline</span>
+              Username cannot be empty
+            </div>`;
+          return;
+        }
+        
+        // Ensure username is valid format
         const username = usernameInput.startsWith('@') ? usernameInput : '@' + usernameInput;
+        if (username.length < 2) {
+          errorDiv.innerHTML = `
+            <div class="error-message">
+              <span class="material-icons-round">error_outline</span>
+              Please enter a valid username
+            </div>`;
+          return;
+        }
+        
+        // Show loading state
+        isProcessingUsername = true;
+        const saveBtn = document.getElementById('save-username');
+        const originalBtnText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<div class="spinner"></div> Saving...';
+        saveBtn.disabled = true;
         
         try {
-          // Save user to Firebase
+          // Save user to Firebase (with retry logic)
           const userRef = ref(db, `foodchat/users/${wallet}`);
-          await set(userRef, {
+          const userData = {
             username,
             wallet,
             avatar: getUserAvatar(username),
             createdAt: Date.now(),
             lastSeen: Date.now()
-          });
+          };
           
-          // Update current user
+          // Try to save user data with multiple attempts
+          let success = false;
+          let attempts = 0;
+          
+          while (!success && attempts < 3) {
+            try {
+              attempts++;
+              await set(userRef, userData);
+              success = true;
+            } catch (error) {
+              console.error(`Save attempt ${attempts} failed:`, error);
+              // Wait a bit before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+          
+          if (!success) {
+            throw new Error("Failed to save user data after multiple attempts");
+          }
+          
+          // Update current user in local storage
           currentUser = {
             wallet,
             username,
@@ -944,8 +1075,24 @@
           updateAuthUI();
         } catch (error) {
           console.error("Error saving username:", error);
-          alert("Failed to save username. Please try again.");
+          errorDiv.innerHTML = `
+            <div class="error-message">
+              <span class="material-icons-round">error_outline</span>
+              Failed to save username. Please try again.
+            </div>`;
+          
+          // Reset button
+          saveBtn.innerHTML = originalBtnText;
+          saveBtn.disabled = false;
+        } finally {
+          isProcessingUsername = false;
         }
+      });
+      
+      // Handle Enter key in form
+      document.getElementById('username-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.getElementById('save-username').click();
       });
     }
     
@@ -961,6 +1108,11 @@
             <div class="modal-content">
               <p>We couldn't detect a wallet like MetaMask in your browser.</p>
               <p>Please install MetaMask or another Ethereum wallet to continue.</p>
+              <div style="margin-top: 16px;">
+                <a href="https://metamask.io/download/" target="_blank" style="color: var(--default-primary); text-decoration: none;">
+                  Get MetaMask →
+                </a>
+              </div>
             </div>
             <div class="modal-actions">
               <button class="btn btn-primary" id="close-wallet-modal">OK</button>
@@ -1074,28 +1226,34 @@
     
     function saveMessage(idx, msg, sender) {
       if (!currentUser) {
-        alert("Please connect your wallet to send messages");
+        showErrorMessage("Please connect your wallet to send messages");
         return;
       }
       
       const chatName = chats[idx].name;
       const chatRef = ref(db, `foodchat/${chatName}/messages`);
-      push(chatRef, {
-        message: msg,
-        sender: "user",
-        chatName,
-        timestamp: Date.now(),
-        username: currentUser.username,
-        userWallet: currentUser.wallet
-      });
       
-      // Update user as active in this chat
-      const userActiveRef = ref(db, `foodchat/${chatName}/activeUsers/${currentUser.wallet}`);
-      set(userActiveRef, {
-        username: currentUser.username,
-        avatar: getUserAvatar(currentUser.username),
-        lastActive: Date.now()
-      });
+      try {
+        push(chatRef, {
+          message: msg,
+          sender: "user",
+          chatName,
+          timestamp: Date.now(),
+          username: currentUser.username,
+          userWallet: currentUser.wallet
+        });
+        
+        // Update user as active in this chat
+        const userActiveRef = ref(db, `foodchat/${chatName}/activeUsers/${currentUser.wallet}`);
+        set(userActiveRef, {
+          username: currentUser.username,
+          avatar: getUserAvatar(currentUser.username),
+          lastActive: Date.now()
+        });
+      } catch (error) {
+        console.error("Error saving message:", error);
+        showErrorMessage("Failed to send message. Please try again.");
+      }
     }
     
     function renderChatList() {
@@ -1186,6 +1344,8 @@
           username: currentUser.username,
           avatar: getUserAvatar(currentUser.username),
           lastActive: Date.now()
+        }).catch(error => {
+          console.error("Error updating user active status:", error);
         });
       }
       
@@ -1238,7 +1398,7 @@
       document.getElementById('chatbox-inputbar').onsubmit = (e) => {
         e.preventDefault();
         if (!currentUser) {
-          alert("Please connect your wallet to send messages");
+          showErrorMessage("Please connect your wallet to send messages");
           return;
         }
         const input = document.getElementById('chatbox-input');
@@ -1375,10 +1535,30 @@
         });
       }
     });
+
+    // Add global error handler for Firebase operations
+    window.addEventListener('unhandledrejection', function(event) {
+      console.error('Unhandled promise rejection:', event.reason);
+      if (event.reason && event.reason.toString().includes('permission_denied')) {
+        showErrorMessage("Permission denied. Please check your connection.");
+      } else if (event.reason && event.reason.toString().includes('network')) {
+        showErrorMessage("Network error. Please check your connection.");
+      }
+    });
     
     // Start listening for messages
     listenForAllMessages();
     renderChatList();
+    
+    // Add some keyframe animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
