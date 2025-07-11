@@ -407,6 +407,10 @@
         <span id="walletBtnText">Connect Wallet</span>
       </button>
     </div>
+    <div id="connectedWalletDisplay" style="display:none;">
+      Wallet: <span id="walletAddress" class="wallet-address"></span>
+      Network: <span id="networkName"></span>
+    </div>
     <!-- Summary bar -->
     <div id="summaryBar">
       <div class="summary-bar-inner">
@@ -431,8 +435,8 @@
     </div>
     <div class="fix-rate-info">
       <strong>Fixed Rates:</strong><br>
-      <span>4T $NFTFAN</span> per <span>1 $POL</span> for <span>3 Months</span> &nbsp;|&nbsp;
-      <span>400T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span> &nbsp;|&nbsp;
+      <span>4T $NFTFAN</span> per <span>1 $POL</span> for <span>3 Months</span>  | 
+      <span>400T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span>  | 
       <span>1,000T $NFTFAN</span> per <span>1 $POL</span> for <span>1 Year</span>
     </div>
     <div class="auto-return-info">
@@ -469,7 +473,7 @@
   <!-- Materialize JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
-    // Firebase config (use your existing config)
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
       authDomain: "nftfanactive.firebaseapp.com",
@@ -489,11 +493,7 @@
     const POLYGON_PARAMS = {
       chainId: POLYGON_CHAIN_ID_HEX,
       chainName: 'Polygon Mainnet',
-      nativeCurrency: {
-        name: 'MATIC',
-        symbol: 'MATIC',
-        decimals: 18
-      },
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
       rpcUrls: ['https://polygon-rpc.com/'],
       blockExplorerUrls: ['https://polygonscan.com/']
     };
@@ -502,78 +502,113 @@
     let currentNetwork = null;
     let latestSavingsData = [];
     let provider = null;
+    let walletProvider = null;
 
-    // Modern wallet detection (EIP-6963, EIP-1193, window.ethereum + fallback)
-    function getInjectedProvider() {
-      if (window.ethereum) return window.ethereum;
-      if (window.wallet) return window.wallet;
-      return null;
+    // EIP-6963 wallet detection
+    function discoverWallets() {
+      return new Promise((resolve) => {
+        const providers = [];
+        const handleProvider = (event) => {
+          providers.push(event.detail);
+        };
+        window.addEventListener('eip6963:announceProvider', handleProvider);
+        window.dispatchEvent(new Event('eip6963:requestProvider'));
+        setTimeout(() => {
+          window.removeEventListener('eip6963:announceProvider', handleProvider);
+          resolve(providers.length ? providers[0].provider : window.ethereum || null);
+        }, 100);
+      });
     }
 
-    async function switchToPolygon() {
-      const eth = getInjectedProvider();
-      if (!eth) return;
+    async function switchToPolygon(eth) {
       try {
-        await eth.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
-        });
+        const currentChainId = await eth.request({ method: 'eth_chainId' });
+        if (currentChainId !== POLYGON_CHAIN_ID_HEX) {
+          await eth.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
+          });
+        }
       } catch (switchError) {
-        if (switchError.code === 4902) {
+        if (switchError.code === 4902 || switchError.code === -32603) {
           await eth.request({
             method: 'wallet_addEthereumChain',
             params: [POLYGON_PARAMS],
           });
         } else {
-          throw switchError;
+          throw new Error(`Network switch failed: ${switchError.message}`);
         }
+      }
+      // Verify network
+      const chainId = await eth.request({ method: 'eth_chainId' });
+      if (chainId !== POLYGON_CHAIN_ID_HEX) {
+        throw new Error('Failed to switch to Polygon network');
       }
     }
 
-    async function getNetworkName() {
-      const eth = getInjectedProvider();
-      if (!eth) return null;
+    async function getNetworkName(eth) {
       try {
         const chainId = await eth.request({ method: 'eth_chainId' });
-        if (chainId === POLYGON_CHAIN_ID_HEX || parseInt(chainId, 16) === POLYGON_CHAIN_ID_DEC) return 'Polygon';
-        return 'Unknown';
+        return chainId === POLYGON_CHAIN_ID_HEX ? 'Polygon' : 'Unknown';
       } catch {
-        return null;
+        return 'Unknown';
       }
     }
 
     async function connectWallet() {
-      const eth = getInjectedProvider();
-      if (!eth) {
-        M.toast({html: 'No wallet found. Please install MetaMask, Coinbase, OKX or other wallet.', classes: 'red'});
+      walletProvider = await discoverWallets();
+      if (!walletProvider) {
+        M.toast({ html: 'No wallet detected. Please install MetaMask or another compatible wallet.', classes: 'red' });
         return;
       }
       try {
-        await switchToPolygon();
-        const accounts = await eth.request({ method: 'eth_requestAccounts' });
+        await switchToPolygon(walletProvider);
+        const accounts = await walletProvider.request({ method: 'eth_requestAccounts' });
+        if (!accounts || !accounts[0]) {
+          throw new Error('No accounts returned');
+        }
         currentWallet = ethers.utils.getAddress(accounts[0]);
-        provider = new ethers.BrowserProvider(eth);
-        currentNetwork = await getNetworkName();
+        provider = new ethers.BrowserProvider(walletProvider);
+        currentNetwork = await getNetworkName(walletProvider);
         displayWallet(currentWallet, currentNetwork);
-        await saveWalletToFirebase(currentWallet);
 
-        // Listen for wallet/account/network changes
-        eth.on('accountsChanged', async (accounts) => {
+        // Save wallet to Firebase
+        await db.ref('wallets/' + currentWallet.toLowerCase()).set({ address: currentWallet }).catch(err => {
+          console.error('Firebase save wallet error:', err);
+          M.toast({ html: 'Failed to save wallet data.', classes: 'red' });
+        });
+
+        // Event listeners for wallet changes
+        walletProvider.on('accountsChanged', async (accounts) => {
           currentWallet = accounts[0] ? ethers.utils.getAddress(accounts[0]) : null;
-          currentNetwork = await getNetworkName();
+          currentNetwork = await getNetworkName(walletProvider);
           displayWallet(currentWallet, currentNetwork);
-          if (currentWallet) await saveWalletToFirebase(currentWallet);
+          if (currentWallet) {
+            await db.ref('wallets/' + currentWallet.toLowerCase()).set({ address: currentWallet }).catch(err => {
+              console.error('Firebase save wallet error:', err);
+            });
+          }
           await loadSavings();
         });
-        eth.on('chainChanged', async () => {
-          currentNetwork = await getNetworkName();
+        walletProvider.on('chainChanged', async () => {
+          currentNetwork = await getNetworkName(walletProvider);
           displayWallet(currentWallet, currentNetwork);
           await loadSavings();
         });
 
         await loadSavings();
+        M.toast({ html: 'Wallet connected successfully!', classes: 'green' });
       } catch (err) {
-        M.toast({html: 'Wallet connection failed or denied', classes: 'red'});
+        console.error('Wallet connection error:', err);
+        let errorMsg = 'Wallet connection failed';
+        if (err.code === 4001) {
+          errorMsg = 'Wallet connection denied by user';
+        } else if (err.message.includes('network')) {
+          errorMsg = 'Failed to switch to Polygon network';
+        } else if (err.message.includes('accounts')) {
+          errorMsg = 'No accounts available';
+        }
+        M.toast({ html: errorMsg, classes: 'red' });
       }
     }
 
@@ -581,25 +616,25 @@
 
     function displayWallet(wallet, network) {
       const btnText = document.getElementById('walletBtnText');
+      const walletDisplay = document.getElementById('connectedWalletDisplay');
+      const walletAddress = document.getElementById('walletAddress');
+      const networkName = document.getElementById('networkName');
       if (wallet) {
         btnText.textContent = 'Wallet Connected';
+        walletAddress.textContent = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+        networkName.textContent = network;
+        walletDisplay.style.display = 'block';
       } else {
         btnText.textContent = 'Connect Wallet';
+        walletDisplay.style.display = 'none';
       }
-    }
-
-    async function saveWalletToFirebase(wallet) {
-      if (!wallet) return;
-      await db.ref('wallets/' + wallet.toLowerCase()).set({
-        address: wallet
-      });
     }
 
     function getReward(amount, durationMonths) {
       if (durationMonths === 3) return `${(amount * 4_000_000_000_000).toLocaleString()} $NFTFAN`;
       if (durationMonths === 6) return `${(amount * 400_000_000_000_000).toLocaleString()} $NFTFAN`;
       if (durationMonths === 12) return `${(amount * 1_000_000_000_000_000).toLocaleString()} $NFTFAN`;
-      return "0 $NFTFAN";
+      return '0 $NFTFAN';
     }
 
     function getProfitRaw(amount, durationMonths) {
@@ -610,27 +645,32 @@
     }
 
     async function saveSavingsToFirebase(wallet, amount, duration, xAccount) {
-      const now = Date.now();
-      const unlockAt = getUnlockDate(now, duration);
-      const key = db.ref().child('savings').push().key;
-      await db.ref('savings/' + key).set({
-        wallet: wallet,
-        amount: amount,
-        duration: duration,
-        createdAt: now,
-        unlockAt: unlockAt,
-        claimed: false,
-        xAccount: xAccount
-      });
-    }
-
-    function getUnlockDate(start, duration) {
-      let months = Number(duration);
-      return start + months * 30 * 24 * 60 * 60 * 1000;
+      try {
+        const now = Date.now();
+        const unlockAt = now + duration * 30 * 24 * 60 * 60 * 1000;
+        const key = db.ref().child('savings').push().key;
+        await db.ref('savings/' + key).set({
+          wallet: wallet.toLowerCase(),
+          amount,
+          duration,
+          createdAt: now,
+          unlockAt,
+          claimed: false,
+          xAccount
+        });
+      } catch (err) {
+        console.error('Firebase save savings error:', err);
+        throw new Error('Failed to save savings data');
+      }
     }
 
     async function claimSavingsEntry(key) {
-      await db.ref('savings/' + key + '/claimed').set(true);
+      try {
+        await db.ref('savings/' + key + '/claimed').set(true);
+      } catch (err) {
+        console.error('Firebase claim savings error:', err);
+        throw new Error('Failed to claim savings');
+      }
     }
 
     async function loadSavings() {
@@ -640,134 +680,132 @@
       latestSavingsData = [];
       if (!currentWallet) {
         noMsg.style.display = 'block';
-        noMsg.textContent = "Connect your wallet to view your savings accounts.";
+        noMsg.textContent = 'Connect your wallet to view your savings accounts.';
         document.getElementById('summaryBar').style.display = 'none';
+        updateSummaryBar([]);
         return;
       }
-      const snapshot = await db.ref('savings').orderByChild('wallet').equalTo(currentWallet).once('value');
-      const data = snapshot.val();
-      if (!data) {
-        noMsg.style.display = 'block';
-        noMsg.textContent = "No savings accounts found for this wallet.";
-        document.getElementById('summaryBar').style.display = 'none';
-        updateSummaryBar([]); // clear
-        return;
-      }
-      noMsg.style.display = 'none';
-      const now = Date.now();
-
-      latestSavingsData = Object.entries(data).map(([key, entry]) => ({...entry, key}));
-      updateSummaryBar(latestSavingsData);
-
-      latestSavingsData.forEach((entry) => {
-        const key = entry.key;
-        const card = document.createElement('div');
-        card.className = 'savings-card';
-
-        // Card top: profile pic and name
-        const cardTop = document.createElement('div');
-        cardTop.className = 'card-top';
-        const user = entry.xAccount ? entry.xAccount.replace("@", "") : "";
-        const picUrl = user ? `https://unavatar.io/twitter/${user}` : "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png";
-        const profilePic = document.createElement('img');
-        profilePic.className = 'profile-pic';
-        profilePic.src = picUrl;
-        profilePic.alt = entry.xAccount || '';
-        profilePic.onerror = function() {
-          this.onerror = null;
-          this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-        };
-        cardTop.appendChild(profilePic);
-
-        if (user) {
-          const link = document.createElement('a');
-          link.href = `https://x.com/${user}`;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.className = "x-link";
-          link.textContent = entry.xAccount;
-          cardTop.appendChild(link);
+      try {
+        const snapshot = await db.ref('savings').orderByChild('wallet').equalTo(currentWallet.toLowerCase()).once('value');
+        const data = snapshot.val();
+        noMsg.style.display = data ? 'none' : 'block';
+        noMsg.textContent = 'No savings accounts found for this wallet.';
+        document.getElementById('summaryBar').style.display = data ? '' : 'none';
+        if (!data) {
+          updateSummaryBar([]);
+          return;
         }
-        card.appendChild(cardTop);
+        latestSavingsData = Object.entries(data).map(([key, entry]) => ({ ...entry, key }));
+        updateSummaryBar(latestSavingsData);
 
-        // Card details
-        const cardDetails = document.createElement('div');
-        cardDetails.className = 'card-details';
+        latestSavingsData.forEach((entry) => {
+          const card = document.createElement('div');
+          card.className = 'savings-card';
 
-        // Amount
-        const amountRow = document.createElement('div');
-        amountRow.className = 'detail-row amount';
-        amountRow.innerHTML = `
-          <span class="material-symbols-outlined symbol">attach_money</span>
-          <span>Amount:</span>
-          <span style="color:#ffca28;">${entry.amount} $POL</span>
-        `;
-        cardDetails.appendChild(amountRow);
-
-        // Duration
-        const durationRow = document.createElement('div');
-        durationRow.className = 'detail-row duration';
-        let durStr = entry.duration === 12 ? "1 Year" : (entry.duration + " Months");
-        durationRow.innerHTML = `
-          <span class="material-symbols-outlined symbol">hourglass_empty</span>
-          <span>Duration:</span>
-          <span style="color:#21cbf3;">${durStr}</span>
-        `;
-        cardDetails.appendChild(durationRow);
-
-        // Reward
-        const rewardRow = document.createElement('div');
-        rewardRow.className = 'detail-row reward';
-        let reward = getReward(Number(entry.amount), Number(entry.duration));
-        rewardRow.innerHTML = `
-          <span class="material-symbols-outlined symbol">redeem</span>
-          <span>Reward:</span>
-          <span style="color:#43e97b;">${reward}</span>
-        `;
-        cardDetails.appendChild(rewardRow);
-
-        card.appendChild(cardDetails);
-
-        // Countdown
-        const countdownSpan = document.createElement('span');
-        countdownSpan.className = 'countdown';
-        countdownSpan.dataset.unlockat = entry.unlockAt;
-        countdownSpan.dataset.key = key;
-        countdownSpan.dataset.claimed = entry.claimed ? "1" : "0";
-        card.appendChild(countdownSpan);
-
-        // Action area
-        const actionArea = document.createElement('div');
-        actionArea.className = 'action-area';
-        if (entry.claimed) {
-          const claimed = document.createElement('span');
-          claimed.className = 'claimed';
-          claimed.textContent = "Claimed";
-          actionArea.appendChild(claimed);
-        } else if (now >= entry.unlockAt) {
-          const claimBtn = document.createElement("button");
-          claimBtn.className = "savings-btn";
-          claimBtn.style.height = "26px";
-          claimBtn.style.minHeight = "26px";
-          claimBtn.style.padding = "0 11px";
-          claimBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;margin-right:2px;">bolt</span>Claim`;
-          claimBtn.onclick = async function() {
-            await claimSavingsEntry(key);
-            await loadSavings();
-            M.toast({html: 'Unlocked! $POL & reward claim simulated.', classes: 'green'});
+          const cardTop = document.createElement('div');
+          cardTop.className = 'card-top';
+          const user = entry.xAccount ? entry.xAccount.replace('@', '') : '';
+          const picUrl = user ? `https://unavatar.io/twitter/${user}` : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+          const profilePic = document.createElement('img');
+          profilePic.className = 'profile-pic';
+          profilePic.src = picUrl;
+          profilePic.alt = entry.xAccount || '';
+          profilePic.onerror = () => {
+            profilePic.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
           };
-          actionArea.appendChild(claimBtn);
-        } else {
-          const locked = document.createElement('span');
-          locked.className = 'locked';
-          locked.textContent = "Locked";
-          actionArea.appendChild(locked);
-        }
-        card.appendChild(actionArea);
+          cardTop.appendChild(profilePic);
 
-        grid.appendChild(card);
-      });
-      updateCountdowns();
+          if (user) {
+            const link = document.createElement('a');
+            link.href = `https://x.com/${user}`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'x-link';
+            link.textContent = entry.xAccount;
+            cardTop.appendChild(link);
+          }
+          card.appendChild(cardTop);
+
+          const cardDetails = document.createElement('div');
+          cardDetails.className = 'card-details';
+
+          const amountRow = document.createElement('div');
+          amountRow.className = 'detail-row amount';
+          amountRow.innerHTML = `
+            <span class="material-symbols-outlined symbol">attach_money</span>
+            <span>Amount:</span>
+            <span style="color:#ffca28;">${entry.amount} $POL</span>
+          `;
+          cardDetails.appendChild(amountRow);
+
+          const durationRow = document.createElement('div');
+          durationRow.className = 'detail-row duration';
+          const durStr = entry.duration === 12 ? '1 Year' : `${entry.duration} Months`;
+          durationRow.innerHTML = `
+            <span class="material-symbols-outlined symbol">hourglass_empty</span>
+            <span>Duration:</span>
+            <span style="color:#21cbf3;">${durStr}</span>
+          `;
+          cardDetails.appendChild(durationRow);
+
+          const rewardRow = document.createElement('div');
+          rewardRow.className = 'detail-row reward';
+          const reward = getReward(Number(entry.amount), Number(entry.duration));
+          rewardRow.innerHTML = `
+            <span class="material-symbols-outlined symbol">redeem</span>
+            <span>Reward:</span>
+            <span style="color:#43e97b;">${reward}</span>
+          `;
+          cardDetails.appendChild(rewardRow);
+
+          card.appendChild(cardDetails);
+
+          const countdownSpan = document.createElement('span');
+          countdownSpan.className = 'countdown';
+          countdownSpan.dataset.unlockat = entry.unlockAt;
+          countdownSpan.dataset.key = entry.key;
+          countdownSpan.dataset.claimed = entry.claimed ? '1' : '0';
+          card.appendChild(countdownSpan);
+
+          const actionArea = document.createElement('div');
+          actionArea.className = 'action-area';
+          if (entry.claimed) {
+            const claimed = document.createElement('span');
+            claimed.className = 'claimed';
+            claimed.textContent = 'Claimed';
+            actionArea.appendChild(claimed);
+          } else if (Date.now() >= entry.unlockAt) {
+            const claimBtn = document.createElement('button');
+            claimBtn.className = 'savings-btn';
+            claimBtn.style.height = '26px';
+            claimBtn.style.minHeight = '26px';
+            claimBtn.style.padding = '0 11px';
+            claimBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;margin-right:2px;">bolt</span>Claim`;
+            claimBtn.onclick = async () => {
+              try {
+                await claimSavingsEntry(entry.key);
+                await loadSavings();
+                M.toast({ html: 'Unlocked! $POL & reward claim simulated.', classes: 'green' });
+              } catch (err) {
+                M.toast({ html: 'Failed to claim savings.', classes: 'red' });
+              }
+            };
+            actionArea.appendChild(claimBtn);
+          } else {
+            const locked = document.createElement('span');
+            locked.className = 'locked';
+            locked.textContent = 'Locked';
+            actionArea.appendChild(locked);
+          }
+          card.appendChild(actionArea);
+
+          grid.appendChild(card);
+        });
+        updateCountdowns();
+      } catch (err) {
+        console.error('Load savings error:', err);
+        M.toast({ html: 'Failed to load savings data.', classes: 'red' });
+      }
     }
 
     function updateSummaryBar(entries) {
@@ -784,14 +822,9 @@
           profitPerSec += reward / durationSec;
         }
       });
-      document.getElementById('totalPol').textContent = totalPol.toLocaleString(undefined, {maximumFractionDigits:4});
-      document.getElementById('totalProfit').textContent = totalProfit.toLocaleString(undefined, {maximumFractionDigits:0});
-      document.getElementById('profitPerSecValue').textContent = "+" + (profitPerSec>=1?Math.floor(profitPerSec).toLocaleString():profitPerSec.toFixed(3));
-      document.getElementById('summaryBar').style.display = entries.length ? '' : 'none';
-    }
-
-    function updateProfitPerSecondBar() {
-      updateSummaryBar(latestSavingsData || []);
+      document.getElementById('totalPol').textContent = totalPol.toLocaleString(undefined, { maximumFractionDigits: 4 });
+      document.getElementById('totalProfit').textContent = totalProfit.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      document.getElementById('profitPerSecValue').textContent = `+${profitPerSec >= 1 ? Math.floor(profitPerSec).toLocaleString() : profitPerSec.toFixed(3)}`;
     }
 
     function updateCountdowns() {
@@ -799,7 +832,7 @@
       const now = Date.now();
       spans.forEach(span => {
         const unlockAt = Number(span.dataset.unlockat);
-        const claimed = span.dataset.claimed === "1";
+        const claimed = span.dataset.claimed === '1';
         if (claimed) {
           span.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;color:#21cbf3;">check_circle</span>Unlocked`;
           return;
@@ -808,18 +841,18 @@
           span.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;color:#43e97b;">check_circle</span>Unlocked!`;
         } else {
           const ms = unlockAt - now;
-          const days = Math.floor(ms / (24*60*60*1000));
-          const hours = Math.floor((ms % (24*60*60*1000)) / (60*60*1000));
-          const mins = Math.floor((ms % (60*60*1000)) / (60*1000));
-          const secs = Math.floor((ms % (60*1000)) / 1000);
+          const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+          const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+          const mins = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+          const secs = Math.floor((ms % (60 * 1000)) / 1000);
           span.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;color:#ffca28;">schedule</span>${days}d ${hours}h ${mins}m ${secs}s`;
         }
       });
-      updateProfitPerSecondBar();
+      updateSummaryBar(latestSavingsData);
     }
     setInterval(updateCountdowns, 1000);
 
-    document.getElementById('savingsForm').addEventListener('submit', async function(e) {
+    document.getElementById('savingsForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const amountInput = document.getElementById('amount');
       const durationInput = document.getElementById('duration');
@@ -827,64 +860,74 @@
       const amount = parseFloat(amountInput.value.trim());
       const duration = Number(durationInput.value);
       const xAccountRaw = xAccountInput.value.trim();
+
       if (!amount || isNaN(amount) || amount <= 0) {
-        M.toast({html: 'Enter a valid amount.', classes: 'red'});
+        M.toast({ html: 'Enter a valid amount.', classes: 'red' });
         return;
       }
-      if (![3,6,12].includes(duration)) {
-        M.toast({html: 'Choose a valid duration.', classes: 'red'});
+      if (![3, 6, 12].includes(duration)) {
+        M.toast({ html: 'Choose a valid duration.', classes: 'red' });
         return;
       }
       if (!/^@[\w\d_]+$/.test(xAccountRaw)) {
-        M.toast({html: 'Enter a valid X (Twitter) username.', classes: 'red'});
+        M.toast({ html: 'Enter a valid X (Twitter) username.', classes: 'red' });
         return;
       }
-      // Wallet connect and switch network if needed
-      const eth = getInjectedProvider();
-      if (!eth) {
-        M.toast({html: 'No wallet found. Please install MetaMask, Coinbase, OKX or other wallet.', classes: 'red'});
+      if (!walletProvider || !currentWallet) {
+        M.toast({ html: 'Please connect your wallet first.', classes: 'red' });
         return;
       }
       try {
-        await switchToPolygon();
-        const accounts = await eth.request({ method: 'eth_requestAccounts' });
-        currentWallet = ethers.utils.getAddress(accounts[0]);
-        provider = new ethers.BrowserProvider(eth);
-
-        // Send to vault
+        await switchToPolygon(walletProvider);
         const signer = await provider.getSigner();
-        const recipient = "0x92d550cdbc234211957bd1b579d962c885a127ba";
+        const recipient = '0x92d550cdbc234211957bd1b579d962c885a127ba';
+        const amountStr = amount.toString();
+        if (!/^\d*\.?\d+$/.test(amountStr)) {
+          throw new Error('Invalid amount format');
+        }
         const tx = await signer.sendTransaction({
           to: recipient,
-          value: ethers.parseEther(amount.toString())
+          value: ethers.parseEther(amountStr)
         });
-        M.toast({html: 'Transaction sent! Waiting for confirmation.', classes: 'green'});
+        M.toast({ html: 'Transaction sent! Waiting for confirmation.', classes: 'green' });
         await tx.wait();
+        await saveSavingsToFirebase(currentWallet, amount, duration, xAccountRaw);
+        await loadSavings();
+        amountInput.value = '';
+        durationInput.value = '';
+        xAccountInput.value = '';
+        M.toast({ html: 'Savings created and MATIC sent!', classes: 'green' });
       } catch (err) {
-        M.toast({html: 'Transaction failed or denied.', classes: 'red'});
-        return;
+        console.error('Transaction error:', err);
+        let errorMsg = 'Transaction failed';
+        if (err.code === 4001) {
+          errorMsg = 'Transaction denied by user';
+        } else if (err.message.includes('network')) {
+          errorMsg = 'Network error during transaction';
+        } else if (err.message.includes('amount')) {
+          errorMsg = 'Invalid transaction amount';
+        }
+        M.toast({ html: errorMsg, classes: 'red' });
       }
-      // Now, proceed with saving to Firebase
-      await saveSavingsToFirebase(currentWallet, amount, duration, xAccountRaw);
-      await loadSavings();
-      amountInput.value = "";
-      durationInput.value = "";
-      xAccountInput.value = "";
-      M.toast({html: 'Savings created and MATIC sent!', classes: 'green'});
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-      var elems = document.querySelectorAll('select');
-      M.FormSelect.init(elems);
-      // Modern wallet auto-connect (if wallet already connected)
-      const eth = getInjectedProvider();
-      if (eth && eth.selectedAddress) {
-        currentWallet = ethers.utils.getAddress(eth.selectedAddress);
-        provider = new ethers.BrowserProvider(eth);
-        currentNetwork = await getNetworkName();
-        displayWallet(currentWallet, currentNetwork);
-        if (currentWallet) await saveWalletToFirebase(currentWallet);
-        await loadSavings();
+      M.FormSelect.init(document.querySelectorAll('select'));
+      walletProvider = await discoverWallets();
+      if (walletProvider && walletProvider.selectedAddress) {
+        try {
+          currentWallet = ethers.utils.getAddress(walletProvider.selectedAddress);
+          provider = new ethers.BrowserProvider(walletProvider);
+          currentNetwork = await getNetworkName(walletProvider);
+          displayWallet(currentWallet, currentNetwork);
+          await db.ref('wallets/' + currentWallet.toLowerCase()).set({ address: currentWallet }).catch(err => {
+            console.error('Firebase save wallet error:', err);
+          });
+          await loadSavings();
+        } catch (err) {
+          console.error('Auto-connect error:', err);
+          M.toast({ html: 'Failed to auto-connect wallet.', classes: 'red' });
+        }
       } else {
         await loadSavings();
       }
