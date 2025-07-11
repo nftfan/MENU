@@ -175,7 +175,6 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
-    /* GRID DISPLAY STYLES FOR SAVINGS */
     #savingsGrid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -193,7 +192,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 176px;
+      min-height: 186px;
     }
     .savings-card .profile-pic {
       border-radius: 50%;
@@ -296,6 +295,27 @@
       font-style: italic;
       opacity: 0.8;
     }
+    .fix-rate-info {
+      background: #10151b;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 9.5px;
+      padding: 8px 12px 9px 12px;
+      margin-bottom: 10px;
+      margin-top: 5px;
+      text-align: left;
+      line-height: 1.6;
+    }
+    .fix-rate-info strong {
+      color: #43e97b;
+      font-weight: 700;
+    }
+    .fix-rate-info span {
+      color: #ffca28;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 10px;
+    }
     @media (max-width: 600px) {
       .container {
         padding: 4px 2px 0 2px;
@@ -330,6 +350,12 @@
       Connected: <span id="connectedWallet" class="wallet-address"></span>
       <span id="networkName"></span>
     </div>
+    <div class="fix-rate-info">
+      <strong>Fixed Rates:</strong><br>
+      <span>1T $NFTFAN</span> per <span>1 $POL</span> for <span>3 Months</span> &nbsp;|&nbsp;
+      <span>100T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span> &nbsp;|&nbsp;
+      <span>250T $NFTFAN</span> per <span>1 $POL</span> for <span>1 Year</span>
+    </div>
     <form id="savingsForm" autocomplete="off">
       <div class="input-field">
         <input id="amount" type="number" min="0.0001" step="0.0001" placeholder="Amount in $POL" required />
@@ -342,9 +368,9 @@
       <div class="input-field" style="margin-bottom: 0;">
         <select id="duration" required>
           <option value="" disabled selected>Choose duration</option>
-          <option value="3">3 Months (10KT $NFTFAN)</option>
-          <option value="6">6 Months (50KT $NFTFAN)</option>
-          <option value="12">1 Year (100KT $NFTFAN)</option>
+          <option value="3">3 Months (1T per 1 $POL)</option>
+          <option value="6">6 Months (100T per 1 $POL)</option>
+          <option value="12">1 Year (250T per 1 $POL)</option>
         </select>
         <label for="duration">Lock Period</label>
       </div>
@@ -471,11 +497,12 @@
       });
     }
 
-    function getReward(durationMonths) {
-      if (durationMonths === 3) return "10KT";
-      if (durationMonths === 6) return "50KT";
-      if (durationMonths === 12) return "100KT";
-      return "0";
+    // Reward calculation based on fixed rates
+    function getReward(amount, durationMonths) {
+      if (durationMonths === 3) return `${(amount * 1_000_000_000_000).toLocaleString()} $NFTFAN`;
+      if (durationMonths === 6) return `${(amount * 100_000_000_000_000).toLocaleString()} $NFTFAN`;
+      if (durationMonths === 12) return `${(amount * 250_000_000_000_000).toLocaleString()} $NFTFAN`;
+      return "0 $NFTFAN";
     }
 
     async function saveSavingsToFirebase(wallet, amount, duration, xAccount) {
@@ -564,8 +591,8 @@
         // Reward
         const rewardDiv = document.createElement('div');
         rewardDiv.className = 'reward-badge';
-        let reward = getReward(Number(entry.duration));
-        rewardDiv.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;color:#43e97b;vertical-align:middle;margin-right:2px;">redeem</span>${reward} $NFTFAN`;
+        let reward = getReward(Number(entry.amount), Number(entry.duration));
+        rewardDiv.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;color:#43e97b;vertical-align:middle;margin-right:2px;">redeem</span>${reward}`;
         card.appendChild(rewardDiv);
 
         // Countdown
@@ -639,10 +666,10 @@
       const amountInput = document.getElementById('amount');
       const durationInput = document.getElementById('duration');
       const xAccountInput = document.getElementById('xAccount');
-      const amount = amountInput.value.trim();
+      const amount = parseFloat(amountInput.value.trim());
       const duration = Number(durationInput.value);
       const xAccountRaw = xAccountInput.value.trim();
-      if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      if (!amount || isNaN(amount) || amount <= 0) {
         M.toast({html: 'Enter a valid amount.', classes: 'red'});
         return;
       }
