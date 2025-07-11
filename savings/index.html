@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>NFTFANS Savings Account</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <!-- Material Icons (Sleek Theme) -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Materialize CSS for modern mobile look -->
@@ -106,8 +106,8 @@
     .input-field input[type="number"], .input-field select, .input-field input[type="text"] {
       color: #fff;
       border-bottom: 1px solid #2196f3;
-      font-size: 10px !important;
-      height: 20px;
+      font-size: 16px !important;
+      height: 28px;
       margin: 0;
       padding: 0 0 0 3px;
       background: none;
@@ -160,6 +160,18 @@
       margin-right: 4px;
       font-size: 16px !important;
     }
+    #summaryBar {
+      display: none;
+      margin-bottom: 12px;
+    }
+    .summary-bar-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #181d23; border-radius: 7px; padding: 10px 14px;
+      font-size: 12px; gap: 7px; box-shadow: 0 1px 8px #0002;
+    }
+    .summary-bar-inner > div {
+      display: flex; align-items: center; gap: 5px;
+    }
     #connectedWalletDisplay {
       margin-bottom: 10px;
       font-size: 10px !important;
@@ -177,9 +189,44 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
+    .auto-return-info {
+      background: #232a4d;
+      color: #ffca28;
+      border-radius: 8px;
+      font-size: 11px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      margin-top: 3px;
+      text-align: left;
+      line-height: 1.7;
+      border: 1px solid #232a4d;
+      font-weight: 600;
+    }
+    .fix-rate-info {
+      background: #10151b;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 10.5px;
+      padding: 10px 16px 10px 16px;
+      margin-bottom: 12px;
+      margin-top: 5px;
+      text-align: left;
+      line-height: 1.7;
+      border: 1px solid #232a4d;
+    }
+    .fix-rate-info strong {
+      color: #43e97b;
+      font-weight: 700;
+    }
+    .fix-rate-info span {
+      color: #ffca28;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 11px;
+    }
     #savingsGrid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      grid-template-columns: 1fr;
       gap: 18px;
       margin-top: 10px;
       margin-bottom: 12px;
@@ -317,35 +364,18 @@
       font-style: italic;
       opacity: 0.8;
     }
-    .fix-rate-info {
-      background: #10151b;
-      color: #fff;
-      border-radius: 8px;
-      font-size: 10.5px;
-      padding: 10px 16px 10px 16px;
-      margin-bottom: 12px;
-      margin-top: 5px;
-      text-align: left;
-      line-height: 1.7;
-      border: 1px solid #232a4d;
-    }
-    .fix-rate-info strong {
-      color: #43e97b;
-      font-weight: 700;
-    }
-    .fix-rate-info span {
-      color: #ffca28;
-      font-weight: 600;
-      font-family: monospace;
-      font-size: 11px;
-    }
     @media (max-width: 600px) {
+      html, body {
+        font-size: 10px !important;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       .container {
         padding: 4px 2px 0 2px;
         max-width: 100vw;
       }
       #savingsGrid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: 1fr;
         gap: 10px;
       }
       .savings-card {
@@ -356,6 +386,12 @@
       .savings-card .x-link { max-width: 58px;}
       .savings-card .claimed, .savings-card .locked { padding: 3px 7px; width: 56px;}
       .fix-rate-info { font-size: 9.5px; padding: 6px 7px 7px 7px;}
+      .auto-return-info { font-size: 10px; padding: 7px 7px 7px 7px;}
+      .input-field input[type="number"], .input-field input[type="text"] {
+        font-size: 16px !important;
+        height: 28px;
+      }
+      .summary-bar-inner { flex-direction: column; align-items: stretch; gap:7px;}
     }
   </style>
 </head>
@@ -371,9 +407,27 @@
         <span id="walletBtnText">Connect Wallet</span>
       </button>
     </div>
-    <div id="connectedWalletDisplay" style="display:none;">
-      Connected: <span id="connectedWallet" class="wallet-address"></span>
-      <span id="networkName"></span>
+    <!-- Summary bar -->
+    <div id="summaryBar">
+      <div class="summary-bar-inner">
+        <div>
+          <span class="material-symbols-outlined" style="color:#ffca28; font-size:18px;">attach_money</span>
+          <span>Total Savings:</span>
+          <span id="totalPol" style="color:#ffca28; font-weight:700; margin-left:3px;">0</span>
+          <span style="color:#ccc; font-size:11px; margin-left:2px;">$POL</span>
+        </div>
+        <div>
+          <span class="material-symbols-outlined" style="color:#43e97b; font-size:18px;">redeem</span>
+          <span>Profit:</span>
+          <span id="totalProfit" style="color:#43e97b; font-weight:700; margin-left:3px;">0</span>
+          <span style="color:#ccc; font-size:11px; margin-left:2px;">$NFTFAN</span>
+          <span id="profitPerSec" style="margin-left:10px;">
+            <span class="material-symbols-outlined" style="font-size:17px;color:#ffca28;vertical-align:middle;">trending_up</span>
+            <span id="profitPerSecValue" style="color:#ffca28;">+0</span>
+            <span style="color:#ccc; font-size:11px; margin-left:2px;">/sec</span>
+          </span>
+        </div>
+      </div>
     </div>
     <div class="fix-rate-info">
       <strong>Fixed Rates:</strong><br>
@@ -381,13 +435,16 @@
       <span>400T $NFTFAN</span> per <span>1 $POL</span> for <span>6 Months</span> &nbsp;|&nbsp;
       <span>1,000T $NFTFAN</span> per <span>1 $POL</span> for <span>1 Year</span>
     </div>
+    <div class="auto-return-info">
+      <span>$POL will be automatically returned to your wallet after lock period is over, so you get $POL + $NFTFAN profit for saving with nftfans token.</span>
+    </div>
     <form id="savingsForm" autocomplete="off">
       <div class="input-field">
-        <input id="amount" type="number" min="0.0001" step="0.0001" placeholder="Amount in $POL" required />
+        <input id="amount" type="number" min="0.0001" step="0.0001" placeholder="Amount in $POL" required inputmode="decimal" pattern="[0-9.]*" />
         <label for="amount">$POL Amount</label>
       </div>
       <div class="input-field">
-        <input id="xAccount" type="text" placeholder="@username" pattern="^@[\w\d_]+$" required>
+        <input id="xAccount" type="text" placeholder="@username" pattern="^@[\w\d_]+$" required inputmode="text" />
         <label for="xAccount">X (Twitter) Username</label>
       </div>
       <div class="input-field" style="margin-bottom: 0;">
@@ -409,7 +466,6 @@
       No savings accounts found for this wallet.
     </div>
   </div>
-
   <!-- Materialize JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
@@ -443,6 +499,7 @@
 
     let currentWallet = null;
     let currentNetwork = null;
+    let latestSavingsData = [];
 
     async function switchToPolygon() {
       if (!window.ethereum) return;
@@ -525,12 +582,19 @@
       });
     }
 
-    // Reward calculation based on fixed rates (4x)
     function getReward(amount, durationMonths) {
       if (durationMonths === 3) return `${(amount * 4_000_000_000_000).toLocaleString()} $NFTFAN`;
       if (durationMonths === 6) return `${(amount * 400_000_000_000_000).toLocaleString()} $NFTFAN`;
       if (durationMonths === 12) return `${(amount * 1_000_000_000_000_000).toLocaleString()} $NFTFAN`;
       return "0 $NFTFAN";
+    }
+
+    function getProfitRaw(amount, durationMonths) {
+      // Returns just the number (not formatted), for calculations
+      if (durationMonths === 3) return amount * 4_000_000_000_000;
+      if (durationMonths === 6) return amount * 400_000_000_000_000;
+      if (durationMonths === 12) return amount * 1_000_000_000_000_000;
+      return 0;
     }
 
     async function saveSavingsToFirebase(wallet, amount, duration, xAccount) {
@@ -561,9 +625,11 @@
       const grid = document.getElementById('savingsGrid');
       const noMsg = document.getElementById('noSavingsMsg');
       grid.innerHTML = '';
+      latestSavingsData = [];
       if (!currentWallet) {
         noMsg.style.display = 'block';
         noMsg.textContent = "Connect your wallet to view your savings accounts.";
+        document.getElementById('summaryBar').style.display = 'none';
         return;
       }
       const snapshot = await db.ref('savings').orderByChild('wallet').equalTo(currentWallet).once('value');
@@ -571,12 +637,18 @@
       if (!data) {
         noMsg.style.display = 'block';
         noMsg.textContent = "No savings accounts found for this wallet.";
+        document.getElementById('summaryBar').style.display = 'none';
+        updateSummaryBar([]); // clear
         return;
       }
       noMsg.style.display = 'none';
       const now = Date.now();
 
-      Object.entries(data).forEach(([key, entry]) => {
+      latestSavingsData = Object.entries(data).map(([key, entry]) => ({...entry, key}));
+      updateSummaryBar(latestSavingsData);
+
+      latestSavingsData.forEach((entry) => {
+        const key = entry.key;
         const card = document.createElement('div');
         card.className = 'savings-card';
 
@@ -686,6 +758,32 @@
       updateCountdowns();
     }
 
+    function updateSummaryBar(entries) {
+      let totalPol = 0;
+      let totalProfit = 0;
+      let profitPerSec = 0;
+      const now = Date.now();
+      entries.forEach(entry => {
+        totalPol += Number(entry.amount);
+        totalProfit += getProfitRaw(Number(entry.amount), Number(entry.duration));
+        // per-second profit for this entry (if not claimed, and still within lock)
+        if (!entry.claimed && now < entry.unlockAt) {
+          const reward = getProfitRaw(Number(entry.amount), Number(entry.duration));
+          const durationSec = (entry.unlockAt - entry.createdAt) / 1000;
+          profitPerSec += reward / durationSec;
+        }
+      });
+      document.getElementById('totalPol').textContent = totalPol.toLocaleString(undefined, {maximumFractionDigits:4});
+      document.getElementById('totalProfit').textContent = totalProfit.toLocaleString(undefined, {maximumFractionDigits:0});
+      document.getElementById('profitPerSecValue').textContent = "+" + (profitPerSec>=1?Math.floor(profitPerSec).toLocaleString():profitPerSec.toFixed(3));
+      document.getElementById('summaryBar').style.display = entries.length ? '' : 'none';
+    }
+
+    function updateProfitPerSecondBar() {
+      // Update only the profit per second bar, as profit per second can change as time passes and entries unlock
+      updateSummaryBar(latestSavingsData || []);
+    }
+
     function updateCountdowns() {
       const spans = document.querySelectorAll('.countdown');
       const now = Date.now();
@@ -707,6 +805,7 @@
           span.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;color:#ffca28;">schedule</span>${days}d ${hours}h ${mins}m ${secs}s`;
         }
       });
+      updateProfitPerSecondBar();
     }
     setInterval(updateCountdowns, 1000);
 
