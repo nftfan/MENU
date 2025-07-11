@@ -8,12 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Materialize CSS for modern mobile look -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet" />
-  <!-- ethers.js for wallet & transaction -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- ethers.js v6 for latest wallet handling -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
+ <style>
     html, body {
       background: #121212;
       color: #fff;
@@ -484,9 +484,10 @@
     const db = firebase.database();
 
     // Polygon (Mainnet) info
-    const POLYGON_CHAIN_ID = '0x89';
+    const POLYGON_CHAIN_ID_HEX = '0x89';
+    const POLYGON_CHAIN_ID_DEC = 137;
     const POLYGON_PARAMS = {
-      chainId: POLYGON_CHAIN_ID,
+      chainId: POLYGON_CHAIN_ID_HEX,
       chainName: 'Polygon Mainnet',
       nativeCurrency: {
         name: 'MATIC',
@@ -500,17 +501,26 @@
     let currentWallet = null;
     let currentNetwork = null;
     let latestSavingsData = [];
+    let provider = null;
+
+    // Modern wallet detection (EIP-6963, EIP-1193, window.ethereum + fallback)
+    function getInjectedProvider() {
+      if (window.ethereum) return window.ethereum;
+      if (window.wallet) return window.wallet;
+      return null;
+    }
 
     async function switchToPolygon() {
-      if (!window.ethereum) return;
+      const eth = getInjectedProvider();
+      if (!eth) return;
       try {
-        await window.ethereum.request({
+        await eth.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: POLYGON_CHAIN_ID }],
+          params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
         });
       } catch (switchError) {
         if (switchError.code === 4902) {
-          await window.ethereum.request({
+          await eth.request({
             method: 'wallet_addEthereumChain',
             params: [POLYGON_PARAMS],
           });
@@ -521,56 +531,59 @@
     }
 
     async function getNetworkName() {
-      if (!window.ethereum) return null;
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (chainId === POLYGON_CHAIN_ID) return 'Polygon';
-      return 'Unknown';
+      const eth = getInjectedProvider();
+      if (!eth) return null;
+      try {
+        const chainId = await eth.request({ method: 'eth_chainId' });
+        if (chainId === POLYGON_CHAIN_ID_HEX || parseInt(chainId, 16) === POLYGON_CHAIN_ID_DEC) return 'Polygon';
+        return 'Unknown';
+      } catch {
+        return null;
+      }
     }
 
-    document.getElementById('connectWalletBtn').onclick = async function() {
-      if (!window.ethereum) {
-        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
+    async function connectWallet() {
+      const eth = getInjectedProvider();
+      if (!eth) {
+        M.toast({html: 'No wallet found. Please install MetaMask, Coinbase, OKX or other wallet.', classes: 'red'});
         return;
       }
       try {
         await switchToPolygon();
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        currentWallet = accounts[0];
+        const accounts = await eth.request({ method: 'eth_requestAccounts' });
+        currentWallet = ethers.utils.getAddress(accounts[0]);
+        provider = new ethers.BrowserProvider(eth);
         currentNetwork = await getNetworkName();
-
         displayWallet(currentWallet, currentNetwork);
         await saveWalletToFirebase(currentWallet);
 
-        window.ethereum.on('accountsChanged', async (accounts) => {
-          currentWallet = accounts[0] || null;
+        // Listen for wallet/account/network changes
+        eth.on('accountsChanged', async (accounts) => {
+          currentWallet = accounts[0] ? ethers.utils.getAddress(accounts[0]) : null;
           currentNetwork = await getNetworkName();
           displayWallet(currentWallet, currentNetwork);
           if (currentWallet) await saveWalletToFirebase(currentWallet);
           await loadSavings();
         });
-        window.ethereum.on('chainChanged', async () => {
+        eth.on('chainChanged', async () => {
           currentNetwork = await getNetworkName();
           displayWallet(currentWallet, currentNetwork);
           await loadSavings();
         });
+
         await loadSavings();
       } catch (err) {
-        M.toast({html: 'Wallet connection failed', classes: 'red'});
+        M.toast({html: 'Wallet connection failed or denied', classes: 'red'});
       }
-    };
+    }
+
+    document.getElementById('connectWalletBtn').onclick = connectWallet;
 
     function displayWallet(wallet, network) {
-      const walletDiv = document.getElementById('connectedWalletDisplay');
-      const walletSpan = document.getElementById('connectedWallet');
-      const networkSpan = document.getElementById('networkName');
       const btnText = document.getElementById('walletBtnText');
       if (wallet) {
-        walletDiv.style.display = '';
-        walletSpan.textContent = wallet.slice(0,6) + '...' + wallet.slice(-4);
-        networkSpan.textContent = network ? `(${network})` : '';
         btnText.textContent = 'Wallet Connected';
       } else {
-        walletDiv.style.display = 'none';
         btnText.textContent = 'Connect Wallet';
       }
     }
@@ -590,7 +603,6 @@
     }
 
     function getProfitRaw(amount, durationMonths) {
-      // Returns just the number (not formatted), for calculations
       if (durationMonths === 3) return amount * 4_000_000_000_000;
       if (durationMonths === 6) return amount * 400_000_000_000_000;
       if (durationMonths === 12) return amount * 1_000_000_000_000_000;
@@ -766,7 +778,6 @@
       entries.forEach(entry => {
         totalPol += Number(entry.amount);
         totalProfit += getProfitRaw(Number(entry.amount), Number(entry.duration));
-        // per-second profit for this entry (if not claimed, and still within lock)
         if (!entry.claimed && now < entry.unlockAt) {
           const reward = getProfitRaw(Number(entry.amount), Number(entry.duration));
           const durationSec = (entry.unlockAt - entry.createdAt) / 1000;
@@ -780,7 +791,6 @@
     }
 
     function updateProfitPerSecondBar() {
-      // Update only the profit per second bar, as profit per second can change as time passes and entries unlock
       updateSummaryBar(latestSavingsData || []);
     }
 
@@ -830,20 +840,23 @@
         return;
       }
       // Wallet connect and switch network if needed
-      if (!window.ethereum) {
-        M.toast({html: 'No wallet found. Please install MetaMask!', classes: 'red'});
+      const eth = getInjectedProvider();
+      if (!eth) {
+        M.toast({html: 'No wallet found. Please install MetaMask, Coinbase, OKX or other wallet.', classes: 'red'});
         return;
       }
       try {
         await switchToPolygon();
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await eth.request({ method: 'eth_requestAccounts' });
+        currentWallet = ethers.utils.getAddress(accounts[0]);
+        provider = new ethers.BrowserProvider(eth);
+
         // Send to vault
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
+        const signer = await provider.getSigner();
         const recipient = "0x92d550cdbc234211957bd1b579d962c885a127ba";
         const tx = await signer.sendTransaction({
           to: recipient,
-          value: ethers.utils.parseEther(amount.toString())
+          value: ethers.parseEther(amount.toString())
         });
         M.toast({html: 'Transaction sent! Waiting for confirmation.', classes: 'green'});
         await tx.wait();
@@ -863,12 +876,16 @@
     window.addEventListener('DOMContentLoaded', async () => {
       var elems = document.querySelectorAll('select');
       M.FormSelect.init(elems);
-      await loadSavings();
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        currentWallet = window.ethereum.selectedAddress;
+      // Modern wallet auto-connect (if wallet already connected)
+      const eth = getInjectedProvider();
+      if (eth && eth.selectedAddress) {
+        currentWallet = ethers.utils.getAddress(eth.selectedAddress);
+        provider = new ethers.BrowserProvider(eth);
         currentNetwork = await getNetworkName();
         displayWallet(currentWallet, currentNetwork);
         if (currentWallet) await saveWalletToFirebase(currentWallet);
+        await loadSavings();
+      } else {
         await loadSavings();
       }
     });
