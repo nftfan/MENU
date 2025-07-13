@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$NFTFAN Submitted Wallets & Airdrop</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    html {
+      font-size: 10px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7faff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      color: #23243b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1.4rem;
+      box-shadow: 0 0.4rem 2.4rem 0 rgba(36,36,62,.10);
+      max-width: 39rem;
+      width: 97vw;
+      margin: 2.4rem 0;
+      padding: 2.2rem 1rem 1.8rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #00bfae;
+      letter-spacing: .12rem;
+      text-align: center;
+    }
+    #walletsList {
+      width: 100%;
+      margin-top: 1.6rem;
+      margin-bottom: 1.8rem;
+      background: #f3f7fa;
+      border-radius: .8rem;
+      font-size: 1.1rem;
+      padding: 1.3rem 1rem;
+      min-height: 4rem;
+      word-break: break-all;
+      max-height: 34rem;
+      overflow-y: auto;
+      border: 1px solid #e2e5ee;
+      box-sizing: border-box;
+    }
+    .wallet-row {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px dashed #e3e7f1;
+      transition: background 0.3s;
+      font-size: 1.1rem;
+    }
+    .wallet-row:last-child { border-bottom: none; }
+    .x-avatar {
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 50%;
+      background: #e9f7fa;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 0.14rem solid #e2e5ee;
+      display: inline-block;
+    }
+    .x-username {
+      color: #a259e6;
+      font-weight: 700;
+      font-size: 1.1rem;
+      font-family: inherit;
+      max-width: 8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-decoration: none;
+      transition: text-decoration 0.15s;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .x-username:hover { text-decoration: underline; }
+    .wallet-address {
+      font-family: monospace;
+      color: #333;
+      background: #f8fafd;
+      border-radius: .6rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 1rem;
+      margin-left: auto;
+      user-select: all;
+      max-width: 12.5rem;
+      overflow-x: auto;
+      display: inline-block;
+    }
+    .wallet-status {
+      margin-left: 0.8rem;
+      padding: 0.2rem 1.2rem;
+      border-radius: 0.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      display: inline-block;
+      min-width: 4.5rem;
+      text-align: center;
+    }
+    .status-pending {
+      background: #fffbe9;
+      color: #bfa800;
+      border: 1px solid #ffe066;
+    }
+    .status-sent {
+      background: #e8faf1;
+      color: #27ae60;
+      border: 1px solid #27ae60;
+    }
+    #copyBtn, #connectButton, #airdropBtn {
+      background: linear-gradient(90deg,#00bfae 80%,#a259e6 100%);
+      color: #fff;
+      font-weight: 700;
+      border: none;
+      border-radius: 0.8rem;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 0.1rem 0.8rem #00bfae18;
+      margin-bottom: 1rem;
+      margin-top: 0.1rem;
+      transition: background .13s, transform .13s;
+      display: flex; align-items: center; gap: 0.6rem;
+      width: 100%;
+      max-width: 32rem;
+      justify-content: center;
+    }
+    #copyBtn:active, #connectButton:active, #airdropBtn:active { transform: scale(0.97);}
+    #copyBtn.copied {background: #27ae60;}
+    #emptyMsg {
+      color: #aaa;
+      font-size: 1rem;
+      text-align: center;
+      margin-top: 0.8rem;
+      margin-bottom: 1.4rem;
+    }
+    .wallet-info {
+      margin: 1rem 0 1.4rem 0;
+      font-size: 1rem;
+      color: #00e6e6;
+      text-align: center;
+      word-break: break-all;
+      width: 100%;
+    }
+    #notification {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffc107;
+      color: #121212;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0.6rem;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 0.4rem 1.5rem rgba(0, 0, 0, 0.3);
+      font-size: 1.1rem;
+      max-width: 90vw;
+      min-width: 10rem;
+      text-align: center;
+    }
+    #notification.show {
+      display: block;
+      animation: fadeInOut 2.2s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @media (max-width:410px) {
+      .card {
+        padding: 1.1rem 0.3rem;
+        max-width: 98vw;
+      }
+      h2 {font-size: 1.5rem;}
+      #walletsList {font-size: 1rem; padding: 0.8rem 0.4rem; max-height: 19rem;}
+      #copyBtn, #connectButton, #airdropBtn {font-size: 1rem; padding: 0.6rem 0.5rem;}
+      .wallet-address, .x-username, .wallet-status {font-size: .95rem;}
+      .x-avatar {width: 1.7rem; height: 1.7rem;}
+    }
+    @media (max-width:340px) {
+      html { font-size: 9px;}
+      .card {max-width: 98vw;}
+      #walletsList {max-height: 12rem;}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h2>Submitted Wallets & Airdrop</h2>
+    <div id="walletsList"></div>
+    <button id="copyBtn"><span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Wallets</button>
+    <div id="emptyMsg" style="display:none;">No wallets submitted yet.</div>
+    <button id="connectButton"><span class="material-icons">link</span> Connect Wallet</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <button id="airdropBtn" style="display:none;"><span class="material-icons">send</span> Send Airdrop</button>
+    <div id="notification" class="notification"></div>
+  </div>
+  <script>
+    // --- BEGIN Airdrop/Wallets logic ---
+    const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+    let web3;
+    let contract;
+    let userAccount;
+    let sending = false;
+
+    function loadWalletsWithX() {
+      try {
+        const arr = JSON.parse(localStorage.getItem("nftfan_airdrop_chat")) || [];
+        // Remove dups by wallet, keep most recent
+        const seen = new Set();
+        const rows = [];
+        for(let i=arr.length-1;i>=0;i--) {
+          const w = arr[i].wallet?.toLowerCase();
+          if(w && !seen.has(w)) {
+            rows.unshift({
+              wallet: arr[i].wallet,
+              xHandle: arr[i].xHandle,
+              avatar: arr[i].avatar,
+              status: arr[i].airdropStatus || "pending"
+            });
+            seen.add(w);
+          }
+        }
+        return rows;
+      } catch {
+        return [];
+      }
+    }
+
+    function saveWalletsWithStatus(rows) {
+      // Save back status to localStorage for persistence.
+      // We'll update the chat log array with the new airdropStatus.
+      try {
+        let arr = JSON.parse(localStorage.getItem("nftfan_airdrop_chat")) || [];
+        const walletIndex = {};
+        for (let i = 0; i < arr.length; ++i) {
+          walletIndex[arr[i].wallet] = i;
+        }
+        for (const row of rows) {
+          // Find the entry in arr with wallet address and update its airdropStatus
+          const idx = walletIndex[row.wallet];
+          if (typeof idx !== 'undefined') {
+            arr[idx].airdropStatus = row.status;
+          }
+        }
+        localStorage.setItem("nftfan_airdrop_chat", JSON.stringify(arr));
+      } catch {}
+    }
+
+    function renderWallets() {
+      const walletsList = document.getElementById('walletsList');
+      const emptyMsg = document.getElementById('emptyMsg');
+      const wallets = loadWalletsWithX();
+
+      if(wallets.length === 0) {
+        walletsList.innerHTML = "";
+        emptyMsg.style.display = "block";
+      } else {
+        emptyMsg.style.display = "none";
+        walletsList.innerHTML = wallets.map(w =>
+          `<div class="wallet-row" id="wallet-row-${w.wallet}">
+             <a class="x-username" href="https://x.com/${w.xHandle?.replace(/^@/, '')}" target="_blank">
+               <img class="x-avatar" src="${w.avatar || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${w.xHandle}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
+               ${w.xHandle || ''}
+             </a>
+             <span class="wallet-address">${w.wallet}</span>
+             <span class="wallet-status status-${w.status}">${w.status === "sent" ? "Sent" : "Pending"}</span>
+           </div>`
+        ).join('');
+      }
+      document.getElementById('copyBtn').disabled = wallets.length === 0;
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', function() {
+      const wallets = loadWalletsWithX();
+      if(wallets.length === 0) return;
+      const text = wallets.map(w => w.wallet).join('\n');
+      if(navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(()=>{
+          this.classList.add('copied');
+          this.textContent = "Copied!";
+          setTimeout(()=>{
+            this.classList.remove('copied');
+            this.innerHTML = '<span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Wallets';
+          }, 1300);
+        });
+      } else {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.classList.add('copied');
+        this.textContent = "Copied!";
+        setTimeout(()=>{
+          this.classList.remove('copied');
+          this.innerHTML = '<span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Wallets';
+        }, 1300);
+      }
+    });
+
+    // ---- WALLET/AIRDROP ----
+    document.getElementById('connectButton').onclick = async function() {
+      showNotification("Connecting wallet...", "pending");
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          web3 = new Web3(window.ethereum);
+          await window.ethereum.enable();
+          const accounts = await web3.eth.getAccounts();
+          userAccount = accounts[0];
+          document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+          document.getElementById('connectButton').style.display = 'none';
+          document.getElementById('airdropBtn').style.display = '';
+          showNotification("Wallet connected! Ready to send airdrop.", "sent");
+          setupContract();
+        } catch (err) {
+          showNotification("Wallet connect failed.", "pending");
+        }
+      } else {
+        showNotification("Please install MetaMask!", "pending");
+      }
+    };
+
+    function setupContract() {
+      const abi = [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_tokenAddress",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "recipient",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "TokensDistributed",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address[]",
+                    "name": "recipients",
+                    "type": "address[]"
+                }
+            ],
+            "name": "distributeTokens",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "withdrawTokens",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+      ];
+      contract = new web3.eth.Contract(abi, contractAddress);
+    }
+
+    document.getElementById('airdropBtn').onclick = async function() {
+      if (sending) return;
+      sending = true;
+      showNotification("Sending airdrop. Please confirm in your wallet...", "pending");
+      const wallets = loadWalletsWithX();
+
+      // Only send to pending wallets
+      const pendingWallets = wallets.filter(w => w.status !== "sent").map(w => w.wallet);
+      if (pendingWallets.length === 0) {
+        showNotification("All wallets already sent.", "sent");
+        sending = false;
+        return;
+      }
+      const batchSize = 50;
+      const batch = pendingWallets.slice(0, batchSize);
+      try {
+        await contract.methods.distributeTokens(batch).send({
+          from: userAccount,
+          gas: 2000000 // may need to be adjusted
+        });
+        // Update status
+        const allWallets = loadWalletsWithX();
+        for (const w of allWallets) {
+          if (batch.includes(w.wallet)) w.status = "sent";
+        }
+        saveWalletsWithStatus(allWallets);
+        renderWallets();
+        showNotification("Airdrop sent to batch!", "sent");
+      } catch (e) {
+        showNotification("Airdrop failed or cancelled.", "pending");
+      }
+      sending = false;
+    };
+
+    function showNotification(message, status) {
+      var notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = 'show';
+      if (status === "sent") {
+        notification.style.background = "#27ae60";
+        notification.style.color = "#fff";
+      } else if (status === "pending") {
+        notification.style.background = "#ffe066";
+        notification.style.color = "#23243b";
+      } else {
+        notification.style.background = "#ffc107";
+        notification.style.color = "#121212";
+      }
+      setTimeout(function () {
+        notification.className = '';
+      }, 1800);
+    }
+
+    window.addEventListener('DOMContentLoaded', renderWallets);
+  </script>
+</body>
+</html>
