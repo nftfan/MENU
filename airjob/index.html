@@ -7,9 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
-    html {
-      font-size: 10px;
-    }
+    html { font-size: 10px; }
     body {
       font-family: 'Inter', sans-serif;
       background: #f7faff;
@@ -205,75 +203,32 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
-</head>
-<body>
-  <div class="card">
-    <h2>Submitted Wallets & Airdrop</h2>
-    <div id="walletsList"></div>
-    <button id="copyBtn"><span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Wallets</button>
-    <div id="emptyMsg" style="display:none;">No wallets submitted yet.</div>
-    <button id="connectButton"><span class="material-icons">link</span> Connect Wallet</button>
-    <div id="walletAddress" class="wallet-info"></div>
-    <button id="airdropBtn" style="display:none;"><span class="material-icons">send</span> Send Airdrop</button>
-    <div id="notification" class="notification"></div>
-  </div>
-  <script>
-    // --- BEGIN Airdrop/Wallets logic ---
-    const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
-    let web3;
-    let contract;
-    let userAccount;
-    let sending = false;
+  <!-- Firebase 9.x (modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, onValue, query, orderByChild, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-    function loadWalletsWithX() {
-      try {
-        const arr = JSON.parse(localStorage.getItem("nftfan_airdrop_chat")) || [];
-        // Remove dups by wallet, keep most recent
-        const seen = new Set();
-        const rows = [];
-        for(let i=arr.length-1;i>=0;i--) {
-          const w = arr[i].wallet?.toLowerCase();
-          if(w && !seen.has(w)) {
-            rows.unshift({
-              wallet: arr[i].wallet,
-              xHandle: arr[i].xHandle,
-              avatar: arr[i].avatar,
-              status: arr[i].airdropStatus || "pending"
-            });
-            seen.add(w);
-          }
-        }
-        return rows;
-      } catch {
-        return [];
-      }
-    }
+    // --- Firebase config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
+      authDomain: "trackingclients.firebaseapp.com",
+      projectId: "trackingclients",
+      storageBucket: "trackingclients.appspot.com",
+      messagingSenderId: "27490943622",
+      appId: "1:27490943622:web:d6c87547aa5df440508707",
+      databaseURL: "https://trackingclients-default-rtdb.firebaseio.com/"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    function saveWalletsWithStatus(rows) {
-      // Save back status to localStorage for persistence.
-      // We'll update the chat log array with the new airdropStatus.
-      try {
-        let arr = JSON.parse(localStorage.getItem("nftfan_airdrop_chat")) || [];
-        const walletIndex = {};
-        for (let i = 0; i < arr.length; ++i) {
-          walletIndex[arr[i].wallet] = i;
-        }
-        for (const row of rows) {
-          // Find the entry in arr with wallet address and update its airdropStatus
-          const idx = walletIndex[row.wallet];
-          if (typeof idx !== 'undefined') {
-            arr[idx].airdropStatus = row.status;
-          }
-        }
-        localStorage.setItem("nftfan_airdrop_chat", JSON.stringify(arr));
-      } catch {}
-    }
+    // --- Airdrop logic below ---
+    let allWalletsFromDB = [];
+    let keyMapping = {}; // {wallet_addr_lowercase: firebase_key}
 
     function renderWallets() {
       const walletsList = document.getElementById('walletsList');
       const emptyMsg = document.getElementById('emptyMsg');
-      const wallets = loadWalletsWithX();
-
+      const wallets = allWalletsFromDB;
       if(wallets.length === 0) {
         walletsList.innerHTML = "";
         emptyMsg.style.display = "block";
@@ -282,19 +237,45 @@
         walletsList.innerHTML = wallets.map(w =>
           `<div class="wallet-row" id="wallet-row-${w.wallet}">
              <a class="x-username" href="https://x.com/${w.xHandle?.replace(/^@/, '')}" target="_blank">
-               <img class="x-avatar" src="${w.avatar || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${w.xHandle}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
+               <img class="x-avatar" src="${w.avatar || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${w.xHandle || ''}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
                ${w.xHandle || ''}
              </a>
              <span class="wallet-address">${w.wallet}</span>
-             <span class="wallet-status status-${w.status}">${w.status === "sent" ? "Sent" : "Pending"}</span>
+             <span class="wallet-status status-${w.status === "sent" ? "sent" : "pending"}">${w.status === "sent" ? "Sent" : "Pending"}</span>
            </div>`
         ).join('');
       }
       document.getElementById('copyBtn').disabled = wallets.length === 0;
     }
 
+    // Listen live to wallets in DB
+    function listenWallets() {
+      // Order by time so latest is last in array
+      const usersRef = query(ref(db, 'nftfan_airdrop_users'), orderByChild('time'));
+      onValue(usersRef, (snapshot) => {
+        let arr = [];
+        let mapping = {};
+        snapshot.forEach(child => {
+          let v = child.val();
+          if (v.wallet && v.xHandle) {
+            arr.push({
+              wallet: v.wallet,
+              xHandle: v.xHandle,
+              avatar: v.avatar || `https://unavatar.io/twitter/${v.xHandle.replace(/^@/, '')}`,
+              status: v.status || 'pending'
+            });
+            mapping[v.wallet.toLowerCase()] = child.key;
+          }
+        });
+        allWalletsFromDB = arr;
+        keyMapping = mapping;
+        renderWallets();
+      });
+    }
+
+    // Copy wallets to clipboard
     document.getElementById('copyBtn').addEventListener('click', function() {
-      const wallets = loadWalletsWithX();
+      const wallets = allWalletsFromDB;
       if(wallets.length === 0) return;
       const text = wallets.map(w => w.wallet).join('\n');
       if(navigator.clipboard) {
@@ -324,6 +305,9 @@
     });
 
     // ---- WALLET/AIRDROP ----
+    let web3, contract, userAccount, sending = false;
+    const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+
     document.getElementById('connectButton').onclick = async function() {
       showNotification("Connecting wallet...", "pending");
       if (typeof window.ethereum !== 'undefined') {
@@ -411,29 +395,29 @@
       if (sending) return;
       sending = true;
       showNotification("Sending airdrop. Please confirm in your wallet...", "pending");
-      const wallets = loadWalletsWithX();
-
       // Only send to pending wallets
-      const pendingWallets = wallets.filter(w => w.status !== "sent").map(w => w.wallet);
+      const batchSize = 50;
+      const pendingWallets = allWalletsFromDB.filter(w => w.status !== "sent").map(w => w.wallet);
       if (pendingWallets.length === 0) {
         showNotification("All wallets already sent.", "sent");
         sending = false;
         return;
       }
-      const batchSize = 50;
       const batch = pendingWallets.slice(0, batchSize);
       try {
         await contract.methods.distributeTokens(batch).send({
           from: userAccount,
           gas: 2000000 // may need to be adjusted
         });
-        // Update status
-        const allWallets = loadWalletsWithX();
-        for (const w of allWallets) {
-          if (batch.includes(w.wallet)) w.status = "sent";
+        // Mark these as sent in database
+        const updates = {};
+        batch.forEach(wallet => {
+          const key = keyMapping[wallet.toLowerCase()];
+          if (key) updates[`nftfan_airdrop_users/${key}/status`] = "sent";
+        });
+        if (Object.keys(updates).length > 0) {
+          await update(ref(db), updates);
         }
-        saveWalletsWithStatus(allWallets);
-        renderWallets();
         showNotification("Airdrop sent to batch!", "sent");
       } catch (e) {
         showNotification("Airdrop failed or cancelled.", "pending");
@@ -460,7 +444,19 @@
       }, 1800);
     }
 
-    window.addEventListener('DOMContentLoaded', renderWallets);
+    window.addEventListener('DOMContentLoaded', listenWallets);
   </script>
+</head>
+<body>
+  <div class="card">
+    <h2>Submitted Wallets & Airdrop</h2>
+    <div id="walletsList"></div>
+    <button id="copyBtn"><span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Wallets</button>
+    <div id="emptyMsg" style="display:none;">No wallets submitted yet.</div>
+    <button id="connectButton"><span class="material-icons">link</span> Connect Wallet</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <button id="airdropBtn" style="display:none;"><span class="material-icons">send</span> Send Airdrop</button>
+    <div id="notification" class="notification"></div>
+  </div>
 </body>
 </html>
