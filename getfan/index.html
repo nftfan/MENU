@@ -174,6 +174,61 @@ html, body {
   100% { background: #e8faf1;}
 }
 
+/* --- Move input bar under header, not at bottom --- */
+.input-bar-wrapper {
+  padding: 0 0 0 0;
+  background: linear-gradient(90deg,#fcfcfe 80%,#f5f4fe 100%);
+  border-bottom: 1.5px solid #f0f0f7;
+}
+.input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 15px 12px 15px 12px;
+  align-items: center;
+  background: transparent;
+}
+.input-bar input,
+.input-bar button,
+.input-bar select {
+  font-family: var(--font-main);
+  font-size: 15px;
+  border-radius: 7px;
+  border: none;
+  outline: none;
+}
+.input-bar input {
+  flex: 1;
+  padding: 12px 13px;
+  background: #f5f5fa;
+  color: var(--text);
+  border: 1.2px solid #e1e1ef;
+  transition: border .17s;
+}
+.input-bar input:focus {
+  border: 1.2px solid var(--primary);
+  background: #f8f9fb;
+}
+.input-bar button {
+  background: linear-gradient(90deg,#00bfae 80%,#a259e6 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 11px 17px;
+  cursor: pointer;
+  border: none;
+  min-width: 46px;
+  box-shadow: 0 1px 6px #00bfae1c;
+  transition: box-shadow .18s, transform .18s;
+}
+.input-bar button:active {
+  transform: scale(0.98);
+}
+.input-bar button:disabled {
+  opacity: .43;
+  cursor: not-allowed;
+}
+
+/* --- Chat window now at the bottom, grows upwards --- */
 .chat-window {
   flex: 1;
   background: #fcfcfe;
@@ -183,6 +238,8 @@ html, body {
   gap: 10px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  min-height: 0;
+  /* Place window at the bottom */
 }
 
 ::-webkit-scrollbar {
@@ -275,58 +332,13 @@ html, body {
   width: 100%;
   height: 100%;
 }
-.input-bar {
-  display: flex;
-  gap: 8px;
-  padding: 15px 12px 15px 12px;
-  border-top: 1.5px solid #f0f0f7;
-  background: linear-gradient(90deg,#fcfcfe 80%,#f5f4fe 100%);
-  align-items: center;
-}
-.input-bar input,
-.input-bar button,
-.input-bar select {
-  font-family: var(--font-main);
-  font-size: 15px;
-  border-radius: 7px;
-  border: none;
-  outline: none;
-}
-.input-bar input {
-  flex: 1;
-  padding: 12px 13px;
-  background: #f5f5fa;
-  color: var(--text);
-  border: 1.2px solid #e1e1ef;
-  transition: border .17s;
-}
-.input-bar input:focus {
-  border: 1.2px solid var(--primary);
-  background: #f8f9fb;
-}
-.input-bar button {
-  background: linear-gradient(90deg,#00bfae 80%,#a259e6 100%);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  padding: 11px 17px;
-  cursor: pointer;
-  border: none;
-  min-width: 46px;
-  box-shadow: 0 1px 6px #00bfae1c;
-  transition: box-shadow .18s, transform .18s;
-}
-.input-bar button:active {
-  transform: scale(0.98);
-}
-.input-bar button:disabled {
-  opacity: .43;
-  cursor: not-allowed;
-}
 
 @media (max-width:520px) {
   .chat-card {
     max-width:99vw;
+  }
+  .input-bar {
+    padding: 10px 5px;
   }
 }
 
@@ -392,11 +404,15 @@ html, body {
           </span>
         </a>
       </div>
+      <!-- Move input bar here, just under the header/title -->
+      <div class="input-bar-wrapper">
+        <form class="input-bar" id="inputBar" autocomplete="off">
+          <input id="chatInput" type="text" placeholder="Type your X (Twitter) handle..." autocomplete="off" maxlength="60"/>
+          <button id="sendBtn" type="submit"><span class="material-icons">send</span></button>
+        </form>
+      </div>
+      <!-- Now the chat window is at the bottom, showing previous entries -->
       <div class="chat-window" id="chatWindow"></div>
-      <form class="input-bar" id="inputBar" autocomplete="off">
-        <input id="chatInput" type="text" placeholder="Type your X (Twitter) handle..." autocomplete="off" maxlength="60"/>
-        <button id="sendBtn" type="submit"><span class="material-icons">send</span></button>
-      </form>
       <button id="scrollToBottom">Scroll to bottom</button>
     </div>
   </div>
@@ -458,8 +474,31 @@ html, body {
       </div>`;
     }
 
+    // --- Status display ---
+    function renderStatus(entry) {
+      let status = entry.status || 'pending';
+      let icon = 'hourglass_top';
+      let text = 'Pending';
+      let color = 'var(--accent)';
+      if (status === 'sent') {
+        icon = 'check_circle';
+        text = 'Sent';
+        color = 'var(--success)';
+      } else if (status === 'failed' || status === 'error') {
+        icon = 'error';
+        text = 'Error';
+        color = 'red';
+      }
+      return `
+        <span style="font-size:13px;color:${color};display:inline-flex;align-items:center;">
+          <span class="material-icons" style="font-size:16px;margin-right:2px;color:${color};vertical-align:middle;">${icon}</span>
+          ${text}
+        </span>
+      `;
+    }
+
     // --- Chat state ---
-    let chatLog = []; // [{xHandle, wallet, avatar, time}]
+    let chatLog = []; // [{xHandle, wallet, avatar, time, status}]
     let currentInputStep = 0; // 0: ask X handle, 1: ask wallet
     let tmpUser = {}; // {xHandle, avatar}
 
@@ -471,10 +510,21 @@ html, body {
       if (chatLog.length > 0) {
         appendBotMsg(`<span class="material-icons" style="color:var(--secondary);">groups</span> <b>Recent Users:</b>`, {avatar:false});
         for(const entry of chatLog) {
-          appendUserMsg(`<span style="font-size:15px;">${sanitize(entry.xHandle)}</span> <br><span style="font-size:13px;color:var(--text-light);">${shortenWallet(entry.wallet)}</span>`, entry);
-          appendBotMsg(`<span class="material-icons" style="color:var(--success);">check_circle</span>
-            <b>Airdrop requested!</b><br>
-            Please wait up to <b>24h</b> for your free $NFTFAN tokens.`, {avatar:false, success:true});
+          appendUserMsg(`
+            <span style="font-size:15px;">${sanitize(entry.xHandle)}</span>
+            <br>
+            <span style="font-size:13px;color:var(--text-light);">${shortenWallet(entry.wallet)}</span>
+            <br>
+            ${renderStatus(entry)}
+          `, entry);
+
+          appendBotMsg(
+            `<span class="material-icons" style="color:var(--success);">check_circle</span>
+              <b>Airdrop requested!</b><br>
+              Status: <b style="color:inherit;">${renderStatus(entry)}</b><br>
+              Please wait up to <b>24h</b> for your free $NFTFAN tokens.`,
+            { avatar: false, success: true }
+          );
         }
       }
       // Always ask for X username next
@@ -568,7 +618,7 @@ html, body {
         }
         appendUserMsg(`<span style="font-size:13px;color:var(--text-light);">${shortenWallet(val)}</span>`, tmpUser);
         // Save airdrop to Firebase
-        const entry = {xHandle: tmpUser.xHandle, wallet: val, avatar: tmpUser.avatar, time: Date.now()};
+        const entry = {xHandle: tmpUser.xHandle, wallet: val, avatar: tmpUser.avatar, time: Date.now(), status: "pending"};
         await push(airdropRef, entry);
 
         setTimeout(()=>{
