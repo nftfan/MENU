@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -309,10 +308,53 @@
     let web3, contract, userAccount, sending = false;
     const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
 
+    // Polygon Mainnet (ID: 137, symbol: MATIC)
+    const polygonParams = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: {
+        name: 'MATIC',
+        symbol: 'MATIC',
+        decimals: 18
+      },
+      rpcUrls: ['https://polygon-rpc.com'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    async function switchToPolygon() {
+      if (window.ethereum) {
+        try {
+          // Try to switch to Polygon network
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: polygonParams.chainId }]
+          });
+        } catch (switchError) {
+          // If not present, try to add Polygon network
+          if (switchError.code === 4902 || switchError.message?.includes("not found")) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [polygonParams]
+              });
+            } catch (addError) {
+              throw new Error("User rejected adding Polygon network or not supported.");
+            }
+          } else {
+            throw switchError;
+          }
+        }
+      } else {
+        throw new Error("MetaMask not found.");
+      }
+    }
+
     document.getElementById('connectButton').onclick = async function() {
-      showNotification("Connecting wallet...", "pending");
+      showNotification("Switching to Polygon...", "pending");
       if (typeof window.ethereum !== 'undefined') {
         try {
+          await switchToPolygon();
+          showNotification("Connecting wallet...", "pending");
           web3 = new Web3(window.ethereum);
           await window.ethereum.enable();
           const accounts = await web3.eth.getAccounts();
@@ -320,10 +362,14 @@
           document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
           document.getElementById('connectButton').style.display = 'none';
           document.getElementById('airdropBtn').style.display = '';
-          showNotification("Wallet connected! Ready to send airdrop.", "sent");
+          showNotification("Wallet connected on Polygon!", "sent");
           setupContract();
         } catch (err) {
-          showNotification("Wallet connect failed.", "pending");
+          if (err.message && err.message.includes('MetaMask not found')) {
+            showNotification("Please install MetaMask!", "pending");
+          } else {
+            showNotification("Switch or connect failed.", "pending");
+          }
         }
       } else {
         showNotification("Please install MetaMask!", "pending");
