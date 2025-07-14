@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PriceToNFT Marketplace</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #181829;
+      color: #fefefe;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 400px;
+      margin: 2rem auto;
+      padding: 2rem 1.5rem;
+      background: #22223b;
+      border-radius: 18px;
+      box-shadow: 0 5px 30px rgba(30,14,54,0.18);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #a3ffd6;
+      font-size: 1.6rem;
+    }
+    label {
+      display: block;
+      margin: 1rem 0 0.3rem 0;
+      font-size: 1rem;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      background: #383854;
+      color: #fefefe;
+    }
+    button {
+      width: 100%;
+      padding: 0.9rem;
+      background: #11a67d;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0b795b;
+    }
+    .status {
+      margin-top: 1.2rem;
+      text-align: center;
+      font-size: 1rem;
+      color: #f7c873;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PriceToNFT Marketplace</h1>
+    <button id="connectBtn">Connect Wallet</button>
+    <form id="listForm" style="display:none;">
+      <label for="nftAddress">NFT Contract Address</label>
+      <input type="text" id="nftAddress" placeholder="0x..." required pattern="^0x[a-fA-F0-9]{40}$">
+
+      <label for="tokenId">NFT Token ID</label>
+      <input type="number" id="tokenId" placeholder="e.g. 1" required min="0">
+
+      <label for="price">Price (in MATIC)</label>
+      <input type="number" id="price" placeholder="e.g. 1.5" required min="0.00001" step="0.00001">
+
+      <button type="submit">List NFT</button>
+    </form>
+    <div class="status" id="status"></div>
+  </div>
+  <div class="footer">
+    Powered by Polygon &#9675; | Built for Mobile
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+  <script>
+    // -- Config --
+    const CONTRACT_ADDRESS = "0x098745B08F85aD8Dc8801a107eE0d4204460828E";
+    const CONTRACT_ABI = [
+      // Only what's needed for listing
+      "function listNFT(address nft, uint256 tokenId, uint256 price) external",
+      "function owner() view returns (address)"
+    ];
+    const POLYGON_CHAIN_ID = "0x89"; // Mainnet. For testnet Mumbai: "0x13881"
+
+    // -- UI Elements --
+    const connectBtn = document.getElementById('connectBtn');
+    const listForm = document.getElementById('listForm');
+    const statusDiv = document.getElementById('status');
+
+    // -- State --
+    let provider, signer, userAddress, contract;
+
+    // -- Utility: Switch to Polygon --
+    async function switchToPolygon() {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: POLYGON_CHAIN_ID }]
+        });
+      } catch (switchError) {
+        // If not found, try to add
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: POLYGON_CHAIN_ID,
+              chainName: "Polygon Mainnet",
+              nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+              rpcUrls: ["https://polygon-rpc.com/"],
+              blockExplorerUrls: ["https://polygonscan.com/"]
+            }]
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    }
+
+    // -- Connect Wallet --
+    connectBtn.onclick = async () => {
+      if (!window.ethereum) {
+        statusDiv.textContent = "MetaMask (or compatible wallet) is required!";
+        return;
+      }
+      statusDiv.textContent = "Connecting...";
+      try {
+        await switchToPolygon();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+        // Show form if user is owner
+        const owner = await contract.owner();
+        if (userAddress.toLowerCase() !== owner.toLowerCase()) {
+          statusDiv.textContent = "Only contract owner can list NFTs.";
+          listForm.style.display = "none";
+          connectBtn.textContent = "Connected!";
+        } else {
+          statusDiv.textContent = "Wallet connected. You are contract owner.";
+          listForm.style.display = "";
+          connectBtn.textContent = "Connected!";
+        }
+      } catch (err) {
+        statusDiv.textContent = "Connection failed: " + (err?.message || err);
+      }
+    };
+
+    // -- List NFT Handler --
+    listForm.onsubmit = async (e) => {
+      e.preventDefault();
+      statusDiv.textContent = "Submitting transaction...";
+      const nftAddr = document.getElementById('nftAddress').value.trim();
+      const tokenId = document.getElementById('tokenId').value.trim();
+      const price = document.getElementById('price').value.trim();
+
+      if (!/^0x[a-fA-F0-9]{40}$/.test(nftAddr)) {
+        statusDiv.textContent = "Invalid NFT contract address.";
+        return;
+      }
+      if (!tokenId || isNaN(tokenId)) {
+        statusDiv.textContent = "Invalid token ID.";
+        return;
+      }
+      if (!price || isNaN(price) || Number(price) <= 0) {
+        statusDiv.textContent = "Invalid price.";
+        return;
+      }
+
+      try {
+        // Convert price from MATIC to wei
+        const priceWei = ethers.parseUnits(price, 18);
+        const tx = await contract.listNFT(nftAddr, tokenId, priceWei);
+        statusDiv.textContent = "Waiting for confirmation...";
+        await tx.wait();
+        statusDiv.textContent = "NFT listed successfully!";
+        listForm.reset();
+      } catch (err) {
+        statusDiv.textContent = "Listing failed: " + (err?.reason || err?.message || err);
+      }
+    };
+
+    // -- Auto connect if wallet already connected --
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        connectBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
