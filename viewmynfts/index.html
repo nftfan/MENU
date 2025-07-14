@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polygon NFT Gallery</title>
+  <style>
+    body {
+      background: #222;
+      color: #fff;
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+    .wallet-btn {
+      display: block;
+      margin: 0 auto 22px;
+      padding: 12px 28px;
+      font-size: 1.1rem;
+      background: #8247e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .nft-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .nft-card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 16px #0004;
+    }
+    .nft-card img {
+      width: 100%;
+      max-width: 320px;
+      height: 180px;
+      object-fit: contain;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      background: #333;
+    }
+    .nft-info {
+      width: 100%;
+    }
+    .nft-info h2 {
+      font-size: 1.08rem;
+      margin: 0 0 6px;
+    }
+    .nft-info p {
+      min-height: 24px;
+      font-size: 0.97rem;
+      color: #ccc;
+      margin: 0 0 8px 0;
+    }
+    .nft-info a {
+      color: #8247e5;
+      font-weight: 500;
+      font-size: 0.97rem;
+    }
+    @media (max-width: 500px) {
+      .container {
+        padding: 8px;
+      }
+      .nft-card img {
+        max-width: 98vw;
+        height: 140px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Polygon NFT Gallery</h1>
+    <button class="wallet-btn" id="connectWallet">Connect Wallet</button>
+    <div class="nft-list" id="nftList">
+      <p id="introText">Please connect your wallet to view NFTs.</p>
+    </div>
+  </div>
+  <script>
+    const POLYGON_CHAIN_ID = '0x89';
+    const CONTRACT_ADDRESS = '0x2953399124f0cbb46d2cbacd8a89cf0599974963';
+
+    const connectWalletButton = document.getElementById('connectWallet');
+    const nftList = document.getElementById('nftList');
+    const introText = document.getElementById('introText');
+
+    let currentAccount = null;
+
+    async function switchToPolygon() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: POLYGON_CHAIN_ID }]
+          });
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: POLYGON_CHAIN_ID,
+                chainName: 'Polygon Mainnet',
+                rpcUrls: ['https://polygon-rpc.com/'],
+                nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                blockExplorerUrls: ['https://polygonscan.com/']
+              }]
+            });
+          }
+        }
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert('Please install MetaMask!');
+        return;
+      }
+      await switchToPolygon();
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      currentAccount = accounts[0];
+      connectWalletButton.textContent = currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
+      fetchNFTs(currentAccount);
+    }
+
+    async function fetchNFTs(address) {
+      nftList.innerHTML = '<p>Loading NFTs...</p>';
+      // Using OpenSea API v2 (no key required for public collections, but may be rate-limited)
+      const url = `https://api.opensea.io/api/v2/chain/matic/account/${address}/nfts?limit=50&collection=${CONTRACT_ADDRESS}`;
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        const nfts = (json.nfts || []).map(nft => ({
+          id: nft.identifier,
+          image: nft.image_url || (nft.metadata && nft.metadata.image) || 'nft_placeholder.png',
+          name: nft.name || `NFT #${nft.identifier}`,
+          description: nft.description || ''
+        }));
+        renderNFTs(nfts);
+      } catch (e) {
+        nftList.innerHTML = '<p>Failed to fetch NFTs. Try again later.</p>';
+      }
+    }
+
+    function renderNFTs(nfts) {
+      if (!nfts.length) {
+        nftList.innerHTML = '<p>No NFTs found for this contract.</p>';
+        return;
+      }
+      nftList.innerHTML = '';
+      nfts.forEach(nft => {
+        const card = document.createElement('div');
+        card.className = 'nft-card';
+        card.innerHTML = `
+          <img src="${nft.image}" alt="${nft.name}" onerror="this.src='nft_placeholder.png'" />
+          <div class="nft-info">
+            <h2>${nft.name}</h2>
+            <p>${nft.description}</p>
+            <a href="https://opensea.io/assets/matic/${CONTRACT_ADDRESS}/${nft.id}" target="_blank" rel="noopener noreferrer">View on OpenSea</a>
+          </div>
+        `;
+        nftList.appendChild(card);
+      });
+    }
+
+    connectWalletButton.addEventListener('click', connectWallet);
+
+    // Optional: auto-refresh when wallet changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function(accounts) {
+        if (accounts.length > 0 && accounts[0] !== currentAccount) {
+          currentAccount = accounts[0];
+          connectWalletButton.textContent = currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
+          fetchNFTs(currentAccount);
+        }
+      });
+      window.ethereum.on('chainChanged', function(chainId) {
+        if (chainId !== POLYGON_CHAIN_ID) {
+          connectWalletButton.textContent = 'Connect Wallet';
+          nftList.innerHTML = '<p>Please switch to Polygon network.</p>';
+          currentAccount = null;
+        }
+      });
+    }
+  </script>
+  <!-- Place a 64x64 placeholder in your project directory named nft_placeholder.png -->
+</body>
+</html>
