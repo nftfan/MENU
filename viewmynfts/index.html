@@ -98,7 +98,7 @@
   </div>
   <script>
     const POLYGON_CHAIN_ID = '0x89';
-    const CONTRACT_ADDRESS = '0x2953399124f0cbb46d2cbacd8a89cf0599974963';
+    const COLLECTION_SLUG = '328648ab799249b08777e915be165af3';
 
     const connectWalletButton = document.getElementById('connectWallet');
     const nftList = document.getElementById('nftList');
@@ -144,15 +144,17 @@
 
     async function fetchNFTs(address) {
       nftList.innerHTML = '<p>Loading NFTs...</p>';
-      // Using OpenSea API v2 (no key required for public collections, but may be rate-limited)
-      const url = `https://api.opensea.io/api/v2/chain/matic/account/${address}/nfts?limit=50&collection=${CONTRACT_ADDRESS}`;
+      // Use OpenSea API v2 for account+collection NFTs
+      // https://api.opensea.io/api/v2/chain/matic/account/:address/nfts?collection=COLLECTION_SLUG
+      const url = `https://api.opensea.io/api/v2/chain/matic/account/${address}/nfts?collection=${COLLECTION_SLUG}&limit=50`;
       try {
         const res = await fetch(url);
         const json = await res.json();
         const nfts = (json.nfts || []).map(nft => ({
-          id: nft.identifier,
+          id: nft.identifier || nft.token_id,
+          contract: nft.contract || nft.asset_contract?.address,
           image: nft.image_url || (nft.metadata && nft.metadata.image) || 'nft_placeholder.png',
-          name: nft.name || `NFT #${nft.identifier}`,
+          name: nft.name || `NFT #${nft.identifier || nft.token_id}`,
           description: nft.description || ''
         }));
         renderNFTs(nfts);
@@ -163,19 +165,22 @@
 
     function renderNFTs(nfts) {
       if (!nfts.length) {
-        nftList.innerHTML = '<p>No NFTs found for this contract.</p>';
+        nftList.innerHTML = '<p>No NFTs found for this collection.</p>';
         return;
       }
       nftList.innerHTML = '';
       nfts.forEach(nft => {
         const card = document.createElement('div');
         card.className = 'nft-card';
+        let openseaUrl = nft.contract && nft.id
+          ? `https://opensea.io/assets/matic/${nft.contract}/${nft.id}`
+          : '#';
         card.innerHTML = `
           <img src="${nft.image}" alt="${nft.name}" onerror="this.src='nft_placeholder.png'" />
           <div class="nft-info">
             <h2>${nft.name}</h2>
             <p>${nft.description}</p>
-            <a href="https://opensea.io/assets/matic/${CONTRACT_ADDRESS}/${nft.id}" target="_blank" rel="noopener noreferrer">View on OpenSea</a>
+            <a href="${openseaUrl}" target="_blank" rel="noopener noreferrer">View on OpenSea</a>
           </div>
         `;
         nftList.appendChild(card);
