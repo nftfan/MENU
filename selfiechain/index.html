@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SelfieChain - Turn Selfies into NFTs</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #FF3366;
+      --primary-dark: #E6005C;
+      --secondary: #8A2BE2;
+      --accent: #00C6FF;
+      --success: #00E676;
+      --error: #FF5252;
+      --bg-main: #1A1A2E;
+      --bg-secondary: #16213E;
+      --bg-card: #0F3460;
+      --text-primary: #ffffff;
+      --text-secondary: #E0E0E0;
+      --text-muted: #BDBDBD;
+      --border: #424242;
+      --shadow: rgba(0, 0, 0, 0.3);
+      --glow: rgba(255, 51, 102, 0.25);
+      --radius: 12px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html, body {
+      background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-secondary) 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      font-size: 10px;
+      line-height: 1.4;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    body {
+      max-width: 100vw;
+      margin: 0;
+      padding: 8px 10px 24px 10px;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 50%, rgba(255, 51, 102, 0.1) 0%, transparent 40%),
+                  radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.1) 0%, transparent 40%);
+      z-index: -1;
+      animation: float 15s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(15px, -15px) rotate(180deg); }
+    }
+    
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    
+    .logo {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px var(--shadow);
+      flex-shrink: 0;
+    }
+    
+    .logo .material-icons {
+      font-size: 14px;
+      color: white;
+    }
+    
+    .title-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .main-title {
+      font-size: 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+      margin: 0;
+    }
+    
+    .subtitle {
+      font-size: 8px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      line-height: 1.1;
+      margin: 0;
+    }
+    
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    
+    .top-btn {
+      border: none;
+      border-radius: 8px;
+      font-size: 9px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      white-space: nowrap;
+      min-height: 28px;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    #connectWalletBtn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 6px 10px;
+      box-shadow: 0 2px 8px rgba(255, 51, 102, 0.25);
+    }
+    
+    #connectWalletBtn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(255, 51, 102, 0.35);
+    }
+    
+    #connectWalletBtn:disabled {
+      background: var(--success);
+      cursor: default;
+      transform: none;
+    }
+    
+    #connectWalletBtn .material-icons {
+      font-size: 12px;
+    }
+    
+    .selfie-btn {
+      background: linear-gradient(135deg, var(--accent), var(--secondary));
+      color: white;
+      padding: 6px 10px;
+      box-shadow: 0 2px 8px rgba(0, 198, 255, 0.25);
+    }
+    
+    .selfie-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0, 198, 255, 0.35);
+    }
+    
+    .selfie-btn .material-icons {
+      font-size: 12px;
+    }
+    
+    #walletAddress {
+      font-size: 7px;
+      color: var(--success);
+      font-weight: 600;
+      text-align: right;
+      margin-top: 2px;
+    }
+    
+    .steps-container {
+      margin: 8px 0;
+    }
+    
+    .steps-title {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      position: relative;
+      padding: 0 15px;
+    }
+    
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 25px;
+      right: 25px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      z-index: 1;
+    }
+    
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      flex: 1;
+    }
+    
+    .step-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      font-size: 10px;
+    }
+    
+    .step.active .step-circle {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 0 10px var(--glow);
+    }
+    
+    .step.completed .step-circle {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+    
+    .step-label {
+      font-size: 8px;
+      color: var(--text-muted);
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    
+    .step.active .step-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    
+    .collection-info {
+      border-left: 3px solid var(--accent);
+      padding: 8px 10px;
+    }
+    
+    .collection-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    
+    .collection-header .material-icons {
+      font-size: 14px;
+      color: var(--accent);
+    }
+    
+    .collection-info h4 {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .collection-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 3px 0;
+    }
+    
+    .collection-link {
+      color: var(--secondary);
+      text-decoration: none;
+      font-size: 8px;
+      word-break: break-all;
+      transition: color 0.2s ease;
+    }
+    
+    .upload-section {
+      padding: 10px;
+      text-align: center;
+    }
+    
+    .upload-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .upload-header .material-icons {
+      font-size: 14px;
+      color: var(--accent);
+    }
+    
+    .upload-header h3 {
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    input[type="file"] {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+    }
+    
+    .preview-container {
+      width: 100%;
+      height: 200px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      background-color: rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    
+    .preview-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .preview-placeholder .material-icons {
+      font-size: 32px;
+      color: var(--text-muted);
+    }
+    
+    .preview-placeholder p {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    #preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    
+    .filter-options {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0;
+      margin-bottom: 6px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .filter-options::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .filter-option {
+      scroll-snap-align: start;
+      min-width: 50px;
+      height: 26px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 0 10px;
+      white-space: nowrap;
+    }
+    
+    .filter-option:hover, .filter-option.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .mint-btn {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 3px 10px rgba(255, 51, 102, 0.25);
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    .mint-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(255, 51, 102, 0.35);
+    }
+    
+    .mint-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .mint-btn .material-icons {
+      font-size: 14px;
+    }
+    
+    #status {
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: var(--radius);
+      font-size: 9px;
+      font-weight: 500;
+      text-align: center;
+      border: 1px solid var(--border);
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      line-height: 1.3;
+    }
+    
+    #status:empty {
+      display: none;
+    }
+    
+    #status.success {
+      background: rgba(0, 230, 118, 0.1);
+      color: var(--success);
+      border-color: var(--success);
+    }
+    
+    #status.error {
+      background: rgba(255, 82, 82, 0.1);
+      color: var(--error);
+      border-color: var(--error);
+    }
+    
+    #status .material-icons {
+      font-size: 12px;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .benefits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    
+    .benefit {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-secondary);
+      font-size: 8px;
+      padding: 4px;
+    }
+    
+    .benefit .material-icons {
+      font-size: 12px;
+      color: var(--accent);
+    }
+    
+    .value-prop {
+      padding: 8px 10px;
+      margin: 6px 0;
+    }
+    
+    .value-prop h3 {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .value-prop h3 .material-icons {
+      font-size: 12px;
+    }
+    
+    .value-prop p {
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-size: 8px;
+      line-height: 1.3;
+    }
+    
+    .selfie-examples {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 0;
+      margin: 6px 0;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .selfie-examples::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .selfie-example {
+      scroll-snap-align: start;
+      min-width: 60px;
+      height: 60px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 6px var(--shadow);
+      flex-shrink: 0;
+      position: relative;
+    }
+    
+    .selfie-example img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .selfie-example::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40%;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    }
+    
+    .selfie-example .price {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--accent);
+      color: white;
+      font-size: 6px;
+      font-weight: 600;
+      padding: 2px 4px;
+      border-radius: 3px;
+      z-index: 2;
+    }
+    
+    .features {
+      padding: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    
+    .feature {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius);
+      padding: 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    
+    .feature .material-icons {
+      font-size: 16px;
+      color: var(--primary);
+      margin-bottom: 2px;
+    }
+    
+    .feature h4 {
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    .feature p {
+      font-size: 6px;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+    
+    .camera-options {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .camera-option {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .camera-option:hover, .camera-option.active {
+      background: rgba(255, 51, 102, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .camera-option .material-icons {
+      font-size: 10px;
+    }
+    
+    @media (max-width: 360px) {
+      body {
+        padding: 5px 8px 20px 8px;
+      }
+      
+      .card {
+        padding: 8px;
+        margin: 4px 0;
+      }
+      
+      .main-title {
+        font-size: 12px;
+      }
+      
+      .subtitle {
+        font-size: 7px;
+      }
+      
+      .action-buttons {
+        gap: 3px;
+      }
+      
+      .top-btn {
+        font-size: 8px;
+        padding: 4px 8px;
+        min-height: 24px;
+      }
+      
+      .preview-container {
+        height: 180px;
+      }
+    }
+    
+    .wallet-section {
+      display: none;
+    }
+    
+    .text-center { text-align: center; }
+    
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    button, .selfie-btn, #connectWalletBtn {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 2px;
+      height: 2px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-main);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 1px;
+    }
+    
+    .filter-normal { filter: none; }
+    .filter-vintage { filter: sepia(0.5) contrast(1.2); }
+    .filter-bw { filter: grayscale(1); }
+    .filter-warm { filter: saturate(1.3) contrast(1.1) brightness(1.1); }
+    .filter-cool { filter: saturate(0.8) contrast(1.1) brightness(1.1) hue-rotate(-10deg); }
+    .filter-dramatic { filter: contrast(1.4) brightness(0.9); }
+  </style>
+</head>
+<body>
+  <!-- Top Navigation with Title Left, Buttons Right -->
+  <div class="top-nav">
+    <!-- Left Side - Title Section -->
+    <div class="title-section">
+      <div class="logo">
+        <span class="material-icons">face</span>
+      </div>
+      <div class="title-text">
+        <h1 class="main-title">SelfieChain</h1>
+        <p class="subtitle">Turn Selfies into Digital Assets</p>
+      </div>
+    </div>
+    <!-- Right Side - Action Buttons -->
+    <div class="action-buttons">
+      <button id="connectWalletBtn" class="top-btn">
+        <span class="material-icons">account_balance_wallet</span>
+        <span>Connect</span>
+      </button>
+      <button type="button" id="cameraBtn" class="top-btn selfie-btn">
+        <span class="material-icons">face</span>
+        <span>Take Selfie</span>
+      </button>
+      <div id="walletAddress"></div>
+    </div>
+  </div>
+  
+  <!-- Compact Value Prop -->
+  <div class="card value-prop">
+    <h3><span class="material-icons">diamond</span>Your Face, Your Value</h3>
+    <p>Transform your selfies into valuable NFTs that YOU own and can sell</p>
+    
+    <!-- Selfie Examples -->
+    <div class="selfie-examples">
+      <div class="selfie-example">
+        <img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&q=80" alt="Selfie NFT">
+        <div class="price">1.2 ETH</div>
+      </div>
+      <div class="selfie-example">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80" alt="Selfie NFT">
+        <div class="price">0.8 ETH</div>
+      </div>
+      <div class="selfie-example">
+        <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=120&q=80" alt="Selfie NFT">
+        <div class="price">2.5 ETH</div>
+      </div>
+      <div class="selfie-example">
+        <img src="https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&q=80" alt="Selfie NFT">
+        <div class="price">0.9 ETH</div>
+      </div>
+    </div>
+    
+    <div class="benefits">
+      <div class="benefit">
+        <span class="material-icons">verified_user</span>
+        <span>Own Your Identity</span>
+      </div>
+      <div class="benefit">
+        <span class="material-icons">trending_up</span>
+        <span>Sell for Profit</span>
+      </div>
+      <div class="benefit">
+        <span class="material-icons">insert_emoticon</span>
+        <span>Express Yourself</span>
+      </div>
+      <div class="benefit">
+        <span class="material-icons">flash_on</span>
+        <span>Fast Minting</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <div class="feature">
+      <span class="material-icons">camera_enhance</span>
+      <h4>Premium Filters</h4>
+      <p>Apply artistic filters to make your selfie stand out</p>
+    </div>
+    <div class="feature">
+      <span class="material-icons">sell</span>
+      <h4>Instant Market</h4>
+      <p>Sell your selfie NFT immediately after minting</p>
+    </div>
+    <div class="feature">
+      <span class="material-icons">copyright</span>
+      <h4>Full Ownership</h4>
+      <p>You retain all rights to your selfie NFTs</p>
+    </div>
+  </div>
+  
+  <!-- Compact Steps -->
+  <div class="steps-container">
+    <h2 class="steps-title">3 Easy Steps to NFT Fame</h2>
+    <div class="steps">
+      <div class="step" id="step1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Connect</div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Take Selfie</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Mint NFT</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Compact Collection Info -->
+  <div class="card collection-info">
+    <div class="collection-header">
+      <span class="material-icons">face_retouching_natural</span>
+      <h4>Exclusive Collection</h4>
+    </div>
+    <div class="collection-name">CELEBRITY SELFIES</div>
+    <a href="https://opensea.io/collection/nft-photography-5" target="_blank" class="collection-link">
+      opensea.io/collection/celebrity-selfies
+    </a>
+  </div>
+  
+  <!-- Minting Price Info -->
+  <div class="card value-prop" style="margin-top:4px;">
+    <h3>
+      <span class="material-icons">paid</span>
+      Minting Price: <span style="color:var(--success);margin-left:3px;">1 $POL</span>
+    </h3>
+    <p>Each selfie NFT costs <strong>1 $POL</strong> to mint. Low fee, high potential!</p>
+  </div>
+  
+  <!-- Compact Upload & Mint Form -->
+  <form id="mintForm" autocomplete="off">
+    <div class="card upload-section">
+      <div class="upload-header">
+        <span class="material-icons">face_retouching_natural</span>
+        <h3>Take Your Best Selfie</h3>
+      </div>
+      
+      <!-- Camera Options -->
+      <div class="camera-options">
+        <div class="camera-option active" data-camera="front">
+          <span class="material-icons">face</span>
+          <span>Front Camera</span>
+        </div>
+        <div class="camera-option" data-camera="back">
+          <span class="material-icons">camera_rear</span>
+          <span>Back Camera</span>
+        </div>
+      </div>
+      
+      <input type="file" id="imageFile" accept="image/*" capture="user">
+      
+      <div class="preview-container">
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <span class="material-icons">add_a_photo</span>
+          <p>Tap to take a selfie</p>
+        </div>
+        <img id="preview" src="" alt="Preview" />
+      </div>
+      
+      <!-- Filter Options -->
+      <div class="filter-options">
+        <div class="filter-option active" data-filter="normal">Original</div>
+        <div class="filter-option" data-filter="vintage">Vintage</div>
+        <div class="filter-option" data-filter="bw">B&W</div>
+        <div class="filter-option" data-filter="warm">Warm</div>
+        <div class="filter-option" data-filter="cool">Cool</div>
+        <div class="filter-option" data-filter="dramatic">Dramatic</div>
+      </div>
+      
+      <button type="submit" class="mint-btn" id="mintBtn" disabled>
+        <span class="material-icons">rocket_launch</span>
+        <span>Mint Selfie NFT</span>
+      </button>
+    </div>
+  </form>
+  
+  <!-- Compact Status -->
+  <div id="status"></div>
+  
+  <script>
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+    
+    // Contract info
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "function mintPrice() view returns (uint256)"
+    ];
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
+    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
+    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    
+    let provider, signer, userAddress;
+    let currentStep = 1;
+    let currentFilter = 'normal';
+    
+    function updateSteps(step) {
+      currentStep = step;
+      for (let i = 1; i <= 3; i++) {
+        const stepEl = document.getElementById(`step${i}`);
+        stepEl.classList.remove('active', 'completed');
+        if (i < step) {
+          stepEl.classList.add('completed');
+          stepEl.querySelector('.step-circle').innerHTML = '<span class="material-icons" style="font-size: 10px;">check</span>';
+        } else if (i === step) {
+          stepEl.classList.add('active');
+          stepEl.querySelector('.step-circle').textContent = i;
+        } else {
+          stepEl.querySelector('.step-circle').textContent = i;
+        }
+      }
+    }
+    
+    function setStatus(msg, isError = false, isLoading = false) {
+      const statusEl = document.getElementById('status');
+      if (!msg) {
+        statusEl.innerHTML = '';
+        statusEl.className = '';
+        return;
+      }
+      statusEl.innerHTML = isLoading ? 
+        `<div class="loading"></div><span>${msg}</span>` : 
+        msg;
+      statusEl.className = isError ? "error" : "success";
+      statusEl.classList.add('fade-in');
+    }
+    
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({ 
+          method: 'wallet_switchEthereumChain', 
+          params: [{ chainId: POLYGON_PARAMS.chainId }] 
+        });
+        return true;
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({ 
+              method: 'wallet_addEthereumChain', 
+              params: [POLYGON_PARAMS] 
+            });
+            return true;
+          } catch (addError) {
+            setStatus("Failed to add Polygon network", true);
+            return false;
+          }
+        } else {
+          setStatus("Failed to switch network", true);
+          return false;
+        }
+      }
+    }
+    
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus("Please install MetaMask first", true);
+        return;
+      }
+      try {
+        setStatus("Connecting wallet...", false, true);
+        const switched = await switchToPolygon();
+        if (!switched) return;
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        document.getElementById('walletAddress').innerText = 
+          `${userAddress.slice(0,4)}...${userAddress.slice(-4)}`;
+        document.getElementById('connectWalletBtn').innerHTML = 
+          '<span class="material-icons">check_circle</span><span>Connected</span>';
+        document.getElementById('connectWalletBtn').disabled = true;
+        updateSteps(2);
+        setStatus("Wallet connected! Ready to take selfie", false);
+      } catch (err) {
+        setStatus("Connection failed", true);
+      }
+    }
+    
+    // Set up UI interactions
+    const imageFileInput = document.getElementById('imageFile');
+    const previewImg = document.getElementById('preview');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const mintBtn = document.getElementById('mintBtn');
+    const previewContainer = document.querySelector('.preview-container');
+    
+    cameraBtn.addEventListener('click', () => {
+      // Set camera options before opening
+      const frontCamera = document.querySelector('.camera-option[data-camera="front"]').classList.contains('active');
+      imageFileInput.setAttribute('capture', frontCamera ? 'user' : 'environment');
+      imageFileInput.click();
+    });
+    
+    previewContainer.addEventListener('click', () => {
+      if (!previewImg.style.display || previewImg.style.display === 'none') {
+        // Set camera options before opening
+        const frontCamera = document.querySelector('.camera-option[data-camera="front"]').classList.contains('active');
+        imageFileInput.setAttribute('capture', frontCamera ? 'user' : 'environment');
+        imageFileInput.click();
+      }
+    });
+    
+    // Camera toggle options
+    document.querySelectorAll('.camera-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.camera-option').forEach(opt => opt.classList.remove('active'));
+        option.classList.add('active');
+        const cameraType = option.dataset.camera;
+        imageFileInput.setAttribute('capture', cameraType === 'front' ? 'user' : 'environment');
+      });
+    });
+    
+    // Filter options
+    document.querySelectorAll('.filter-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.filter-option').forEach(opt => opt.classList.remove('active'));
+        option.classList.add('active');
+        currentFilter = option.dataset.filter;
+        
+        if (previewImg.style.display === 'block') {
+          // Apply filter to preview
+          previewImg.className = '';
+          previewImg.classList.add(`filter-${currentFilter}`);
+        }
+      });
+    });
+    
+    imageFileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        const file = this.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+          previewImg.classList.add(`filter-${currentFilter}`);
+          previewPlaceholder.style.display = 'none';
+          previewImg.classList.add('fade-in');
+          mintBtn.disabled = !userAddress;
+          if (userAddress) {
+            updateSteps(3);
+            setStatus("Looking great! Ready to mint your selfie NFT", false);
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImg.style.display = 'none';
+        previewPlaceholder.style.display = 'flex';
+        mintBtn.disabled = true;
+      }
+    });
+    
+    async function uploadToCloudinary(file) {
+      setStatus("Uploading your selfie...", false, true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const resp = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: "POST",
+        body: formData
+      });
+      const data = await resp.json();
+      if (!data || !data.secure_url) {
+        throw new Error("Upload failed");
+      }
+      return data.secure_url;
+    }
+    
+    async function mintNFT(imageUrl) {
+      if (!provider || !signer) {
+        throw new Error("Connect wallet first");
+      }
+      setStatus("Minting your selfie as an NFT...", false, true);
+      
+      // Price override: 1 $POL
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const mintPrice = ethers.utils.parseUnits("1", 18);
+      
+      let tx = await contract.mintWithURI(imageUrl, { value: mintPrice });
+      await tx.wait();
+      return true;
+    }
+    
+    document.getElementById('mintForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const file = imageFileInput.files[0];
+      try {
+        if (!file) {
+          setStatus("Take a selfie first!", true);
+          return;
+        }
+        if (!userAddress) {
+          setStatus("Connect your wallet first", true);
+          return;
+        }
+        mintBtn.disabled = true;
+        const imageUrl = await uploadToCloudinary(file);
+        await mintNFT(imageUrl);
+        setStatus(`
+          <div style="text-align: center; line-height: 1.4;">
+            <span class="material-icons" style="font-size: 18px; color: var(--success);">celebration</span><br>
+            <strong>Selfie NFT Successfully Minted!</strong><br>
+            <span style="color: var(--text-secondary);">Your selfie is now a valuable digital asset!</span><br>
+            <a href="https://opensea.io/collection/nft-photography-5" target="_blank" 
+               style="color: var(--accent); display: block; margin-top: 4px; font-weight: 600;">
+              VIEW ON MARKETPLACE →
+            </a>
+          </div>
+        `, false);
+        
+        setTimeout(() => {
+          imageFileInput.value = '';
+          previewImg.style.display = 'none';
+          previewPlaceholder.style.display = 'flex';
+          mintBtn.disabled = false;
+          updateSteps(2);
+        }, 5000);
+      } catch (err) {
+        mintBtn.disabled = false;
+        setStatus("Minting failed. Please try again.", true);
+        console.error(err);
+      }
+    };
+    
+    document.getElementById('connectWalletBtn').onclick = connectWallet;
+    
+    window.addEventListener('load', async () => {
+      if (window.ethereum?.selectedAddress) {
+        await connectWallet();
+      }
+    });
+    
+    updateSteps(1);
+  </script>
+</body>
+</html>
