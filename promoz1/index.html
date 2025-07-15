@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Username Extractor (Admin)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        textarea { width: 100%; height: 120px; margin-bottom: 12px; }
+        button { padding: 10px 20px; margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f0f0f0; }
+        .group-cell { font-weight: bold; }
+        .status-pending { color: #b47c00; font-weight: bold; }
+        .status-done { color: #188018; font-weight: bold; }
+        #deleteAllBtn { background: #c00; color: #fff; margin-left: 10px; }
+        #deleteAllBtn:disabled { background: #eee; color: #888; }
+    </style>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h2>Username Extractor (Admin)</h2>
+    <textarea id="inputText" placeholder="Paste your raw text here..."></textarea><br>
+    <button onclick="extractUsernames()">Extract Usernames</button>
+    <button id="deleteAllBtn" onclick="deleteAllGroups()" style="display:none;">Delete All Groups</button>
+    <table id="userTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>Group #</th>
+                <th>Usernames (3 per group)</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+    </table>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+            authDomain: "nftfanactive.firebaseapp.com",
+            databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+            projectId: "nftfanactive",
+            storageBucket: "nftfanactive.appspot.com",
+            messagingSenderId: "311309982791",
+            appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+            measurementId: "G-3TRDL9749N"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function renderGroups(groupsObj) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            const deleteAllBtn = document.getElementById('deleteAllBtn');
+            if (!groupsObj || Object.keys(groupsObj).length === 0) {
+                document.getElementById('userTable').style.display = 'none';
+                deleteAllBtn.style.display = 'none';
+                return;
+            }
+            deleteAllBtn.style.display = '';
+            // To ensure group order
+            const groupKeys = Object.keys(groupsObj).sort((a, b) => {
+                const numA = parseInt(a.replace('group_', ''));
+                const numB = parseInt(b.replace('group_', ''));
+                return numA - numB;
+            });
+            groupKeys.forEach((key, idx) => {
+                const group = groupsObj[key];
+                const tr = document.createElement('tr');
+                const groupCell = document.createElement('td');
+                groupCell.className = 'group-cell';
+                groupCell.textContent = 'Group ' + (idx + 1);
+
+                const usernamesCell = document.createElement('td');
+                usernamesCell.textContent = (group.usernames || []).join(', ');
+
+                const statusCell = document.createElement('td');
+                statusCell.textContent = group.status || 'pending';
+                statusCell.className = group.status === 'done' ? 'status-done' : 'status-pending';
+
+                tr.appendChild(groupCell);
+                tr.appendChild(usernamesCell);
+                tr.appendChild(statusCell);
+                tbody.appendChild(tr);
+            });
+            document.getElementById('userTable').style.display = '';
+        }
+
+        function loadGroupsFromFirebase() {
+            db.ref('groups').once('value', function(snapshot) {
+                const groupsObj = snapshot.val();
+                renderGroups(groupsObj);
+            });
+        }
+
+        function extractUsernames() {
+            const raw = document.getElementById('inputText').value;
+            const regex = /@([A-Za-z0-9_]{2,32})/g;
+            const usernamesSet = new Set();
+            let match;
+            while ((match = regex.exec(raw)) !== null) {
+                usernamesSet.add('@' + match[1]);
+            }
+            const usernames = Array.from(usernamesSet);
+            if (usernames.length === 0) {
+                alert('No usernames found.');
+                return;
+            }
+            usernames.sort((a, b) => a.localeCompare(b, undefined, {sensitivity:'base'}));
+            // Group in 3s
+            const groups = [];
+            for (let i = 0; i < usernames.length; i += 3) {
+                groups.push(usernames.slice(i, i + 3));
+            }
+            // Save each group to Firebase as pending
+            const updates = {};
+            groups.forEach((group, idx) => {
+                updates['groups/group_' + (idx + 1)] = {
+                    usernames: group,
+                    status: 'pending'
+                };
+            });
+            db.ref().update(updates, function(error) {
+                if (error) {
+                    alert('Failed to save to Firebase!');
+                } else {
+                    loadGroupsFromFirebase();
+                }
+            });
+        }
+
+        function deleteAllGroups() {
+            if (!confirm('Are you sure you want to delete ALL groups? This cannot be undone.')) {
+                return;
+            }
+            document.getElementById('deleteAllBtn').disabled = true;
+            db.ref('groups').remove(function(error) {
+                document.getElementById('deleteAllBtn').disabled = false;
+                if (error) {
+                    alert('Failed to delete all groups!');
+                } else {
+                    loadGroupsFromFirebase();
+                }
+            });
+        }
+
+        // Load on page load
+        window.onload = function() {
+            loadGroupsFromFirebase();
+        };
+    </script>
+</body>
+</html>
