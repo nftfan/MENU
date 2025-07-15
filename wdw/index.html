@@ -227,6 +227,30 @@
       </div>
     </div>
 
+    <div class="account-card" id="account-3">
+      <div class="account-info">
+        <div class="account-title">QuickNFT SALE</div>
+        <div class="account-iban">0x098745B08F85aD8Dc8801a107eE0d4204460828E</div>
+        <div class="account-owner">Digital Goods</div>
+      </div>
+      <div class="balance-actions">
+        <div class="account-balance positive" id="balance-3"><span class="loading-spinner"></span></div>
+        <button class="withdraw-btn" id="withdraw-btn-3" onclick="withdrawSale('quicknft')" disabled>Withdraw</button>
+      </div>
+    </div>
+
+    <div class="account-card" id="account-4">
+      <div class="account-info">
+        <div class="account-title">PhotoNFT SALE</div>
+        <div class="account-iban">0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC</div>
+        <div class="account-owner">Photography</div>
+      </div>
+      <div class="balance-actions">
+        <div class="account-balance positive" id="balance-4"><span class="loading-spinner"></span></div>
+        <button class="withdraw-btn" id="withdraw-btn-4" onclick="withdrawSale('photonft')" disabled>Withdraw</button>
+      </div>
+    </div>
+
     <div class="section-label">Savings accounts</div>
     <div class="account-card" id="account-0">
       <div class="account-info">
@@ -252,12 +276,17 @@
     const WALLETS = [
       { address: "0x92d550cdBc234211957Bd1B579d962c885A127Ba", label: "MY WALLET", owner: "Personal", idx: 0 },
       { address: "0xaf2d132c8773bca3821c24ecf64e844e202a12e8", label: "NFTFAN SALE", owner: "Trading", idx: 1 },
-      { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", label: "POLDOG SALE", owner: "Investment", idx: 2 }
+      { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", label: "POLDOG SALE", owner: "Investment", idx: 2 },
+      { address: "0x098745B08F85aD8Dc8801a107eE0d4204460828E", label: "QuickNFT SALE", owner: "Digital Goods", idx: 3 },
+      { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", label: "PhotoNFT SALE", owner: "Photography", idx: 4 },
     ];
-    const DISPLAY_ORDER = [1, 2, 0];
+    // Display order for payment then savings
+    const DISPLAY_ORDER = [1, 2, 3, 4, 0];
     // Sale contract addresses
     const NFTFAN_CA = "0xaf2d132c8773bca3821c24ecf64e844e202a12e8";
     const POLDOG_CA = "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54";
+    const QUICKNFT_CA = "0x098745B08F85aD8Dc8801a107eE0d4204460828E";
+    const PHOTONFT_CA = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
     // Minimal ABI for withdraw
     const SALE_ABI = [
       {
@@ -304,15 +333,41 @@
       if (userAccount && userAccount.toLowerCase() === WALLETS[0].address.toLowerCase()) {
         document.getElementById("withdraw-btn-1").disabled = false;
         document.getElementById("withdraw-btn-2").disabled = false;
+        document.getElementById("withdraw-btn-3").disabled = false;
+        document.getElementById("withdraw-btn-4").disabled = false;
+      } else {
+        document.getElementById("withdraw-btn-1").disabled = true;
+        document.getElementById("withdraw-btn-2").disabled = true;
+        document.getElementById("withdraw-btn-3").disabled = true;
+        document.getElementById("withdraw-btn-4").disabled = true;
       }
     }
 
-    // Withdraw for NFTFAN or POLDOG sale
+    // Withdraw for NFTFAN, POLDOG, QuickNFT, or PhotoNFT sale
     async function withdrawSale(type) {
       if (!window.ethereum) return alert("Connect your wallet first.");
       if (!isPolygon) return alert("Switch to Polygon network in your wallet.");
-      let contractAddr = type === "nftfan" ? NFTFAN_CA : POLDOG_CA;
-      let btnId = type === "nftfan" ? "withdraw-btn-1" : "withdraw-btn-2";
+      let contractAddr, btnId;
+      switch (type) {
+        case "nftfan":
+          contractAddr = NFTFAN_CA;
+          btnId = "withdraw-btn-1";
+          break;
+        case "poldog":
+          contractAddr = POLDOG_CA;
+          btnId = "withdraw-btn-2";
+          break;
+        case "quicknft":
+          contractAddr = QUICKNFT_CA;
+          btnId = "withdraw-btn-3";
+          break;
+        case "photonft":
+          contractAddr = PHOTONFT_CA;
+          btnId = "withdraw-btn-4";
+          break;
+        default:
+          return;
+      }
       let btn = document.getElementById(btnId);
       btn.disabled = true;
       btn.textContent = "Processing...";
