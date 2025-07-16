@@ -23,6 +23,9 @@
   --text-light: #9ca3af;
   --border: #1f2937;
   --border-light: #374151;
+  --border-pending: #f59e0b;
+  --border-sent: #10b981;
+  --border-error: #ef4444;
   --radius: 12px;
   --radius-sm: 8px;
   --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -289,9 +292,19 @@ html, body {
   height: 40px;
   border-radius: 50%;
   background: var(--bg);
-  border: 2px solid var(--primary);
+  border: 2px solid var(--border-pending);
   object-fit: cover;
   margin-bottom: 5px;
+  box-sizing: border-box;
+  transition: border 0.15s;
+}
+
+.user-avatar-grid.sent {
+  border-color: var(--border-sent);
+}
+
+.user-avatar-grid.failed, .user-avatar-grid.error {
+  border-color: var(--border-error);
 }
 
 .user-xhandle {
@@ -320,41 +333,33 @@ html, body {
 .user-status {
   font-size: 8px;
   font-weight: 600;
-  padding: 2px 5px;
+  padding: 0;
+  margin: 0;
   border-radius: 4px;
   display: flex;
   align-items: center;
-  gap: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  gap: 1px;
   min-height: 0;
   min-width: 0;
+  background: none;
+  border: none;
+  justify-content: center;
 }
 
-.user-status.pending {
-  color: var(--bg);
-  background: var(--pending);
+.user-status .material-icons {
+  font-size: 12px !important;
+  height: 12px;
+  width: 12px;
+  margin: 0 !important;
+  color: var(--border-pending);
 }
 
-.user-status.sent {
-  color: var(--success);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+.user-avatar-grid.sent ~ .user-status .material-icons {
+  color: var(--border-sent);
 }
-
-.user-status.failed, 
-.user-status.error {
-  color: var(--error);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.14);
-}
-
-.material-icons {
-  font-size: 10px !important;
-  vertical-align: middle;
-  margin: 0 0 0 0 !important;
-  height: 10px;
-  width: 10px;
+.user-avatar-grid.failed ~ .user-status .material-icons,
+.user-avatar-grid.error ~ .user-status .material-icons {
+  color: var(--border-error);
 }
 
 @media (max-width: 768px) {
@@ -435,7 +440,7 @@ html, body {
   }
   .user-status {
     font-size: 8px;
-    padding: 1px 3px;
+    padding: 0;
   }
 }
 
@@ -521,15 +526,18 @@ input:focus {
     function shortenWallet(w) {
       return w && w.length === 42 ? w.slice(0,6)+'...'+w.slice(-4) : w;
     }
-    function getStatusLabel(status) {
-      if (!status) return {text: "Pending", icon: "hourglass_top", class:"pending"};
+    function getStatusIcon(status) {
+      if (!status) return "hourglass_top";
       status = status.toLowerCase();
-      if (status === "sent") return {text: "Sent", icon: "check_circle", class:"sent"};
-      if (status === "failed" || status === "error") return {text: "Error", icon: "error", class:"failed"};
-      return {text: "Pending", icon: "hourglass_top", class:"pending"};
+      if (status === "sent") return "check_circle";
+      if (status === "failed" || status === "error") return "error";
+      return "hourglass_top";
     }
-    function avatarOrDefault(url) {
-      return url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    function getAvatarClass(status) {
+      if (!status || status.toLowerCase() === "pending") return "";
+      if (status.toLowerCase() === "sent") return "sent";
+      if (status.toLowerCase() === "failed" || status.toLowerCase() === "error") return "failed";
+      return "";
     }
     // Only show if avatar is from unavatar (not X default)
     function isRealAvatar(url) {
@@ -611,15 +619,15 @@ input:focus {
         return;
       }
       for (const entry of realUsers) {
-        const statusInfo = getStatusLabel(entry.status);
+        const icon = getStatusIcon(entry.status);
+        const avatarClass = getAvatarClass(entry.status);
         grid.insertAdjacentHTML('beforeend', `
         <div class="user-grid-item">
-          <img class="user-avatar-grid" src="${sanitize(entry.avatar)}" style="width:40px;height:40px;" alt="X avatar" loading="lazy" />
+          <img class="user-avatar-grid${avatarClass ? ' ' + avatarClass : ''}" src="${sanitize(entry.avatar)}" style="width:40px;height:40px;" alt="X avatar" loading="lazy" />
           <div class="user-xhandle">${sanitize(entry.xHandle)}</div>
           <div class="user-wallet">${sanitize(shortenWallet(entry.wallet))}</div>
-          <div class="user-status ${statusInfo.class}">
-            <span class="material-icons">${statusInfo.icon}</span>
-            <span>${statusInfo.text}</span>
+          <div class="user-status">
+            <span class="material-icons">${icon}</span>
           </div>
         </div>
         `);
