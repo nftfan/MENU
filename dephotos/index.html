@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DePhotos - Tip & Vote Photos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --error: #ef4444;
+      --bg-main: #181826;
+      --bg-card: #21213a;
+      --text-primary: #fff;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-card) 100%);
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      font-size: 10px;
+      line-height: 1.3;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      max-width: 100vw;
+      margin: 0;
+      padding: 10px 0 48px 0;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 0 16px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.09);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo .material-icons { font-size: 14px; color: #fff; }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 9px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-icons .icon-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border 0.15s;
+    }
+    .header-icons .icon-btn:hover {
+      border-color: var(--primary);
+      background: #232344;
+    }
+    .header-icons .material-icons {
+      font-size: 16px;
+      color: var(--accent);
+    }
+    .modal-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(24,24,38,0.84);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+    }
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.16);
+      border: 1px solid var(--border);
+      padding: 24px 22px 18px 22px;
+      min-width: 270px;
+      max-width: 95vw;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      position: relative;
+    }
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 2px;
+      letter-spacing: 0.1px;
+    }
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .form-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 1px;
+    }
+    .input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 10px;
+      background: #191930;
+      color: var(--text-primary);
+      outline: none;
+      font-family: inherit;
+      transition: border 0.2s;
+      margin-bottom: 8px;
+    }
+    .input:focus { border-color: var(--primary); }
+    .modal-btn {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 0;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .modal-btn .material-icons { font-size: 14px; }
+    .preview-img {
+      width: 100%;
+      max-height: 170px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-bottom: 6px;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.05);
+      display: none;
+    }
+    .status {
+      font-size: 9px;
+      text-align: center;
+      padding: 6px;
+      border-radius: 8px;
+      margin-top: 4px;
+      min-height: 18px;
+      transition: all 0.2s;
+    }
+    .status.success {
+      background: rgba(16,185,129,0.1); color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .status.error {
+      background: rgba(239,68,68,0.1); color: var(--error);
+      border: 1px solid var(--error);
+    }
+    .gallery-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+      border: 1px solid var(--border);
+      padding: 10px 8px 6px 8px;
+      margin: 0 10px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .gallery-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+      text-align: left;
+      letter-spacing: 0.1px;
+    }
+    .gallery-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .gallery-item {
+      background: #191930;
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(99,102,241,0.06);
+      padding: 12px 10px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+    .gallery-img {
+      width: 100%;
+      max-width: 290px;
+      border-radius: 7px;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.06);
+    }
+    .wallet-tip {
+      font-size: 8px;
+      color: var(--success);
+      font-weight: 600;
+      margin: 2px 0 0 0;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .wallet-tip .material-icons { font-size: 10px; color: var(--accent);}
+    .tip-copy {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 8px;
+      cursor: pointer;
+      margin-left: 2px;
+    }
+    .votes-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 2px;
+    }
+    .vote-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 15px;
+      cursor: pointer;
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .vote-btn.active-up { color: var(--success);}
+    .vote-btn.active-down { color: var(--error);}
+    .vote-count {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 700;
+      margin-left: 3px;
+    }
+    .gallery-wallet {
+      font-size: 7px;
+      color: var(--text-secondary);
+      margin-top: 1px;
+      word-break: break-all;
+      text-align: center;
+    }
+    @media (max-width: 430px) {
+      .header, .gallery-card { padding-left: 4vw; padding-right: 4vw;}
+      .gallery-img { max-width: 90vw; }
+      .modal { min-width: 90vw; }
+    }
+    @media (max-width: 340px) {
+      .header, .gallery-card { padding-left: 2vw; padding-right: 2vw;}
+      .gallery-img { max-width: 98vw; }
+      .modal { min-width: 98vw; }
+    }
+    ::-webkit-scrollbar { width: 2px; }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px;}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo"><span class="material-icons">auto_awesome</span></div>
+      <div>
+        <div class="title-row">
+          <div class="title">DePhotos</div>
+        </div>
+        <div class="subtitle">Tip, Upvote & Share NFT Photos</div>
+      </div>
+    </div>
+    <div class="header-icons">
+      <button class="icon-btn" title="Add Wallet" id="openWalletBtn">
+        <span class="material-icons">account_balance_wallet</span>
+      </button>
+      <button class="icon-btn" title="Upload Photo" id="openUploadBtn">
+        <span class="material-icons">add_a_photo</span>
+      </button>
+    </div>
+  </div>
+  <!-- Modal for Wallet -->
+  <div class="modal-bg" id="walletModalBg">
+    <div class="modal">
+      <button class="modal-close" id="closeWalletModal" title="Close">&times;</button>
+      <div class="modal-title">Enter Your Wallet</div>
+      <label class="form-label" for="walletInput">Wallet Address</label>
+      <input class="input" id="walletInput" type="text" maxlength="50" placeholder="0x..." required>
+      <button class="modal-btn" id="walletSaveBtn">
+        <span class="material-icons">check</span>
+        <span>Save</span>
+      </button>
+      <div id="walletStatus" class="status"></div>
+    </div>
+  </div>
+  <!-- Modal for Upload -->
+  <div class="modal-bg" id="uploadModalBg">
+    <div class="modal">
+      <button class="modal-close" id="closeUploadModal" title="Close">&times;</button>
+      <div class="modal-title">Upload Photo</div>
+      <label class="form-label" for="imageInput">Select Image</label>
+      <input class="input" id="imageInput" type="file" accept="image/*" capture="environment">
+      <img id="previewImg" class="preview-img" alt="Preview">
+      <button class="modal-btn" id="uploadPhotoBtn">
+        <span class="material-icons">add_a_photo</span>
+        <span>Upload</span>
+      </button>
+      <div id="uploadStatus" class="status"></div>
+    </div>
+  </div>
+  <!-- Gallery Card -->
+  <div class="gallery-card">
+    <div class="gallery-title">Photo Gallery</div>
+    <div id="galleryList" class="gallery-list"></div>
+  </div>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Cloudinary Setup (unsigned)
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
+    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
+    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+    // UI elements
+    const openWalletBtn = document.getElementById("openWalletBtn");
+    const walletModalBg = document.getElementById("walletModalBg");
+    const closeWalletModal = document.getElementById("closeWalletModal");
+    const walletInput = document.getElementById("walletInput");
+    const walletSaveBtn = document.getElementById("walletSaveBtn");
+    const walletStatus = document.getElementById("walletStatus");
+
+    const openUploadBtn = document.getElementById("openUploadBtn");
+    const uploadModalBg = document.getElementById("uploadModalBg");
+    const closeUploadModal = document.getElementById("closeUploadModal");
+    const imageInput = document.getElementById("imageInput");
+    const previewImg = document.getElementById("previewImg");
+    const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const galleryList = document.getElementById("galleryList");
+
+    // State
+    let savedWallet = localStorage.getItem("dephotos_wallet") || "";
+
+    // Modal handlers
+    openWalletBtn.onclick = () => {
+      walletInput.value = savedWallet;
+      walletStatus.textContent = "";
+      walletModalBg.style.display = "flex";
+      setTimeout(() => walletInput.focus(), 100);
+    };
+    closeWalletModal.onclick = () => {
+      walletModalBg.style.display = "none";
+    };
+    walletModalBg.onclick = (e) => {
+      if (e.target === walletModalBg) walletModalBg.style.display = "none";
+    };
+
+    openUploadBtn.onclick = () => {
+      uploadStatus.textContent = "";
+      previewImg.style.display = "none";
+      imageInput.value = "";
+      uploadModalBg.style.display = "flex";
+    };
+    closeUploadModal.onclick = () => {
+      uploadModalBg.style.display = "none";
+    };
+    uploadModalBg.onclick = (e) => {
+      if (e.target === uploadModalBg) uploadModalBg.style.display = "none";
+    };
+
+    // Helper: Set status
+    function setStatus(el, msg, type = "") {
+      el.textContent = msg;
+      el.className = "status";
+      if (type) el.classList.add(type);
+    }
+
+    // Helper: Validate wallet
+    function isValidWallet(addr) {
+      return /^0x[a-fA-F0-9]{40}$/.test(addr);
+    }
+
+    // Save wallet
+    walletSaveBtn.onclick = function() {
+      const wallet = walletInput.value.trim();
+      if (!isValidWallet(wallet)) {
+        setStatus(walletStatus, "Enter a valid wallet address", "error");
+        return;
+      }
+      savedWallet = wallet;
+      localStorage.setItem("dephotos_wallet", wallet);
+      setStatus(walletStatus, "Wallet saved!", "success");
+      setTimeout(() => {
+        walletModalBg.style.display = "none";
+      }, 800);
+    };
+
+    // Preview image
+    imageInput.onchange = function() {
+      if (this.files.length > 0) {
+        const file = this.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImg.style.display = "none";
+      }
+    };
+
+    // Helper: Upload to Cloudinary
+    async function uploadToCloudinary(file) {
+      setStatus(uploadStatus, "Uploading image...");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const resp = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: "POST",
+        body: formData
+      });
+      const data = await resp.json();
+      if (!data || !data.secure_url) throw new Error("Upload failed");
+      return data.secure_url;
+    }
+
+    // Upload Photo Handler
+    uploadPhotoBtn.onclick = async function() {
+      const wallet = savedWallet;
+      const file = imageInput.files[0];
+      if (!isValidWallet(wallet)) {
+        setStatus(uploadStatus, "Set a valid wallet address first", "error");
+        return;
+      }
+      if (!file) {
+        setStatus(uploadStatus, "Select an image file", "error");
+        return;
+      }
+      try {
+        setStatus(uploadStatus, "Uploading...");
+        const imageUrl = await uploadToCloudinary(file);
+        // Save to Firebase
+        const photoRef = db.ref("photos").push();
+        await photoRef.set({
+          imageUrl,
+          wallet,
+          upvotes: 0,
+          downvotes: 0,
+          timestamp: Date.now()
+        });
+        setStatus(uploadStatus, "Photo uploaded!", "success");
+        imageInput.value = "";
+        previewImg.style.display = "none";
+        setTimeout(() => {
+          uploadModalBg.style.display = "none";
+          setStatus(uploadStatus, "");
+        }, 1200);
+      } catch (err) {
+        setStatus(uploadStatus, "Upload failed", "error");
+      }
+    };
+
+    // Gallery Loader
+    function renderGallery(photoArr) {
+      galleryList.innerHTML = "";
+      photoArr.reverse().forEach(photo => {
+        const item = document.createElement("div");
+        item.className = "gallery-item";
+        item.innerHTML = `
+          <img class="gallery-img" src="${photo.imageUrl}" alt="Photo"/>
+          <div class="wallet-tip">
+            <span class="material-icons">monetization_on</span>
+            Tip me: ${photo.wallet}
+            <button class="tip-copy" title="Copy wallet address">
+              <span class="material-icons" style="font-size:10px;">content_copy</span>
+            </button>
+          </div>
+          <div class="gallery-wallet">${photo.wallet}</div>
+          <div class="votes-row">
+            <button class="vote-btn up-btn ${photo.userVote === 1 ? "active-up" : ""}" title="Upvote">
+              <span class="material-icons">thumb_up</span>
+              <span class="vote-count">${photo.upvotes}</span>
+            </button>
+            <button class="vote-btn down-btn ${photo.userVote === -1 ? "active-down" : ""}" title="Downvote">
+              <span class="material-icons">thumb_down</span>
+              <span class="vote-count">${photo.downvotes}</span>
+            </button>
+          </div>
+        `;
+        // Tip copy
+        item.querySelector(".tip-copy").onclick = () => {
+          navigator.clipboard.writeText(photo.wallet);
+          item.querySelector(".tip-copy").innerHTML = '<span class="material-icons" style="color:var(--success);font-size:10px;">check</span>';
+          setTimeout(() => {
+            item.querySelector(".tip-copy").innerHTML = '<span class="material-icons" style="font-size:10px;">content_copy</span>';
+          }, 1200);
+        };
+        // Voting
+        const upBtn = item.querySelector(".up-btn");
+        const downBtn = item.querySelector(".down-btn");
+        upBtn.onclick = () => votePhoto(photo.id, 1);
+        downBtn.onclick = () => votePhoto(photo.id, -1);
+
+        galleryList.appendChild(item);
+      });
+    }
+
+    // Voting logic (simple vote per session)
+    let userVotes = {}; // photoId: 1|0|-1
+    function votePhoto(photoId, value) {
+      if (!photoId) return;
+      const currVote = userVotes[photoId] || 0;
+      if (currVote === value) return; // already voted
+      db.ref("photos/" + photoId).once("value", snapshot => {
+        const photo = snapshot.val();
+        if (!photo) return;
+        let upvotes = photo.upvotes || 0;
+        let downvotes = photo.downvotes || 0;
+        if (currVote === 1) upvotes = Math.max(0, upvotes - 1);
+        if (currVote === -1) downvotes = Math.max(0, downvotes - 1);
+        if (value === 1) upvotes += 1;
+        if (value === -1) downvotes += 1;
+        db.ref("photos/" + photoId).update({ upvotes, downvotes });
+        userVotes[photoId] = value;
+      });
+    }
+
+    // Gallery Listener
+    db.ref("photos").on("value", snapshot => {
+      const photoObj = snapshot.val() || {};
+      const photoArr = Object.keys(photoObj).map(id => ({
+        ...photoObj[id],
+        id,
+        userVote: userVotes[id] || 0
+      }));
+      renderGallery(photoArr);
+    });
+
+    // On mobile, allow gallery/camera
+    imageInput.setAttribute("capture", "environment");
+  </script>
+</body>
+</html>
