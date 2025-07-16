@@ -306,26 +306,29 @@ html, body {
 }
 
 .user-wallet {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-muted);
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   font-family: var(--font-mono);
+  letter-spacing: 0.1px;
 }
 
 .user-status {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 4px;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  min-height: 0;
+  min-width: 0;
 }
 
 .user-status.pending {
@@ -344,6 +347,14 @@ html, body {
   color: var(--error);
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.14);
+}
+
+.material-icons {
+  font-size: 10px !important;
+  vertical-align: middle;
+  margin: 0 0 0 0 !important;
+  height: 10px;
+  width: 10px;
 }
 
 @media (max-width: 768px) {
@@ -421,6 +432,10 @@ html, body {
   }
   .header-title {
     font-size: 13px;
+  }
+  .user-status {
+    font-size: 8px;
+    padding: 1px 3px;
   }
 }
 
@@ -513,15 +528,12 @@ input:focus {
       if (status === "failed" || status === "error") return {text: "Error", icon: "error", class:"failed"};
       return {text: "Pending", icon: "hourglass_top", class:"pending"};
     }
-    // fallback avatar
     function avatarOrDefault(url) {
       return url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
     }
-    function isDefaultAvatar(url) {
-      // Accept only avatars from unavatar, not default X avatar
-      if (!url) return true;
-      // Accept only if unavatar domain (not fallback)
-      return url.indexOf('unavatar.io/twitter/') === -1;
+    // Only show if avatar is from unavatar (not X default)
+    function isRealAvatar(url) {
+      return !!url && url.indexOf('unavatar.io/twitter/') !== -1;
     }
     function validateEthAddress(addr) {
       return /^0x[a-fA-F0-9]{40}$/.test(addr);
@@ -592,8 +604,7 @@ input:focus {
       grid.innerHTML = "";
       // Only show entries with a real (not default) avatar!
       const realUsers = users.filter(entry =>
-        entry.avatar &&
-        entry.avatar.indexOf('unavatar.io/twitter/') !== -1
+        isRealAvatar(entry.avatar)
       );
       if (!realUsers.length) {
         grid.innerHTML = `<div style="color:var(--text-light);font-size:13px;text-align:center;width:100%;">No valid users yet.</div>`;
