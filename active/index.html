@@ -1,1740 +1,448 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NFTFans Active Members</title>
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Google Fonts Orbitron & Montserrat -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="icon" href="https://i.imgur.com/g8B2Old.png">
-    <meta name="description" content="NFTFans Token - Active Members and X Posts leaderboard.">
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-    <style>
-        /* All your existing CSS remains unchanged */
-        /* ... (keep all the CSS as is) ... */
- /* ... all previous CSS unchanged ... */
-        /* Keep all your existing CSS here, unchanged */
-        /* ... */
-		
-		 :root {
-            --primary: #00bcd4;
-            --accent: #ff00ff;
-            --yellow: #fbc02d;
-            --danger: #ff9800;
-            --success: #00e676;
-            --background: #121212;
-            --surface: #222;
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --border: #323232;
-            --radius: 10px;
-            --tab-height: 44px;
-            --tab-font-size: 1.13rem;
-            --tab-icon-size: 1.15em;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { font-size: 10px; }
-        body {
-            font-family: 'Orbitron', monospace;
-            background: var(--background);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            position: relative;
-            font-size: 1rem;
-            letter-spacing: 0.02em;
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background:
-                linear-gradient(var(--primary) 0.5px, transparent 0.5px),
-                linear-gradient(90deg, var(--primary) 0.5px, transparent 0.5px);
-            background-size: 40px 40px;
-            opacity: 0.06;
-            z-index: 0;
-            pointer-events: none;
-        }
-        .particles {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .particle {
-            position: absolute;
-            width: 2px; height: 2px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-            opacity: 0.7;
-        }
-        @keyframes float {
-            0%,100% { transform: translateY(0px) scale(1); opacity: 0.3; }
-            50% { transform: translateY(-40px) scale(1.5); opacity: 1; }
-        }
-        .container {
-            max-width: 430px;
-            margin: 0 auto;
-            padding: 12px;
-            position: relative;
-            z-index: 2;
-        }
-        .banner-img {
-            width: 100%;
-            max-width: 100%;
-            height: 110px;
-            object-fit: cover;
-            border-radius: var(--radius);
-            margin-bottom: 16px;
-            box-shadow: 0 4px 16px #0005;
-            border: 1.5px solid var(--border);
-            display: block;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 24px;
-            padding: 10px 0 6px 0;
-        }
-        .title {
-            font-size: 2.1rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, var(--primary), var(--accent), var(--yellow), var(--success));
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: rainbow 3s ease-in-out infinite;
-            margin-bottom: 6px;
-            letter-spacing: 0.13em;
-        }
-        @keyframes rainbow {
-            0%,100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        .subtitle {
-            font-size: 1.07rem;
-            color: var(--accent);
-            margin-bottom: 12px;
-            font-weight: 700;
-            text-shadow: 0 0 3px #ff00ff33;
-        }
-        .tab-bar {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 18px;
-            background: #1a1a1a;
-            border-radius: var(--radius);
-            box-shadow: 0 2px 8px 0 #0003, 0 1px 1.5px #00bcd455;
-            overflow: hidden;
-            border: 1.5px solid var(--border);
-            min-height: var(--tab-height);
-        }
-        .tab-btn {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.57em;
-            font-size: var(--tab-font-size);
-            color: var(--text-secondary);
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-family: 'Orbitron', monospace;
-            font-weight: 700;
-            height: var(--tab-height);
-            letter-spacing: 0.03em;
-            transition: 
-                color 0.19s,
-                background 0.19s,
-                border 0.19s,
-                box-shadow 0.19s;
-            border-right: 1px solid var(--border);
-            position: relative;
-        }
-        .tab-btn:last-child {
-            border-right: none;
-        }
-        .tab-btn.active {
-            background: linear-gradient(90deg, var(--primary) 50%, var(--accent) 120%);
-            color: #fff;
-            box-shadow: 0 2px 12px 0 #00bcd430;
-            z-index: 2;
-        }
-        .tab-btn .material-icons {
-            font-size: var(--tab-icon-size) !important;
-            vertical-align: middle;
-            line-height: 1;
-            margin-bottom: 1.5px;
-        }
-        .tab-count-badge {
-            background: #e53935;
-            color: #fff;
-            font-size: 0.98em;
-            font-family: 'Montserrat', monospace;
-            font-weight: 800;
-            border-radius: 11px;
-            padding: 1px 8px 1px 8px;
-            margin-left: 1px;
-            display: inline-block;
-            min-width: 22px;
-            text-align: center;
-            box-shadow: 0 1px 5px #0003;
-            position: relative;
-            top: -2px;
-            letter-spacing: 0.02em;
-        }
-        .tab-xposts-badge {
-            background: #1DA1F2;
-            color: #fff;
-            font-size: 0.98em;
-            font-family: 'Montserrat', monospace;
-            font-weight: 800;
-            border-radius: 11px;
-            padding: 1px 8px 1px 8px;
-            margin-left: 1px;
-            display: inline-block;
-            min-width: 22px;
-            text-align: center;
-            box-shadow: 0 1px 5px #0003;
-            position: relative;
-            top: -2px;
-            letter-spacing: 0.02em;
-        }
-        .search-bar {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            background: var(--surface);
-            padding: 5px 11px;
-            border-radius: 7px;
-            border: 1.2px solid var(--border);
-        }
-        .search-bar .material-icons {
-            color: var(--primary);
-            font-size: 1.15rem;
-        }
-        .search-input {
-            background: none;
-            border: none;
-            outline: none;
-            color: var(--text-primary);
-            flex: 1;
-            font-size: 1rem;
-            font-family: 'Montserrat', monospace;
-        }
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: 0 4px 12px 0 #0002;
-            margin: 14px 0;
-            padding: 16px 10px;
-            border: 1.5px solid var(--border);
-            position: relative;
-            overflow: hidden;
-        }
-        .table-container {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 5px 0 0 0;
-            background: transparent;
-        }
-        th, td {
-            padding: 8px 7px;
-            text-align: left;
-            font-size: 1rem;
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle;
-        }
-        th {
-            color: var(--yellow);
-            font-weight: 900;
-            font-size: 1.07rem;
-            text-transform: uppercase;
-            background: #252525;
-        }
-        .serial-cell {
-            text-align: center;
-            font-family: 'Orbitron', monospace;
-            font-size: 1.02em;
-            color: var(--accent);
-        }
-        .xdpi {
-            width: 50px; height: 50px; border-radius: 4px; object-fit: cover;
-            border: 1.5px solid var(--accent);
-            display: inline-block;
-            vertical-align: middle;
-        }
-        .wallet-cell {
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            color: var(--primary);
-            background: #161616;
-            border-radius: 4px;
-            padding: 4px 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            margin-left: 3px;
-        }
-        .material-icons.wallet-icon {
-            font-size: 1.05em !important;
-            color: var(--accent);
-            vertical-align: middle;
-            margin-right: 2.5px;
-        }
-        .copy-btn {
-            border: none;
-            color: #fff;
-            padding: 2px 7px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 700;
-            font-family: 'Orbitron', monospace;
-            font-size: 0.85rem;
-            margin-left: 3px;
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            transition: background 0.2s, transform 0.2s;
-        }
-        .copy-btn .material-icons {
-            font-size: 1rem;
-        }
-        .copy-btn:hover {
-            background: var(--accent);
-            color: #fff;
-            transform: translateY(-1px) scale(1.04);
-        }
-        .copy-btn:active {
-            background: var(--success);
-            color: #fff;
-            transform: scale(0.95);
-        }
-        .user-info-list {
-            list-style: none;
-            margin: 0 0 0 0;
-            padding: 0;
-        }
-        .user-info-list li {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.96rem;
-            margin-bottom: 2px;
-        }
-        .user-info-list .material-icons {
-            font-size: 1em;
-            color: var(--primary);
-        }
-        .list-wallet {
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            color: var(--accent);
-            margin-left: 17px;
-        }
-        .list-username {
-            color: var(--primary);
-        }
-        .list-name {
-            color: var(--text-primary);
-            font-weight: 700;
-        }
-        .reward-row {
-            display: flex;
-            align-items: center;
-            font-size: 0.96rem;
-            gap: 6px;
-            margin: 5px 0 0 0px;
-            color: var(--success);
-            font-family: 'Orbitron', monospace;
-        }
-        .reward-icon {
-            color: var(--success);
-            font-size: 1.12em !important;
-            vertical-align: middle;
-        }
-        .reward-amount {
-            font-size: 0.95em;
-            color: var(--success);
-            font-family: 'Orbitron', monospace;
-            font-weight: 900;
-            padding-left: 1px;
-        }
-       .reward-label {
-    color: #000000;
-    font-size: 0.93em;
-    opacity: 0.66;
-    margin-left: 2px;
-    font-family: 'Montserrat', monospace;
-    font-weight: 400;
-    background-color: #ffc94b; /* semi-transparent black */
-    padding: 2px 6px; /* optional: adds spacing inside the label */
-    border-radius: 4px; /* optional: rounds the corners */
-}
-
-        .submit-section {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: stretch;
-            gap: 7px;
-        }
-        .input-x {
-            padding: 7px 9px;
-            border: 1.5px solid var(--primary);
-            border-radius: 7px;
-            background: #18191a;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-family: 'Montserrat', monospace;
-            outline: none;
-            flex: 1.2;
-            min-width: 0;
-            box-sizing: border-box;
-            height: 40px;
-        }
-        .input-wallet {
-            padding: 7px 9px;
-            border: 1.5px solid var(--accent);
-            border-radius: 7px;
-            background: #18191a;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-family: 'Courier New', monospace;
-            outline: none;
-            flex: 1.8;
-            min-width: 0;
-            box-sizing: border-box;
-            height: 40px;
-        }
-       .submit-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: #fff;
-    padding: 0 20px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    font-family: 'Orbitron', monospace;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    height: 50px;
-    min-width: 120px;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.submit-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.submit-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    transition: width 0.6s, height 0.6s;
-}
-
-.submit-btn .material-icons { 
-    font-size: 1.1rem; 
-    transition: transform 0.3s ease;
-}
-
-.submit-btn:hover {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: #fff;
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
-    animation: pulse 2s infinite;
-}
-
-.submit-btn:hover::before {
-    left: 100%;
-}
-
-.submit-btn:hover::after {
-    width: 300px;
-    height: 300px;
-}
-
-.submit-btn:hover .material-icons {
-    transform: rotate(360deg) scale(1.2);
-}
-
-.submit-btn:active {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: #fff;
-    transform: translateY(-2px) scale(0.98);
-    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.6);
-    transition: all 0.1s ease;
-}
-
-.submit-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.5);
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4); }
-    50% { box-shadow: 0 15px 35px rgba(240, 147, 251, 0.6), 0 0 20px rgba(240, 147, 251, 0.3); }
-    100% { box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4); }
-}
-
-.xposts-link {
-    color: #1DA1F2;
-    font-family: 'Courier New', monospace;
-    font-size: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-bottom: 3px;
-    text-decoration: none;
-    background: #171b21;
-    padding: 2px 4px;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-    word-break: break-all;
-    position: relative;
-    overflow: hidden;
-}
-
-.xposts-link::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(29, 161, 242, 0.1), transparent);
-    transition: left 0.5s;
-}
-
-.xposts-link:hover {
-    background: #1e2329;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(29, 161, 242, 0.2);
-}
-
-.xposts-link:hover::before {
-    left: 100%;
-}
-        .xposts-link:hover {
-            background: #1DA1F2;
-            color: #fff;
-        }
-        .xposts-dp {
-            width: 30px;
-            height: 30px;
-            object-fit: cover;
-            border-radius: 6px;
-            background: #222;
-            border: 1.3px solid var(--accent);
-            margin-right: 2px;
-            display: inline-block;
-            vertical-align: middle;
-        }
-        .post-count-badge {
-            background: #1DA1F2;
-            color: #fff;
-            font-size: 0.95em;
-            font-family: 'Orbitron', monospace;
-            border-radius: 50px;
-            padding: 2px 10px;
-            margin-left: 9px;
-            font-weight: 600;
-            vertical-align: middle;
-        }
-        /* --- Task card improvements --- */
-        #tasksSection {
-            margin-top: 10px;
-        }
-        .task-card {
-            background: linear-gradient(120deg, #25262d 80%, #18191a 100%);
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: 0 6px 28px 0 #0003;
-            margin: 22px 0 0 0;
-            padding: 20px 18px 16px 18px;
-            position: relative;
-            color: var(--text-primary);
-            transition: box-shadow 0.2s, border 0.2s;
-            overflow: hidden;
-        }
-        .task-card:first-child {
-            margin-top: 10px;
-        }
-        .task-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 1.16rem;
-            font-weight: 900;
-            color: var(--yellow);
-            margin-bottom: 7px;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            letter-spacing: 0.05em;
-            text-shadow: 0 1px 10px #fbc02d11;
-        }
-        .task-desc {
-            font-size: 1.01rem;
-            font-family: 'Montserrat', monospace;
-            color: var(--text-secondary);
-            margin-bottom: 11px;
-            line-height: 1.5;
-        }
-        .task-reward-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 2px;
-            margin-top: 10px;
-        }
-        .task-reward {
-            font-size: 1.04rem;
-            color: var(--success);
-            font-family: 'Orbitron', monospace;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 0;
-        }
-        .task-icon {
-            color: var(--accent);
-            font-size: 1.25rem;
-            vertical-align: middle;
-        }
-        .share-btn {
-            background: #191c25;
-            color: #1DA1F2;
-            border: 1.3px solid #1DA1F2;
-            border-radius: 6px;
-            padding: 5px 17px 5px 12px;
-            font-size: 0.97rem;
-            font-family: 'Orbitron', monospace;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            cursor: pointer;
-            transition: background 0.19s, color 0.19s, box-shadow 0.15s, border 0.19s;
-            box-shadow: 0 2px 7px #0002;
-            outline: none;
-            margin-left: 0;
-        }
-        .share-btn .material-icons {
-            font-size: 1.08em;
-            color: #1DA1F2;
-            margin-bottom: 1px;
-        }
-        .share-btn:hover, .share-btn:focus {
-            background: #1DA1F2;
-            color: #fff;
-            border: 1.3px solid #1DA1F2;
-        }
-        .share-btn:hover .material-icons,
-        .share-btn:focus .material-icons {
-            color: #fff;
-        }
-        .tweet-preview {
-            display: block;
-            font-family: 'Courier New',monospace;
-            font-size: 1em;
-            background: #18191a;
-            border-radius: 6px;
-            color: #fff;
-            padding: 11px 12px;
-            margin: 11px 0 13px 0;
-            border: 1.5px solid var(--accent);
-            word-break: break-word;
-            box-shadow: 0 1.5px 6px #ff00ff22;
-        }
-        @media (max-width: 480px) {
-            .xposts-dp { width: 22px; height: 22px; border-radius: 4px;}
-            html { font-size: 9px;}
-            .container { padding: 3vw 1.5vw; max-width: 99vw;}
-            th, td { font-size: 0.93rem;}
-            .title { font-size: 1.45rem;}
-            .task-title { font-size: 1.03rem;}
-            .banner-img { height: 65px; }
-            .xdpi { width: 38px; height: 38px; }
-            .input-x, .input-wallet, .submit-btn { height: 36px; font-size: 0.98rem; }
-            .task-card { padding: 13px 8px 10px 10px; }
-            .tweet-preview { font-size: 0.93em; padding: 8px 6px; }
-        }
-        @media (max-width: 340px) {
-            html { font-size: 8px;}
-        }
-		/* Add this to your <style> section */
-.total-earned-content {
-  background: #18191aee;
-  border: 1px solid #333; /* Add border here */
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 14px;
-  gap: 4px;
-  width: 100%;
-  box-sizing: border-box;
-  font-family: 'Orbitron', monospace;
-  margin-bottom: 10px;
-}
-
-
-.total-earned-label {
-  color: #fff;
-  font-size: 0.92em;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  opacity: 0.78;
-  margin: 0; /* Reset margin */
-}
-
-.total-earned-amount {
-  color: #00e676;
-  font-size: 0.85em;
-  font-weight: 900;
-  background: #222b;
-  border-radius: 8px;
-  padding: 4px 12px;
-  letter-spacing: 0.02em;
-  font-family: 'Orbitron', monospace;
-  box-shadow: 0 0 8px #00e67644;
-}
-
-/* Optional: Center icon at top */
-.total-earned-icon {
-  color: #ffd600;
-  font-size: 1.75em !important;
-  filter: drop-shadow(0 0 8px #ffd60088);
-  margin-bottom: 6px;
-}
-
-/* Responsive: adjust spacing and font */
-@media (max-width: 480px) {
-  .total-earned-bar {
-    max-width: 99vw;
-    font-size: 0.95em;
-  }
-  .total-earned-content {
-    padding: 8px 10px;
-    gap: 5px;
-  }
-  .total-earned-label {
-    font-size: 1em;
-  }
-  .total-earned-amount {
-    font-size: 1.1em;
-    padding: 4px 10px;
-  }
-}
-
-
-       /* Enhanced Popup Styles */
-.popup-backdrop {
-    position: fixed;
-    z-index: 99;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: backdropFadeIn 0.3s ease;
-}
-
-@keyframes backdropFadeIn {
-    from { 
-        background: rgba(0, 0, 0, 0);
-        backdrop-filter: blur(0px);
+  <meta charset="UTF-8">
+  <title>NFTFans Rewards Share App (Dynamic Tasks)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Material Icons & Fonts -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://i.imgur.com/g8B2Old.png">
+  <style>
+    :root {
+      --primary: #00bcd4;
+      --accent: #ff00ff;
+      --yellow: #fbc02d;
+      --success: #00e676;
+      --danger: #ff9800;
+      --background: #121212;
+      --surface: #222;
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --border: #323232;
+      --radius: 12px;
     }
-    to { 
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(8px);
+    body {
+      font-family: 'Orbitron', monospace;
+      background: var(--background);
+      color: var(--text-primary);
+      min-height: 100vh;
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
     }
-}
-
-.popup {
-    background: linear-gradient(145deg, #18191a 0%, #1e1f20 100%);
-    border-radius: 20px;
-    box-shadow: 
-        0 25px 50px rgba(0, 0, 0, 0.8),
-        0 0 0 1px rgba(255, 255, 255, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    padding: 32px 28px 24px 28px;
-    min-width: 90vw;
-    max-width: 420px;
-    position: relative;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    z-index: 100;
-    font-family: 'Orbitron', monospace;
-    animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    overflow: hidden;
-}
-
-.popup::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, 
-        var(--primary) 0%, 
-        var(--accent) 50%, 
-        var(--success) 100%);
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
-}
-
-@keyframes popupIn {
-    from { 
-        transform: scale(0.8) translateY(30px); 
-        opacity: 0;
-        filter: blur(10px);
+    .container {
+      max-width: 430px;
+      margin: 0 auto;
+      padding: 24px;
+      position: relative;
+      z-index: 2;
     }
-    to { 
-        transform: scale(1) translateY(0); 
-        opacity: 1;
-        filter: blur(0px);
+    .banner-img {
+      width: 100%;
+      height: 110px;
+      object-fit: cover;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px #0005;
+      border: 1.5px solid var(--border);
+      display: block;
     }
-}
-
-.popup-close {
-    position: absolute;
-    top: 12px; 
-    right: 18px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.4rem;
-    cursor: pointer;
-    z-index: 101;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    backdrop-filter: blur(10px);
-}
-
-.popup-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ff4757;
-    transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
-}
-
-.popup-close:active {
-    transform: rotate(90deg) scale(0.9);
-}
-
-.popup-title {
-    font-size: 1.4rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--accent), var(--primary));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 20px;
-    letter-spacing: 0.1em;
-    text-align: center;
-    text-transform: uppercase;
-    position: relative;
-    animation: titleGlow 2s ease-in-out infinite alternate;
-}
-
-@keyframes titleGlow {
-    from { filter: drop-shadow(0 0 5px rgba(102, 126, 234, 0.3)); }
-    to { filter: drop-shadow(0 0 15px rgba(102, 126, 234, 0.6)); }
-}
-
-.popup-form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    margin-top: 10px;
-}
-
-.popup-label {
-    font-size: 1.1rem;
-    color: var(--primary);
-    font-weight: 700;
-    margin-bottom: 6px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-}
-
-.popup-input {
-    padding: 12px 16px;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    background: linear-gradient(145deg, #191c21, #1e2126);
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    font-family: 'Montserrat', monospace;
-    outline: none;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.popup-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-    transition: color 0.3s ease;
-}
-
-.popup-input:focus {
-    border: 2px solid var(--accent);
-    background: linear-gradient(145deg, #1e2126, #232832);
-    box-shadow: 
-        inset 0 2px 4px rgba(0, 0, 0, 0.3),
-        0 0 20px rgba(102, 126, 234, 0.3);
-    transform: translateY(-2px);
-}
-
-.popup-input:focus::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.popup-submit-btn {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border: none;
-    color: #fff;
-    padding: 14px 0;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    font-family: 'Orbitron', monospace;
-    font-size: 1.1rem;
-    margin-top: 8px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    position: relative;
-    overflow: hidden;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-}
-
-.popup-submit-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.popup-submit-btn .material-icons { 
-    font-size: 1.2rem;
-    transition: transform 0.3s ease;
-}
-
-.popup-submit-btn:hover { 
-    background: linear-gradient(135deg, var(--accent), var(--success));
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
-}
-
-.popup-submit-btn:hover::before {
-    left: 100%;
-}
-
-.popup-submit-btn:hover .material-icons {
-    transform: rotate(360deg) scale(1.1);
-}
-
-.popup-submit-btn:active { 
-    background: linear-gradient(135deg, var(--success), #00d4aa);
-    transform: translateY(-1px) scale(0.98);
-    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.6);
-}
-
-.popup-error {
-    color: #ff4757;
-    font-size: 1rem;
-    margin-top: -8px;
-    margin-bottom: 8px;
-    text-align: center;
-    font-family: 'Montserrat', monospace;
-    font-weight: 600;
-    padding: 8px 12px;
-    background: rgba(255, 71, 87, 0.1);
-    border-radius: 8px;
-    border-left: 4px solid #ff4757;
-    animation: errorShake 0.5s ease-in-out;
-}
-
-@keyframes errorShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.popup-success {
-    color: var(--success);
-    font-size: 1rem;
-    margin-top: -8px;
-    margin-bottom: 8px;
-    text-align: center;
-    font-family: 'Montserrat', monospace;
-    font-weight: 600;
-    padding: 8px 12px;
-    background: rgba(79, 172, 254, 0.1);
-    border-radius: 8px;
-    border-left: 4px solid var(--success);
-    animation: successSlide 0.5s ease-out;
-}
-
-@keyframes successSlide {
-    from { 
-        transform: translateY(-10px);
-        opacity: 0;
+    .title {
+      font-size: 2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--primary), var(--accent), var(--yellow), var(--success));
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: rainbow 3s ease-in-out infinite;
+      margin-bottom: 8px;
+      letter-spacing: 0.13em;
+      text-align: center;
     }
-    to { 
-        transform: translateY(0);
-        opacity: 1;
+    @keyframes rainbow {
+      0%,100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
-}
-
-/* Enhanced Mobile Responsiveness */
-@media (max-width: 480px) {
-    .popup-backdrop {
-        padding: 20px;
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px 0 #0002;
+      margin: 18px 0;
+      padding: 16px 10px;
+      border: 1.5px solid var(--border);
+      position: relative;
+      overflow: hidden;
     }
-    
-    .popup { 
-        max-width: 100%;
-        min-width: 100%;
-        margin: 0;
-        padding: 24px 20px 20px 20px;
-        border-radius: 16px;
-        max-height: 90vh;
-        overflow-y: auto;
+    .form-group { margin-bottom: 16px; }
+    .label { font-family: 'Montserrat', monospace; font-size: 1.08rem; color: var(--primary); margin-bottom: 6px; font-weight: 600; display: block; }
+    .input {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-family: 'Montserrat', monospace;
+      font-size: 1.07em;
+      margin-bottom: 4px;
+      outline: none;
+      box-sizing: border-box;
     }
-    
-    .popup-title { 
-        font-size: 1.2rem;
-        margin-bottom: 16px;
+    .input:focus { border-color: var(--primary); }
+    .submit-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: #fff;
+      padding: 0 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 50px;
+      min-width: 120px;
+      justify-content: center;
+      margin: 12px auto 0 auto;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
-    
-    .popup-close {
-        top: 8px;
-        right: 12px;
-        width: 28px;
-        height: 28px;
-        font-size: 1.2rem;
+    .submit-btn .material-icons { font-size: 1.1rem; }
+    .error-msg {
+      color: #ff4757;
+      background: rgba(255, 71, 87, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid #ff4757;
+      margin-bottom: 10px;
+      padding: 8px;
+      font-family: 'Montserrat', monospace;
     }
-    
-    .popup-form {
-        gap: 14px;
+    .success-msg {
+      color: var(--success);
+      background: rgba(79, 172, 254, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid var(--success);
+      margin-bottom: 10px;
+      padding: 8px;
+      font-family: 'Montserrat', monospace;
     }
-    
-    .popup-label {
-        font-size: 0.85rem;
-        margin-bottom: 4px;
+    .dashboard-header {
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 16px;
+      font-size: 1.15rem;
+      color: var(--primary);
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
     }
-    
-    .popup-input {
-        padding: 10px 12px;
-        font-size: 1rem;
+    .task-card {
+      background: linear-gradient(120deg, #25262d 80%, #18191a 100%);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 6px 28px 0 #0003;
+      margin: 22px 0 0 0;
+      padding: 20px 18px 16px 18px;
+      position: relative;
+      color: var(--text-primary);
+      transition: box-shadow 0.2s, border 0.2s;
+      overflow: hidden;
     }
-    
-    .popup-submit-btn {
-        padding: 12px 0;
-        font-size: 1rem;
+    .task-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.16rem;
+      font-weight: 900;
+      color: var(--yellow);
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      letter-spacing: 0.05em;
+      text-shadow: 0 1px 10px #fbc02d11;
     }
-}
-
-@media (max-width: 360px) {
-    .popup {
-        padding: 20px 16px 16px 16px;
+    .tweet-preview {
+      display: block;
+      font-family: 'Courier New',monospace;
+      font-size: 1em;
+      background: #18191a;
+      border-radius: 6px;
+      color: #fff;
+      padding: 11px 12px;
+      margin: 11px 0 13px 0;
+      border: 1.5px solid var(--accent);
+      word-break: break-word;
+      box-shadow: 0 1.5px 6px #ff00ff22;
     }
-    
-    .popup-title {
-        font-size: 1.1rem;
+    .share-btn {
+      background: #191c25;
+      color: #1DA1F2;
+      border: 1.3px solid #1DA1F2;
+      border-radius: 6px;
+      padding: 7px 17px 7px 12px;
+      font-size: 0.97rem;
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: background 0.19s, color 0.19s, box-shadow 0.15s, border 0.19s;
+      box-shadow: 0 2px 7px #0002;
+      outline: none;
+      margin-left: 0;
     }
-    
-    .popup-input {
-        padding: 8px 10px;
-        font-size: 0.95rem;
+    .share-btn .material-icons { font-size: 1.08em; color: #1DA1F2; }
+    .share-btn[disabled], .share-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #333;
+      color: #bbb;
+      border-color: #444;
     }
-    
-    .popup-submit-btn {
-        padding: 10px 0;
-        font-size: 0.95rem;
+    .reward-row {
+      display: flex;
+      align-items: center;
+      font-size: 0.96rem;
+      gap: 6px;
+      margin: 10px 0 0 0px;
+      color: var(--success);
+      font-family: 'Orbitron', monospace;
     }
-}
-
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-    .popup-close {
-        width: 40px;
-        height: 40px;
-        font-size: 1.3rem;
+    .reward-icon { color: var(--success); font-size: 1.12em !important; vertical-align: middle;}
+    .reward-amount { font-size: 0.95em; color: var(--success); font-family: 'Orbitron', monospace; font-weight: 900; }
+    .reward-label { color: #000; background: #ffc94b; font-size: 0.93em; opacity: 0.66; margin-left: 2px; font-family: 'Montserrat', monospace; font-weight: 400; padding: 2px 6px; border-radius: 4px;}
+    .total-earned-content {
+      background: #18191aee;
+      border: 1px solid #333;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 14px;
+      gap: 4px;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: 'Orbitron', monospace;
+      margin-bottom: 10px;
     }
-    
-    .popup-submit-btn {
-        padding: 16px 0;
-        font-size: 1.1rem;
+    .total-earned-label { color: #fff; font-size: 0.92em; font-weight: 700; letter-spacing: 0.02em; opacity: 0.78; margin: 0;}
+    .total-earned-amount { color: #00e676; font-size: 0.85em; font-weight: 900; background: #222b; border-radius: 8px; padding: 4px 12px; letter-spacing: 0.02em; font-family: 'Orbitron', monospace; box-shadow: 0 0 8px #00e67644;}
+    .total-earned-icon { color: #ffd600; font-size: 1.75em !important; filter: drop-shadow(0 0 8px #ffd60088); margin-bottom: 6px; }
+    @media (max-width: 480px) {
+      .container { padding: 3vw 1.5vw; max-width: 99vw;}
+      .card, .task-card { padding: 10px 5px;}
+      .title { font-size: 1.45rem;}
+      .banner-img { height: 65px; }
     }
-    
-    .popup-input {
-        padding: 14px 16px;
-        font-size: 16px; /* Prevents zoom on iOS */
-    }
-}
-    </style>
+  </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div class="particles"></div>
-    <div class="container">
-        <img 
-            class="banner-img" 
-            src="https://pbs.twimg.com/media/GuyjoocWYAAm6BT?format=jpg&name=4096x4096"
-            alt="NFTFans Banner"
-        >
-        <div class="header">
-            <h1 class="title">NFT Fans Active</h1>
-            <div class="subtitle">Be Active to earn more.</div>
-            <button class="submit-btn" id="registerBtn" style="margin: 13px auto 8px auto; display:block; font-size:1.09rem; min-width:165px; justify-content:center;" onclick="openRegisterPopup()">
-                <span class="material-icons">person_add_alt_1</span>
-                Register as Member
-            </button>
-            <div style="color:var(--yellow);font-size:1.07rem;font-family:'Montserrat',monospace;font-weight:700;text-align:center;margin-bottom:5px;">
-                <span id="totalMembersCount">0</span> Registered Members
-            </div>
+  <div class="container">
+    <img class="banner-img" src="https://pbs.twimg.com/media/GuyjoocWYAAm6BT?format=jpg&name=4096x4096" alt="NFTFans Banner">
+    <div class="title">NFT Fans Rewards</div>
+    <!-- Login/Register Card -->
+    <div class="card" id="loginCard">
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label class="label" for="loginX">X Username</label>
+          <input class="input" type="text" id="loginX" placeholder="@username" required>
         </div>
-
-        <!-- Campaign Time Section -->
-        <div id="campaign-timer" style="text-align:center; margin-bottom:13px; font-family:'Orbitron',monospace;">
-            <span style="color:#ffeb3b;font-weight:900;font-size:1.12rem;">
-                This campaign ends on <span id="end-date">31 July 2025</span>
-            </span>
-            <br>
-            <span style="color: #00e676; font-size:1.04rem;">
-                <span id="days-left"></span> days left
-            </span>
+        <div class="form-group">
+          <label class="label" for="loginWallet">EVM Wallet Address</label>
+          <input class="input" type="text" id="loginWallet" placeholder="0x..." required>
         </div>
-
-        <div class="total-earned-bar">
-            <div class="total-earned-content">
-                <span class="material-icons total-earned-icon">paid</span>
-                <span class="total-earned-label">Tokens Rewarded</span>
-                <span class="total-earned-amount" id="totalEarnedTokens">0 $NFTFAN</span>
-            </div>
-        </div>
-
-        <!-- Modified Tab Bar (Removed X Posts tab) -->
-        <div class="tab-bar">
-            <button class="tab-btn active" id="membersTab" onclick="switchTab('members')">
-                <span class="material-icons">people</span> Members
-            </button>
-            <button class="tab-btn" id="tasksTab" onclick="switchTab('tasks')">
-                <span class="material-icons">task_alt</span>
-                Tasks
-                <span class="tab-count-badge" id="taskCountBadge">3</span>
-            </button>
-        </div>
-
-        <!-- Members Tab -->
-        <div id="membersSection">
-            <!-- Added X Post Submit Form here -->
-            <form class="submit-section" onsubmit="return handleXPostSubmit(event)" style="margin-bottom: 15px;">
-                <input type="text" class="input-wallet" id="xPostUrlInput" inputmode="url" autocomplete="off" 
-                       placeholder="X Post URL e.g. https://x.com/..." required>
-                <button type="submit" class="submit-btn">
-                    <span class="material-icons">send</span> Submit X Post
-                </button>
-            </form>
-            <div class="search-bar">
-                <span class="material-icons">search</span>
-                <input class="search-input" id="searchInput" type="text" inputmode="text" 
-                       autocomplete="off" placeholder="Search members, X or wallet" oninput="filterTable()">
-            </div>
-            <div class="card">
-                <div class="table-container">
-                    <table id="membersTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Photo</th>
-                                <th>Active NFTFans</th>
-                                <th>Posts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tasks Tab -->
-        <div id="tasksSection" style="display:none;">
-            <!-- Tasks are rendered by JS -->
-        </div>
-
-        <!-- Popup Modal for Register -->
-        <div id="popupBackdrop" class="popup-backdrop" style="display:none;">
-            <div class="popup">
-                <button class="popup-close" onclick="closeRegisterPopup()" aria-label="Close">
-                    <span class="material-icons">close</span>
-                </button>
-                <div class="popup-title">
-                    Register as Active NFTFan
-                </div>
-                <form id="popupRegisterForm" class="popup-form" autocomplete="off">
-                    <div>
-                        <div class="popup-label">X Username</div>
-                        <input type="text" id="popupXInput" class="popup-input" placeholder="@etcetc" autocomplete="off" required>
-                    </div>
-                    <div>
-                        <div class="popup-label">EVM Wallet Address</div>
-                        <input type="text" id="popupWalletInput" class="popup-input" placeholder="0x..." autocomplete="off" required>
-                    </div>
-                    <div id="popupError" class="popup-error" style="display:none;"></div>
-                    <div id="popupSuccess" class="popup-success" style="display:none;"></div>
-                    <button type="submit" class="popup-submit-btn">
-                        <span class="material-icons">add_circle</span> Register
-                    </button>
-                </form>
-            </div>
-        </div>
+        <button type="submit" class="submit-btn"><span class="material-icons">login</span> Login / Register</button>
+        <div id="loginError" class="error-msg" style="display:none;"></div>
+        <div id="loginSuccess" class="success-msg" style="display:none;"></div>
+      </form>
     </div>
+    <!-- Dashboard Card -->
+    <div class="card" id="dashboardCard" style="display:none;">
+      <div class="dashboard-header">Welcome, <span id="userDisplayName"></span></div>
+      <div style="margin-bottom:8px;">
+        <strong>X Username:</strong> <span id="userX"></span> <br>
+        <strong>Wallet:</strong> <span id="userWallet"></span>
+      </div>
+      <div class="total-earned-content">
+        <span class="material-icons total-earned-icon">paid</span>
+        <span class="total-earned-label">Tokens Earned in T</span>
+        <span class="total-earned-amount" id="userTotalEarned">0 $NFTFAN</span>
+      </div>
+      <div id="tasksArea"></div>
+    </div>
+  </div>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    <script>
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
-            authDomain: "nftfanactive.firebaseapp.com",
-            databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
-            projectId: "nftfanactive",
-            storageBucket: "nftfanactive.appspot.com",
-            messagingSenderId: "311309982791",
-            appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
-            measurementId: "G-3TRDL9749N"
-        };
+    function shortenWallet(address) {
+      if (!address) return '';
+      if (address.length < 12) return address;
+      return address.slice(0,6) + '...' + address.slice(-4);
+    }
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        firebase.analytics();
-        const db = firebase.database();
+    // Login/Register logic
+    document.getElementById('loginForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const x = document.getElementById('loginX').value.trim();
+      const wallet = document.getElementById('loginWallet').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      const successDiv = document.getElementById('loginSuccess');
+      errorDiv.style.display = 'none';
+      successDiv.style.display = 'none';
 
-        // Get basket: members and xposts
-        async function fetchBasket() {
-            const snapshot = await db.ref().once('value');
-            const data = snapshot.val() || {};
-            return {
-                members: Array.isArray(data.members) ? data.members : [],
-                xposts: Array.isArray(data.xposts) ? data.xposts : [],
+      // Validate X username
+      if (!/^@[A-Za-z0-9_]{1,20}$/i.test(x)) {
+        errorDiv.textContent = 'Enter valid X username in format @username';
+        errorDiv.style.display = '';
+        return false;
+      }
+      // Validate EVM address
+      if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        errorDiv.textContent = 'Enter valid EVM wallet address.';
+        errorDiv.style.display = '';
+        return false;
+      }
+      const uname = x.replace('@','');
+      const xpic = 'https://unavatar.io/x/' + uname;
+      let displayname = uname;
+
+      // Fetch members from DB
+      let snapshot = await db.ref('members').once('value');
+      let members = snapshot.val() || [];
+
+      // Check if user is registered
+      let user = members.find(m => m.wallet.toLowerCase() === wallet.toLowerCase() && m.x.toLowerCase() === x.toLowerCase());
+      if (!user) {
+        // Register user
+        user = { x, displayname, xpic, wallet };
+        members.unshift(user);
+        await db.ref('members').set(members);
+        successDiv.textContent = 'Successfully registered!';
+        successDiv.style.display = '';
+      } else {
+        successDiv.textContent = 'Login successful!';
+        successDiv.style.display = '';
+      }
+      sessionStorage.setItem('nftfans-user', JSON.stringify(user));
+      setTimeout(() => {
+        showDashboard(user);
+      }, 900);
+      return false;
+    };
+
+    function showDashboard(user) {
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('dashboardCard').style.display = '';
+      document.getElementById('userDisplayName').textContent = user.displayname;
+      document.getElementById('userX').textContent = user.x;
+      document.getElementById('userWallet').textContent = shortenWallet(user.wallet);
+      renderTasksArea(user);
+    }
+
+    // Load tweets from Firebase for dynamic tasks
+    async function getTasksFromFirebase() {
+      const snapshot = await db.ref('tweets').orderByChild('time').limitToLast(10).once('value');
+      const tasks = [];
+      snapshot.forEach(child => {
+        const t = child.val();
+        tasks.push({
+          id: child.key,
+          title: `Tweet by ${t.user}`,
+          icon: "send",
+          tweet: t.text,
+          reward: "1T $NFTFAN"
+        });
+      });
+      tasks.reverse(); // latest first
+      return tasks;
+    }
+
+    // Render task cards dynamically from tweets
+    async function renderTasksArea(user) {
+      const tasks = await getTasksFromFirebase();
+      let snapshot = await db.ref('shares').child(user.x.replace('@','')).once('value');
+      let shares = snapshot.val() || {};
+      let totalEarned = 0;
+      let area = document.getElementById('tasksArea');
+      area.innerHTML = '';
+      if (tasks.length === 0) {
+        area.innerHTML = `<div style="color:var(--yellow);text-align:center;margin-top:22px;">No tweet tasks available yet.</div>`;
+      }
+      tasks.forEach(task => {
+        let canShare = true;
+        let lastShare = shares[task.id]?.lastShare || 0;
+        let earned = shares[task.id]?.earned || 0;
+        let cooldown = 60*60*1000; // 1 hour
+        if (lastShare && Date.now() - lastShare < cooldown) canShare = false;
+        totalEarned += earned;
+
+        area.innerHTML += `
+          <div class="task-card" id="task-${task.id}">
+            <div class="task-title">
+              <span class="material-icons">${task.icon}</span>
+              ${task.title}
+            </div>
+            <div class="tweet-preview">${task.tweet.replace(/\n/g,'<br>')}</div>
+            <button class="share-btn" id="shareBtn-${task.id}" ${canShare ? '' : 'disabled'}>
+              <span class="material-icons">share</span>
+              Share on X
+            </button>
+            <div class="reward-row" style="margin-top:8px;">
+              <span class="material-icons reward-icon">paid</span>
+              <span class="reward-amount">${earned}T $NFTFAN</span>
+              <span class="reward-label">Earned</span>
+              ${!canShare && lastShare ? `<span style="color:var(--danger);margin-left:12px;">Cooldown: ${Math.ceil((cooldown - (Date.now()-lastShare))/60000)} min left</span>` : ''}
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          const btn = document.getElementById(`shareBtn-${task.id}`);
+          if (btn) {
+            btn.onclick = async function() {
+              let snap2 = await db.ref('shares').child(user.x.replace('@','')).child(task.id).once('value');
+              let lastShare2 = snap2.val()?.lastShare || 0;
+              if (lastShare2 && Date.now()-lastShare2 < cooldown) {
+                alert('You can only share this tweet once every 60 minutes.');
+                return;
+              }
+              window.open("https://x.com/intent/tweet?text=" + encodeURIComponent(task.tweet), "_blank");
+              await db.ref('shares').child(user.x.replace('@','')).child(task.id).set({
+                lastShare: Date.now(),
+                earned: (earned+1)
+              });
+              renderTasksArea(user);
             };
-        }
-
-        // Save basket
-        async function saveBasket(members, xposts) {
-            await db.ref().update({
-                members: members || [],
-                xposts: xposts || [],
-            });
-        }
-
-        async function getXProfile(username) {
-            const uname = username.replace('@','').trim();
-            const xpic = 'https://unavatar.io/x/' + uname;
-            try {
-                const resp = await fetch('https://unavatar.io/x/' + uname + '?json');
-                const data = await resp.json();
-                let displayname = data.name;
-                if (!displayname || displayname.toLowerCase().includes(uname.toLowerCase())) {
-                    displayname = uname;
-                }
-                return {
-                    displayname: displayname,
-                    xpic: xpic
-                };
-            } catch {
-                return {
-                    displayname: uname,
-                    xpic: xpic
-                };
-            }
-        }
-
-        function shortenWallet(address) {
-            if (!address) return '';
-            return address.slice(0,6) + '...' + address.slice(-4);
-        }
-
-        // Render Members Table
-        async function renderMembersTable() {
-            const {members, xposts} = await fetchBasket();
-            
-            // Count posts per user
-            const postCountMap = {};
-            for (const xp of xposts) {
-                const uname = (xp.x||'').toLowerCase();
-                if (!postCountMap[uname]) postCountMap[uname] = 0;
-                postCountMap[uname]++;
-            }
-
-            // Map members to include post count
-            const membersWithCount = members.map(m => ({
-                ...m,
-                postCount: postCountMap[(m.x||'').toLowerCase()] || 0
-            }));
-
-            // Sort by post count desc
-            membersWithCount.sort((a, b) => b.postCount - a.postCount);
-
-            const table = document.querySelector('#membersTable tbody');
-            table.innerHTML = '';
-
-            for (const [i, member] of membersWithCount.entries()) {
-                const walletId = `walletCopy${i}`;
-                
-                // Calculate reward string
-                let rewardStr = '';
-                if (member.postCount > 0) {
-                    rewardStr = `
-                        <div class="reward-row">
-                            <span class="material-icons reward-icon">paid</span>
-                            <span class="reward-amount">${member.postCount}T $NFTFAN</span>
-                            <span class="reward-label">Earned</span>
-                        </div>`;
-                }
-
-                table.innerHTML += `
-                    <tr>
-                        <td class="serial-cell">${i + 1}</td>
-                        <td>
-                            <img src="${member.xpic}" class="xdpi" alt="X Profile" onerror="this.onerror=null;this.src='https://unavatar.io/x/${member.x.replace('@','')}'">
-                        </td>
-                        <td>
-                            <ul class="user-info-list">
-                                <li><span class="material-icons">badge</span> <span class="list-name">${member.displayname}</span></li>
-                                <li><span class="material-icons">alternate_email</span> <span class="list-username">${member.x}</span></li>
-                                <li>
-                                    <span class="material-icons wallet-icon">account_balance_wallet</span>
-                                    <span class="list-wallet" id="${walletId}">${shortenWallet(member.wallet)}</span>
-                                    <button class="copy-btn" style="margin-left:3px;" onclick="copyWallet('${member.wallet}', '${walletId}', this)">
-                                        <span class="material-icons">content_copy</span>
-                                    </button>
-                                </li>
-                            </ul>
-                            ${rewardStr}
-                        </td>
-                        <td>
-                            <span class="post-count-badge" title="X Posts">${member.postCount}</span>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            // Update total members count
-            document.getElementById('totalMembersCount').textContent = members.length;
-            
-            // Update total earned tokens
-            await updateTotalEarnedBar();
-        }
-
-    function extractXUsernameFromUrl(url) {
-    // Updated regex to properly handle X post URLs
-    const match = url.match(/^https:\/\/x\.com\/([a-zA-Z0-9_]{1,20})\/status\/\d+/);
-    if (match) {
-        return '@' + match[1];
-    }
-    return null;
-}
-
-       // Task data
-const tasks = [
-    {
-        "title": "Win $20 in the NFTFANS Lottery!",
-        "icon": "gift",
-        "desc": "Enter with just $0.15 and get a chance to win $20 in $POL!",
-        "tweet": "💸 NFTFANS LOTTERY 💸\n\nEnter with only $0.15 and you could win $20 in $POL!\n\n🎁 1 winner every 150 entries\n🔁 Unlimited entries allowed\n\n🎯 Join now: https://www.nftfanstoken.com/lotto/\n\n#NFTFAN #CryptoLottery #Polygon #DeFi #WinBig",
-        "reward": "Enter for $0.15 – Win $20 in $POL!",
-        "isTweet": true
-    },
-    {
-        "title": "Post and share this tweet in X communities and get 100 Views",
-        "icon": "send",
-        "desc": "Guide your followers to buy $NFTFAN easily. Share this step-by-step tweet!",
-        "tweet": "🚀 HOW TO BUY $NFTFAN\n\n1️⃣ Open your wallet\n2️⃣ Select Polygon network\n3️⃣ Add $NFTFAN CA:\n0x2017Fcaea540d2925430586DC92818035Bfc2F50\n4️⃣ Send $POL [0.01–100] to:\n0xaf2d132C8773bca3821C24EcF64e844E202A12e8\n5️⃣ Check wallet: https://nftfanstoken.com/topup\n\n#NFTFAN #Crypto #DeFi #Polygon #Metamask #TrustWallet",
-        "reward": "Share and earn 50T $NFTFAN TOKENS",
-        "isTweet": true
-    },
-    {
-        "title": "Create NFTFans AI Art",
-        "icon": "brush",
-        "desc": "Design and share a creative NFTFans AI art on X. Add #NFTFANART in your post.",
-        "reward": "50T NFTFAN"
-    },
-    {
-        "title": "Record a Video Explaining NFTFAN",
-        "icon": "video-camera",
-        "desc": "Film a short, energetic video explaining why you love $NFTFAN and post it on X, tagging @NFTFANStoken.",
-        "tweet": "🎬 Check out why I'm bullish on $NFTFAN! The next big thing on Polygon 🚀\n\n@nftfanstoken #NFTFAN #Crypto #Polygon #ViralVideoChallenge",
-        "reward": "Win up to 500T $NFTFAN for the most creative video!",
-        "isTweet": true
-    },
-    {
-        "title": "Create a Meme for NFTFAN",
-        "icon": "smile",
-        "desc": "Make a hilarious meme about $NFTFAN and post it on X with #NFTFANMEME. Make the community laugh!",
-        "reward": "50T NFTFAN + chance to be featured!"
-    },
-    {
-        "title": "Write a Short Thread About NFTFAN",
-        "icon": "thread",
-        "desc": "Draft a 3-5 tweet thread highlighting the benefits of $NFTFAN and how easy it is to join the community.",
-        "tweet": "🧵 Why you should check out $NFTFAN:\n1️⃣ Low entry, huge potential\n2️⃣ Fast-growing community\n3️⃣ Real rewards & fun tasks\n4️⃣ DeFi on Polygon\n\nJoin the revolution: https://nftfanstoken.com\n#NFTFAN #CryptoCommunity #DeFi",
-        "reward": "100T NFTFAN for quality threads!",
-        "isTweet": true
-    },
-    {
-        "title": "Refer a Friend to NFTFAN",
-        "icon": "users",
-        "desc": "Invite a friend to join NFTFANS. Share your referral experience on X and tag #NFTFANREFERRAL.",
-        "reward": "Earn 50T NFTFAN for every friend who joins!"
-    },
-    {
-        "title": "Host a Twitter Space About NFTFAN",
-        "icon": "mic",
-        "desc": "Host a live Twitter Space discussing NFTFAN, DeFi, and Polygon. Tag @nftfanstoken in your announcement.",
-        "reward": "Top hosts win 500T NFTFAN!"
-    }
-];
-
-        function updateTaskCountBadge() {
-            document.getElementById('taskCountBadge').textContent = tasks.length;
-        }
-
-        function renderTasks() {
-            const container = document.getElementById('tasksSection');
-            container.innerHTML = '';
-            tasks.forEach((task, idx) => {
-                let tweetSection = '';
-                let rewardAndShare = '';
-                
-                if (task.isTweet) {
-                    tweetSection = `
-                        <div class="task-desc" style="margin-bottom:5px;">
-                            <span class="tweet-preview">${task.tweet}</span>
-                        </div>
-                    `;
-                    rewardAndShare = `
-                        <div class="task-reward-row">
-                            <div class="task-reward">
-                                <span class="material-icons">paid</span>
-                                ${task.reward}
-                            </div>
-                            <button class="share-btn" onclick="shareOnX(\`${task.tweet.replace(/`/g, '\\`')}\`)" title="Share on X">
-                                <span class="material-icons">share</span>
-                            </button>
-                        </div>
-                    `;
-                }
-
-                container.innerHTML += `
-                    <div class="task-card">
-                        <div class="task-title">
-                            <span class="material-icons task-icon">${task.icon}</span>
-                            ${task.title}
-                        </div>
-                        <div class="task-desc">
-                            ${task.desc}
-                        </div>
-                        ${tweetSection}
-                        ${rewardAndShare || (task.reward ? `<div class="task-reward"><span class="material-icons">paid</span>${task.reward}</div>` : '')}
-                    </div>
-                `;
-            });
-        }
-
-        function shareOnX(text) {
-            const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text);
-            window.open(url, "_blank");
-        }
-
-        function createParticles() {
-            const particlesContainer = document.querySelector('.particles');
-            for (let i = 0; i < 40; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 6 + 's';
-                particle.style.animationDuration = (Math.random() * 2.2 + 2.5) + 's';
-                particlesContainer.appendChild(particle);
-            }
-        }
-
-        function filterTable() {
-            const value = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#membersTable tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(value) ? '' : 'none';
-            });
-        }
-
-        function copyWallet(wallet, walletId, btn) {
-            navigator.clipboard.writeText(wallet).then(() => {
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `<span class="material-icons">check_circle</span>`;
-                btn.style.background = 'var(--success)';
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.style.background = 'var(--primary)';
-                }, 1300);
-            }).catch(err => {
-                alert('Failed to copy address. Please copy manually.');
-            });
-        }
-
-        // Popup Logic
-        function openRegisterPopup() {
-            document.getElementById('popupBackdrop').style.display = '';
-            document.getElementById('popupXInput').value = '';
-            document.getElementById('popupWalletInput').value = '';
-            document.getElementById('popupError').style.display = 'none';
-            document.getElementById('popupSuccess').style.display = 'none';
-        }
-
-        function closeRegisterPopup() {
-            document.getElementById('popupBackdrop').style.display = 'none';
-        }
-
-        // Handle popup form submit
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('popupRegisterForm').onsubmit = handlePopupRegisterSubmit;
-        });
-
-        async function handlePopupRegisterSubmit(e) {
-            e.preventDefault();
-            const x = document.getElementById('popupXInput').value.trim();
-            const wallet = document.getElementById('popupWalletInput').value.trim();
-            const errorDiv = document.getElementById('popupError');
-            const successDiv = document.getElementById('popupSuccess');
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-
-            // Validate X username
-            if (!/^@[\\w\\d_]{1,20}$/i.test(x)) {
-                errorDiv.textContent = 'Enter valid X username in format @username';
-                errorDiv.style.display = '';
-                return false;
-            }
-
-            // Validate EVM address
-            if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-                errorDiv.textContent = 'Enter valid EVM wallet address.';
-                errorDiv.style.display = '';
-                return false;
-            }
-
-            let {displayname, xpic} = await getXProfile(x);
-            let {members, xposts} = await fetchBasket();
-
-            if (members.some(m => m.wallet.toLowerCase() === wallet.toLowerCase() || m.x.toLowerCase() === x.toLowerCase())) {
-                errorDiv.textContent = 'This X username or wallet is already registered.';
-                errorDiv.style.display = '';
-                return false;
-            }
-
-            members.unshift({
-                x,
-                displayname,
-                xpic,
-                wallet
-            });
-
-            await saveBasket(members, xposts);
-            
-            document.getElementById('popupXInput').value = '';
-            document.getElementById('popupWalletInput').value = '';
-            successDiv.textContent = 'Successfully registered!';
-            successDiv.style.display = '';
-            
-            await renderMembersTable();
-            
-            setTimeout(() => {
-                closeRegisterPopup();
-            }, 1200);
-            
-            return false;
-        }
-
-        // Handle X Post Submit
-      async function handleXPostSubmit(e) {
-    e.preventDefault();
-    const url = document.getElementById('xPostUrlInput').value.trim();
-    
-    // Remove double escaping of backslashes
-    if (!/^https:\/\/x\.com\/[a-zA-Z0-9_]{1,20}\/status\/\d+/.test(url)) {
-        alert('Enter a valid X post URL (https://x.com/username/status/123...)');
-        return false;
-    }
-    
-    // Rest of the function remains the same
-    const xUser = extractXUsernameFromUrl(url);
-    if (!xUser) {
-        alert("Couldn't detect username from URL.");
-        return false;
+          }
+        }, 100);
+      });
+      document.getElementById('userTotalEarned').textContent = `${totalEarned} $NFTFAN`;
     }
 
-    let {members, xposts} = await fetchBasket();
-
-    // Prevent duplicate URLs
-    if (xposts.some(post => (post.url || '').toLowerCase() === url.toLowerCase())) {
-        alert('This X Post URL has already been submitted.');
-        return false;
-    }
-
-    // Check if username is registered
-    const member = members.find(m => m.x.toLowerCase() === xUser.toLowerCase());
-    if (!member) {
-        alert('That X username is not registered as a member. Please register first.');
-        return false;
-    }
-
-    xposts.unshift({
-        x: xUser,
-        url,
-        time: Date.now()
+    // If user already logged in, auto show dashboard
+    window.addEventListener('DOMContentLoaded', function() {
+      const user = sessionStorage.getItem('nftfans-user');
+      if (user) showDashboard(JSON.parse(user));
     });
-
-    await saveBasket(members, xposts);
-    document.getElementById('xPostUrlInput').value = '';
-    await renderMembersTable();
-    return false;
-}
-
-        // Modified switchTab function (removed xposts)
-        function switchTab(tab) {
-            document.getElementById('membersTab').classList.toggle('active', tab==='members');
-            document.getElementById('tasksTab').classList.toggle('active', tab==='tasks');
-            document.getElementById('membersSection').style.display = tab==='members' ? '' : 'none';
-            document.getElementById('tasksSection').style.display = tab==='tasks' ? '' : 'none';
-        }
-
-        // Campaign countdown logic
-        function updateCampaignTimer() {
-            const endDate = new Date("2025-07-31T23:59:59Z");
-            const now = new Date();
-            let diff = endDate - now;
-            let daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            if (daysLeft < 0) daysLeft = 0;
-            document.getElementById('days-left').textContent = daysLeft;
-        }
-
-        // Number formatting utility
-        function formatNumber(n) {
-            return n.toLocaleString('en-US');
-        }
-
-        // Update total earned tokens
-        async function updateTotalEarnedBar() {
-            const {members, xposts} = await fetchBasket();
-            let total = 0;
-            
-            // Count posts per user
-            const postCountMap = {};
-            for (const xp of xposts) {
-                const uname = (xp.x||'').toLowerCase();
-                if (!postCountMap[uname]) postCountMap[uname] = 0;
-                postCountMap[uname]++;
-            }
-
-            // Calculate total tokens
-            for (const m of members) {
-                const count = postCountMap[(m.x||'').toLowerCase()] || 0;
-                total += count * 1_000_000_000_000;
-            }
-
-            // Format display
-            let display = total === 0 ? '0 $NFTFAN' : `${formatNumber(total)} $NFTFAN`;
-            document.getElementById('totalEarnedTokens').textContent = display;
-        }
-
-        // Initialize
-        window.addEventListener('load', async () => {
-            createParticles();
-            await renderMembersTable();
-            renderTasks();
-            updateTaskCountBadge();
-            updateCampaignTimer();
-            setInterval(updateCampaignTimer, 1000 * 60 * 60); // update every hour
-        });
-
-        // Allow closing popup by clicking outside or pressing ESC
-        document.addEventListener('mousedown', function(e) {
-            const popupBackdrop = document.getElementById('popupBackdrop');
-            if (popupBackdrop.style.display !== 'none') {
-                const popup = popupBackdrop.querySelector('.popup');
-                if (popup && !popup.contains(e.target)) {
-                    closeRegisterPopup();
-                }
-            }
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeRegisterPopup();
-        });
-    </script>
+  </script>
 </body>
 </html>
-
-
