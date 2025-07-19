@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +8,8 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
   <link rel="icon" href="https://i.imgur.com/g8B2Old.png">
- <style>
+  <style>
+    /* --- your style unchanged --- */
     html, body {
       width: 100vw;
       max-width: 100vw;
@@ -327,7 +329,7 @@
       <form id="loginForm" autocomplete="off">
         <div class="form-group">
           <label class="label" for="loginX">X Username</label>
-          <input class="input" type="text" id="loginX" placeholder="@username" required>
+          <input class="input" type="text" id="loginX" placeholder="@nftfanio" required>
         </div>
         <button type="submit" class="submit-btn"><span class="material-icons">login</span> Login / Register</button>
         <div id="loginError" class="error-msg" style="display:none;"></div>
@@ -357,7 +359,43 @@
 
     // Current timestamp and user info
     const currentDateTime = "2025-07-19 09:14:19";
-    const currentUser = "usmanunimib";
+
+    // Demo tweet tasks
+    const demoTweets = [
+      {
+        id: 'tweet1',
+        icon: "send",
+        title: "Share This!",
+        tweet: "NFTFans: Earn rewards for sharing tweets.\nJoin us and get 1 trillion $NFTFAN.",
+        reward: "1T $NFTFAN"
+      },
+      {
+        id: 'tweet3',
+        icon: "send",
+        title: "How to Buy $NFTFAN",
+        tweet: "🚀 HOW TO BUY $NFTFAN\n\n1️⃣ Open your wallet\n2️⃣ Select Polygon network\n3️⃣ Add $NFTFAN CA:\n0x2017Fcaea540d2925430586DC92818035Bfc2F50\n4️⃣ Send $POL [0.01–100] to:\n0xaf2d132C8773bca3821C24EcF64e844E202A12e8\n5️⃣ Check wallet: https://nftfanstoken.com/topup\n\n#NFTFAN #Crypto #DeFi #Polygon #Metamask #TrustWallet",
+        reward: "1T $NFTFAN"
+      }
+    ];
+
+    // Helper: get member list from DB
+    async function getMembers() {
+      const snapshot = await db.ref('members').once('value');
+      return snapshot.val() || [];
+    }
+    // Helper: save member list to DB
+    async function saveMembers(members) {
+      await db.ref('members').set(members);
+    }
+    // Helper: update a member in DB
+    async function updateMemberScore(x, score) {
+      let members = await getMembers();
+      const idx = members.findIndex(m => m.x.toLowerCase() === x.toLowerCase());
+      if (idx !== -1) {
+        members[idx].score = score;
+        await saveMembers(members);
+      }
+    }
 
     document.getElementById('loginForm').onsubmit = async function(e) {
       e.preventDefault();
@@ -377,14 +415,13 @@
       const xpic = 'https://unavatar.io/x/' + uname;
       let displayname = uname;
 
-      let snapshot = await db.ref('members').once('value');
-      let members = snapshot.val() || [];
+      let members = await getMembers();
       let user = members.find(m => m.x.toLowerCase() === x.toLowerCase());
 
       if (!user) {
-        user = { x, displayname, xpic };
+        user = { x, displayname, xpic, score: 0 };
         members.unshift(user);
-        await db.ref('members').set(members);
+        await saveMembers(members);
         successDiv.textContent = 'Successfully registered!';
         successDiv.style.display = '';
       } else {
@@ -393,28 +430,14 @@
       }
 
       sessionStorage.setItem('nftfans-user-x', JSON.stringify(user));
-      setTimeout(() => {
-        showDashboard(user);
+      setTimeout(async () => {
+        // Always fetch latest score before dashboard
+        let membersLatest = await getMembers();
+        let userLatest = membersLatest.find(m => m.x.toLowerCase() === x.toLowerCase());
+        showDashboard(userLatest || user);
       }, 900);
       return false;
     };
-
-    const demoTweets = [
-      {
-        id: 'tweet1',
-        icon: "send",
-        title: "Share This!",
-        tweet: "NFTFans: Earn rewards for sharing tweets.\nJoin us and get 1 trillion $NFTFAN.",
-        reward: "1T $NFTFAN"
-      },
-      {
-        id: 'tweet3',
-        icon: "send",
-        title: "How to Buy $NFTFAN",
-        tweet: "🚀 HOW TO BUY $NFTFAN\n\n1️⃣ Open your wallet\n2️⃣ Select Polygon network\n3️⃣ Add $NFTFAN CA:\n0x2017Fcaea540d2925430586DC92818035Bfc2F50\n4️⃣ Send $POL [0.01–100] to:\n0xaf2d132C8773bca3821C24EcF64e844E202A12e8\n5️⃣ Check wallet: https://nftfanstoken.com/topup\n\n#NFTFAN #Crypto #DeFi #Polygon #Metamask #TrustWallet",
-        reward: "1T $NFTFAN"
-      }
-    ];
 
     function updateTopbar(user, totalEarned) {
       document.getElementById('topbar').style.display = '';
@@ -430,8 +453,12 @@
     }
 
     async function renderTasksArea(user) {
+      // Get user's shares from localStorage, but use DB for score
       let shares = JSON.parse(localStorage.getItem('nftfans-shares-' + user.displayname) || '{}');
-      let totalEarned = Object.values(shares).reduce((sum, t) => sum + (t.earned || 0), 0);
+      // Score from DB, fallback 0
+      let totalEarned = typeof user.score === 'number' ? user.score : 0;
+
+      // Calculate earned per tweet (from localStorage, as before)
       let area = document.getElementById('tasksArea');
       area.innerHTML = '';
 
@@ -472,7 +499,7 @@
       demoTweets.forEach(task => {
         const btn = document.getElementById(`shareBtn-${task.id}`);
         if (btn) {
-          btn.onclick = function () {
+          btn.onclick = async function () {
             let shares2 = JSON.parse(localStorage.getItem('nftfans-shares-' + user.displayname) || '{}');
             let lastShare2 = shares2[task.id]?.lastShare || 0;
             let cooldown = 60 * 60 * 1000;
@@ -484,32 +511,42 @@
             // Open tweet in a new tab
             window.open("https://x.com/intent/tweet?text=" + encodeURIComponent(task.tweet), "_blank");
 
-            // Update score and localStorage
+            // Update score and localStorage (per tweet)
             shares2[task.id] = {
               lastShare: Date.now(),
               earned: (shares2[task.id]?.earned || 0) + 1  // Add 1T $NFTFAN per share
             };
             localStorage.setItem('nftfans-shares-' + user.displayname, JSON.stringify(shares2));
 
-            // Calculate new total earned
-            let newTotal = Object.values(shares2).reduce((sum, t) => sum + (t.earned || 0), 0);
-            
+            // Calculate new total earned from all tweets
+            let earnedSum = Object.values(shares2).reduce((sum, t) => sum + (t.earned || 0), 0);
+
+            // Update score in DB for this user
+            await updateMemberScore(user.x, earnedSum);
+
+            // Refresh user object from DB to get latest score
+            let members = await getMembers();
+            let userLatest = members.find(m => m.x.toLowerCase() === user.x.toLowerCase());
+
             // Update UI
-            updateTopbar(user, newTotal);
-            renderTasksArea(user);
+            updateTopbar(userLatest, earnedSum);
+            renderTasksArea(userLatest);
           };
         }
       });
     }
 
-    window.addEventListener('DOMContentLoaded', function () {
-      // Auto-fill the login field with the current user if provided
-      if (currentUser) {
-        document.getElementById('loginX').value = '@' + currentUser;
+    window.addEventListener('DOMContentLoaded', async function () {
+      // Always show @nftfanio as example username
+      document.getElementById('loginX').placeholder = '@nftfanio';
+      // If session user exists, reload score from DB before showing dashboard
+      const userStr = sessionStorage.getItem('nftfans-user-x');
+      if (userStr) {
+        let userObj = JSON.parse(userStr);
+        let members = await getMembers();
+        let userLatest = members.find(m => m.x.toLowerCase() === userObj.x.toLowerCase());
+        if (userLatest) showDashboard(userLatest);
       }
-      
-      const user = sessionStorage.getItem('nftfans-user-x');
-      if (user) showDashboard(JSON.parse(user));
     });
   </script>
 </body>
