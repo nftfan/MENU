@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>My SUBFANS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
     <style>
         * {margin:0;padding:0;box-sizing:border-box;}
         html {font-size:14px;}
@@ -76,6 +77,9 @@
             transition:all 0.3s ease;
             min-width:90px;
             outline:none;
+            text-decoration:none;
+            display:inline-block;
+            text-align:center;
         }
         .connect-btn:disabled {opacity:0.5;cursor:not-allowed;}
         .topbar-wallet {
@@ -312,6 +316,7 @@
                 <span class="topbar-score">
                     <span id="subdropScore">0</span>
                 </span>
+				
             </div>
             <div class="topbar-actions">
                 <span class="topbar-wallet" id="walletAddress"></span>
@@ -323,6 +328,7 @@
             <img src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN" class="balance-icon">
             <span class="balance-label">NFT Fans</span>
             <span class="balance-amount" id="nftfanBalance">0</span> <span class="token-symbol">$NFTFAN</span>
+
         </div>
         <!-- Sleek $POL Balance Bar -->
         <div class="balance-bar balance-bar-pol" id="polBalanceBar" style="display:none;">
@@ -330,6 +336,8 @@
             <span class="balance-label">$POL</span>
             <span class="balance-amount balance-amount-pol" id="polBalance">0</span>
         </div>
+		
+		
         <!-- Main Content -->
         <div class="main-content">
             <div class="input-section">
@@ -352,10 +360,11 @@
                 <button class="action-btn extract-btn" id="extractBtn" onclick="extractWallets()">Extract Wallets</button>
                 <button class="action-btn airdrop-btn" id="airdropBtn" onclick="startAirdrop()" disabled>Send Airdrop</button>
             </div>
-            <div class="topbar-actions">
+			<div class="topbar-actions">
                 <span class="topbar-wallet" id="walletAddress"></span>
-                <a href="https://www.nftfanstoken.com/oswallets/" class="connect-btn" id="connectBtn2">Get Wallets from Database</a>
+                <a href="https://www.nftfanstoken.com/oswallets/" class="connect-btn" id="connectBtn">Get Wallets from Database</a>
             </div>
+
             <div class="progress-section" id="progressSection">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
@@ -382,7 +391,7 @@
         </div>
     </div>
     <script>
-        // Firebase config
+        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
             authDomain: "nftfanactive.firebaseapp.com",
@@ -393,43 +402,16 @@
             appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
             measurementId: "G-3TRDL9749N"
         };
+        
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        firebase.analytics();
+        const database = firebase.database();
 
-        // Save subfan score and wallet to Firebase
-        function saveScoreToFirebase(wallet, score) {
-            if (!wallet || typeof score === 'undefined' || score === null) return;
-            db.ref('subfanScores/' + wallet).set({
-                wallet: wallet,
-                subfanScore: score,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            }, (error) => {
-                if (error) {
-                    addLog('Firebase', 'Failed to save score: ' + error.message);
-                } else {
-                    addLog('Firebase', 'Score saved for wallet: ' + wallet);
-                }
-            });
-        }
-
-        function saveWalletToFirebase(wallet) {
-            if (!wallet) return;
-            db.ref('connectedWallets/' + wallet).set({
-                wallet: wallet,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            }, (error) => {
-                if (error) {
-                    addLog('Firebase', 'Failed to save wallet: ' + error.message);
-                } else {
-                    addLog('Firebase', 'Wallet saved: ' + wallet);
-                }
-            });
-        }
-
-        // ---- Your existing JS ----
         const DISTRIBUTOR_ADDRESS = '0x6Ee372b30C73Dd6087ba58F8C4a5Ca77F49BE0b3';
         const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
         const POLYGON_CHAIN_ID = '0x89';
+        // POL token address (Polygon mainnet)
         const POL_ADDRESS = '0xC7c8cAcaA3c3A34d437FE3F56c6b41eA6c9fA2F0';
         const ERC20_ABI = [
             {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
@@ -445,6 +427,36 @@
         ];
         let web3, userAccount, distributorContract, nftfanContract, polContract, extractedWallets = [];
         let newWalletsCount = 0, predictedScore = null, currentScore = null;
+
+        // Function to save user data to Firebase
+        function saveUserDataToFirebase(walletAddress, score) {
+            if (!walletAddress) return;
+            
+            const timestamp = new Date().toISOString();
+            const userData = {
+                walletAddress: walletAddress,
+                subfanScore: score,
+                lastLogin: timestamp
+            };
+            
+            // Save to Firebase with wallet address as key
+            const walletRef = database.ref('users/' + walletAddress.toLowerCase());
+            walletRef.set(userData)
+                .then(() => {
+                    console.log("User data saved successfully");
+                })
+                .catch((error) => {
+                    console.error("Error saving user data:", error);
+                });
+                
+            // Also save to a login history collection
+            const historyRef = database.ref('loginHistory').push();
+            historyRef.set({
+                walletAddress: walletAddress.toLowerCase(),
+                subfanScore: score,
+                timestamp: timestamp
+            });
+        }
 
         function addLog(event, details) {
             const logBody = document.getElementById('logBody');
@@ -502,8 +514,11 @@
                     await updateSubdropScore();
                     await showAllBalances();
                     addLog('Wallet', 'Connected successfully');
-                    // Save connected wallet to Firebase
-                    saveWalletToFirebase(userAccount);
+                    
+                    // Save to Firebase after connecting wallet and getting score
+                    if (currentScore !== null) {
+                        saveUserDataToFirebase(userAccount, currentScore);
+                    }
                 } catch (error) {
                     addLog('Error', 'Failed to connect wallet: ' + error.message);
                 }
@@ -528,6 +543,7 @@
                     nftfanContract.methods.balanceOf(userAccount).call(),
                     nftfanContract.methods.decimals().call()
                 ]);
+                // Show as integer, with commas, no decimals
                 const divisor = BigInt(10) ** BigInt(decimals);
                 let intBalance = (BigInt(balance) / divisor).toString();
                 intBalance = Number(intBalance).toLocaleString('en');
@@ -548,6 +564,7 @@
                     polContract.methods.balanceOf(userAccount).call(),
                     polContract.methods.decimals().call()
                 ]);
+                // Show as integer, with commas, no decimals
                 const divisor = BigInt(10) ** BigInt(decimals);
                 let intBalance = (BigInt(balance) / divisor).toString();
                 intBalance = Number(intBalance).toLocaleString('en');
@@ -566,8 +583,9 @@
                 currentScore = score;
                 updateScorePreview();
                 addLog('Score', 'Updated subdrop score: ' + score);
-                // Save score to Firebase
-                saveScoreToFirebase(userAccount, score);
+                
+                // Save the updated score to Firebase
+                saveUserDataToFirebase(userAccount, score);
             } catch (error) {
                 addLog('Error', 'Failed to fetch subdrop score');
             }
@@ -743,6 +761,7 @@
             }
         }
 
+        // Show encouragement message to find new wallets for more SUBFANS
         function showFindNewWalletsMessage() {
             const previewDiv = document.getElementById('scorePreview');
             const scoreMsg = document.getElementById('scoreMessage');
@@ -776,8 +795,6 @@
                         if (extractedWallets.length > 0) {
                             previewScoreAndEnableAirdrop();
                         }
-                        // Save wallet and score to Firebase on load if connected
-                        saveWalletToFirebase(userAccount);
                     }
                 } catch {}
             }
