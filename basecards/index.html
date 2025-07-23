@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="NFTFans Base Cards - Collect & Trade Unique NFT Cards">
-<meta property="og:description" content="The fun way to collect and trade NFTFans Base Cards as NFTs. Powered by NFTFans Token on Polygon Matic. Start your NFT journey today!">
+<meta property="og:description" content="The fun way to collect and trade NFTFans Base Cards as NFTs. Powered by NFTFans Token on Base Chain. Start your NFT journey today!">
 <meta property="og:image" content="https://i.imgur.com/g91vNph.png">
 <meta property="og:url" content="https://www.nftfanstoken.com/basecards">
 <meta property="og:type" content="website">
@@ -17,7 +17,7 @@
 <!-- Twitter Meta Tags -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NFTFans Base Cards - Collect & Trade Unique NFT Cards">
-<meta name="twitter:description" content="Collect, trade, and earn with NFTFans Base Cards — the NFT card marketplace powered by NFTFans Token on Polygon. Explore now!">
+<meta name="twitter:description" content="Collect, trade, and earn with NFTFans Base Cards — the NFT card marketplace powered by NFTFans Token on Base. Explore now!">
 <meta name="twitter:image" content="https://i.imgur.com/g91vNph.png">
 <meta name="twitter:url" content="https://www.nftfanstoken.com/basecards">
 
@@ -569,9 +569,9 @@ body, html {
 }
 
 .nft-avatar {
-  width: 68px;
+  width: 100%;
   height: 68px;
-  border-radius: 50%;
+  border-radius: 5%;
   object-fit: cover;
   border: 2px solid rgba(0, 249, 255, 0.3);
   flex-shrink: 0;
@@ -935,7 +935,7 @@ body {
     min-width: 0;
     max-width: 100%;
   }
-  .nft-avatar { width: 48px; height: 48px;}
+  .nft-avatar { width: 100%; height: 68px;}
   .nft-content {
     gap: 2px;
     min-width: 0;
@@ -1056,17 +1056,21 @@ body {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
 <script>
   // --- CONFIG ---
-  const POLYGON_PARAMS = {
-    chainId: "0x89",
-    chainName: "Polygon Mainnet",
-    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-    rpcUrls: [
-      "https://polygon-rpc.com/",
-      "https://rpc.polygon.technology/",
-      "https://rpc-mainnet.matic.network/",
-    ],
-    blockExplorerUrls: ["https://polygonscan.com/"],
-  };
+const BASE_PARAMS = {
+  chainId: "0x2105", // Base mainnet chain ID in hex (8451 decimal)
+  chainName: "Base Mainnet",
+  nativeCurrency: {
+    name: "Ethereum",
+    symbol: "ETH",
+    decimals: 18
+  },
+  rpcUrls: [
+    "https://mainnet.base.org"
+  ],
+  blockExplorerUrls: [
+    "https://basescan.org"
+  ]
+};
   const NFTFAN_SHOP_CA = "0x47FFd32cEc71162A823BD23ED2F347181c5fF430";
     const NFTFAN_SHOP_ABI = [
   {
@@ -1628,77 +1632,76 @@ function hideError(elementId) {
   document.getElementById(elementId).style.display = "none";
 }
 
-  async function connectWallet() {
-    try {
-      updateStatus("Connecting wallet...", "info");
-      if (!window.ethereum) throw new Error("Please install MetaMask or a compatible wallet!");
-      const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (chainId !== POLYGON_PARAMS.chainId) {
-        updateStatus("Switching to Polygon network...", "info");
-        try {
+async function connectWallet() {
+  try {
+    updateStatus("Connecting wallet...", "info");
+    if (!window.ethereum) throw new Error("Please install MetaMask or a compatible wallet!");
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    if (chainId !== BASE_PARAMS.chainId) {
+      updateStatus("Switching to Base network...", "info");
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: BASE_PARAMS.chainId }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
           await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: POLYGON_PARAMS.chainId }],
+            method: "wallet_addEthereumChain",
+            params: [BASE_PARAMS],
           });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [POLYGON_PARAMS],
-            });
-          } else {
-            throw switchError;
-          }
+        } else {
+          throw switchError;
         }
       }
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      userAccount = accounts[0];
-      document.getElementById("connect-btn").textContent = formatAddress(userAccount);
-      await setupContracts();
-      updateStatus("Connected successfully", "success");
-      loadShopNFTs();
-      loadUserNFTs();
-      loadUserListings();
-    } catch (error) {
-      console.error("connectWallet failed:", error);
-      logError(error, "Wallet Connection");
-      updateStatus("Connection failed: " + error.message, "error");
     }
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    userAccount = accounts[0];
+    document.getElementById("connect-btn").textContent = formatAddress(userAccount);
+    await setupContracts();
+    updateStatus("Connected successfully", "success");
+    loadShopNFTs();
+    loadUserNFTs();
+    loadUserListings();
+  } catch (error) {
+    console.error("connectWallet failed:", error);
+    logError(error, "Wallet Connection");
+    updateStatus("Connection failed: " + error.message, "error");
   }
-
-  async function setupContracts() {
-    try {
-      updateStatus("Setting up contracts...", "info");
-      const rpcUrls = POLYGON_PARAMS.rpcUrls;
-      let provider = null;
-      if (window.ethereum) {
-        provider = window.ethereum;
-        console.log("Using MetaMask provider");
-      } else {
-        for (const rpcUrl of rpcUrls) {
-          try {
-            const testWeb3 = new Web3(rpcUrl);
-            const blockNumber = await testWeb3.eth.getBlockNumber();
-            console.log(`Connected to RPC ${rpcUrl}, block number: ${blockNumber}`);
-            provider = rpcUrl;
-            break;
-          } catch (e) {
-            console.error(`Failed to connect to RPC ${rpcUrl}:`, e);
-          }
+}
+ async function setupContracts() {
+  try {
+    updateStatus("Setting up contracts...", "info");
+    const rpcUrls = BASE_PARAMS.rpcUrls;
+    let provider = null;
+    if (window.ethereum) {
+      provider = window.ethereum;
+      console.log("Using MetaMask provider");
+    } else {
+      for (const rpcUrl of rpcUrls) {
+        try {
+          const testWeb3 = new Web3(rpcUrl);
+          const blockNumber = await testWeb3.eth.getBlockNumber();
+          console.log(`Connected to RPC ${rpcUrl}, block number: ${blockNumber}`);
+          provider = rpcUrl;
+          break;
+        } catch (e) {
+          console.error(`Failed to connect to RPC ${rpcUrl}:`, e);
         }
       }
-      if (!provider) throw new Error("No working RPC provider found");
-      web3 = new Web3(provider);
-      nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
-      console.log("Contract initialized at address:", NFTFAN_SHOP_CA);
-      updateStatus("Contracts initialized", "success");
-    } catch (error) {
-      console.error("Contract setup failed:", error);
-      logError(error, "Contract Setup");
-      updateStatus("Contract setup failed: " + error.message, "error");
-      throw error;
     }
+    if (!provider) throw new Error("No working RPC provider found");
+    web3 = new Web3(provider);
+    nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
+    console.log("Contract initialized at address:", NFTFAN_SHOP_CA);
+    updateStatus("Contracts initialized", "success");
+  } catch (error) {
+    console.error("Contract setup failed:", error);
+    logError(error, "Contract Setup");
+    updateStatus("Contract setup failed: " + error.message, "error");
+    throw error;
   }
+}
 
   async function fetchOpenSeaMeta(uri) {
     if (!uri) return null;
@@ -1792,7 +1795,7 @@ async function loadShopNFTs() {
           </div>
         </div>
         <div class="nft-actions">
-          <div class="price-tab">${price} POL</div>
+          <div class="price-tab">${price} ETH</div>
           ${
             forSale && available != "0"
               ? `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${
