@@ -298,6 +298,134 @@
         font-size: 14px;
       }
     }
+	
+	  .footer-notification {
+      position: absolute;
+      left: 8px;
+      bottom: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      z-index: 15;
+      cursor: pointer;
+      user-select: none;
+    }
+    .footer-notification-icon {
+      font-size: 22px;
+      color: #fff;
+      vertical-align: middle;
+      transition: color 0.2s;
+    }
+    .footer-notification:hover .footer-notification-icon {
+      color: #ff4081;
+    }
+    .footer-notification-badge {
+      min-width: 16px;
+      height: 16px;
+      background: #e53935;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-left: -8px;
+      margin-top: -10px;
+      position: absolute;
+      left: 13px;
+      top: 10px;
+      padding: 0 4px;
+      border: 2px solid #111;
+      box-sizing: border-box;
+    }
+    .notification-panel {
+      position: fixed;
+      left: 8px;
+      bottom: 44px;
+      width: 300px;
+      max-width: 92vw;
+      background: #181818;
+      color: #fff;
+      box-shadow: 0 12px 32px #000b, 0 0 0 1px #3a3a3a;
+      border-radius: 12px;
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeInNotifPanel 0.23s;
+    }
+    @keyframes fadeInNotifPanel {
+      from { opacity: 0; transform: translateY(40px) scale(0.95);}
+      to   { opacity: 1; transform: translateY(0) scale(1);}
+    }
+    .notification-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 10px 16px;
+      background: #222;
+      font-weight: 600;
+      border-bottom: 1px solid #333;
+      font-size: 15px;
+    }
+    .notification-panel-close {
+      background: none;
+      border: none;
+      color: #bbb;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
+      margin-left: 8px;
+      display: flex;
+      align-items: center;
+      opacity: 0.77;
+      transition: color 0.13s, opacity 0.13s;
+    }
+    .notification-panel-close:hover {
+      color: #fff;
+      opacity: 1;
+    }
+    .notification-panel-content {
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 0 0 8px 0;
+      background: #181818;
+    }
+    .notification-empty {
+      color: #aaa;
+      font-size: 13px;
+      padding: 22px 0;
+      text-align: center;
+    }
+    .notification-item {
+      padding: 13px 16px 13px 16px;
+      border-bottom: 1px solid #252525;
+      font-size: 9px;
+      background: none;
+      cursor: pointer;
+      transition: background 0.16s;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+    .notification-item.unread {
+      background: #22253c;
+    }
+    .notification-item.read {
+      background: none;
+      color: #bbb;
+    }
+    @media (max-width: 600px) {
+      .notification-panel {
+        left: 5px;
+        width: 98vw;
+        max-width: 99vw;
+        border-radius: 10px;
+      }
+    }
   </style>
   <!-- Firebase App (the core Firebase SDK) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -513,7 +641,7 @@
       </ul>
     </div>
   </div>
-  <div class="app-footer">
+ <div class="app-footer">
     <span class="footer-content">NFTFANS TOKEN</span>
     <button class="footer-refresh-btn" id="footer-refresh-btn" title="Refresh page">
       <svg height="22" width="22" viewBox="0 0 22 22" style="display:inline;vertical-align:middle;">
@@ -525,6 +653,128 @@
       <span class="material-icons" style="vertical-align:middle;">person</span>
       <span id="footer-usercount-number">0</span>
     </span>
+    <!-- Notification Icon and Panel -->
+    <div class="footer-notification" id="footer-notification">
+      <span class="material-icons footer-notification-icon" id="footer-notification-icon">notifications</span>
+      <span class="footer-notification-badge" id="footer-notification-badge">0</span>
+    </div>
+    <div class="notification-panel" id="notification-panel">
+      <div class="notification-panel-header">
+        <span>Notifications</span>
+        <button class="notification-panel-close" id="notification-panel-close">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="notification-panel-content" id="notification-panel-content">
+        <div class="notification-empty">No notifications yet.</div>
+      </div>
+    </div>
   </div>
+  
+  <script>
+    // ... your previous script above remains unchanged ...
+    // Firebase config and existing functions...
+
+    // ---- Notification Logic ----
+    // Notifications will be stored under 'notifications/main' as an array of objects
+    // Each notification: { id, text, timestamp, read } (simple format)
+
+    const notificationsKey = "notifications/main";
+    const NOTIF_LOCAL_KEY = "readNotifIds";
+
+    // Retrieve read notification ids from localStorage (per user)
+    function getReadNotifIds() {
+      try {
+        return JSON.parse(localStorage.getItem(NOTIF_LOCAL_KEY)) || [];
+      } catch (e) { return []; }
+    }
+    function setReadNotifIds(ids) {
+      localStorage.setItem(NOTIF_LOCAL_KEY, JSON.stringify(ids));
+    }
+
+    function renderNotifications(notifList, readIds) {
+  const notifPanel = document.getElementById('notification-panel-content');
+  // Only show unread notifications
+  const unreadNotifications = notifList.filter(notif => !readIds.includes(notif.id));
+  notifPanel.innerHTML = '';
+  if (!unreadNotifications.length) {
+    notifPanel.innerHTML = '<div class="notification-empty">No notifications yet.</div>';
+    return;
+  }
+  unreadNotifications.forEach(notif => {
+    const item = document.createElement('div');
+    item.className = 'notification-item unread';
+    item.textContent = notif.text || '(No content)';
+    item.title = new Date(notif.timestamp).toLocaleString();
+    item.onclick = function() {
+      // Mark as read
+      const updatedIds = [...readIds, notif.id];
+      setReadNotifIds(updatedIds);
+      updateNotifBadge(notifList, updatedIds);
+      renderNotifications(notifList, updatedIds);
+    };
+    notifPanel.appendChild(item);
+  });
+}
+
+    // Update notification badge
+    function updateNotifBadge(notifList, readIds){
+      const badge = document.getElementById('footer-notification-badge');
+      // Count unread
+      const unreadCount = notifList.filter(n => !readIds.includes(n.id)).length;
+      badge.textContent = unreadCount;
+      badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+    }
+
+    // Subscribe to notification changes
+    function subscribeNotifications() {
+      db.ref(notificationsKey).on('value', function(snapshot) {
+        let notifObj = snapshot.val();
+        let notifList = [];
+        // Accept both array or object map in DB
+        if (Array.isArray(notifObj)) {
+          notifList = notifObj.filter(Boolean); // Remove nulls
+        } else if (notifObj && typeof notifObj === "object") {
+          notifList = Object.values(notifObj);
+        }
+        // Sort by timestamp desc
+        notifList.sort((a, b) => b.timestamp - a.timestamp);
+        // Get locally read ids
+        const readIds = getReadNotifIds();
+        updateNotifBadge(notifList, readIds);
+        renderNotifications(notifList, readIds);
+      });
+    }
+
+    // UI for panel toggle
+    function setupNotificationPanel() {
+      const notifBtn = document.getElementById('footer-notification');
+      const notifPanel = document.getElementById('notification-panel');
+      const notifClose = document.getElementById('notification-panel-close');
+      notifBtn.onclick = function() {
+        notifPanel.style.display = 'flex';
+      };
+      notifClose.onclick = function() {
+        notifPanel.style.display = 'none';
+      };
+      // Optional: click outside panel to close
+      document.addEventListener('mousedown', function(e){
+        if (
+          notifPanel.style.display === 'flex' &&
+          !notifPanel.contains(e.target) &&
+          !notifBtn.contains(e.target)
+        ) {
+          notifPanel.style.display = 'none';
+        }
+      });
+    }
+
+    // On DOM Loaded: add notification logic
+    window.addEventListener('DOMContentLoaded', () => {
+      // ... previous code for tabs, refresh, user count ...
+      setupNotificationPanel();
+      subscribeNotifications();
+    });
+  </script>
 </body>
 </html>
