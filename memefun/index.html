@@ -9,8 +9,11 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    /* ... all previous CSS ... */
+    /* ... All previous CSS, unchanged ... */
+	    /* ... all previous CSS ... */
 	:root {
       --primary: #fff;
       --accent: #ffc107;
@@ -651,6 +654,117 @@
       white-space: nowrap;
       letter-spacing: .1px;
     }
+    .modal-bg {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: #000a;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-bg.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface1);
+      border-radius: 18px;
+      padding: 28px 18px 18px 18px;
+      box-shadow: 0 2px 20px #000a;
+      min-width: 220px;
+      max-width: 94vw;
+      color: #ffd26e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    .modal label {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      letter-spacing: 0.1px;
+      display: block;
+      text-align: left;
+      width: 100%;
+    }
+    .modal input[type="number"],
+    .modal input[type="text"] {
+      width: 180px;
+      padding: 6px 12px;
+      border: 1.5px solid var(--accent2);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #181824;
+      color: var(--accent2);
+      text-align: left;
+      margin-bottom: 6px;
+      transition: border 0.14s;
+      box-sizing: border-box;
+    }
+    .modal input[type="number"]:focus,
+    .modal input[type="text"]:focus {
+      border: 1.5px solid var(--accent2);
+      background: #101020;
+      outline: none;
+    }
+    .modal-btn-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+    .modal-btn {
+      padding: 7px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0003;
+      background: var(--accent2);
+      color: #fff;
+      transition: filter .14s;
+    }
+    .modal-btn:active {
+      filter: brightness(0.93);
+    }
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 8px;
+      cursor: pointer;
+      color: #65e6ff;
+      background: none;
+      border: none;
+      font-size: 22px;
+      z-index: 10;
+    }
+    .modal-error {
+      color: #ff5469;
+      font-size: 12px;
+      margin-top: -3px;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .meme-name {
+      display: block;
+      margin: 6px auto 0 auto;
+      text-align: center;
+      font-size: 14px;
+      color: #ffd26e;
+      font-weight: 700;
+      text-shadow: 0 1px 6px #0008;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: .1px;
+    }
     /* ... rest of your CSS ... */
     /* (keep all your existing style definitions here) */
   </style>
@@ -729,7 +843,7 @@
   </div>
 
   <script>
-    // Firebase config
+    // ================= FIREBASE/APP SETUP ===================
     const firebaseConfig = {
       apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
       authDomain: "nftfanactive.firebaseapp.com",
@@ -747,27 +861,54 @@
     const CLOUDINARY_CLOUD_NAME = "dvndw130d";
     const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
+    // Polygon mainnet + contract address & ABI
+    const MEME_MARKETPLACE_ADDRESS = "0x54D65cc1E36Ff0EB9A6270a557e0597c43d1a038";
+    // Minimal ABI for our contract (fill with your real ABI in production)
+    const MEME_MARKETPLACE_ABI = [
+      // Only essential for this interface example:
+      "function listMeme(address nft, uint256 tokenId, uint256 amount, uint256 price) external",
+      "function buyMeme(address nft, uint256 tokenId, uint256 amount) external payable",
+      "function unlistMeme(address nft, uint256 tokenId) external",
+      "function listings(address,uint256) view returns (uint256 price, uint256 amount, address seller)"
+    ];
+
+    // Your ERC1155 NFT contract address (must be deployed separately, replace with yours)
+    const MEME_ERC1155_ADDRESS = "0xYourERC1155ContractHere"; // <--- SET THIS TO YOUR CONTRACT
+    // Minimal ABI for ERC1155
+    const ERC1155_ABI = [
+      "function mint(address to, uint256 id, uint256 amount, bytes data) external",
+      "function setApprovalForAll(address operator, bool approved) external",
+      "function isApprovedForAll(address account, address operator) external view returns (bool)",
+      "function balanceOf(address account, uint256 id) external view returns (uint256)",
+      "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data) external"
+    ];
+
     // Polygon network parameters (mainnet)
-    const polygonChainId = '0x89'; // 137
+    const polygonChainId = '0x89';
     const polygonChainData = {
       chainId: polygonChainId,
       chainName: 'Polygon Mainnet',
-      nativeCurrency: {
-        name: 'MATIC',
-        symbol: 'MATIC',
-        decimals: 18
-      },
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
       rpcUrls: ['https://polygon-rpc.com/'],
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
     const connectWalletBtn = document.getElementById('connectWalletBtn');
     let currentAccount = null;
+    let provider, signer, memeMarketplace, memeNFT;
 
-    function isMetaMaskInstalled() {
-      return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
+    // ================== ETHERS.JS SETUP & HELPERS ===================
+    async function ethersSetup() {
+      if (!window.ethereum) throw new Error("Please install MetaMask");
+      provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+      signer = provider.getSigner();
+      memeMarketplace = new ethers.Contract(MEME_MARKETPLACE_ADDRESS, MEME_MARKETPLACE_ABI, signer);
+      memeNFT = new ethers.Contract(MEME_ERC1155_ADDRESS, ERC1155_ABI, signer);
     }
 
+    async function isMetaMaskInstalled() {
+      return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
+    }
     async function switchToPolygon() {
       if (!window.ethereum) return;
       try {
@@ -790,9 +931,8 @@
         }
       }
     }
-
     async function connectWallet() {
-      if (!isMetaMaskInstalled()) {
+      if (!await isMetaMaskInstalled()) {
         alert("MetaMask not detected. Please install MetaMask extension to continue.");
         return;
       }
@@ -800,8 +940,9 @@
       connectWalletBtn.innerHTML = '<span class="material-icons">hourglass_top</span>Connecting...';
       try {
         await switchToPolygon();
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
+        await ethersSetup();
+        const accounts = await provider.send("eth_requestAccounts", []);
+        if (accounts.length > 0) {
           currentAccount = accounts[0];
           connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>' + currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
           connectWalletBtn.disabled = true;
@@ -818,9 +959,7 @@
         }
       }
     }
-
     connectWalletBtn.addEventListener('click', connectWallet);
-
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', function (accounts) {
         if (!accounts.length) {
@@ -845,24 +984,24 @@
       });
     }
 
-    // --- Firebase meme logic ---
+    // ===================== FIREBASE LOGIC =====================
     let memes = [];
     let memeIdx = 0;
     let myMemes = [];
     let myMemeIdx = 0;
 
-    function saveMemeToFirebase({ url, price, owner, name, timestamp = Date.now() }) {
+    function saveMemeToFirebase({ url, price, name, owner, tokenId, timestamp = Date.now() }) {
       const memeRef = db.ref('memes').push();
       return memeRef.set({
         url,
         price,
         name,
         owner,
+        tokenId,
         originalUploader: owner,
         timestamp
       });
     }
-
     function listenAndDisplayMemes(updateCallback) {
       db.ref('memes').orderByChild('timestamp').on('value', snapshot => {
         const memeArr = [];
@@ -884,13 +1023,12 @@
       });
     }
 
-    // ---- Upload & Modal logic ----
+    // =================== UPLOAD & NFT MINT & LIST LOGIC ====================
     const uploadBtn = document.getElementById('uploadBtn');
     const uploadInput = document.getElementById('uploadInput');
     let selectedFile = null;
 
     const uploadModalBg = document.getElementById('uploadModalBg');
-    const uploadModal = document.getElementById('uploadModal');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const memePriceInput = document.getElementById('memePriceInput');
     const memeNameInput = document.getElementById('memeNameInput');
@@ -909,10 +1047,7 @@
       selectedFile = null;
     }
     modalCloseBtn.onclick = closeModal;
-    uploadModalBg.onclick = (e) => {
-      if (e.target === uploadModalBg) closeModal();
-    }
-
+    uploadModalBg.onclick = (e) => { if (e.target === uploadModalBg) closeModal(); }
     uploadBtn.addEventListener('click', () => {
       if (!currentAccount) {
         alert("Connect your wallet before uploading a meme.");
@@ -921,6 +1056,29 @@
       uploadInput.value = "";
       uploadInput.click();
     });
+
+    // == MINT + LIST NFT ONCHAIN, POST TO FIREBASE ==
+    async function mintAndListNFT({ url, price, name }) {
+      await ethersSetup();
+      // 1. Generate a new tokenId (for demo: Date.now(); for production, use a real NFT mint flow)
+      const tokenId = Date.now(); // Simple demo, not safe for multi-user prod
+      const amount = 1;
+      // 2. Mint NFT to user
+      await memeNFT.mint(currentAccount, tokenId, amount, "0x");
+      // 3. Approve marketplace if not already approved
+      const isApproved = await memeNFT.isApprovedForAll(currentAccount, MEME_MARKETPLACE_ADDRESS);
+      if (!isApproved) {
+        await memeNFT.setApprovalForAll(MEME_MARKETPLACE_ADDRESS, true);
+      }
+      // 4. List NFT for sale on the marketplace
+      const priceWei = ethers.utils.parseEther(price.toString());
+      await memeMarketplace.listMeme(MEME_ERC1155_ADDRESS, tokenId, amount, priceWei);
+      // 5. Save to Firebase
+      await saveMemeToFirebase({
+        url, price: price + " POL", name, owner: currentAccount, tokenId
+      });
+      alert("Upload, mint, and listing successful! Your meme is now for sale.");
+    }
 
     uploadInput.addEventListener('change', async (event) => {
       const file = event.target.files && event.target.files[0];
@@ -953,19 +1111,10 @@
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.secure_url) {
-          await saveMemeToFirebase({
-            url: data.secure_url,
-            price: `${Number(price)} POL`,
-            name,
-            owner: currentAccount || "unknown"
-          });
-          alert("Upload successful! Your meme is now available.");
+          await mintAndListNFT({ url: data.secure_url, price, name });
           closeModal();
         } else {
           modalError.innerText = "Upload failed.";
@@ -977,7 +1126,7 @@
       submitMemeBtn.innerText = "Submit Meme";
     };
 
-    // --- Meme carousel logic ---
+    // =================== CAROUSEL & SELL/BUY UI LOGIC ===================
     function shakeMeme(circleId) {
       const el = document.getElementById(circleId);
       if (!el) return;
@@ -1041,36 +1190,47 @@
         sellPriceInput.value = "0";
       }
     });
-    mySellBtn.onclick = function() {
+    mySellBtn.onclick = async function() {
       const meme = myMemes[myMemeIdx];
       const newPrice = sellPriceInput.value;
       if (!currentAccount) return alert("Connect wallet first.");
-      if (!meme || !meme.key) return alert("No meme selected.");
+      if (!meme || !meme.key || !meme.tokenId) return alert("No meme selected.");
       if (!newPrice || isNaN(newPrice) || Number(newPrice) < 0) {
         return alert("Enter a valid price.");
       }
-      db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} POL` });
-      alert("Price updated!");
-      myMemes[myMemeIdx].price = `${Number(newPrice)} POL`;
-      updateMyMemeCircle(false);
+      try {
+        await ethersSetup();
+        const priceWei = ethers.utils.parseEther(newPrice.toString());
+        await memeMarketplace.listMeme(MEME_ERC1155_ADDRESS, meme.tokenId, 1, priceWei);
+        db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} POL` });
+        alert("Price updated and relisted!");
+        myMemes[myMemeIdx].price = `${Number(newPrice)} POL`;
+        updateMyMemeCircle(false);
+      } catch (e) { alert("Blockchain update failed: " + e.message); }
     };
 
     // Buy logic for MEMES section (cannot buy if you already own it)
     document.getElementById('buyBtn').onclick = async function() {
       if (!currentAccount) return alert("Connect wallet first.");
       const meme = memes[memeIdx];
-      if (!meme || !meme.key) return alert("No meme selected.");
+      if (!meme || !meme.key || !meme.tokenId) return alert("No meme selected.");
       if (meme.owner === currentAccount) {
         alert("You already own this meme!");
         return;
       }
-      await db.ref('memes/' + meme.key).update({ owner: currentAccount });
-      alert("You bought this meme! Check it in MY MEMES.");
+      try {
+        await ethersSetup();
+        // Fetch price in wei from contract (optional: you can trust Firebase if you sync)
+        const listing = await memeMarketplace.listings(MEME_ERC1155_ADDRESS, meme.tokenId);
+        if (!listing.price || listing.amount < 1) return alert("Meme is not for sale.");
+        await memeMarketplace.buyMeme(MEME_ERC1155_ADDRESS, meme.tokenId, 1, { value: listing.price });
+        // Update Firebase ownership
+        db.ref('memes/' + meme.key).update({ owner: currentAccount });
+        alert("You bought this meme! Check it in MY MEMES.");
+      } catch (e) { alert("Buy failed: " + (e.data?.message || e.message)); }
     };
 
-    document.body.addEventListener('touchmove', function(event) {
-      event.preventDefault();
-    }, { passive: false });
+    document.body.addEventListener('touchmove', function(event) { event.preventDefault(); }, { passive: false });
 
     function updateMemesUI(firebaseMemes) {
       memes = firebaseMemes;
