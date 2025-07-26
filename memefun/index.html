@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <!-- Ethers.js -->
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <style>
+   <style>
     /* ... CSS remains unchanged ... */
     :root {
       --primary: #fff;
@@ -680,13 +680,13 @@
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loadingText">Processing transaction...</div>
   </div>
-  
+
   <script>
     // ---- CONFIG SECTION ----
     const CONTRACT_ADDRESS = "0x21373d81452b6bf9CA7750c8FE7FC3f026cDa65b";
     const CONTRACT_ABI = [
-      // --- Only include necessary ABI entries for web3 features ---
       "function mint(address to, string memory uri_) external payable returns (uint256)",
+      "event Minted(address indexed to, uint256 indexed tokenId, uint256 amount, string uri)",
       "function listMeme(uint256 tokenId, uint256 amount, uint256 price) external",
       "function unlistMeme(uint256 tokenId) external",
       "function buyMeme(uint256 tokenId, uint256 amount) external payable",
@@ -710,7 +710,7 @@
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
-    // ---- FIREBASE SETUP ----
+    // FIREBASE SETUP
     const firebaseConfig = {
       apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
       authDomain: "nftfanactive.firebaseapp.com",
@@ -996,16 +996,19 @@
         const mintFeeWei = ethers.utils.parseEther(MINT_FEE);
         const tx = await contract.mint(currentAccount, url, { value: mintFeeWei });
         const receipt = await tx.wait();
-        // Find the Minted event and extract tokenId
+
+        // Parse only logs emitted by our contract
         let tokenId = null;
-        for (const log of receipt.logs) {
-          try {
-            const parsed = contract.interface.parseLog(log);
-            if (parsed.name === "Minted") {
-              tokenId = parsed.args.tokenId.toString();
-              break;
-            }
-          } catch (e) { /* not the event */ }
+        const mintedEvent = receipt.logs
+          .map(log => {
+            if (log.address.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()) return null;
+            try {
+              return contract.interface.parseLog(log);
+            } catch (e) { return null; }
+          })
+          .find(parsed => parsed && parsed.name === "Minted");
+        if (mintedEvent) {
+          tokenId = mintedEvent.args.tokenId.toString();
         }
         if (!tokenId) throw new Error("Unable to fetch minted tokenId");
         showLoading("Listing your meme for sale...");
