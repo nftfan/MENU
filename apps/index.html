@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
-   <meta charset="UTF-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -233,6 +232,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: fixed;
     }
     .footer-content {
       flex: 1;
@@ -241,7 +241,7 @@
     }
     .footer-refresh-btn {
       position: absolute;
-      right: 14px;
+      right: 44px;
       top: 0;
       height: 100%;
       background: none;
@@ -264,6 +264,25 @@
     .footer-refresh-btn:active {
       color: #7a3cff;
     }
+    .footer-usercount {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      position: absolute;
+      right: 6px;
+      top: 0;
+      height: 100%;
+      color: #fff;
+      font-size: 16px;
+      z-index: 12;
+      background: none;
+    }
+    .footer-usercount .material-icons {
+      font-size: 19px;
+      margin-right: 3px;
+      color: #bbb;
+      vertical-align: middle;
+    }
     @media (max-width: 600px) {
       .service-list {
         grid-template-columns: repeat(2, 1fr);
@@ -271,30 +290,74 @@
         padding: 10px 5px 8px 5px;
       }
       .footer-refresh-btn {
-        right: 6px;
+        right: 44px;
         font-size: 18px;
+      }
+      .footer-usercount {
+        right: 6px;
+        font-size: 14px;
       }
     }
   </style>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <!-- Firebase Database -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script>
-    window.onload = () => {
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Unique key for this page (adjust if you want per-page, or use 'global')
+    const pageKey = 'pageviews/main';
+
+    function updatePageViewCount() {
+      // Use transaction to increment count atomically
+      const ref = db.ref(pageKey);
+      ref.transaction(function(current) {
+        return (current || 0) + 1;
+      });
+    }
+
+    function subscribePageViewCount(callback) {
+      db.ref(pageKey).on('value', function(snapshot) {
+        callback(snapshot.val() || 0);
+      });
+    }
+    // On load: increment and subscribe to live count
+    window.addEventListener('DOMContentLoaded', () => {
+      // Tabs
       const menuTabs = document.querySelectorAll('.nav-item');
       const menuContents = document.querySelectorAll('.menu-content');
       const main = document.querySelector('.app-main');
       menuTabs.forEach((tab, idx) => {
         tab.onclick = () => {
           menuContents.forEach((mc, i) => mc.classList.toggle('active', i === idx));
-          // vertical scroll always enabled
           main.scrollTop = 0;
         };
       });
-      // Set first tab active by default
       menuContents[0].classList.add('active');
-      // Refresh button
+      // Refresh
       document.getElementById('footer-refresh-btn').onclick = () => {
         window.location.reload();
       };
-    };
+
+      // Real-time user counter
+      updatePageViewCount();
+      subscribePageViewCount(count => {
+        document.getElementById('footer-usercount-number').textContent = count;
+      });
+    });
   </script>
 </head>
 <body>
@@ -350,37 +413,33 @@
             <div class="service-desc">Polygon</div>
           </div>
         </a>
-
-  <a class="service-item" href="https://dex.coinmarketcap.com/token/base/0xadb8389ab6df18e3c963b0502eab0e54a970ad2d/" target="_blank">
+        <a class="service-item" href="https://dex.coinmarketcap.com/token/base/0xadb8389ab6df18e3c963b0502eab0e54a970ad2d/" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GrjmnfJXoAACd0w?format=jpg&name=large" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">Buy NFTFANS on Base</div>
             <div class="service-desc">Base</div>
           </div>
         </a>
-
-         <a class="service-item" href="https://nftfanstoken.com/wp1" target="_blank">
+        <a class="service-item" href="https://nftfanstoken.com/wp1" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GwzOU3yW0AAgEt2?format=png&name=small" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">Road Map</div>
             <div class="service-desc">Version 1.0</div>
           </div>
         </a>
-       
       </ul>
     </div>
     <!-- Airdrops Tab -->
     <div class="menu-content">
       <ul class="service-list">
-
-      <a class="service-item" href="https://nftfanstoken.com/claim20t" target="_blank">
+        <a class="service-item" href="https://nftfanstoken.com/claim20t" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GvMZI-kXAAASZdZ?format=jpg&name=small" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">Claim 20T Free $NFTFAN</div>
             <div class="service-desc">Polygon</div>
           </div>
         </a>
-          <a class="service-item" href="https://x.com/i/communities/1648665563332263936" target="_blank">
+        <a class="service-item" href="https://x.com/i/communities/1648665563332263936" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/community_banner_img/1948616823391285248/LoE73UUN?format=jpg&name=small" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">PUMP.FUN FREE TOKENS</div>
@@ -399,23 +458,20 @@
             <div class="service-desc">Polygon</div>
           </div>
         </a>
-
-  <a class="service-item" href="https://nftfanstoken.com/coinfun" target="_blank">
+        <a class="service-item" href="https://nftfanstoken.com/coinfun" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GtAPA6qXEAA4du1?format=jpg&name=large" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">COIN.FUN</div>
             <div class="service-desc">Polygon</div>
           </div>
         </a>
-
-          <a class="service-item" href="https://nftfanstoken.com/basecards" target="_blank">
+        <a class="service-item" href="https://nftfanstoken.com/basecards" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GwkfmZhWQAIetDf?format=jpg&name=large" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">Base Cards</div>
             <div class="service-desc">Base</div>
           </div>
         </a>
-      
       </ul>
     </div>
     <!-- Money Tab -->
@@ -447,7 +503,7 @@
             <div class="service-desc">Join project discussions</div>
           </div>
         </a>
-              <a class="service-item" href="https://nftfanstoken.com/amb" target="_blank">
+        <a class="service-item" href="https://nftfanstoken.com/amb" target="_blank">
           <img class="service-image" src="https://pbs.twimg.com/media/GwtTL2VWIAADRKu?format=jpg&name=900x900" alt="Buy Token">
           <div class="service-info">
             <div class="service-title">Brand Ambassador</div>
@@ -465,7 +521,10 @@
         <polyline points="3 14 5.3 15.2 6 12.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
+    <span class="footer-usercount" id="footer-usercount">
+      <span class="material-icons" style="vertical-align:middle;">person</span>
+      <span id="footer-usercount-number">0</span>
+    </span>
   </div>
 </body>
 </html>
-
