@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mint NFT - NFT ART GALLERY</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #141518;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      display: block;
+    }
+    .container {
+      margin: 0 auto;
+      margin-top: 0;
+      background: #23242a;
+      border-radius: 16px;
+      padding: 24px 10px 24px 10px;
+      box-shadow: 0 4px 24px #00000020;
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .logo {
+      width: 44px;
+      margin: 0 auto 12px auto;
+      display: block;
+    }
+    .desc {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 2px;
+      text-align: center;
+    }
+    input[type="url"], input[type="text"] {
+      width: 175px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      margin-bottom: 8px;
+      background: #18171c;
+      color: #fff;
+      box-sizing: border-box;
+      /* Prevent zoom on iOS */
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      max-width: 180px;
+      padding: 10px 0;
+      border: none;
+      border-radius: 8px;
+      background: #8247e5;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.2s;
+    }
+    button:active { background: #6a30b9; }
+    .msg {
+      text-align: center;
+      font-size: 13px;
+      margin-top: 6px;
+      min-height: 20px;
+      color: #c8afff;
+      word-break: break-word;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <img src="https://pbs.twimg.com/profile_images/1925011658151268352/M2ez5q8I_400x400.jpg" alt="Polygon" class="logo"/>
+    <div class="desc">Mint your own NFT (ERC1155) on Polygon<br/>Price: <b>1 MATIC</b> | Supply: <b>10</b></div>
+    <input type="url" id="nftUri" placeholder="NFT metadata URI" autocomplete="off" required inputmode="url" pattern="https?://.*">
+    <button id="connectWallet">Connect Wallet</button>
+    <button id="mintBtn" disabled>Mint NFT</button>
+    <div class="msg" id="msg"></div>
+  </div>
+  <script>
+    const CONTRACT_ADDRESS = "0x668F3F71D33E77ac12447C77231a4B373ce2A6fE";
+    const ABI = [
+      "function mintNFT(string _tokenURI, uint256 _price, uint256 _maxSupply, uint256 _amount) external",
+      "function owner() view returns (address)",
+    ];
+    const NETWORK_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    let provider, signer, contract, userAddress;
+
+    const connectBtn = document.getElementById("connectWallet");
+    const mintBtn = document.getElementById("mintBtn");
+    const uriInput = document.getElementById("nftUri");
+    const msgDiv = document.getElementById("msg");
+
+    // Polygon switch helper
+    async function switchToPolygon() {
+      if (!window.ethereum) throw new Error("No wallet found");
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: NETWORK_PARAMS.chainId }]
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [NETWORK_PARAMS]
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    }
+
+    async function connectWallet() {
+      msgDiv.textContent = "";
+      if (!window.ethereum) {
+        msgDiv.textContent = "Please install MetaMask or a compatible wallet.";
+        return;
+      }
+      try {
+        await switchToPolygon();
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        const ownerAddr = await contract.owner();
+        if (userAddress.toLowerCase() !== ownerAddr.toLowerCase()) {
+          mintBtn.disabled = true;
+          msgDiv.textContent = "Only contract owner can mint NFTs.";
+          connectBtn.textContent = `Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+          connectBtn.disabled = true;
+          return;
+        }
+        mintBtn.disabled = false;
+        connectBtn.textContent = `Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+        connectBtn.disabled = true;
+        msgDiv.textContent = "Wallet connected! Ready to mint.";
+      } catch (e) {
+        msgDiv.textContent = e.message;
+      }
+    }
+
+    connectBtn.onclick = connectWallet;
+
+    mintBtn.onclick = async function() {
+      msgDiv.textContent = "";
+      const uri = uriInput.value.trim();
+      if (!uri) {
+        msgDiv.textContent = "Please enter a valid URI.";
+        return;
+      }
+      mintBtn.disabled = true;
+      try {
+        const price = ethers.utils.parseEther("1");
+        const maxSupply = 10;
+        const amount = 10;
+        const tx = await contract.mintNFT(uri, price, maxSupply, amount);
+        msgDiv.textContent = "Minting... Please confirm in wallet.";
+        await tx.wait();
+        msgDiv.textContent = "NFT minted successfully!";
+        uriInput.value = "";
+      } catch (e) {
+        msgDiv.textContent = e.message || "Mint failed.";
+      }
+      mintBtn.disabled = false;
+    };
+
+    // Prevent iOS zoom on input focus
+    uriInput.addEventListener('touchstart', function() {
+      this.style.fontSize = '16px';
+    });
+  </script>
+</body>
+</html>
