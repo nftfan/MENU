@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Send Notification to NFTFANS App</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #181818;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .app-bar {
+      background: #7a3cff;
+      color: #fff;
+      width: 100%;
+      padding: 22px 0 12px 0;
+      font-size: 1.5em;
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px #1a006255;
+    }
+    .main-card {
+      background: #232232;
+      border-radius: 14px;
+      box-shadow: 0 4px 32px #0008;
+      padding: 28px 22px 22px 22px;
+      margin: 0 auto 30px auto;
+      max-width: 380px;
+      width: 98vw;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 18px;
+    }
+    label {
+      font-weight: 500;
+      margin-bottom: 6px;
+      font-size: 1em;
+      letter-spacing: .2px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 60px;
+      max-height: 160px;
+      resize: vertical;
+      border: none;
+      border-radius: 7px;
+      padding: 12px;
+      font-size: 1.1em;
+      background: #191927;
+      color: #fff;
+      box-shadow: 0 2px 8px #1112;
+      margin-bottom: 10px;
+      outline: none;
+      transition: background 0.16s;
+    }
+    textarea:focus {
+      background: #232346;
+    }
+    button {
+      margin-top: 8px;
+      background: linear-gradient(90deg, #7a3cff, #1da1f2);
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 7px;
+      padding: 13px;
+      font-size: 1.15em;
+      box-shadow: 0 2px 8px #1da1f299;
+      cursor: pointer;
+      transition: background 0.18s, color 0.14s;
+      font-family: inherit;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #1da1f2, #7a3cff);
+      color: #ffe;
+    }
+    .notif-list {
+      background: #25253b;
+      border-radius: 12px;
+      padding: 18px 12px 12px 12px;
+      margin-top: 8px;
+      max-width: 380px;
+      width: 98vw;
+      box-shadow: 0 2px 12px #0006;
+      font-size: 1em;
+      min-height: 30px;
+    }
+    .notif-list-title {
+      font-weight: 600;
+      margin-bottom: 9px;
+      color: #7a3cff;
+      letter-spacing: .6px;
+      font-size: 1.1em;
+    }
+    .notif-item {
+      border-bottom: 1px solid #312c45;
+      padding: 8px 0;
+      color: #eee;
+      line-height: 1.4;
+      font-size: 1em;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 7px;
+      position: relative;
+    }
+    .notif-item:last-child {
+      border-bottom: none;
+    }
+    .notif-item .material-icons {
+      font-size: 18px;
+      margin-right: 6px;
+      color: #7a3cff;
+      vertical-align: middle;
+      margin-top: 2px;
+    }
+    .notif-item .timestamp {
+      color: #aaa;
+      font-size: 0.95em;
+      margin-left: 10px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .notif-delete-btn {
+      background: none;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      color: #e53935;
+      padding: 2px 5px 0 5px;
+      margin-left: 12px;
+      font-size: 20px;
+      opacity: 0.82;
+      display: flex;
+      align-items: center;
+      transition: color 0.14s, opacity 0.14s;
+    }
+    .notif-delete-btn:hover {
+      color: #fff;
+      opacity: 1;
+    }
+    .alert {
+      color: #e53935;
+      margin: 10px 0 0 0;
+      font-size: 1.05em;
+      font-weight: 500;
+      text-align: center;
+      min-height: 16px;
+    }
+    @media (max-width: 450px) {
+      .main-card, .notif-list { padding: 12px 3vw 12px 3vw; }
+    }
+  </style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+  <div class="app-bar">NFTFANS Notification Sender</div>
+  <div class="main-card">
+    <label for="notif-text">Notification Text</label>
+    <textarea id="notif-text" maxlength="500" placeholder="Write notification to send..."></textarea>
+    <button id="send-btn"><span class="material-icons" style="font-size:1em;vertical-align:middle;">send</span> Send Notification</button>
+    <div class="alert" id="alert"></div>
+  </div>
+  <div class="notif-list" id="notif-list">
+    <div class="notif-list-title">Recent Notifications Sent</div>
+    <div id="notif-list-items"></div>
+  </div>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const notificationsKey = "notifications/main";
+
+    // Simple unique id generator (timestamp + random)
+    function makeId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+    }
+
+    // Format date to readable string
+    function fmtDate(ts) {
+      try {
+        const d = new Date(ts);
+        return d.toLocaleString();
+      } catch(e) { return ts+""; }
+    }
+
+    // Send notification handler
+    document.getElementById('send-btn').onclick = async function() {
+      const ta = document.getElementById('notif-text');
+      const alert = document.getElementById('alert');
+      let text = ta.value.trim();
+      if (text.length < 2) {
+        alert.textContent = "Please enter a notification message.";
+        return;
+      }
+      if (text.length > 500) {
+        alert.textContent = "Max 500 characters allowed.";
+        return;
+      }
+      alert.textContent = "Sending...";
+      // Prepare notification object
+      const notif = {
+        id: makeId(),
+        text,
+        timestamp: Date.now()
+      };
+      // Push to notifications/main (as object, not array, to avoid index holes)
+      try {
+        await db.ref(notificationsKey + "/" + notif.id).set(notif);
+        alert.textContent = "Notification sent!";
+        ta.value = "";
+        setTimeout(()=>{ alert.textContent = ""; }, 1500);
+      } catch (e) {
+        alert.textContent = "Error: " + e.message;
+      }
+    };
+
+    // Delete notification
+    function deleteNotification(id) {
+      if (!confirm("Delete this notification?")) return;
+      db.ref(notificationsKey + "/" + id).remove();
+    }
+
+    // Live list of notifications
+    function renderNotifList(list) {
+      const cont = document.getElementById('notif-list-items');
+      cont.innerHTML = '';
+      if (!list.length) {
+        cont.innerHTML = '<div class="notif-item" style="color:#aaa;">No notifications sent yet.</div>';
+        return;
+      }
+      list.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'notif-item';
+        div.innerHTML = `
+          <span style="display:flex;align-items:center;">
+            <span class="material-icons">notifications</span>
+            <span>${n.text}</span>
+            <span class="timestamp">${fmtDate(n.timestamp)}</span>
+          </span>
+          <button class="notif-delete-btn" title="Delete" aria-label="Delete notification">
+            <span class="material-icons">delete</span>
+          </button>
+        `;
+        // Attach delete handler
+        div.querySelector('.notif-delete-btn').onclick = function(e) {
+          e.stopPropagation();
+          deleteNotification(n.id);
+        };
+        cont.appendChild(div);
+      });
+    }
+    // Listen for changes
+    db.ref(notificationsKey).on('value', function(snapshot) {
+      let val = snapshot.val();
+      let arr = [];
+      if (val && typeof val === "object") {
+        arr = Object.values(val);
+      }
+      // Sort by timestamp desc
+      arr.sort((a,b) => b.timestamp - a.timestamp);
+      renderNotifList(arr.slice(0,10));
+    });
+  </script>
+</body>
+</html>
