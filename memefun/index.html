@@ -620,7 +620,6 @@
   </div>
   <div class="main-area">
     <div class="sections-wrapper">
-      <!-- Top Section: MEMES -->
       <div class="section section-top">
         <div class="section-title">MEMES</div>
         <div class="swipe-area">
@@ -634,8 +633,6 @@
         </div>
         <button class="buy-btn" id="buyBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
       </div>
-
-      <!-- Bottom Section: MY MEMES (uploaded AND bought)-->
       <div class="section section-bottom">
         <div class="section-title">MY MEMES</div>
         <div class="swipe-area">
@@ -655,8 +652,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Upload Meme Modal -->
   <div class="modal-bg" id="uploadModalBg">
     <div class="modal" id="uploadModal">
       <button class="modal-close" id="modalCloseBtn" title="Close">&times;</button>
@@ -674,15 +669,12 @@
       </div>
     </div>
   </div>
-
-  <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loadingText">Processing transaction...</div>
   </div>
-
   <script>
-    // ---- CONFIG SECTION ----
+    // ---- CONFIG ----
     const CONTRACT_ADDRESS = "0x21373d81452b6bf9CA7750c8FE7FC3f026cDa65b";
     const CONTRACT_ABI = [
       "function mint(address to, string memory uri_) external payable returns (uint256)",
@@ -700,7 +692,6 @@
     ];
     const MINT_FEE = "0.1"; // MATIC
 
-    // Polygon network parameters (mainnet)
     const polygonChainId = '0x89';
     const polygonChainData = {
       chainId: polygonChainId,
@@ -710,7 +701,7 @@
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
-    // FIREBASE SETUP
+    // ---- FIREBASE ----
     const firebaseConfig = {
       apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
       authDomain: "nftfanactive.firebaseapp.com",
@@ -723,8 +714,6 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    // Cloudinary config
     const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
     const CLOUDINARY_CLOUD_NAME = "dvndw130d";
     const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
@@ -756,11 +745,9 @@
       loadingText.textContent = message;
       loadingOverlay.style.display = 'flex';
     }
-
     function hideLoading() {
       loadingOverlay.style.display = 'none';
     }
-
     async function switchToPolygon() {
       if (!window.ethereum) return false;
       try {
@@ -770,7 +757,6 @@
         });
         return true;
       } catch (switchError) {
-        // Add chain if not present
         if (switchError.code === 4902 || 
             (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
           try {
@@ -806,13 +792,9 @@
         signer = provider.getSigner();
         currentAccount = await signer.getAddress();
         contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-        // Show address in button
         const displayAddress = currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
         connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>' + displayAddress;
         connectWalletBtn.disabled = true;
-
-        // Load user's memes after connecting wallet
         await listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
       } catch (error) {
         connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
@@ -823,10 +805,8 @@
         }
       }
     }
-
     connectWalletBtn.addEventListener('click', connectWallet);
 
-    // Handle account/network changes
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', async function (accounts) {
         if (!accounts.length) {
@@ -844,7 +824,6 @@
           await listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
         }
       });
-
       window.ethereum.on('chainChanged', async (chainId) => {
         if (chainId !== polygonChainId) {
           alert("Please switch to the Polygon network to use this app");
@@ -871,7 +850,6 @@
         timestamp
       });
     }
-
     function listenAndDisplayMemes(updateCallback) {
       db.ref('memes').orderByChild('timestamp').on('value', snapshot => {
         const memeArr = [];
@@ -885,7 +863,6 @@
         alert("Failed to load memes. Please check your connection and try again.");
       });
     }
-
     function listenAndDisplayMyMemes(owner, updateCallback) {
       db.ref('memes').orderByChild('owner').equalTo(owner).on('value', snapshot => {
         const memeArr = [];
@@ -902,7 +879,6 @@
 
     // ---- NFT MINT AND LIST ----
     let selectedFile = null;
-
     function openModal() {
       uploadModalBg.classList.add('active');
       modalError.innerText = "";
@@ -910,15 +886,12 @@
       memeNameInput.value = "";
       memeNameInput.focus();
     }
-
     function closeModal() {
       uploadModalBg.classList.remove('active');
       selectedFile = null;
     }
-
     modalCloseBtn.onclick = closeModal;
     uploadModalBg.onclick = (e) => { if (e.target === uploadModalBg) closeModal(); }
-
     uploadBtn.addEventListener('click', () => {
       if (!currentAccount) {
         alert("Please connect your wallet before uploading a meme.");
@@ -927,7 +900,6 @@
       uploadInput.value = "";
       uploadInput.click();
     });
-
     uploadInput.addEventListener('change', async (event) => {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -942,11 +914,9 @@
       selectedFile = file;
       openModal();
     });
-
     submitMemeBtn.onclick = async function() {
       let price = memePriceInput.value.trim();
       let name = memeNameInput.value.trim();
-
       if (!selectedFile) {
         modalError.innerText = "No file selected.";
         return;
@@ -989,15 +959,12 @@
       submitMemeBtn.disabled = false;
       submitMemeBtn.innerText = "Submit Meme";
     };
-
     async function mintAndListNFT({ url, price, name }) {
       showLoading("Minting your NFT...");
       try {
         const mintFeeWei = ethers.utils.parseEther(MINT_FEE);
         const tx = await contract.mint(currentAccount, url, { value: mintFeeWei });
         const receipt = await tx.wait();
-
-        // Parse only logs emitted by our contract
         let tokenId = null;
         const mintedEvent = receipt.logs
           .map(log => {
@@ -1039,7 +1006,6 @@
       void el.offsetWidth;
       el.classList.add("shake");
     }
-
     function updateMemeCircle(shake=true) {
       const meme = memes[memeIdx];
       const memeCircle = document.getElementById("memeCircle");
@@ -1056,7 +1022,6 @@
       memeName.innerText = meme.name || "";
       if (shake) shakeMeme("memeCircle");
     }
-
     function updateMyMemeCircle(shake=true) {
       const meme = myMemes[myMemeIdx];
       const memeCircle = document.getElementById("myMemeCircle");
@@ -1074,7 +1039,6 @@
       if (isNaN(priceNum)) priceNum = 0.02;
       sellPriceInput.value = priceNum;
     }
-
     document.getElementById("memeLeftBtn").onclick = function() {
       if (memes.length === 0) return;
       memeIdx = (memeIdx - 1 + memes.length) % memes.length;
@@ -1102,7 +1066,6 @@
         sellPriceInput.value = "0";
       }
     });
-
     mySellBtn.onclick = async function() {
       if (!currentAccount) {
         alert("Please connect your wallet first.");
@@ -1120,17 +1083,14 @@
       }
       try {
         showLoading("Updating listing...");
-        // Check if user owns the meme token
         const bal = await contract.balanceOf(currentAccount, meme.tokenId);
         if (bal.eq(0)) throw new Error("You don't own this meme anymore");
-        // Check if approval is set
         const isApproved = await contract.isApprovedForAll(currentAccount, CONTRACT_ADDRESS);
         if (!isApproved) {
           showLoading("Approving marketplace...");
           const approveTx = await contract.setApprovalForAll(CONTRACT_ADDRESS, true);
           await approveTx.wait();
         }
-        // List the meme for sale
         const priceWei = ethers.utils.parseEther(newPrice.toString());
         await contract.listMeme(meme.tokenId, 1, priceWei);
         await db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} MATIC` });
@@ -1156,18 +1116,26 @@
         alert("No meme selected or meme data is incomplete.");
         return;
       }
-      if (meme.owner === currentAccount) {
+      if (meme.owner && meme.owner.toLowerCase() === currentAccount.toLowerCase()) {
         alert("You already own this meme!");
         return;
       }
       try {
-        showLoading("Buying meme...");
-        // Get listing from contract
+        showLoading("Checking on-chain listing...");
         const listing = await contract.getListing(meme.tokenId);
-        if (listing.price.eq(0) || listing.amount.lt(1)) throw new Error("This meme is not available for sale");
-        const buyTx = await contract.buyMeme(meme.tokenId, 1, {
-          value: listing.price
-        });
+        if (listing.price.eq(0) || listing.amount.lt(1)) {
+          alert("This meme is not available for sale (not listed or sold out).");
+          hideLoading();
+          return;
+        }
+        const sellerBalance = await contract.balanceOf(listing.seller, meme.tokenId);
+        if (sellerBalance.lt(1)) {
+          alert("Listing is stale: seller no longer owns the NFT. Please refresh.");
+          hideLoading();
+          return;
+        }
+        showLoading("Buying meme...");
+        const buyTx = await contract.buyMeme(meme.tokenId, 1, { value: listing.price });
         await buyTx.wait();
         await db.ref('memes/' + meme.key).update({ owner: currentAccount });
         hideLoading();
@@ -1176,7 +1144,7 @@
       } catch (e) {
         hideLoading();
         console.error("Buy error:", e);
-        alert("Failed to buy meme: " + (e.message || "Unknown error"));
+        alert("Failed to buy meme: " + (e && (e.data?.message || e.message || JSON.stringify(e))));
       }
     };
 
@@ -1191,20 +1159,14 @@
       myMemeIdx = 0;
       updateMyMemeCircle(false);
     }
-
-    // Prevent default touchmove behavior to avoid page scrolling issues
     document.addEventListener('touchmove', function(e) {
       if (e.target.closest('.meme-circle') || e.target.closest('.swipe-btn')) {
         e.preventDefault();
       }
     }, { passive: false });
-
-    // ---- APP INITIALIZE ----
     listenAndDisplayMemes(updateMemesUI);
     updateMemeCircle(false);
     updateMyMemeCircle(false);
-
-    // Auto-connect wallet if already connected
     if (window.ethereum && window.ethereum.isConnected()) {
       window.ethereum.request({ method: 'eth_accounts' })
         .then(accounts => {
