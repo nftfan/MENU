@@ -10,8 +10,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    /* ... all your previous CSS ... */
- :root {
+    /* ... all previous CSS ... */
+	:root {
       --primary: #fff;
       --accent: #ffc107;
       --accent2: #3cbfff;
@@ -540,7 +540,119 @@
       margin-bottom: 3px;
       font-weight: 500;
     }
-    /* ... existing CSS ... */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: #000a;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-bg.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface1);
+      border-radius: 18px;
+      padding: 28px 18px 18px 18px;
+      box-shadow: 0 2px 20px #000a;
+      min-width: 220px;
+      max-width: 94vw;
+      color: #ffd26e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    .modal label {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      letter-spacing: 0.1px;
+      display: block;
+      text-align: left;
+      width: 100%;
+    }
+    .modal input[type="number"],
+    .modal input[type="text"] {
+      width: 180px;
+      padding: 6px 12px;
+      border: 1.5px solid var(--accent2);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #181824;
+      color: var(--accent2);
+      text-align: left;
+      margin-bottom: 6px;
+      transition: border 0.14s;
+      box-sizing: border-box;
+    }
+    .modal input[type="number"]:focus,
+    .modal input[type="text"]:focus {
+      border: 1.5px solid var(--accent2);
+      background: #101020;
+      outline: none;
+    }
+    .modal-btn-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+    .modal-btn {
+      padding: 7px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0003;
+      background: var(--accent2);
+      color: #fff;
+      transition: filter .14s;
+    }
+    .modal-btn:active {
+      filter: brightness(0.93);
+    }
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 8px;
+      cursor: pointer;
+      color: #65e6ff;
+      background: none;
+      border: none;
+      font-size: 22px;
+      z-index: 10;
+    }
+    .modal-error {
+      color: #ff5469;
+      font-size: 12px;
+      margin-top: -3px;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .meme-name {
+      display: block;
+      margin: 6px auto 0 auto;
+      text-align: center;
+      font-size: 14px;
+      color: #ffd26e;
+      font-weight: 700;
+      text-shadow: 0 1px 6px #0008;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: .1px;
+    }
+    /* ... rest of your CSS ... */
+    /* (keep all your existing style definitions here) */
   </style>
 </head>
 <body>
@@ -568,20 +680,22 @@
           <button class="swipe-btn" id="memeLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
           <div class="meme-circle-wrap">
             <div class="meme-circle" id="memeCircle"></div>
+            <span class="meme-name" id="memeName"></span>
             <div class="meme-price" id="memePrice"></div>
           </div>
           <button class="swipe-btn" id="memeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
         </div>
-        <button class="buy-btn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
+        <button class="buy-btn" id="buyBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
       </div>
 
-      <!-- Bottom Section: MY MEMES -->
+      <!-- Bottom Section: MY MEMES (uploaded AND bought)-->
       <div class="section section-bottom">
         <div class="section-title">MY MEMES</div>
         <div class="swipe-area">
           <button class="swipe-btn" id="myMemeLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
           <div class="meme-circle-wrap">
             <div class="meme-circle" id="myMemeCircle"></div>
+            <span class="meme-name" id="myMemeName"></span>
           </div>
           <button class="swipe-btn" id="myMemeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
         </div>
@@ -590,7 +704,7 @@
           <input class="sell-price-input" id="sellPriceInput" type="number" min="0" step="0.01" value="0.02">
           <span class="material-icons sell-price-coin">monetization_on</span>
         </div>
-        <button class="sell-btn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
+        <button class="sell-btn" id="mySellBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
       </div>
     </div>
   </div>
@@ -600,7 +714,11 @@
     <div class="modal" id="uploadModal">
       <button class="modal-close" id="modalCloseBtn" title="Close">&times;</button>
       <div>
-        <label for="memePriceInput">Set Price for Meme (POL):</label><br>
+        <label for="memeNameInput">Meme Name:</label>
+        <input type="text" id="memeNameInput" maxlength="40" placeholder="Enter meme name" autocomplete="off">
+      </div>
+      <div>
+        <label for="memePriceInput">Set Price for Meme (POL):</label>
         <input type="number" min="0" step="0.0001" id="memePriceInput" value="0.01">
       </div>
       <div class="modal-error" id="modalError"></div>
@@ -658,7 +776,6 @@
           params: [{ chainId: polygonChainId }]
         });
       } catch (switchError) {
-        // Chain not added to wallet
         if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
           try {
             await window.ethereum.request({
@@ -682,15 +799,12 @@
       connectWalletBtn.disabled = true;
       connectWalletBtn.innerHTML = '<span class="material-icons">hourglass_top</span>Connecting...';
       try {
-        // Switch to Polygon first
         await switchToPolygon();
-        // Request accounts
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
           currentAccount = accounts[0];
           connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>' + currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
           connectWalletBtn.disabled = true;
-          // Load memes for myMemes section
           listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
         } else {
           connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
@@ -699,7 +813,7 @@
       } catch (error) {
         connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
         connectWalletBtn.disabled = false;
-        if (error.code !== 4001) { // Not user rejected
+        if (error.code !== 4001) {
           alert("Failed to connect wallet: " + error.message);
         }
       }
@@ -707,14 +821,12 @@
 
     connectWalletBtn.addEventListener('click', connectWallet);
 
-    // Re-enable connect button if wallet disconnects
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', function (accounts) {
         if (!accounts.length) {
           currentAccount = null;
           connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
           connectWalletBtn.disabled = false;
-          // Clear my memes if disconnected
           myMemes = [];
           myMemeIdx = 0;
           updateMyMemeCircle(false);
@@ -727,7 +839,6 @@
       });
       window.ethereum.on('chainChanged', (chainId) => {
         if (chainId !== polygonChainId) {
-          // Prompt to switch to Polygon again
           connectWalletBtn.disabled = false;
           connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
         }
@@ -740,12 +851,14 @@
     let myMemes = [];
     let myMemeIdx = 0;
 
-    function saveMemeToFirebase({ url, price, owner, timestamp = Date.now() }) {
+    function saveMemeToFirebase({ url, price, owner, name, timestamp = Date.now() }) {
       const memeRef = db.ref('memes').push();
       return memeRef.set({
         url,
         price,
+        name,
         owner,
+        originalUploader: owner,
         timestamp
       });
     }
@@ -756,7 +869,7 @@
         snapshot.forEach(child => {
           memeArr.push({ ...child.val(), key: child.key });
         });
-        memeArr.reverse(); // newest first
+        memeArr.reverse();
         updateCallback(memeArr);
       });
     }
@@ -775,12 +888,12 @@
     const uploadBtn = document.getElementById('uploadBtn');
     const uploadInput = document.getElementById('uploadInput');
     let selectedFile = null;
-    let latestUploadedUrl = null;
 
     const uploadModalBg = document.getElementById('uploadModalBg');
     const uploadModal = document.getElementById('uploadModal');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const memePriceInput = document.getElementById('memePriceInput');
+    const memeNameInput = document.getElementById('memeNameInput');
     const submitMemeBtn = document.getElementById('submitMemeBtn');
     const modalError = document.getElementById('modalError');
 
@@ -788,12 +901,12 @@
       uploadModalBg.classList.add('active');
       modalError.innerText = "";
       memePriceInput.value = "0.01";
-      memePriceInput.focus();
+      memeNameInput.value = "";
+      memeNameInput.focus();
     }
     function closeModal() {
       uploadModalBg.classList.remove('active');
       selectedFile = null;
-      latestUploadedUrl = null;
     }
     modalCloseBtn.onclick = closeModal;
     uploadModalBg.onclick = (e) => {
@@ -817,14 +930,20 @@
     });
 
     submitMemeBtn.onclick = async function() {
-      // Validate price
       let price = memePriceInput.value.trim();
+      let name = memeNameInput.value.trim();
       if (!selectedFile) {
         modalError.innerText = "No file selected.";
         return;
       }
+      if (!name) {
+        modalError.innerText = "Please enter a name for your meme.";
+        memeNameInput.focus();
+        return;
+      }
       if (!price || isNaN(price) || Number(price) < 0) {
         modalError.innerText = "Enter a valid price (POL).";
+        memePriceInput.focus();
         return;
       }
       modalError.innerText = "";
@@ -843,6 +962,7 @@
           await saveMemeToFirebase({
             url: data.secure_url,
             price: `${Number(price)} POL`,
+            name,
             owner: currentAccount || "unknown"
           });
           alert("Upload successful! Your meme is now available.");
@@ -869,24 +989,32 @@
       const meme = memes[memeIdx];
       const memeCircle = document.getElementById("memeCircle");
       const memePrice = document.getElementById("memePrice");
+      const memeName = document.getElementById("memeName");
       if (!meme) {
         memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload one!</div>`;
         memePrice.innerText = "";
+        memeName.innerText = "";
         return;
       }
       memeCircle.innerHTML = `<img src="${meme.url}" alt="Meme">`;
       memePrice.innerText = meme.price;
+      memeName.innerText = meme.name || "";
       if (shake) shakeMeme("memeCircle");
     }
     function updateMyMemeCircle(shake=true) {
       const meme = myMemes[myMemeIdx];
       const memeCircle = document.getElementById("myMemeCircle");
+      const memeName = document.getElementById("myMemeName");
       if (!meme) {
-        memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload one!</div>`;
+        memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload or Buy one!</div>`;
+        memeName.innerText = "";
         return;
       }
       memeCircle.innerHTML = `<img src="${meme.url}" alt="My Meme">`;
+      memeName.innerText = meme.name || "";
       if (shake) shakeMeme("myMemeCircle");
+      let p = meme.price ? parseFloat(meme.price) : 0.02;
+      sellPriceInput.value = isNaN(p) ? 0.02 : p;
     }
     document.getElementById("memeLeftBtn").onclick = function() {
       memeIdx = (memeIdx - 1 + memes.length) % memes.length;
@@ -905,20 +1033,45 @@
       updateMyMemeCircle();
     };
 
-    // Allow setting price in sell option (UI only, not saved)
+    // Sell logic for my memes (uploaded OR bought)
     const sellPriceInput = document.getElementById("sellPriceInput");
+    const mySellBtn = document.getElementById("mySellBtn");
     sellPriceInput.addEventListener('input', function(){
       if(Number(sellPriceInput.value) < 0){
         sellPriceInput.value = "0";
       }
     });
+    mySellBtn.onclick = function() {
+      const meme = myMemes[myMemeIdx];
+      const newPrice = sellPriceInput.value;
+      if (!currentAccount) return alert("Connect wallet first.");
+      if (!meme || !meme.key) return alert("No meme selected.");
+      if (!newPrice || isNaN(newPrice) || Number(newPrice) < 0) {
+        return alert("Enter a valid price.");
+      }
+      db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} POL` });
+      alert("Price updated!");
+      myMemes[myMemeIdx].price = `${Number(newPrice)} POL`;
+      updateMyMemeCircle(false);
+    };
 
-    // Prevent scrolling (just in case)
+    // Buy logic for MEMES section (cannot buy if you already own it)
+    document.getElementById('buyBtn').onclick = async function() {
+      if (!currentAccount) return alert("Connect wallet first.");
+      const meme = memes[memeIdx];
+      if (!meme || !meme.key) return alert("No meme selected.");
+      if (meme.owner === currentAccount) {
+        alert("You already own this meme!");
+        return;
+      }
+      await db.ref('memes/' + meme.key).update({ owner: currentAccount });
+      alert("You bought this meme! Check it in MY MEMES.");
+    };
+
     document.body.addEventListener('touchmove', function(event) {
       event.preventDefault();
     }, { passive: false });
 
-    // Updating main memes UI
     function updateMemesUI(firebaseMemes) {
       memes = firebaseMemes;
       memeIdx = 0;
@@ -930,16 +1083,9 @@
       updateMyMemeCircle(false);
     }
 
-    // Initial load for memes (all users)
     listenAndDisplayMemes(updateMemesUI);
-
-    // Initial load for myMemes (after wallet connect)
-    // This is handled in connectWallet and accountsChanged
-
-    // Initialize carousels with no memes until data loads
     updateMemeCircle(false);
     updateMyMemeCircle(false);
-
   </script>
 </body>
 </html>
