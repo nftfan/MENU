@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -305,7 +304,7 @@
       color: var(--price-color2);
       text-shadow: 0 1px 8px #0ff2;
     }
-    .buy-btn, .sell-btn {
+    .buy-btn, .sell-btn, .set-price-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -337,7 +336,8 @@
       filter: brightness(1.08);
       box-shadow: 0 2px 16px #3ad37a44;
     }
-    .sell-btn {
+    .sell-btn,
+    .section-bottom .sell-btn {
       background: var(--red);
       color: #fff;
       box-shadow: 0 2px 10px #ff546933;
@@ -353,12 +353,22 @@
       box-shadow: 0 2px 16px #ff546944;
     }
     .section-bottom .sell-btn {
-      background: var(--red);
-      color: #fff;
-      box-shadow: 0 2px 10px #ff546933;
-      border: 2px solid var(--red-dark);
       margin-top: 14px;
       margin-bottom: 10px;
+    }
+    .set-price-btn {
+      background: var(--accent2);
+      color: #fff;
+      box-shadow: 0 2px 10px #3cbfff33;
+      border: 2px solid var(--border2);
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+    .set-price-btn:hover, .set-price-btn:focus {
+      background: #1a8fcc;
+      color: #fff;
+      filter: brightness(1.08);
+      box-shadow: 0 2px 16px #3cbfff44;
     }
     .sell-price-row {
       display: flex;
@@ -452,6 +462,12 @@
       margin-bottom: 6px;
       transition: border 0.14s;
       box-sizing: border-box;
+      -webkit-user-select: text;
+         -moz-user-select: text;
+          -ms-user-select: text;
+              user-select: text;
+      /* Prevent zoom on mobile: */
+      touch-action: manipulation;
     }
     .modal input[type="number"]:focus,
     .modal input[type="text"]:focus {
@@ -561,7 +577,7 @@
       }
       .meme-price { font-size: 11px; padding: 3px 10px 3px 10px; bottom: -23px;}
       .swipe-btn { width: 28px; font-size: 22px; }
-      .buy-btn, .sell-btn { font-size: 11px;}
+      .buy-btn, .sell-btn, .set-price-btn { font-size: 11px;}
       .section-title { font-size: 10px;}
       .sell-price-input { width: 33px; font-size: 9px;}
       .sell-price-row { margin-top: 14px;}
@@ -580,6 +596,11 @@
       .upload-btn {
         min-width: 65px;
       }
+      .set-price-btn {
+        font-size: 10px;
+        width: 64px;
+        height: 22px;
+      }
     }
     @media (max-width: 400px) {
       :root {
@@ -588,7 +609,7 @@
         --btn-h: 18px;
       }
       .meme-price { font-size: 8px; padding: 2px 5px 2px 5px; bottom: -15px;}
-      .buy-btn, .sell-btn { font-size: 8px;}
+      .buy-btn, .sell-btn, .set-price-btn { font-size: 8px;}
       .sell-price-input { width: 22px; font-size: 8px;}
       .swipe-btn { width: 18px; font-size: 15px; }
       .section-title { font-size: 8px;}
@@ -600,6 +621,15 @@
         padding-right: 2px;
         gap: 3px;
       }
+      .set-price-btn {
+        font-size: 8px;
+        width: 44px;
+        height: 13px;
+      }
+    }
+    /* Prevent mobile zoom on input focus for iOS Safari */
+    input, select, textarea {
+      font-size: 16px !important;
     }
   </style>
 </head>
@@ -621,7 +651,6 @@
   </div>
   <div class="main-area">
     <div class="sections-wrapper">
-   
       <div class="section section-bottom">
         <div class="section-title">MY MEMES</div>
         <div class="swipe-area">
@@ -634,13 +663,13 @@
         </div>
         <div class="sell-price-row">
           <span class="sell-price-label">Set Price:</span>
-          <input class="sell-price-input" id="sellPriceInput" type="number" min="0" step="0.01" value="0.02">
+          <input class="sell-price-input" id="sellPriceInput" type="number" min="0" step="0.01" value="0.02" inputmode="decimal" pattern="[0-9]*">
           <span class="material-icons sell-price-coin">monetization_on</span>
         </div>
         <button class="sell-btn" id="mySellBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
       </div>
-	  
-	     <div class="section section-top">
+
+      <div class="section section-top">
         <div class="section-title">MEMES</div>
         <div class="swipe-area">
           <button class="swipe-btn" id="memeLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
@@ -652,22 +681,22 @@
           <button class="swipe-btn" id="memeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
         </div>
         <button class="buy-btn" id="buyBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
+        <button class="set-price-btn" id="setPriceBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Set Price</button>
       </div>
-	  
-	  
-	  
     </div>
   </div>
+
+  <!-- Upload Meme Modal -->
   <div class="modal-bg" id="uploadModalBg">
     <div class="modal" id="uploadModal">
       <button class="modal-close" id="modalCloseBtn" title="Close">&times;</button>
       <div>
         <label for="memeNameInput">Meme Name:</label>
-        <input type="text" id="memeNameInput" maxlength="40" placeholder="Enter meme name" autocomplete="off">
+        <input type="text" id="memeNameInput" maxlength="40" placeholder="Enter meme name" autocomplete="off" inputmode="text">
       </div>
       <div>
         <label for="memePriceInput">Set Price for Meme (MATIC):</label>
-        <input type="number" min="0" step="0.0001" id="memePriceInput" value="0.01">
+        <input type="number" min="0" step="0.0001" id="memePriceInput" value="0.01" inputmode="decimal" pattern="[0-9]*">
       </div>
       <div class="modal-error" id="modalError"></div>
       <div class="modal-btn-row">
@@ -675,11 +704,27 @@
       </div>
     </div>
   </div>
+
+  <!-- Set Price Modal for Top Section -->
+  <div class="modal-bg" id="setPriceModalBg">
+    <div class="modal" id="setPriceModal">
+      <button class="modal-close" id="setPriceModalCloseBtn" title="Close">&times;</button>
+      <div>
+        <label for="setMemePriceInput">Set Price for Meme (MATIC):</label>
+        <input type="number" min="0" step="0.0001" id="setMemePriceInput" value="0.01" inputmode="decimal" pattern="[0-9]*">
+      </div>
+      <div class="modal-error" id="setPriceModalError"></div>
+      <div class="modal-btn-row">
+        <button class="modal-btn" id="confirmSetPriceBtn">Set Price</button>
+      </div>
+    </div>
+  </div>
+
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loadingText">Processing transaction...</div>
   </div>
- <script>
+<script>
   // ---- CONFIG ----
   const CONTRACT_ADDRESS = "0x5E83dd16D25E39bCAFba797B03307b2c3E8c4E11";
   const CONTRACT_ABI = [
@@ -745,6 +790,14 @@
   const modalError = document.getElementById('modalError');
   const sellPriceInput = document.getElementById("sellPriceInput");
   const mySellBtn = document.getElementById("mySellBtn");
+  // New elements for set price popup (top section)
+  const setPriceBtn = document.getElementById("setPriceBtn");
+  const setPriceModalBg = document.getElementById("setPriceModalBg");
+  const setPriceModal = document.getElementById("setPriceModal");
+  const setMemePriceInput = document.getElementById("setMemePriceInput");
+  const setPriceModalError = document.getElementById("setPriceModalError");
+  const confirmSetPriceBtn = document.getElementById("confirmSetPriceBtn");
+  const setPriceModalCloseBtn = document.getElementById("setPriceModalCloseBtn");
 
   // ---- HELPERS ----
   function showLoading(message = 'Processing transaction...') {
@@ -785,7 +838,7 @@
   // ---- WALLET CONNECTION ----
   async function connectWallet() {
     if (typeof window.ethereum === 'undefined') {
-      alert("MetaMask not detected. Please install MetaMask extension to continue.");
+      showModalAlert("MetaMask not detected. Please install MetaMask extension to continue.");
       return;
     }
     connectWalletBtn.disabled = true;
@@ -806,8 +859,7 @@
       connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
       connectWalletBtn.disabled = false;
       if (error.code !== 4001) {
-        console.error("Wallet connection error:", error);
-        alert("Failed to connect wallet: " + (error.message || "Unknown error"));
+        showModalAlert("Failed to connect wallet: " + (error.message || "Unknown error"));
       }
     }
   }
@@ -832,7 +884,7 @@
     });
     window.ethereum.on('chainChanged', async (chainId) => {
       if (chainId !== polygonChainId) {
-        alert("Please switch to the Polygon network to use this app");
+        showModalAlert("Please switch to the Polygon network to use this app");
         connectWalletBtn.disabled = false;
         connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
       } else if (currentAccount) {
@@ -865,8 +917,7 @@
       memeArr.reverse();
       updateCallback(memeArr);
     }, error => {
-      console.error("Firebase error:", error);
-      alert("Failed to load memes. Please check your connection and try again.");
+      showModalAlert("Failed to load memes. Please check your connection and try again.");
     });
   }
   function listenAndDisplayMyMemes(owner, updateCallback) {
@@ -878,8 +929,7 @@
       memeArr.reverse();
       updateCallback(memeArr);
     }, error => {
-      console.error("Firebase error:", error);
-      alert("Failed to load your memes. Please check your connection and try again.");
+      showModalAlert("Failed to load your memes. Please check your connection and try again.");
     });
   }
 
@@ -900,7 +950,7 @@
   uploadModalBg.onclick = (e) => { if (e.target === uploadModalBg) closeModal(); }
   uploadBtn.addEventListener('click', () => {
     if (!currentAccount) {
-      alert("Please connect your wallet before uploading a meme.");
+      showModalAlert("Please connect your wallet before uploading a meme.");
       return;
     }
     uploadInput.value = "";
@@ -910,11 +960,11 @@
     const file = event.target.files && event.target.files[0];
     if (!file) return;
     if (!file.type.match('image.*')) {
-      alert("Please select an image file.");
+      showModalAlert("Please select an image file.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB.");
+      showModalAlert("File size must be less than 5MB.");
       return;
     }
     selectedFile = file;
@@ -960,7 +1010,6 @@
     } catch (err) {
       hideLoading();
       modalError.innerText = "Upload failed: " + (err.message || "Unknown error");
-      console.error("Upload error:", err);
     }
     submitMemeBtn.disabled = false;
     submitMemeBtn.innerText = "Submit Meme";
@@ -1002,11 +1051,10 @@
         tokenId: tokenId
       });
       hideLoading();
-      alert("Success! Your meme has been minted and listed for sale.");
+      showModalAlert("Success! Your meme has been minted and listed for sale.");
     } catch (error) {
       hideLoading();
-      console.error("Mint and list error:", error);
-      alert("Failed to mint and list your NFT: " + (error.message || error));
+      showModalAlert("Failed to mint and list your NFT: " + (error.message || error));
       throw error;
     }
   }
@@ -1028,11 +1076,13 @@
       memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload one!</div>`;
       memePrice.innerText = "";
       memeName.innerText = "";
+      setPriceBtn.style.display = "none";
       return;
     }
     memeCircle.innerHTML = `<img src="${meme.url}" alt="Meme">`;
     memePrice.innerText = meme.price;
     memeName.innerText = meme.name || "";
+    setPriceBtn.style.display = (currentAccount && meme.owner && meme.owner.toLowerCase() === currentAccount.toLowerCase()) ? "block" : "none";
     if (shake) shakeMeme("memeCircle");
   }
   function updateMyMemeCircle(shake=true) {
@@ -1081,17 +1131,17 @@
   });
   mySellBtn.onclick = async function() {
     if (!currentAccount) {
-      alert("Please connect your wallet first.");
+      showModalAlert("Please connect your wallet first.");
       return;
     }
     const meme = myMemes[myMemeIdx];
     if (!meme || !meme.key || !meme.tokenId) {
-      alert("No meme selected or meme data is incomplete.");
+      showModalAlert("No meme selected or meme data is incomplete.");
       return;
     }
     const newPrice = sellPriceInput.value;
     if (!newPrice || isNaN(newPrice) || Number(newPrice) <= 0) {
-      alert("Please enter a valid price greater than 0.");
+      showModalAlert("Please enter a valid price greater than 0.");
       return;
     }
     try {
@@ -1112,59 +1162,50 @@
       myMemes[myMemeIdx].price = `${Number(newPrice)} MATIC`;
       updateMyMemeCircle(false);
       hideLoading();
-      alert("Your meme has been listed for sale!");
+      showModalAlert("Your meme has been listed for sale!");
     } catch (e) {
       hideLoading();
-      console.error("Listing error:", e);
-      alert("Failed to list meme: " + (e.message || "Unknown error"));
+      showModalAlert("Failed to list meme: " + (e.message || "Unknown error"));
     }
   };
 
   // ---- BUY LOGIC ----
   document.getElementById('buyBtn').onclick = async function() {
     if (!currentAccount) {
-      alert("Please connect your wallet first.");
+      showModalAlert("Please connect your wallet first.");
       return;
     }
     const meme = memes[memeIdx];
     if (!meme || !meme.key || !meme.tokenId) {
-      alert("No meme selected or meme data is incomplete.");
+      showModalAlert("No meme selected or meme data is incomplete.");
       return;
     }
     if (!meme.tokenId || isNaN(Number(meme.tokenId))) {
-      alert("Internal error: meme tokenId is invalid.");
+      showModalAlert("Internal error: meme tokenId is invalid.");
       return;
     }
     try {
       showLoading("Checking on-chain listing...");
       const listing = await contract.getListing(meme.tokenId);
-      console.log("DEBUG: getListing result", {
-        tokenId: meme.tokenId,
-        price: listing.price ? listing.price.toString() : null,
-        amount: listing.amount ? listing.amount.toString() : null,
-        seller: listing.seller
-      });
-
-      // Added robust checks and messages for debugging
       if (!listing || !listing.seller) {
-        alert("No listing found for this meme.");
+        showModalAlert("No listing found for this meme.");
         hideLoading();
         return;
       }
       if (listing.seller.toLowerCase() === currentAccount.toLowerCase()) {
-        alert("You cannot buy your own meme!");
+        showModalAlert("You cannot buy your own meme!");
         hideLoading();
         return;
       }
       if (listing.price.eq(0) || listing.amount.lt(1)) {
-        alert(`This meme is not available for sale (not listed or sold out).
+        showModalAlert(`This meme is not available for sale (not listed or sold out).
 On-chain: price=${listing.price.toString()}, amount=${listing.amount.toString()}, seller=${listing.seller}`);
         hideLoading();
         return;
       }
       const sellerBalance = await contract.balanceOf(listing.seller, meme.tokenId);
       if (sellerBalance.lt(1)) {
-        alert("Listing is stale: seller no longer owns the NFT. Please refresh.");
+        showModalAlert("Listing is stale: seller no longer owns the NFT. Please refresh.");
         hideLoading();
         return;
       }
@@ -1173,14 +1214,83 @@ On-chain: price=${listing.price.toString()}, amount=${listing.amount.toString()}
       await buyTx.wait();
       await db.ref('memes/' + meme.key).update({ owner: currentAccount });
       hideLoading();
-      alert("Success! You now own this meme. Check it in MY MEMES section.");
+      showModalAlert("Success! You now own this meme. Check it in MY MEMES section.");
       await listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
     } catch (e) {
       hideLoading();
-      console.error("Buy error:", e);
-      alert("Failed to buy meme: " + (e && (e.data?.message || e.message || JSON.stringify(e))));
+      showModalAlert("Failed to buy meme: " + (e && (e.data?.message || e.message || JSON.stringify(e))));
     }
   };
+
+  // ---- SET PRICE MODAL LOGIC ----
+  setPriceBtn.onclick = function() {
+    const meme = memes[memeIdx];
+    if (!currentAccount || !meme || meme.owner.toLowerCase() !== currentAccount.toLowerCase()) return;
+    setMemePriceInput.value = parseFloat((meme.price||"0.01").replace("MATIC","")) || 0.01;
+    setPriceModalBg.classList.add("active");
+    setMemePriceInput.focus();
+    setPriceModalError.innerText = "";
+  };
+  setPriceModalCloseBtn.onclick = () => setPriceModalBg.classList.remove("active");
+  setPriceModalBg.onclick = (e) => { if (e.target === setPriceModalBg) setPriceModalBg.classList.remove("active"); };
+
+  confirmSetPriceBtn.onclick = async function() {
+    if (!currentAccount) return;
+    const meme = memes[memeIdx];
+    if (!meme || !meme.key || !meme.tokenId || meme.owner.toLowerCase() !== currentAccount.toLowerCase()) return;
+    const newPrice = setMemePriceInput.value;
+    if (!newPrice || isNaN(newPrice) || Number(newPrice) <= 0) {
+      setPriceModalError.innerText = "Please enter a valid price greater than 0.";
+      return;
+    }
+    setPriceModalError.innerText = "";
+    try {
+      showLoading("Approving NFT for marketplace...");
+      const bal = await contract.balanceOf(currentAccount, meme.tokenId);
+      if (bal.eq(0)) throw new Error("You don't own this meme anymore");
+      const isApproved = await contract.isApprovedForAll(currentAccount, CONTRACT_ADDRESS);
+      if (!isApproved) {
+        showLoading("Approving marketplace...");
+        const approveTx = await contract.setApprovalForAll(CONTRACT_ADDRESS, true);
+        await approveTx.wait();
+      }
+      showLoading("Updating listing...");
+      const priceWei = ethers.utils.parseEther(newPrice.toString());
+      const listTx = await contract.listMeme(meme.tokenId, 1, priceWei);
+      await listTx.wait();
+      await db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} MATIC` });
+      memes[memeIdx].price = `${Number(newPrice)} MATIC`;
+      updateMemeCircle(false);
+      setPriceModalBg.classList.remove("active");
+      hideLoading();
+      showModalAlert("Your meme has been listed for sale!");
+    } catch (e) {
+      hideLoading();
+      setPriceModalBg.classList.remove("active");
+      showModalAlert("Failed to list meme: " + (e.message || "Unknown error"));
+    }
+  };
+
+  // ---- BUILT-IN MODAL ALERT ----
+  function showModalAlert(message) {
+    // Re-use upload modal for alert, but no close on bg click
+    let alertModal = document.getElementById('alertModalBg');
+    if (!alertModal) {
+      alertModal = document.createElement('div');
+      alertModal.className = 'modal-bg';
+      alertModal.id = 'alertModalBg';
+      alertModal.innerHTML = `
+        <div class="modal" id="alertModal" style="min-width:200px;max-width:95vw;">
+          <button class="modal-close" id="alertModalCloseBtn" title="Close">&times;</button>
+          <div id="alertModalMsg" style="margin:15px 0 10px 0; color:#ffd26e; text-align:center; font-size:14px;"></div>
+        </div>
+      `;
+      document.body.appendChild(alertModal);
+      document.getElementById('alertModalCloseBtn').onclick = () => alertModal.classList.remove('active');
+    }
+    document.getElementById('alertModalMsg').innerText = message;
+    alertModal.classList.add('active');
+  }
 
   // ---- UI STATE UPDATE ----
   function updateMemesUI(firebaseMemes) {
@@ -1210,6 +1320,12 @@ On-chain: price=${listing.price.toString()}, amount=${listing.amount.toString()}
       })
       .catch(console.error);
   }
+  // Prevent zoom on all inputs on iOS
+  document.querySelectorAll('input,select,textarea').forEach(el => {
+    el.addEventListener('touchstart', function() {
+      this.style.fontSize = '16px';
+    });
+  });
 </script>
 </body>
 </html>
