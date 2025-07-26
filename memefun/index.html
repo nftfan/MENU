@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MEME.FUN NFT Marketplace</title>
+  <title>MEME.FUN</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    /* --- Your existing CSS here (trimmed for brevity, paste your CSS) --- */
-    /* ... (same CSS as your original, keep your circle and layout styles!) ... */
- /* ... Keep your previous CSS here ... */
-    /* For brevity, re-use your original CSS block from your HTML above,
-       but you may want to tweak for the new grid/tab/modal elements.
-       Below are some additions for extra UI: */
+    /* ... all your previous CSS ... */
  :root {
       --primary: #fff;
       --accent: #ffc107;
@@ -77,6 +76,53 @@
       z-index: 10;
       gap: 4px;
       user-select: none;
+    }
+    .wallet-upload-bar {
+      width: 100vw;
+      background: var(--surface1);
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 18px 6px 0;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 11;
+      border-bottom: 1.5px solid var(--divider);
+    }
+    .wallet-btn, .upload-btn {
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      padding: 5px 12px 5px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px #263e5b23;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background .15s;
+      z-index: 20;
+      outline: none;
+      letter-spacing: .4px;
+      min-width: 100px;
+      justify-content: center;
+    }
+    .wallet-btn[disabled], .upload-btn[disabled] {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .upload-btn {
+      background: var(--accent);
+      color: #222;
+      min-width: 88px;
+      margin-right: 2px;
+    }
+    .wallet-btn .material-icons, .upload-btn .material-icons {
+      font-size: 18px;
+      margin-right: 2px;
     }
     .main-area {
       flex: 1;
@@ -350,6 +396,9 @@
       vertical-align: middle;
       filter: drop-shadow(0 0 4px #3cbfff36);
     }
+    #uploadInput {
+      display: none;
+    }
     @media (max-width: 600px) {
       :root {
         --meme-circle-size: 120px;
@@ -365,6 +414,18 @@
       .buy-btn { margin-top: 24px; }
       .sell-btn { margin-top: 12px; }
       .section-bottom .sell-btn { margin-top: 10px; }
+      .wallet-upload-bar {
+        padding-right: 6px;
+        gap: 6px;
+      }
+      .wallet-btn, .upload-btn {
+        font-size: 10px;
+        min-width: 70px;
+        padding: 4px 8px 4px 8px;
+      }
+      .upload-btn {
+        min-width: 65px;
+      }
     }
     @media (max-width: 400px) {
       :root {
@@ -381,1237 +442,504 @@
       .buy-btn { margin-top: 13px; }
       .sell-btn { margin-top: 7px; }
       .section-bottom .sell-btn { margin-top: 7px; }
+      .wallet-upload-bar {
+        padding-right: 2px;
+        gap: 3px;
+      }
     }
-    .status-bar {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 8px 14px;
-      margin: 0;
-      border-radius: 0 0 18px 18px;
-      box-shadow: 0 2px 8px #0003;
-      position: fixed;
-      top: 44px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      min-width: 200px;
-      max-width: 90vw;
-      background: #24243a;
-      color: #fff;
-      transition: background 0.18s;
-      word-break: break-word;
-    }
-    .status-success { background: #212f23; color: #b6ffb0; }
-    .status-error { background: #2a1818; color: #ffb7be; }
-    .status-warn  { background: #333322; color: #ffeea6; }
-    .status-info  { background: #22253a; color: #a3e1ff; }
+    /* extra for modal */
 
-    .tabs {
-      display: flex;
-      gap: 0;
-      width: 100vw;
-      background: #232336;
-      border-bottom: 2px solid #303047;
-      box-shadow: 0 2px 8px #0002;
-      margin-bottom: 0;
-      z-index: 9;
-    }
-    .tab-btn {
-      flex: 1 1 0;
-      text-align: center;
-      font-size: 15px;
-      font-weight: 600;
-      padding: 13px 0 11px 0;
-      background: none;
-      border: none;
-      color: #ffc107;
-      cursor: pointer;
-      outline: none;
-      letter-spacing: .5px;
-      border-bottom: 2.5px solid transparent;
-      transition: color 0.14s, border 0.14s;
-      user-select: none;
-      position: relative;
-    }
-    .tab-btn.active {
-      color: #3cbfff;
-      border-bottom: 2.5px solid #3cbfff;
-      background: #1a2030;
-    }
-    .tab-content {
-      display: none;
-      width: 100vw;
-      min-height: 320px;
-      background: var(--surface1);
-      padding: 0 0 30px 0;
-      overflow-x: hidden;
-      position: relative;
-    }
-    .tab-content.active { display: block; }
-
-    .nft-list {
-      list-style: none;
-      padding: 0;
-      margin: 22px auto 0 auto;
-      max-width: 540px;
-      width: 97vw;
-      display: flex;
-      flex-direction: column;
-      gap: 13px;
-    }
-    .nft-post {
-      display: flex;
-      background: var(--surface2);
-      border-radius: 16px;
-      box-shadow: 0 2px 8px #0002;
-      overflow: hidden;
-      border: 2px solid #232336;
-      align-items: stretch;
-    }
-    .nft-post-left {
-      display: flex;
-      align-items: flex-start;
-      gap: 11px;
-      padding: 10px;
-      flex: 1 1 0;
-      min-width: 0;
-    }
-    .serial-number {
-      font-size: 15px;
-      color: #ffc107;
-      font-weight: 800;
-      margin-right: 7px;
-      min-width: 23px;
-      text-align: right;
-    }
-    .nft-avatar {
-      width: 54px;
-      height: 54px;
-      object-fit: cover;
-      border-radius: 9px;
-      background: #151522;
-      border: 1.5px solid #303047;
-    }
-    .nft-content {
-      flex: 1;
-      min-width: 0;
-    }
-    .nft-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #ffe082;
-      margin-bottom: 2px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .nft-description {
-      font-size: 12px;
-      color: #bfccea;
-      margin-bottom: 2px;
-      margin-top: 2px;
-      line-height: 1.3em;
-      max-width: 240px;
-      word-break: break-word;
-    }
-    .nft-supply {
-      font-size: 11px;
-      color: #3cbfff;
-      margin-left: 7px;
-    }
-    .nft-status-label {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 11px;
-      margin-left: 7px;
-      font-weight: 600;
-      background: #333;
-      border: 1px solid #303047;
-      color: #bfccea;
-    }
-    .nft-status-listed { background: #1b8c4a; color: #caffc0; border-color: #3ad37a; }
-    .nft-status-notlisted { background: #a15353; color: #ffd7d7; border-color: #ff5469; }
-
-    .nft-actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 7px;
-      padding: 10px 13px 10px 0;
-      min-width: 90px;
-    }
-    .price-tab {
-      font-size: 13px;
-      color: #ffd26e;
-      background: #232336;
-      border-radius: 9px;
-      padding: 3px 10px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      min-width: 65px;
-      text-align: right;
-      box-shadow: 0 1px 5px #0002;
-      border: 1.5px solid #ffc107;
-    }
-    .buy-btn {
-      background: #3ad37a;
-      color: #fff;
-      border-radius: 17px;
-      border: 2px solid #1b8c4a;
-      font-size: 15px;
-      font-weight: 700;
-      padding: 5px 17px;
-      box-shadow: 0 2px 10px #25b95a33;
-      margin-top: 0;
-      margin-bottom: 0;
-      cursor: pointer;
-      letter-spacing: .9px;
-      outline: none;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background .13s, color .13s;
-    }
-    .buy-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-    .sell-btn, .delist-btn {
-      background: #ff5469;
-      color: #fff;
-      border-radius: 17px;
-      border: 2px solid #b81e2f;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 4px 13px;
-      box-shadow: 0 2px 10px #ff546933;
-      margin-top: 0;
-      margin-bottom: 0;
-      cursor: pointer;
-      letter-spacing: .5px;
-      outline: none;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      transition: background .13s, color .13s;
-    }
-    .sell-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .delist-btn { background: #505060; border: 2px solid #333; font-size: 12px; }
-    .sold-out {
-      font-size: 12px;
-      color: #ff5469;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-    }
-    .counter-row, .error-row {
-      color: #ffb7be;
-      font-size: 12px;
-      margin: 6px 0 0 12px;
-      display: none;
-    }
-    .counter-row.active, .error-row.active { display: block; }
-
-    /* Sell Modal Overlay */
-    #sellModal {
+    .modal-bg {
       display: none;
       position: fixed;
-      z-index: 999;
+      z-index: 200;
       left: 0; top: 0; right: 0; bottom: 0;
-      background: #0008;
+      background: #000a;
       align-items: center;
       justify-content: center;
     }
-    #sellModal .modal-content {
-      background: #232336;
-      color: #fff;
-      padding: 28px 24px 24px 24px;
+    .modal-bg.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface1);
       border-radius: 18px;
-      box-shadow: 0 4px 30px #0008;
-      max-width: 95vw;
-      min-width: 270px;
-      width: 340px;
-      font-size: 16px;
+      padding: 28px 18px 18px 18px;
+      box-shadow: 0 2px 20px #000a;
+      min-width: 220px;
+      max-width: 94vw;
+      color: #ffd26e;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      align-items: stretch;
-      position: relative;
-    }
-    #sellModal input[type="number"] {
-      background: #161622;
-      color: #c9f7ff;
-      border: 1.5px solid #3cbfff;
-      border-radius: 7px;
-      font-size: 15px;
-      padding: 7px 13px;
-      width: 100%;
-      margin-top: 6px;
-      box-sizing: border-box;
-      font-weight: 600;
-    }
-    #sellModalError {
-      color: #ffb7be;
-      font-size: 13px;
-      margin-top: 2px;
-    }
-    #sellModal .close-btn {
-      position: absolute;
-      right: 13px;
-      top: 13px;
-      color: #aaa;
-      background: none;
-      border: none;
-      font-size: 21px;
-      cursor: pointer;
-    }
-    @media (max-width: 600px) {
-      .nft-list { max-width: 98vw; }
-      #sellModal .modal-content { min-width: 0; width: 97vw; }
-    }
-    .status-bar {
-      display: none;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      position: relative;
+    }
+    .modal label {
+      color: var(--primary);
       font-size: 13px;
       font-weight: 600;
-      padding: 8px 14px;
-      margin: 0;
-      border-radius: 0 0 18px 18px;
-      box-shadow: 0 2px 8px #0003;
-      position: fixed;
-      top: 44px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      min-width: 200px;
-      max-width: 90vw;
-      background: #24243a;
-      color: #fff;
-      transition: background 0.18s;
-      word-break: break-word;
+      margin-bottom: 5px;
+      letter-spacing: 0.1px;
     }
-    .status-success { background: #212f23; color: #b6ffb0; }
-    .status-error { background: #2a1818; color: #ffb7be; }
-    .status-warn  { background: #333322; color: #ffeea6; }
-    .status-info  { background: #22253a; color: #a3e1ff; }
-
-    .tabs {
-      display: flex;
-      gap: 0;
-      width: 100vw;
-      background: #232336;
-      border-bottom: 2px solid #303047;
-      box-shadow: 0 2px 8px #0002;
-      margin-bottom: 0;
-      z-index: 9;
-    }
-    .tab-btn {
-      flex: 1 1 0;
-      text-align: center;
-      font-size: 15px;
+    .modal input[type="number"] {
+      width: 110px;
+      padding: 6px 12px;
+      border: 1.5px solid var(--accent2);
+      border-radius: 10px;
+      font-size: 13px;
       font-weight: 600;
-      padding: 13px 0 11px 0;
+      background: #181824;
+      color: var(--accent2);
+      text-align: right;
+      margin-bottom: 6px;
+      transition: border 0.14s;
+    }
+    .modal input[type="number"]:focus {
+      border: 1.5px solid var(--accent2);
+      background: #101020;
+      outline: none;
+    }
+    .modal-btn-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+    .modal-btn {
+      padding: 7px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0003;
+      background: var(--accent2);
+      color: #fff;
+      transition: filter .14s;
+    }
+    .modal-btn:active {
+      filter: brightness(0.93);
+    }
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 8px;
+      cursor: pointer;
+      color: #65e6ff;
       background: none;
       border: none;
-      color: #ffc107;
-      cursor: pointer;
-      outline: none;
-      letter-spacing: .5px;
-      border-bottom: 2.5px solid transparent;
-      transition: color 0.14s, border 0.14s;
-      user-select: none;
-      position: relative;
+      font-size: 22px;
+      z-index: 10;
     }
-    .tab-btn.active {
-      color: #3cbfff;
-      border-bottom: 2.5px solid #3cbfff;
-      background: #1a2030;
+    .modal-error {
+      color: #ff5469;
+      font-size: 12px;
+      margin-top: -3px;
+      margin-bottom: 3px;
+      font-weight: 500;
     }
-    .tab-content {
-      display: none;
-      width: 100vw;
-      min-height: 320px;
-      background: var(--surface1);
-      padding: 0 0 30px 0;
-      overflow-x: hidden;
-      position: relative;
-    }
-    .tab-content.active { display: block; }
-    /* ... keep your meme circle and button CSS ... */
+    /* ... existing CSS ... */
   </style>
 </head>
 <body>
   <div class="header">
     <span class="material-icons" aria-label="emoji">emoji_emotions</span>
-    MEME.FUN NFT Marketplace
-    <button id="connect-btn" style="margin-left:auto; margin-right:16px; font-weight:600; background:#ffc107; color:#232336; border:none; border-radius:12px; padding:7px 18px; cursor:pointer; font-size:14px;">🔗 Connect Wallet</button>
+    MEME.FUN
   </div>
-  <div id="statusBar" class="status-bar"><span id="statusBarIcon" class="material-icons" style="font-size:18px; margin-right:4px;">info</span><span>Ready</span></div>
-
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-shop"><span class="material-icons" style="font-size:17px;margin-bottom:-3px;">storefront</span> Shop</button>
-    <button class="tab-btn" id="tab-mynfts"><span class="material-icons" style="font-size:17px;margin-bottom:-3px;">account_circle</span> My NFTs</button>
-    <button class="tab-btn" id="tab-listings"><span class="material-icons" style="font-size:17px;margin-bottom:-3px;">swap_horiz</span> Listings</button>
+  <div class="wallet-upload-bar">
+    <button class="upload-btn" id="uploadBtn">
+      <span class="material-icons">cloud_upload</span>
+      Upload Meme
+    </button>
+    <input type="file" accept="image/*" id="uploadInput" />
+    <button class="wallet-btn" id="connectWalletBtn">
+      <span class="material-icons">account_balance_wallet</span>
+      Connect Wallet
+    </button>
   </div>
-
   <div class="main-area">
-    <!-- SHOP TAB with circle UI -->
-    <div class="tab-content active" id="tab-content-shop">
-      <div class="section-title" style="margin:17px 0 0 10px;">NFT SHOP</div>
-      <div class="swipe-area">
-        <button class="swipe-btn" id="shopLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
-        <div class="meme-circle-wrap">
-          <div class="meme-circle" id="shopCircle"></div>
-          <div class="meme-price" id="shopPrice"></div>
+    <div class="sections-wrapper">
+      <!-- Top Section: MEMES -->
+      <div class="section section-top">
+        <div class="section-title">MEMES</div>
+        <div class="swipe-area">
+          <button class="swipe-btn" id="memeLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
+          <div class="meme-circle-wrap">
+            <div class="meme-circle" id="memeCircle"></div>
+            <div class="meme-price" id="memePrice"></div>
+          </div>
+          <button class="swipe-btn" id="memeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
         </div>
-        <button class="swipe-btn" id="shopRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
+        <button class="buy-btn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
       </div>
-      <button class="buy-btn" id="buyBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">shopping_cart</span>Buy</button>
-      <div id="shop-error" class="error-row"></div>
-    </div>
-    <!-- MY NFT TAB with circle UI -->
-    <div class="tab-content" id="tab-content-mynfts">
-      <div class="section-title" style="margin:17px 0 0 10px;">MY NFTs</div>
-      <div class="swipe-area">
-        <button class="swipe-btn" id="myLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
-        <div class="meme-circle-wrap">
-          <div class="meme-circle" id="myCircle"></div>
+
+      <!-- Bottom Section: MY MEMES -->
+      <div class="section section-bottom">
+        <div class="section-title">MY MEMES</div>
+        <div class="swipe-area">
+          <button class="swipe-btn" id="myMemeLeftBtn" tabindex="0"><span class="material-icons">chevron_left</span></button>
+          <div class="meme-circle-wrap">
+            <div class="meme-circle" id="myMemeCircle"></div>
+          </div>
+          <button class="swipe-btn" id="myMemeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
         </div>
-        <button class="swipe-btn" id="myRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
+        <div class="sell-price-row">
+          <span class="sell-price-label">Set Price:</span>
+          <input class="sell-price-input" id="sellPriceInput" type="number" min="0" step="0.01" value="0.02">
+          <span class="material-icons sell-price-coin">monetization_on</span>
+        </div>
+        <button class="sell-btn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
       </div>
-      <div class="sell-price-row">
-        <span class="sell-price-label">Set Price:</span>
-        <input class="sell-price-input" id="mySellPriceInput" type="number" min="0" step="0.01" value="0.02">
-        <span class="material-icons sell-price-coin">monetization_on</span>
-      </div>
-      <button class="sell-btn" id="sellBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
-      <div id="my-error" class="error-row"></div>
-    </div>
-    <!-- LISTINGS tab, keep as grid or compact display if wanted -->
-    <div class="tab-content" id="tab-content-listings">
-      <div class="section-title" style="margin:17px 0 0 10px;">User Listings</div>
-      <div id="listings-loading" class="counter-row active" style="color:#bfccea;">Loading user listings...</div>
-      <div id="listings-error" class="error-row"></div>
-      <ul class="nft-list" id="listingsGrid"></ul>
     </div>
   </div>
 
-  <!-- Sell Modal (hidden for now) -->
-  <div id="sellModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1000;align-items:center;justify-content:center;background:#0008;">
-    <div class="modal-content" style="background:#232336;color:#fff;padding:28px 24px 24px 24px;border-radius:18px;max-width:95vw;min-width:270px;width:340px;font-size:16px;display:flex;flex-direction:column;gap:18px;align-items:stretch;position:relative;">
-      <button class="close-btn" onclick="closeSellModal()" style="position:absolute;right:13px;top:13px;color:#aaa;background:none;border:none;font-size:21px;cursor:pointer;"><span class="material-icons">close</span></button>
-      <div style="font-weight:700;">Sell NFT <span id="sellTokenId"></span></div>
-      <div>Amount (max <span id="sellMaxAmount">?</span>): <input id="sellAmountInput" type="number" min="1" value="1" step="1" /></div>
-      <div>Price (in MATIC): <input id="sellPriceInput" type="number" min="0.00001" step="0.00001" placeholder="e.g. 0.02" /></div>
-      <div id="sellModalError" style="color:#ffb7be;font-size:13px;"></div>
-      <button class="sell-btn" onclick="confirmSellNFT()" style="margin-top:11px;"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Confirm Sell</button>
+  <!-- Upload Meme Modal -->
+  <div class="modal-bg" id="uploadModalBg">
+    <div class="modal" id="uploadModal">
+      <button class="modal-close" id="modalCloseBtn" title="Close">&times;</button>
+      <div>
+        <label for="memePriceInput">Set Price for Meme (POL):</label><br>
+        <input type="number" min="0" step="0.0001" id="memePriceInput" value="0.01">
+      </div>
+      <div class="modal-error" id="modalError"></div>
+      <div class="modal-btn-row">
+        <button class="modal-btn" id="submitMemeBtn">Submit Meme</button>
+      </div>
     </div>
   </div>
 
- // Import Web3 via CDN in your HTML: <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-<script>
-// --- CONFIG ---
-const POLYGON_PARAMS = {
-  chainId: "0x89",
-  chainName: "Polygon Mainnet",
-  nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-  rpcUrls: [
-    "https://polygon-rpc.com/",
-    "https://rpc.polygon.technology/",
-    "https://rpc-mainnet.matic.network/",
-  ],
-  blockExplorerUrls: ["https://polygonscan.com/"],
-};
-const NFTFAN_SHOP_CA = "0x668F3F71D33E77ac12447C77231a4B373ce2A6fE";
-// ABI truncated for brevity, use the full ABI you provided in your question
-const NFTFAN_SHOP_ABI = [/* ...full ABI as in your code... */];
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-// --- GLOBALS ---
-let userAccount = null,
-  web3,
-  nftfanShop = null,
-  lastError = null;
-let sellModalTokenId = null,
-  sellModalMaxAmount = null;
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
+    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
+    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-let permanentlySoldOutIds = JSON.parse(
-  localStorage.getItem("nftfans_permanently_sold_out_ids") || "[]"
-);
+    // Polygon network parameters (mainnet)
+    const polygonChainId = '0x89'; // 137
+    const polygonChainData = {
+      chainId: polygonChainId,
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: {
+        name: 'MATIC',
+        symbol: 'MATIC',
+        decimals: 18
+      },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
 
-// --- STATUS BAR & ERROR HANDLING ---
-function setStatusBar(type, message) {
-  const statusBar = document.getElementById("statusBar");
-  const iconSpan = document.getElementById("statusBarIcon");
-  statusBar.className = `status-bar status-${type}`;
-  if (iconSpan) {
-    if (type === "success") iconSpan.textContent = "check_circle";
-    else if (type === "error") iconSpan.textContent = "error";
-    else if (type === "warn") iconSpan.textContent = "warning";
-    else iconSpan.textContent = "info";
-  }
-  statusBar.style.display = "flex";
-  statusBar.textContent = "";
-  statusBar.appendChild(iconSpan);
-  statusBar.appendChild(document.createTextNode(message));
-}
-function updateStatus(message, type = "info") {
-  setStatusBar(type, message);
-}
-function logError(error, context = "") {
-  lastError = `${context}: ${error.message || error}`;
-}
-function showError(elementId, message) {
-  const errorEl = document.getElementById(elementId);
-  if (errorEl) {
-    errorEl.textContent = message;
-    errorEl.style.display = "block";
-  }
-  updateStatus(message, "error");
-}
-function hideError(elementId) {
-  const el = document.getElementById(elementId);
-  if (el) el.style.display = "none";
-}
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    let currentAccount = null;
 
-// --- WALLET & CONTRACT INIT ---
-async function connectWallet() {
-  try {
-    updateStatus("Connecting wallet...", "info");
-    if (!window.ethereum)
-      throw new Error("Please install MetaMask or a compatible wallet!");
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
-    if (chainId !== POLYGON_PARAMS.chainId) {
-      updateStatus("Switching to Polygon network...", "info");
+    function isMetaMaskInstalled() {
+      return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
+    }
+
+    async function switchToPolygon() {
+      if (!window.ethereum) return;
       try {
         await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: POLYGON_PARAMS.chainId }],
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: polygonChainId }]
         });
       } catch (switchError) {
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [POLYGON_PARAMS],
-          });
-        } else {
-          throw switchError;
-        }
-      }
-    }
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    userAccount = accounts[0];
-    document.getElementById("connect-btn").textContent = formatAddress(userAccount);
-    await setupContracts();
-    updateStatus("Connected successfully", "success");
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-  } catch (error) {
-    console.error("connectWallet failed:", error);
-    logError(error, "Wallet Connection");
-    updateStatus("Connection failed: " + error.message, "error");
-  }
-}
-
-async function setupContracts() {
-  try {
-    updateStatus("Setting up contracts...", "info");
-    let provider = null;
-    if (window.ethereum) {
-      provider = window.ethereum;
-    } else {
-      for (const rpcUrl of POLYGON_PARAMS.rpcUrls) {
-        try {
-          const testWeb3 = new Web3(rpcUrl);
-          await testWeb3.eth.getBlockNumber();
-          provider = rpcUrl;
-          break;
-        } catch (e) { }
-      }
-    }
-    if (!provider) throw new Error("No working RPC provider found");
-    web3 = new Web3(provider);
-    nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
-    updateStatus("Contracts initialized", "success");
-  } catch (error) {
-    logError(error, "Contract Setup");
-    updateStatus("Contract setup failed: " + error.message, "error");
-    throw error;
-  }
-}
-
-// --- METADATA FETCH ---
-async function fetchOpenSeaMeta(uri) {
-  if (!uri) return null;
-  try {
-    if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.slice(7);
-    if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.slice(5);
-    const res = await fetch(uri, { mode: "cors" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (e) {
-    updateStatus("Metadata fetch failed: " + (uri || "unknown"), "warn");
-    return null;
-  }
-}
-
-// --- UTILITIES ---
-function formatAddress(address) {
-  if (!address) return "";
-  return `${address.slice(0, 5)}...${address.slice(-4)}`;
-}
-function markPermanentlySoldOut(tokenId) {
-  if (!permanentlySoldOutIds.includes(tokenId)) {
-    permanentlySoldOutIds.push(tokenId);
-    localStorage.setItem(
-      "nftfans_permanently_sold_out_ids",
-      JSON.stringify(permanentlySoldOutIds)
-    );
-  }
-}
-
-// --- SHOP NFT LIST (FULL LIST) ---
-async function loadShopNFTs() {
-  const shopGrid = document.getElementById("shopGrid");
-  const loading = document.getElementById("shop-loading");
-  const countEl = document.getElementById("shop-count");
-  shopGrid.innerHTML = "";
-  loading.style.display = "block";
-  shopGrid.style.display = "none";
-  countEl.style.display = "none";
-  hideError("shop-error");
-  try {
-    updateStatus("Loading shop NFTs...", "info");
-    if (!nftfanShop) await setupContracts();
-    const result = await nftfanShop.methods.getShopNFTs().call();
-    const { ids, uris, prices, isForSale, shopAmounts, maxSupplies } = result;
-    if (!ids.length) {
-      loading.textContent = "No NFTs in Shop";
-      countEl.textContent = "T: 0";
-      countEl.style.display = "block";
-      updateStatus("No NFTs in shop", "info");
-      return;
-    }
-    updateStatus(`Loading metadata for ${ids.length} NFTs...`, "info");
-    const metaArr = await Promise.all(
-      uris.map(async (uri) => await fetchOpenSeaMeta(uri))
-    );
-    let html = "";
-    let visibleCount = 0;
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i],
-        meta = metaArr[i],
-        name = meta?.name || `NFTFAN #${id}`,
-        img = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT",
-        desc = meta?.description || "",
-        price = web3.utils.fromWei(prices[i], "ether"),
-        forSale = isForSale[i],
-        available = shopAmounts[i],
-        maxSupply = maxSupplies ? maxSupplies[i] : "";
-      let statusBadge = "";
-      if (forSale && available > 0)
-        statusBadge = `<span class="nft-status-label nft-status-listed">Listed</span>`;
-      else
-        statusBadge = `<span class="nft-status-label nft-status-notlisted">Not listed</span>`;
-      html += `<li class="nft-post">
-        <div class="nft-post-left">
-          <span class="serial-number">${++visibleCount}</span>
-          <img class="nft-avatar" src="${img}" alt="NFT ${name}" onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-          <div class="nft-content">
-            <div class="nft-title">${name}
-              ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ""}
-            </div>
-            <div class="nft-description">${
-              desc ? desc.substring(0, 60) + (desc.length > 60 ? "..." : "") : ""
-            }</div>
-            ${statusBadge}
-          </div>
-        </div>
-        <div class="nft-actions">
-          <div class="price-tab">${price} POL</div>
-          ${
-            forSale && available != "0"
-              ? `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${
-                  !userAccount ? "disabled" : ""
-                }><span class="material-icons">shopping_cart</span>Buy</button>`
-              : `<div class="sold-out"><span class="material-icons">block</span>Sold Out</div>`
-          }
-        </div>
-      </li>`;
-    }
-    shopGrid.innerHTML = html;
-    loading.style.display = "none";
-    shopGrid.style.display = visibleCount > 0 ? "block" : "none";
-    countEl.textContent = `T: ${visibleCount}`;
-    countEl.style.display = "block";
-    if (visibleCount === 0) {
-      loading.textContent = "No NFTs available in shop.";
-      loading.style.display = "block";
-    }
-    updateStatus("Shop loaded", "success");
-  } catch (error) {
-    logError(error, "Shop Loading");
-    showError("shop-error", "Failed to load NFTs: " + error.message);
-    countEl.textContent = "T: 0";
-    countEl.style.display = "block";
-  }
-}
-
-// --- USER NFTS ---
-async function loadUserNFTs() {
-  const myGrid = document.getElementById("myGrid");
-  const loading = document.getElementById("my-loading");
-  const countEl = document.getElementById("mynfts-count");
-  myGrid.innerHTML = "";
-  loading.style.display = "block";
-  myGrid.style.display = "none";
-  countEl.style.display = "none";
-  hideError("my-error");
-  if (!userAccount) {
-    loading.textContent = "Connect wallet to view your NFTs.";
-    countEl.textContent = "T: 0";
-    countEl.style.display = "block";
-    updateStatus("Connect wallet to view your NFTs", "info");
-    return;
-  }
-  try {
-    updateStatus("Loading your NFTs...", "info");
-    if (!nftfanShop) await setupContracts();
-    const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-    const { tokenIds, amounts } = tokens;
-    let metaArr = await Promise.all(
-      tokenIds.map(async (id, idx) => {
-        try {
-          let meta = await nftfanShop.methods.nftInfo(id).call();
-          let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-          let listings = await nftfanShop.methods.getListings(id).call();
-          let userListings = listings
-            .map((l, index) => ({ ...l, listingIndex: index }))
-            .filter(
-              (l) =>
-                l.seller.toLowerCase() === userAccount.toLowerCase() &&
-                Number(l.amount) > 0
-            );
-          return { id, amount: amounts[idx], meta, metaJson, userListings };
-        } catch (e) {
-          return { id, amount: amounts[idx], meta: null, metaJson: null, userListings: [] };
-        }
-      })
-    );
-    // Include NFTs with listings even if amount is 0
-    let additionalListings = [];
-    const allShopNFTs = await nftfanShop.methods.getShopNFTs().call();
-    for (let i = 0; i < allShopNFTs.ids.length; i++) {
-      const id = allShopNFTs.ids[i];
-      if (!tokenIds.includes(id)) {
-        try {
-          let listings = await nftfanShop.methods.getListings(id).call();
-          let userListings = listings
-            .map((l, index) => ({ ...l, listingIndex: index }))
-            .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
-          if (userListings.length > 0) {
-            let meta = await nftfanShop.methods.nftInfo(id).call();
-            let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-            additionalListings.push({
-              id,
-              amount: 0,
-              meta,
-              metaJson,
-              userListings,
+        // Chain not added to wallet
+        if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [polygonChainData]
             });
+          } catch (addError) {
+            alert('Failed to add Polygon network');
           }
-        } catch (e) { }
+        } else {
+          alert('Could not switch to Polygon: ' + switchError.message);
+        }
       }
     }
-    metaArr = metaArr.concat(additionalListings);
-    if (!metaArr.length) {
-      loading.textContent = "You own no NFTs and have no active listings.";
-      countEl.textContent = "T: 0";
-      countEl.style.display = "block";
-      updateStatus("No NFTs or listings found", "info");
-      return;
-    }
-    let html = "";
-    for (let i = 0; i < metaArr.length; i++) {
-      const item = metaArr[i];
-      const { id, amount, meta, metaJson, userListings } = item;
-      const name = metaJson?.name || `NFTFAN #${id}`;
-      const img =
-        metaJson?.image || (meta?.tokenURI || "https://via.placeholder.com/92x92?text=NFT");
-      const desc = metaJson?.description || "";
-      const maxSupply = meta?.maxSupply || "";
-      let listingsHtml = "";
-      if (userListings.length > 0) {
-        listingsHtml = `<div class="nft-listings" style="margin-top:5px;font-size:8px;color:#93c5fd;">Your Listings:</div>`;
-        listingsHtml += userListings
-          .map(
-            (l) => `
-              <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
-                <span>Price: ${web3.utils.fromWei(l.price, "ether")} POL</span>
-                <span>Amount: ${l.amount}</span>
-                <button class="delist-btn" onclick="cancelListing(${id}, ${l.listingIndex})">
-                  <span class="material-icons">cancel</span>Delist
-                </button>
-              </div>`
-          )
-          .join("");
-      }
-      html += `<li class="nft-post">
-        <div class="nft-post-left">
-          <span class="serial-number">${i + 1}</span>
-          <img class="nft-avatar" src="${img}" alt="NFT ${name}" 
-               onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-          <div class="nft-content">
-            <div class="nft-title">${name}
-              ${maxSupply ? `<span class="nft-supply">· Max: ${maxSupply}</span>` : ""}
-            </div>
-            <div class="nft-description">${
-              desc ? desc.substring(0, 60) + (desc.length > 60 ? "..." : "") : ""
-            }</div>
-            <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">You own: ${amount}</div>
-            <button class="sell-btn" style="margin-top:5px;width:90px;" 
-                    onclick="openSellModal(${id}, ${amount})" 
-                    ${amount == 0 ? "disabled" : ""}>
-              <span class="material-icons">sell</span>Sell
-            </button>
-            ${listingsHtml}
-          </div>
-        </div>
-      </li>`;
-    }
-    myGrid.innerHTML = html;
-    loading.style.display = "none";
-    myGrid.style.display = "block";
-    countEl.textContent = `T: ${metaArr.length}`;
-    countEl.style.display = "block";
-    updateStatus("Your NFTs loaded", "success");
-  } catch (error) {
-    logError(error, "User NFTs Loading");
-    showError("my-error", "Failed to load your NFTs: " + error.message);
-    countEl.textContent = "T: 0";
-    countEl.style.display = "block";
-  }
-}
 
-// --- USER LISTINGS (ALL USERS EXCEPT CREATOR) ---
-async function loadUserListings() {
-  const listingsGrid = document.getElementById("listingsGrid");
-  const loading = document.getElementById("listings-loading");
-  const countEl = document.getElementById("listings-count");
-  listingsGrid.innerHTML = "";
-  loading.style.display = "block";
-  listingsGrid.style.display = "none";
-  countEl.style.display = "none";
-  hideError("listings-error");
-  try {
-    updateStatus("Loading user listings...", "info");
-    if (!nftfanShop) await setupContracts();
-    const result = await nftfanShop.methods.getShopNFTs().call();
-    const { ids, uris } = result;
-    if (!ids.length) {
-      loading.textContent = "No NFTs in Shop";
-      countEl.textContent = "T: 0";
-      countEl.style.display = "block";
-      updateStatus("No NFTs in shop", "info");
-      return;
-    }
-    let allListings = [];
-    for (let i = 0; i < ids.length; i++) {
+    async function connectWallet() {
+      if (!isMetaMaskInstalled()) {
+        alert("MetaMask not detected. Please install MetaMask extension to continue.");
+        return;
+      }
+      connectWalletBtn.disabled = true;
+      connectWalletBtn.innerHTML = '<span class="material-icons">hourglass_top</span>Connecting...';
       try {
-        const id = ids[i];
-        const uri = uris[i];
-        const listings = await nftfanShop.methods.getListings(id).call();
-        const meta = await nftfanShop.methods.nftInfo(id).call();
-        const originalCreator = meta.originalCreator;
-        const filtered = listings
-          .map((l, index) => ({ ...l, id, uri, meta, listingIndex: index }))
-          .filter(
-            (l) =>
-              l.seller.toLowerCase() !== originalCreator.toLowerCase() &&
-              Number(l.amount) > 0
-          );
-        allListings = allListings.concat(filtered);
-      } catch (e) { }
+        // Switch to Polygon first
+        await switchToPolygon();
+        // Request accounts
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          currentAccount = accounts[0];
+          connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>' + currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
+          connectWalletBtn.disabled = true;
+          // Load memes for myMemes section
+          listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
+        } else {
+          connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
+          connectWalletBtn.disabled = false;
+        }
+      } catch (error) {
+        connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
+        connectWalletBtn.disabled = false;
+        if (error.code !== 4001) { // Not user rejected
+          alert("Failed to connect wallet: " + error.message);
+        }
+      }
     }
-    if (!allListings.length) {
-      loading.textContent = "No other user listings yet.";
-      countEl.textContent = "T: 0";
-      countEl.style.display = "block";
-      updateStatus("No user listings", "info");
-      return;
-    }
-    updateStatus(`Loading metadata for ${allListings.length} listings...`, "info");
-    let html = "";
-    for (let i = 0; i < allListings.length; i++) {
-      const l = allListings[i];
-      let metaJson = await fetchOpenSeaMeta(l.meta.tokenURI);
-      let name = metaJson?.name || `NFTFAN #${l.id}`;
-      let img =
-        metaJson?.image || l.meta.tokenURI || "https://via.placeholder.com/92x92?text=NFT";
-      let desc = metaJson?.description || "";
-      let price = web3.utils.fromWei(l.price, "ether");
-      html += `<li class="nft-post">
-        <div class="nft-post-left">
-          <span class="serial-number">${i + 1}</span>
-          <img class="nft-avatar" src="${img}" alt="NFT ${name}" 
-               onerror="this.src='https://via.placeholder.com/92x92?text=NFT'">
-          <div class="nft-content">
-            <div class="nft-title">${name}
-              ${l.meta.maxSupply ? `<span class="nft-supply">· Max: ${l.meta.maxSupply}</span>` : ""}
-            </div>
-            <div class="nft-description">${
-              desc ? desc.substring(0, 60) + (desc.length > 60 ? "..." : "") : ""
-            }</div>
-            <div class="nft-supply" style="margin-top:3px;color:#60a5fa;">Seller: ${formatAddress(
-              l.seller
-            )}</div>
-          </div>
-        </div>
-        <div class="nft-actions">
-          <div class="price-tab">${price} POL</div>
-          <button class="buy-btn" onclick="buyUserListing('${l.id}', '${l.seller}', '${
-            l.price
-          }', '${l.amount}')" ${!userAccount ? "disabled" : ""}>
-            <span class="material-icons">shopping_cart</span>Buy
-          </button>
-        </div>
-      </li>`;
-    }
-    listingsGrid.innerHTML = html;
-    loading.style.display = "none";
-    listingsGrid.style.display = "block";
-    countEl.textContent = `T: ${allListings.length}`;
-    countEl.style.display = "block";
-    updateStatus("User listings loaded", "success");
-  } catch (error) {
-    logError(error, "User Listings Loading");
-    showError("listings-error", "Failed to load user listings: " + error.message);
-    countEl.textContent = "T: 0";
-    countEl.style.display = "block";
-  }
-}
 
-// --- NFT BUY/SELL/DELIST ---
-window.buyNFT = async function (tokenId, priceWei, availableAmount) {
-  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-  let amount = 1;
-  if (availableAmount > 1) {
-    let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
-    if (!input) return;
-    amount = parseInt(input);
-    if (isNaN(amount) || amount < 1 || amount > availableAmount)
-      return updateStatus("Invalid amount", "error");
-  }
-  try {
-    updateStatus("Processing purchase...", "info");
-    await nftfanShop.methods.buyNFT(tokenId, amount).send({
-      from: userAccount,
-      value: (BigInt(priceWei) * BigInt(amount)).toString(),
-    });
-    updateStatus("NFT bought successfully!", "success");
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-  } catch (error) {
-    logError(error, "NFT Purchase");
-    updateStatus("Purchase failed: " + error.message, "error");
-  }
-};
+    connectWalletBtn.addEventListener('click', connectWallet);
 
-window.buyUserListing = async function (tokenId, seller, priceWei, availableAmount) {
-  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-  let amount = 1;
-  if (availableAmount > 1) {
-    let input = prompt(`How many would you like to buy from user? (max ${availableAmount})`, "1");
-    if (!input) return;
-    amount = parseInt(input);
-    if (isNaN(amount) || amount < 1 || amount > availableAmount)
-      return updateStatus("Invalid amount", "error");
-  }
-  try {
-    updateStatus("Processing purchase...", "info");
-    await nftfanShop.methods.buyNFT(tokenId, amount).send({
-      from: userAccount,
-      value: (BigInt(priceWei) * BigInt(amount)).toString(),
-    });
-    updateStatus("NFT bought successfully!", "success");
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-  } catch (error) {
-    logError(error, "NFT User Listing Purchase");
-    updateStatus("Purchase failed: " + error.message, "error");
-  }
-};
-
-window.cancelListing = async function (tokenId, listingIndex) {
-  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-  if (!confirm("Are you sure you want to delist this NFT?")) return;
-  try {
-    updateStatus("Delisting NFT...", "info");
-    await nftfanShop.methods
-      .cancelListing(tokenId, listingIndex)
-      .send({ from: userAccount });
-    updateStatus("NFT delisted successfully!", "success");
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-  } catch (error) {
-    logError(error, "Delist NFT");
-    updateStatus("Delist failed: " + error.message, "error");
-  }
-};
-
-window.openSellModal = function (tokenId, maxAmount) {
-  sellModalTokenId = tokenId;
-  sellModalMaxAmount = maxAmount;
-  document.getElementById("sellModal").style.display = "flex";
-  document.getElementById("sellTokenId").textContent = tokenId;
-  document.getElementById("sellMaxAmount").textContent = maxAmount;
-  document.getElementById("sellAmountInput").value = "";
-  document.getElementById("sellAmountInput").max = maxAmount;
-  document.getElementById("sellPriceInput").value = "";
-  document.getElementById("sellModalError").textContent = "";
-};
-
-window.closeSellModal = function () {
-  document.getElementById("sellModal").style.display = "none";
-  sellModalTokenId = null;
-  sellModalMaxAmount = null;
-};
-
-window.confirmSellNFT = async function () {
-  const amount = parseInt(document.getElementById("sellAmountInput").value);
-  const price = document.getElementById("sellPriceInput").value;
-  document.getElementById("sellModalError").textContent = "";
-  if (!userAccount) return document.getElementById("sellModalError").textContent = "Connect your wallet first!";
-  if (!amount || isNaN(amount) || amount < 1 || amount > sellModalMaxAmount)
-    return document.getElementById("sellModalError").textContent = "Invalid amount!";
-  if (!price || isNaN(price) || Number(price) <= 0)
-    return document.getElementById("sellModalError").textContent = "Invalid price!";
-  let priceWei = "0";
-  try {
-    priceWei = web3.utils.toWei(price, "ether");
-  } catch {
-    return document.getElementById("sellModalError").textContent = "Invalid price.";
-  }
-  try {
-    updateStatus("Processing sale...", "info");
-    await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
-    updateStatus("NFT listed for sale!", "success");
-    closeSellModal();
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-  } catch (error) {
-    logError(error, "NFT Sale");
-    updateStatus("Sale listing failed: " + error.message, "error");
-    document.getElementById("sellModalError").textContent = "Sale failed: " + error.message;
-  }
-};
-
-window.onclick = function (event) {
-  const modal = document.getElementById("sellModal");
-  if (event.target === modal) closeSellModal();
-};
-
-// --- CIRCLE UI LOGIC ---
-let shopNFTs = [], shopIdx = 0, shopNFTsMeta = [];
-let myNFTs = [], myIdx = 0, myNFTsMeta = [];
-
-async function showShopNFT(idxChange = 0) {
-  if (shopNFTs.length === 0) {
-    document.getElementById('shopCircle').innerHTML = '';
-    document.getElementById('shopPrice').innerHTML = '';
-    return;
-  }
-  shopIdx = (shopIdx + idxChange + shopNFTs.length) % shopNFTs.length;
-  const nft = shopNFTs[shopIdx];
-  const meta = shopNFTsMeta[shopIdx] || {};
-  document.getElementById('shopCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
-  document.getElementById('shopPrice').innerText = nft.price ? (web3.utils.fromWei(nft.price, "ether") + " MATIC") : '';
-}
-
-async function showMyNFT(idxChange = 0) {
-  if (myNFTs.length === 0) {
-    document.getElementById('myCircle').innerHTML = '';
-    return;
-  }
-  myIdx = (myIdx + idxChange + myNFTs.length) % myNFTs.length;
-  const nft = myNFTs[myIdx];
-  const meta = myNFTsMeta[myIdx] || {};
-  document.getElementById('myCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
-  document.getElementById('mySellPriceInput').value = '';
-}
-
-async function fetchShopCircleNFTs() {
-  if (!nftfanShop) await setupContracts();
-  const result = await nftfanShop.methods.getShopNFTs().call();
-  shopNFTs = [];
-  shopNFTsMeta = [];
-  for (let i = 0; i < result.ids.length; i++) {
-    if (result.isForSale[i] && Number(result.shopAmounts[i]) > 0) {
-      shopNFTs.push({ id: result.ids[i], price: result.prices[i], uri: result.uris[i] });
-      let meta = await fetchOpenSeaMeta(result.uris[i]);
-      shopNFTsMeta.push(meta || {});
-    }
-  }
-  shopIdx = 0;
-  showShopNFT(0);
-}
-
-async function fetchMyCircleNFTs() {
-  if (!userAccount) return;
-  if (!nftfanShop) await setupContracts();
-  const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-  myNFTs = [];
-  myNFTsMeta = [];
-  for (let i = 0; i < tokens.tokenIds.length; i++) {
-    if (Number(tokens.amounts[i]) > 0) {
-      const id = tokens.tokenIds[i];
-      let meta = await nftfanShop.methods.nftInfo(id).call();
-      let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-      myNFTs.push({ id, meta });
-      myNFTsMeta.push(metaJson || {});
-    }
-  }
-  myIdx = 0;
-  showMyNFT(0);
-}
-
-// --- BUTTON EVENT BINDINGS (Needs to be run after DOM is loaded) ---
-function bindCircleUIEvents() {
-  document.getElementById('shopLeftBtn').onclick = () => showShopNFT(-1);
-  document.getElementById('shopRightBtn').onclick = () => showShopNFT(1);
-  document.getElementById('myLeftBtn').onclick = () => showMyNFT(-1);
-  document.getElementById('myRightBtn').onclick = () => showMyNFT(1);
-
-  document.getElementById('buyBtn').onclick = async function () {
-    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-    if (!shopNFTs[shopIdx]) return;
-    const nft = shopNFTs[shopIdx];
-    try {
-      updateStatus("Processing purchase...", "info");
-      await nftfanShop.methods.buyNFT(nft.id, 1).send({
-        from: userAccount,
-        value: nft.price,
+    // Re-enable connect button if wallet disconnects
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        if (!accounts.length) {
+          currentAccount = null;
+          connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
+          connectWalletBtn.disabled = false;
+          // Clear my memes if disconnected
+          myMemes = [];
+          myMemeIdx = 0;
+          updateMyMemeCircle(false);
+        } else {
+          currentAccount = accounts[0];
+          connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>' + currentAccount.slice(0, 6) + '...' + currentAccount.slice(-4);
+          connectWalletBtn.disabled = true;
+          listenAndDisplayMyMemes(currentAccount, updateMyMemesUI);
+        }
       });
-      updateStatus("NFT bought successfully!", "success");
-      await fetchShopCircleNFTs();
-      await fetchMyCircleNFTs();
-      await loadShopNFTs();
-      await loadUserNFTs();
-      await loadUserListings();
-    } catch (e) {
-      updateStatus("Buy failed: " + (e?.message || e), "error");
-    }
-  };
-
-  document.getElementById('sellBtn').onclick = function () {
-    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-    if (!myNFTs[myIdx]) return;
-    const nft = myNFTs[myIdx];
-    document.getElementById("sellModal").style.display = "flex";
-    document.getElementById("sellTokenId").textContent = nft.id;
-    document.getElementById("sellMaxAmount").textContent = nft.meta.currentSupply || "1";
-    document.getElementById("sellAmountInput").value = "1";
-    document.getElementById("sellAmountInput").max = nft.meta.currentSupply || "1";
-    document.getElementById("sellPriceInput").value = "";
-    document.getElementById("sellModalError").textContent = "";
-    window.sellModalTokenId = nft.id;
-    window.sellModalMaxAmount = nft.meta.currentSupply || 1;
-  };
-}
-
-// --- TAB LOGIC ---
-function showTab(tab) {
-  ['shop', 'mynfts', 'listings'].forEach(t => {
-    const content = document.getElementById('tab-content-' + t);
-    if (content) content.style.display = (t === tab) ? 'block' : 'none';
-    const btn = document.getElementById('tab-' + t);
-    if (btn) btn.classList.toggle('active', t === tab);
-  });
-  if (tab === 'shop') fetchShopCircleNFTs();
-  if (tab === 'mynfts') fetchMyCircleNFTs();
-  if (tab === 'listings') loadUserListings();
-}
-
-// --- DOMContentLoaded MAIN INIT ---
-window.addEventListener("DOMContentLoaded", async () => {
-  try {
-    updateStatus("Initializing...", "info");
-    await setupContracts();
-    await fetchShopCircleNFTs();
-    await fetchMyCircleNFTs();
-    bindCircleUIEvents();
-    updateStatus("Ready", "success");
-    // Main tab events
-    document.getElementById('connect-btn').onclick = connectWallet;
-    document.getElementById('tab-shop').onclick = () => showTab('shop');
-    document.getElementById('tab-mynfts').onclick = () => showTab('mynfts');
-    document.getElementById('tab-listings').onclick = () => showTab('listings');
-    // Default tab
-    showTab('shop');
-    // Full list for tabs
-    await loadShopNFTs();
-    await loadUserNFTs();
-    await loadUserListings();
-  } catch (error) {
-    logError(error, "Initialization");
-    updateStatus("Initialization failed: " + error.message, "error");
-    showError("shop-error", "Failed to initialize the application. Please refresh.");
-  }
-});
-
-// --- Wallet Events ---
-if (window.ethereum) {
-  window.ethereum.on("accountsChanged", function (accounts) {
-    userAccount = accounts[0] || null;
-    const connectBtn = document.getElementById("connect-btn");
-    connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
-    if (userAccount) {
-      setupContracts().then(() => {
-        fetchShopCircleNFTs();
-        fetchMyCircleNFTs();
-        loadShopNFTs();
-        loadUserNFTs();
-        loadUserListings();
-        updateStatus("Account changed", "success");
+      window.ethereum.on('chainChanged', (chainId) => {
+        if (chainId !== polygonChainId) {
+          // Prompt to switch to Polygon again
+          connectWalletBtn.disabled = false;
+          connectWalletBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect Wallet';
+        }
       });
-    } else {
-      updateStatus("Wallet disconnected", "info");
     }
-  });
-  window.ethereum.on("chainChanged", function (chainId) {
-    updateStatus("Network changed - reconnecting...", "info");
-    setupContracts().then(() => {
-      fetchShopCircleNFTs();
-      fetchMyCircleNFTs();
-      loadShopNFTs();
-      loadUserNFTs();
-      loadUserListings();
-      updateStatus("Network changed", "success");
+
+    // --- Firebase meme logic ---
+    let memes = [];
+    let memeIdx = 0;
+    let myMemes = [];
+    let myMemeIdx = 0;
+
+    function saveMemeToFirebase({ url, price, owner, timestamp = Date.now() }) {
+      const memeRef = db.ref('memes').push();
+      return memeRef.set({
+        url,
+        price,
+        owner,
+        timestamp
+      });
+    }
+
+    function listenAndDisplayMemes(updateCallback) {
+      db.ref('memes').orderByChild('timestamp').on('value', snapshot => {
+        const memeArr = [];
+        snapshot.forEach(child => {
+          memeArr.push({ ...child.val(), key: child.key });
+        });
+        memeArr.reverse(); // newest first
+        updateCallback(memeArr);
+      });
+    }
+    function listenAndDisplayMyMemes(owner, updateCallback) {
+      db.ref('memes').orderByChild('owner').equalTo(owner).on('value', snapshot => {
+        const memeArr = [];
+        snapshot.forEach(child => {
+          memeArr.push({ ...child.val(), key: child.key });
+        });
+        memeArr.reverse();
+        updateCallback(memeArr);
+      });
+    }
+
+    // ---- Upload & Modal logic ----
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadInput = document.getElementById('uploadInput');
+    let selectedFile = null;
+    let latestUploadedUrl = null;
+
+    const uploadModalBg = document.getElementById('uploadModalBg');
+    const uploadModal = document.getElementById('uploadModal');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const memePriceInput = document.getElementById('memePriceInput');
+    const submitMemeBtn = document.getElementById('submitMemeBtn');
+    const modalError = document.getElementById('modalError');
+
+    function openModal() {
+      uploadModalBg.classList.add('active');
+      modalError.innerText = "";
+      memePriceInput.value = "0.01";
+      memePriceInput.focus();
+    }
+    function closeModal() {
+      uploadModalBg.classList.remove('active');
+      selectedFile = null;
+      latestUploadedUrl = null;
+    }
+    modalCloseBtn.onclick = closeModal;
+    uploadModalBg.onclick = (e) => {
+      if (e.target === uploadModalBg) closeModal();
+    }
+
+    uploadBtn.addEventListener('click', () => {
+      if (!currentAccount) {
+        alert("Connect your wallet before uploading a meme.");
+        return;
+      }
+      uploadInput.value = "";
+      uploadInput.click();
     });
-  });
-}
-</script>
+
+    uploadInput.addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      selectedFile = file;
+      openModal();
+    });
+
+    submitMemeBtn.onclick = async function() {
+      // Validate price
+      let price = memePriceInput.value.trim();
+      if (!selectedFile) {
+        modalError.innerText = "No file selected.";
+        return;
+      }
+      if (!price || isNaN(price) || Number(price) < 0) {
+        modalError.innerText = "Enter a valid price (POL).";
+        return;
+      }
+      modalError.innerText = "";
+      submitMemeBtn.disabled = true;
+      submitMemeBtn.innerText = "Uploading...";
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.secure_url) {
+          await saveMemeToFirebase({
+            url: data.secure_url,
+            price: `${Number(price)} POL`,
+            owner: currentAccount || "unknown"
+          });
+          alert("Upload successful! Your meme is now available.");
+          closeModal();
+        } else {
+          modalError.innerText = "Upload failed.";
+        }
+      } catch (err) {
+        modalError.innerText = "Upload failed: " + err.message;
+      }
+      submitMemeBtn.disabled = false;
+      submitMemeBtn.innerText = "Submit Meme";
+    };
+
+    // --- Meme carousel logic ---
+    function shakeMeme(circleId) {
+      const el = document.getElementById(circleId);
+      if (!el) return;
+      el.classList.remove("shake");
+      void el.offsetWidth;
+      el.classList.add("shake");
+    }
+    function updateMemeCircle(shake=true) {
+      const meme = memes[memeIdx];
+      const memeCircle = document.getElementById("memeCircle");
+      const memePrice = document.getElementById("memePrice");
+      if (!meme) {
+        memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload one!</div>`;
+        memePrice.innerText = "";
+        return;
+      }
+      memeCircle.innerHTML = `<img src="${meme.url}" alt="Meme">`;
+      memePrice.innerText = meme.price;
+      if (shake) shakeMeme("memeCircle");
+    }
+    function updateMyMemeCircle(shake=true) {
+      const meme = myMemes[myMemeIdx];
+      const memeCircle = document.getElementById("myMemeCircle");
+      if (!meme) {
+        memeCircle.innerHTML = `<div style="color:#888;text-align:center;">No memes yet.<br>Upload one!</div>`;
+        return;
+      }
+      memeCircle.innerHTML = `<img src="${meme.url}" alt="My Meme">`;
+      if (shake) shakeMeme("myMemeCircle");
+    }
+    document.getElementById("memeLeftBtn").onclick = function() {
+      memeIdx = (memeIdx - 1 + memes.length) % memes.length;
+      updateMemeCircle();
+    };
+    document.getElementById("memeRightBtn").onclick = function() {
+      memeIdx = (memeIdx + 1) % memes.length;
+      updateMemeCircle();
+    };
+    document.getElementById("myMemeLeftBtn").onclick = function() {
+      myMemeIdx = (myMemeIdx - 1 + myMemes.length) % myMemes.length;
+      updateMyMemeCircle();
+    };
+    document.getElementById("myMemeRightBtn").onclick = function() {
+      myMemeIdx = (myMemeIdx + 1) % myMemes.length;
+      updateMyMemeCircle();
+    };
+
+    // Allow setting price in sell option (UI only, not saved)
+    const sellPriceInput = document.getElementById("sellPriceInput");
+    sellPriceInput.addEventListener('input', function(){
+      if(Number(sellPriceInput.value) < 0){
+        sellPriceInput.value = "0";
+      }
+    });
+
+    // Prevent scrolling (just in case)
+    document.body.addEventListener('touchmove', function(event) {
+      event.preventDefault();
+    }, { passive: false });
+
+    // Updating main memes UI
+    function updateMemesUI(firebaseMemes) {
+      memes = firebaseMemes;
+      memeIdx = 0;
+      updateMemeCircle(false);
+    }
+    function updateMyMemesUI(firebaseMyMemes) {
+      myMemes = firebaseMyMemes;
+      myMemeIdx = 0;
+      updateMyMemeCircle(false);
+    }
+
+    // Initial load for memes (all users)
+    listenAndDisplayMemes(updateMemesUI);
+
+    // Initial load for myMemes (after wallet connect)
+    // This is handled in connectWallet and accountsChanged
+
+    // Initialize carousels with no memes until data loads
+    updateMemeCircle(false);
+    updateMyMemeCircle(false);
+
+  </script>
 </body>
 </html>
