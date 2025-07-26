@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <!-- Ethers.js -->
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-   <style>
+  <style>
     /* ... CSS remains unchanged ... */
     :root {
       --primary: #fff;
@@ -675,7 +675,7 @@
   </div>
   <script>
     // ---- CONFIG ----
-    const CONTRACT_ADDRESS = "0x8BD94F0D9E2b1E62Bc8E0DA36707FB12f0A374C2";
+    const CONTRACT_ADDRESS = "0x0A676a8588528E20AfeB3B6a790A7A6B78a4E1Ce";
     const CONTRACT_ABI = [
       "function mint(address to, string memory uri_) external payable returns (uint256)",
       "event Minted(address indexed to, uint256 indexed tokenId, uint256 amount, string uri)",
@@ -978,6 +978,12 @@
           tokenId = mintedEvent.args.tokenId.toString();
         }
         if (!tokenId) throw new Error("Unable to fetch minted tokenId");
+        showLoading("Approving NFT for marketplace...");
+        let isApproved = await contract.isApprovedForAll(currentAccount, CONTRACT_ADDRESS);
+        if (!isApproved) {
+          const approveTx = await contract.setApprovalForAll(CONTRACT_ADDRESS, true);
+          await approveTx.wait();
+        }
         showLoading("Listing your meme for sale...");
         const priceWei = ethers.utils.parseEther(price.toString());
         await contract.listMeme(tokenId, 1, priceWei);
@@ -1082,7 +1088,7 @@
         return;
       }
       try {
-        showLoading("Updating listing...");
+        showLoading("Approving NFT for marketplace...");
         const bal = await contract.balanceOf(currentAccount, meme.tokenId);
         if (bal.eq(0)) throw new Error("You don't own this meme anymore");
         const isApproved = await contract.isApprovedForAll(currentAccount, CONTRACT_ADDRESS);
@@ -1091,6 +1097,7 @@
           const approveTx = await contract.setApprovalForAll(CONTRACT_ADDRESS, true);
           await approveTx.wait();
         }
+        showLoading("Updating listing...");
         const priceWei = ethers.utils.parseEther(newPrice.toString());
         await contract.listMeme(meme.tokenId, 1, priceWei);
         await db.ref('memes/' + meme.key).update({ price: `${Number(newPrice)} MATIC` });
@@ -1116,13 +1123,18 @@
         alert("No meme selected or meme data is incomplete.");
         return;
       }
-      if (meme.owner && meme.owner.toLowerCase() === currentAccount.toLowerCase()) {
-        alert("You already own this meme!");
+      if (!meme.tokenId || isNaN(Number(meme.tokenId))) {
+        alert("Internal error: meme tokenId is invalid.");
         return;
       }
       try {
         showLoading("Checking on-chain listing...");
         const listing = await contract.getListing(meme.tokenId);
+        if (listing.seller.toLowerCase() === currentAccount.toLowerCase()) {
+          alert("You cannot buy your own meme!");
+          hideLoading();
+          return;
+        }
         if (listing.price.eq(0) || listing.amount.lt(1)) {
           alert("This meme is not available for sale (not listed or sold out).");
           hideLoading();
