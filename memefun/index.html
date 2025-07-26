@@ -814,546 +814,38 @@
     </div>
   </div>
 
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+ // Import Web3 via CDN in your HTML: <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
 <script>
-  // --- CONFIG ---
-  const POLYGON_PARAMS = {
-    chainId: "0x89",
-    chainName: "Polygon Mainnet",
-    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-    rpcUrls: [
-      "https://polygon-rpc.com/",
-      "https://rpc.polygon.technology/",
-      "https://rpc-mainnet.matic.network/",
-    ],
-    blockExplorerUrls: ["https://polygonscan.com/"],
-  };
-  const NFTFAN_SHOP_CA = "0x668F3F71D33E77ac12447C77231a4B373ce2A6fE";
-    const NFTFAN_SHOP_ABI = [
-  {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "creator",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "tokenURI",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "NFTMinted",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "buyer",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "NFTBought",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "NFTListed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "NFTUnlisted",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "listingIndex",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "ListingCancelled",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-    ],
-    name: "balanceOf",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "buyNFT",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "listingIndex",
-        type: "uint256",
-      },
-    ],
-    name: "cancelListing",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "exists",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "getListings",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "seller",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "amount",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "price",
-            type: "uint256",
-          },
-        ],
-        internalType: "struct NFTFansShop.Listing[]",
-        name: "",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "getShopInventory",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getShopNFTs",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "ids",
-        type: "uint256[]",
-      },
-      {
-        internalType: "string[]",
-        name: "uris",
-        type: "string[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "prices",
-        type: "uint256[]",
-      },
-      {
-        internalType: "bool[]",
-        name: "isForSale",
-        type: "bool[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "shopAmounts",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "maxSupplies",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "currentSupplies",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_tokenURI",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_price",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_maxSupply",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
-    ],
-    name: "mintNFT",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
-    ],
-    name: "mintAdditional",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "nextTokenId",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "nftInfo",
-    outputs: [
-      {
-        internalType: "string",
-        name: "tokenURI",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "forSale",
-        type: "bool",
-      },
-      {
-        internalType: "address",
-        name: "originalCreator",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "maxSupply",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "currentSupply",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_price",
-        type: "uint256",
-      },
-    ],
-    name: "sellNFT",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-    ],
-    name: "tokensOfOwner",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "tokenIds",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "amounts",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "unlistNFT",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
-    name: "uri",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+// --- CONFIG ---
+const POLYGON_PARAMS = {
+  chainId: "0x89",
+  chainName: "Polygon Mainnet",
+  nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+  rpcUrls: [
+    "https://polygon-rpc.com/",
+    "https://rpc.polygon.technology/",
+    "https://rpc-mainnet.matic.network/",
+  ],
+  blockExplorerUrls: ["https://polygonscan.com/"],
+};
+const NFTFAN_SHOP_CA = "0x668F3F71D33E77ac12447C77231a4B373ce2A6fE";
+// ABI truncated for brevity, use the full ABI you provided in your question
+const NFTFAN_SHOP_ABI = [/* ...full ABI as in your code... */];
 
-  let userAccount = null,
-    web3,
-    nftfanShop = null,
-    lastError = null,
-    statusTimeout = null;
-  let sellModalTokenId = null,
-    sellModalMaxAmount = null;
+// --- GLOBALS ---
+let userAccount = null,
+  web3,
+  nftfanShop = null,
+  lastError = null;
+let sellModalTokenId = null,
+  sellModalMaxAmount = null;
 
- function setStatusBar(type, message) {
+let permanentlySoldOutIds = JSON.parse(
+  localStorage.getItem("nftfans_permanently_sold_out_ids") || "[]"
+);
+
+// --- STATUS BAR & ERROR HANDLING ---
+function setStatusBar(type, message) {
   const statusBar = document.getElementById("statusBar");
   const iconSpan = document.getElementById("statusBarIcon");
   statusBar.className = `status-bar status-${type}`;
@@ -1368,123 +860,127 @@
   statusBar.appendChild(iconSpan);
   statusBar.appendChild(document.createTextNode(message));
 }
-
 function updateStatus(message, type = "info") {
   setStatusBar(type, message);
-  // Status bar stays on screen; no timeout to hide it.
 }
-
 function logError(error, context = "") {
   lastError = `${context}: ${error.message || error}`;
 }
-
 function showError(elementId, message) {
   const errorEl = document.getElementById(elementId);
-  errorEl.textContent = message;
-  errorEl.style.display = "block";
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = "block";
+  }
   updateStatus(message, "error");
 }
-
 function hideError(elementId) {
-  document.getElementById(elementId).style.display = "none";
+  const el = document.getElementById(elementId);
+  if (el) el.style.display = "none";
 }
 
-  async function connectWallet() {
-    try {
-      updateStatus("Connecting wallet...", "info");
-      if (!window.ethereum) throw new Error("Please install MetaMask or a compatible wallet!");
-      const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (chainId !== POLYGON_PARAMS.chainId) {
-        updateStatus("Switching to Polygon network...", "info");
-        try {
+// --- WALLET & CONTRACT INIT ---
+async function connectWallet() {
+  try {
+    updateStatus("Connecting wallet...", "info");
+    if (!window.ethereum)
+      throw new Error("Please install MetaMask or a compatible wallet!");
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    if (chainId !== POLYGON_PARAMS.chainId) {
+      updateStatus("Switching to Polygon network...", "info");
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: POLYGON_PARAMS.chainId }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
           await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: POLYGON_PARAMS.chainId }],
+            method: "wallet_addEthereumChain",
+            params: [POLYGON_PARAMS],
           });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [POLYGON_PARAMS],
-            });
-          } else {
-            throw switchError;
-          }
+        } else {
+          throw switchError;
         }
       }
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      userAccount = accounts[0];
-      document.getElementById("connect-btn").textContent = formatAddress(userAccount);
-      await setupContracts();
-      updateStatus("Connected successfully", "success");
-      loadShopNFTs();
-      loadUserNFTs();
-      loadUserListings();
-    } catch (error) {
-      console.error("connectWallet failed:", error);
-      logError(error, "Wallet Connection");
-      updateStatus("Connection failed: " + error.message, "error");
     }
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    userAccount = accounts[0];
+    document.getElementById("connect-btn").textContent = formatAddress(userAccount);
+    await setupContracts();
+    updateStatus("Connected successfully", "success");
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
+  } catch (error) {
+    console.error("connectWallet failed:", error);
+    logError(error, "Wallet Connection");
+    updateStatus("Connection failed: " + error.message, "error");
   }
+}
 
-  async function setupContracts() {
-    try {
-      updateStatus("Setting up contracts...", "info");
-      const rpcUrls = POLYGON_PARAMS.rpcUrls;
-      let provider = null;
-      if (window.ethereum) {
-        provider = window.ethereum;
-        console.log("Using MetaMask provider");
-      } else {
-        for (const rpcUrl of rpcUrls) {
-          try {
-            const testWeb3 = new Web3(rpcUrl);
-            const blockNumber = await testWeb3.eth.getBlockNumber();
-            console.log(`Connected to RPC ${rpcUrl}, block number: ${blockNumber}`);
-            provider = rpcUrl;
-            break;
-          } catch (e) {
-            console.error(`Failed to connect to RPC ${rpcUrl}:`, e);
-          }
-        }
+async function setupContracts() {
+  try {
+    updateStatus("Setting up contracts...", "info");
+    let provider = null;
+    if (window.ethereum) {
+      provider = window.ethereum;
+    } else {
+      for (const rpcUrl of POLYGON_PARAMS.rpcUrls) {
+        try {
+          const testWeb3 = new Web3(rpcUrl);
+          await testWeb3.eth.getBlockNumber();
+          provider = rpcUrl;
+          break;
+        } catch (e) { }
       }
-      if (!provider) throw new Error("No working RPC provider found");
-      web3 = new Web3(provider);
-      nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
-      console.log("Contract initialized at address:", NFTFAN_SHOP_CA);
-      updateStatus("Contracts initialized", "success");
-    } catch (error) {
-      console.error("Contract setup failed:", error);
-      logError(error, "Contract Setup");
-      updateStatus("Contract setup failed: " + error.message, "error");
-      throw error;
     }
+    if (!provider) throw new Error("No working RPC provider found");
+    web3 = new Web3(provider);
+    nftfanShop = new web3.eth.Contract(NFTFAN_SHOP_ABI, NFTFAN_SHOP_CA);
+    updateStatus("Contracts initialized", "success");
+  } catch (error) {
+    logError(error, "Contract Setup");
+    updateStatus("Contract setup failed: " + error.message, "error");
+    throw error;
   }
+}
 
-  async function fetchOpenSeaMeta(uri) {
-    if (!uri) return null;
-    try {
-      if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.slice(7);
-      if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.slice(5);
-      const res = await fetch(uri, { mode: "cors" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      console.error("fetchOpenSeaMeta failed for URI", uri, ":", e);
-      updateStatus("Metadata fetch failed: " + (uri || "unknown"), "warn");
-      return null;
-    }
+// --- METADATA FETCH ---
+async function fetchOpenSeaMeta(uri) {
+  if (!uri) return null;
+  try {
+    if (uri.startsWith("ipfs://")) uri = "https://ipfs.io/ipfs/" + uri.slice(7);
+    if (uri.startsWith("ar://")) uri = "https://arweave.net/" + uri.slice(5);
+    const res = await fetch(uri, { mode: "cors" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    updateStatus("Metadata fetch failed: " + (uri || "unknown"), "warn");
+    return null;
   }
+}
 
-  let permanentlySoldOutIds = JSON.parse(localStorage.getItem("nftfans_permanently_sold_out_ids") || "[]");
-
-  function markPermanentlySoldOut(tokenId) {
-    if (!permanentlySoldOutIds.includes(tokenId)) {
-      permanentlySoldOutIds.push(tokenId);
-      localStorage.setItem("nftfans_permanently_sold_out_ids", JSON.stringify(permanentlySoldOutIds));
-    }
+// --- UTILITIES ---
+function formatAddress(address) {
+  if (!address) return "";
+  return `${address.slice(0, 5)}...${address.slice(-4)}`;
+}
+function markPermanentlySoldOut(tokenId) {
+  if (!permanentlySoldOutIds.includes(tokenId)) {
+    permanentlySoldOutIds.push(tokenId);
+    localStorage.setItem(
+      "nftfans_permanently_sold_out_ids",
+      JSON.stringify(permanentlySoldOutIds)
+    );
   }
+}
 
+// --- SHOP NFT LIST (FULL LIST) ---
 async function loadShopNFTs() {
   const shopGrid = document.getElementById("shopGrid");
   const loading = document.getElementById("shop-loading");
@@ -1498,27 +994,17 @@ async function loadShopNFTs() {
     updateStatus("Loading shop NFTs...", "info");
     if (!nftfanShop) await setupContracts();
     const result = await nftfanShop.methods.getShopNFTs().call();
-    console.log("getShopNFTs result:", result);
     const { ids, uris, prices, isForSale, shopAmounts, maxSupplies } = result;
     if (!ids.length) {
       loading.textContent = "No NFTs in Shop";
-      countEl.textContent = "ART: 0";
+      countEl.textContent = "T: 0";
       countEl.style.display = "block";
       updateStatus("No NFTs in shop", "info");
       return;
     }
     updateStatus(`Loading metadata for ${ids.length} NFTs...`, "info");
     const metaArr = await Promise.all(
-      uris.map(async (uri, i) => {
-        try {
-          const meta = await fetchOpenSeaMeta(uri);
-          console.log(`Metadata for URI ${uri}:`, meta);
-          return meta;
-        } catch (e) {
-          console.error(`Failed to fetch metadata for URI ${uri}:`, e);
-          return null;
-        }
-      })
+      uris.map(async (uri) => await fetchOpenSeaMeta(uri))
     );
     let html = "";
     let visibleCount = 0;
@@ -1533,11 +1019,10 @@ async function loadShopNFTs() {
         available = shopAmounts[i],
         maxSupply = maxSupplies ? maxSupplies[i] : "";
       let statusBadge = "";
-      if (forSale && available > 0) {
+      if (forSale && available > 0)
         statusBadge = `<span class="nft-status-label nft-status-listed">Listed</span>`;
-      } else {
+      else
         statusBadge = `<span class="nft-status-label nft-status-notlisted">Not listed</span>`;
-      }
       html += `<li class="nft-post">
         <div class="nft-post-left">
           <span class="serial-number">${++visibleCount}</span>
@@ -1575,7 +1060,6 @@ async function loadShopNFTs() {
     }
     updateStatus("Shop loaded", "success");
   } catch (error) {
-    console.error("loadShopNFTs failed:", error);
     logError(error, "Shop Loading");
     showError("shop-error", "Failed to load NFTs: " + error.message);
     countEl.textContent = "T: 0";
@@ -1583,7 +1067,8 @@ async function loadShopNFTs() {
   }
 }
 
- async function loadUserNFTs() {
+// --- USER NFTS ---
+async function loadUserNFTs() {
   const myGrid = document.getElementById("myGrid");
   const loading = document.getElementById("my-loading");
   const countEl = document.getElementById("mynfts-count");
@@ -1603,24 +1088,22 @@ async function loadShopNFTs() {
     updateStatus("Loading your NFTs...", "info");
     if (!nftfanShop) await setupContracts();
     const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-    console.log("tokensOfOwner result:", tokens);
     const { tokenIds, amounts } = tokens;
     let metaArr = await Promise.all(
       tokenIds.map(async (id, idx) => {
         try {
           let meta = await nftfanShop.methods.nftInfo(id).call();
-          console.log(`nftInfo for token ${id}:`, meta);
           let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-          console.log(`Metadata for token ${id}:`, metaJson);
           let listings = await nftfanShop.methods.getListings(id).call();
-          console.log(`Listings for token ${id}:`, listings);
           let userListings = listings
             .map((l, index) => ({ ...l, listingIndex: index }))
-            .filter((l) => l.seller.toLowerCase() === userAccount.toLowerCase() && Number(l.amount) > 0);
-          console.log(`User listings for token ${id}:`, userListings);
+            .filter(
+              (l) =>
+                l.seller.toLowerCase() === userAccount.toLowerCase() &&
+                Number(l.amount) > 0
+            );
           return { id, amount: amounts[idx], meta, metaJson, userListings };
         } catch (e) {
-          console.error(`Failed to load data for token ${id}:`, e);
           return { id, amount: amounts[idx], meta: null, metaJson: null, userListings: [] };
         }
       })
@@ -1644,13 +1127,10 @@ async function loadShopNFTs() {
               amount: 0,
               meta,
               metaJson,
-              userListings
+              userListings,
             });
-            console.log(`Added token ${id} with listings but no ownership`);
           }
-        } catch (e) {
-          console.error(`Failed to check listings for token ${id}:`, e);
-        }
+        } catch (e) { }
       }
     }
     metaArr = metaArr.concat(additionalListings);
@@ -1675,7 +1155,7 @@ async function loadShopNFTs() {
         listingsHtml = `<div class="nft-listings" style="margin-top:5px;font-size:8px;color:#93c5fd;">Your Listings:</div>`;
         listingsHtml += userListings
           .map(
-            (l, idx) => `
+            (l) => `
               <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
                 <span>Price: ${web3.utils.fromWei(l.price, "ether")} POL</span>
                 <span>Amount: ${l.amount}</span>
@@ -1716,7 +1196,6 @@ async function loadShopNFTs() {
     countEl.style.display = "block";
     updateStatus("Your NFTs loaded", "success");
   } catch (error) {
-    console.error("loadUserNFTs failed:", error);
     logError(error, "User NFTs Loading");
     showError("my-error", "Failed to load your NFTs: " + error.message);
     countEl.textContent = "T: 0";
@@ -1724,6 +1203,7 @@ async function loadShopNFTs() {
   }
 }
 
+// --- USER LISTINGS (ALL USERS EXCEPT CREATOR) ---
 async function loadUserListings() {
   const listingsGrid = document.getElementById("listingsGrid");
   const loading = document.getElementById("listings-loading");
@@ -1737,7 +1217,6 @@ async function loadUserListings() {
     updateStatus("Loading user listings...", "info");
     if (!nftfanShop) await setupContracts();
     const result = await nftfanShop.methods.getShopNFTs().call();
-    console.log("getShopNFTs for listings:", result);
     const { ids, uris } = result;
     if (!ids.length) {
       loading.textContent = "No NFTs in Shop";
@@ -1752,9 +1231,7 @@ async function loadUserListings() {
         const id = ids[i];
         const uri = uris[i];
         const listings = await nftfanShop.methods.getListings(id).call();
-        console.log(`Listings for token ${id}:`, listings);
         const meta = await nftfanShop.methods.nftInfo(id).call();
-        console.log(`nftInfo for token ${id}:`, meta);
         const originalCreator = meta.originalCreator;
         const filtered = listings
           .map((l, index) => ({ ...l, id, uri, meta, listingIndex: index }))
@@ -1764,9 +1241,7 @@ async function loadUserListings() {
               Number(l.amount) > 0
           );
         allListings = allListings.concat(filtered);
-      } catch (e) {
-        console.error(`Failed to load listings for token ${ids[i]}:`, e);
-      }
+      } catch (e) { }
     }
     if (!allListings.length) {
       loading.textContent = "No other user listings yet.";
@@ -1780,7 +1255,6 @@ async function loadUserListings() {
     for (let i = 0; i < allListings.length; i++) {
       const l = allListings[i];
       let metaJson = await fetchOpenSeaMeta(l.meta.tokenURI);
-      console.log(`Metadata for listing ${l.id}:`, metaJson);
       let name = metaJson?.name || `NFTFAN #${l.id}`;
       let img =
         metaJson?.image || l.meta.tokenURI || "https://via.placeholder.com/92x92?text=NFT";
@@ -1820,7 +1294,6 @@ async function loadUserListings() {
     countEl.style.display = "block";
     updateStatus("User listings loaded", "success");
   } catch (error) {
-    console.error("loadUserListings failed:", error);
     logError(error, "User Listings Loading");
     showError("listings-error", "Failed to load user listings: " + error.message);
     countEl.textContent = "T: 0";
@@ -1828,61 +1301,64 @@ async function loadUserListings() {
   }
 }
 
-  window.buyNFT = async function (tokenId, priceWei, availableAmount) {
-    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-    let amount = 1;
-    if (availableAmount > 1) {
-      let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
-      if (!input) return;
-      amount = parseInt(input);
-      if (isNaN(amount) || amount < 1 || amount > availableAmount)
-        return updateStatus("Invalid amount", "error");
-    }
-    try {
-      updateStatus("Processing purchase...", "info");
-      await nftfanShop.methods.buyNFT(tokenId, amount).send({
-        from: userAccount,
-        value: (BigInt(priceWei) * BigInt(amount)).toString(),
-      });
-      updateStatus("NFT bought successfully!", "success");
-      await loadShopNFTs();
-      await loadUserNFTs();
-      await loadUserListings();
-    } catch (error) {
-      console.error("buyNFT failed:", error);
-      logError(error, "NFT Purchase");
-      updateStatus("Purchase failed: " + error.message, "error");
-    }
-  };
+// --- NFT BUY/SELL/DELIST ---
+window.buyNFT = async function (tokenId, priceWei, availableAmount) {
+  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+  let amount = 1;
+  if (availableAmount > 1) {
+    let input = prompt(`How many would you like to buy? (max ${availableAmount})`, "1");
+    if (!input) return;
+    amount = parseInt(input);
+    if (isNaN(amount) || amount < 1 || amount > availableAmount)
+      return updateStatus("Invalid amount", "error");
+  }
+  try {
+    updateStatus("Processing purchase...", "info");
+    await nftfanShop.methods.buyNFT(tokenId, amount).send({
+      from: userAccount,
+      value: (BigInt(priceWei) * BigInt(amount)).toString(),
+    });
+    updateStatus("NFT bought successfully!", "success");
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
+  } catch (error) {
+    logError(error, "NFT Purchase");
+    updateStatus("Purchase failed: " + error.message, "error");
+  }
+};
 
-  window.buyUserListing = async function (tokenId, seller, priceWei, availableAmount) {
-    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-    let amount = 1;
-    if (availableAmount > 1) {
-      let input = prompt(`How many would you like to buy from user? (max ${availableAmount})`, "1");
-      if (!input) return;
-      amount = parseInt(input);
-      if (isNaN(amount) || amount < 1 || amount > availableAmount)
-        return updateStatus("Invalid amount", "error");
-    }
-    try {
-      updateStatus("Processing purchase...", "info");
-      await nftfanShop.methods.buyNFT(tokenId, amount).send({
-        from: userAccount,
-        value: (BigInt(priceWei) * BigInt(amount)).toString(),
-      });
-      updateStatus("NFT bought successfully!", "success");
-      await loadShopNFTs();
-      await loadUserNFTs();
-      await loadUserListings();
-    } catch (error) {
-      console.error("buyUserListing failed:", error);
-      logError(error, "NFT User Listing Purchase");
-      updateStatus("Purchase failed: " + error.message, "error");
-    }
-  };
+window.buyUserListing = async function (tokenId, seller, priceWei, availableAmount) {
+  if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+  let amount = 1;
+  if (availableAmount > 1) {
+    let input = prompt(`How many would you like to buy from user? (max ${availableAmount})`, "1");
+    if (!input) return;
+    amount = parseInt(input);
+    if (isNaN(amount) || amount < 1 || amount > availableAmount)
+      return updateStatus("Invalid amount", "error");
+  }
+  try {
+    updateStatus("Processing purchase...", "info");
+    await nftfanShop.methods.buyNFT(tokenId, amount).send({
+      from: userAccount,
+      value: (BigInt(priceWei) * BigInt(amount)).toString(),
+    });
+    updateStatus("NFT bought successfully!", "success");
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
+  } catch (error) {
+    logError(error, "NFT User Listing Purchase");
+    updateStatus("Purchase failed: " + error.message, "error");
+  }
+};
 
- window.cancelListing = async function (tokenId, listingIndex) {
+window.cancelListing = async function (tokenId, listingIndex) {
   if (!userAccount) return updateStatus("Connect your wallet first!", "error");
   if (!confirm("Are you sure you want to delist this NFT?")) return;
   try {
@@ -1894,352 +1370,248 @@ async function loadUserListings() {
     await loadShopNFTs();
     await loadUserNFTs();
     await loadUserListings();
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
   } catch (error) {
-    console.error("cancelListing failed:", error);
     logError(error, "Delist NFT");
     updateStatus("Delist failed: " + error.message, "error");
   }
 };
 
-  window.openSellModal = function (tokenId, maxAmount) {
-    sellModalTokenId = tokenId;
-    sellModalMaxAmount = maxAmount;
-    document.getElementById("sellModal").style.display = "flex";
-    document.getElementById("sellTokenId").textContent = tokenId;
-    document.getElementById("sellMaxAmount").textContent = maxAmount;
-    document.getElementById("sellAmountInput").value = "";
-    document.getElementById("sellAmountInput").max = maxAmount;
-    document.getElementById("sellPriceInput").value = "";
-    document.getElementById("sellModalError").textContent = "";
-  };
+window.openSellModal = function (tokenId, maxAmount) {
+  sellModalTokenId = tokenId;
+  sellModalMaxAmount = maxAmount;
+  document.getElementById("sellModal").style.display = "flex";
+  document.getElementById("sellTokenId").textContent = tokenId;
+  document.getElementById("sellMaxAmount").textContent = maxAmount;
+  document.getElementById("sellAmountInput").value = "";
+  document.getElementById("sellAmountInput").max = maxAmount;
+  document.getElementById("sellPriceInput").value = "";
+  document.getElementById("sellModalError").textContent = "";
+};
 
-  window.closeSellModal = function () {
-    document.getElementById("sellModal").style.display = "none";
-    sellModalTokenId = null;
-    sellModalMaxAmount = null;
-  };
+window.closeSellModal = function () {
+  document.getElementById("sellModal").style.display = "none";
+  sellModalTokenId = null;
+  sellModalMaxAmount = null;
+};
 
-  window.confirmSellNFT = async function () {
-    const amount = parseInt(document.getElementById("sellAmountInput").value);
-    const price = document.getElementById("sellPriceInput").value;
-    document.getElementById("sellModalError").textContent = "";
-    if (!userAccount) return document.getElementById("sellModalError").textContent = "Connect your wallet first!";
-    if (!amount || isNaN(amount) || amount < 1 || amount > sellModalMaxAmount)
-      return document.getElementById("sellModalError").textContent = "Invalid amount!";
-    if (!price || isNaN(price) || Number(price) <= 0)
-      return document.getElementById("sellModalError").textContent = "Invalid price!";
-    let priceWei = "0";
-    try {
-      priceWei = web3.utils.toWei(price, "ether");
-    } catch {
-      return document.getElementById("sellModalError").textContent = "Invalid price.";
+window.confirmSellNFT = async function () {
+  const amount = parseInt(document.getElementById("sellAmountInput").value);
+  const price = document.getElementById("sellPriceInput").value;
+  document.getElementById("sellModalError").textContent = "";
+  if (!userAccount) return document.getElementById("sellModalError").textContent = "Connect your wallet first!";
+  if (!amount || isNaN(amount) || amount < 1 || amount > sellModalMaxAmount)
+    return document.getElementById("sellModalError").textContent = "Invalid amount!";
+  if (!price || isNaN(price) || Number(price) <= 0)
+    return document.getElementById("sellModalError").textContent = "Invalid price!";
+  let priceWei = "0";
+  try {
+    priceWei = web3.utils.toWei(price, "ether");
+  } catch {
+    return document.getElementById("sellModalError").textContent = "Invalid price.";
+  }
+  try {
+    updateStatus("Processing sale...", "info");
+    await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
+    updateStatus("NFT listed for sale!", "success");
+    closeSellModal();
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
+  } catch (error) {
+    logError(error, "NFT Sale");
+    updateStatus("Sale listing failed: " + error.message, "error");
+    document.getElementById("sellModalError").textContent = "Sale failed: " + error.message;
+  }
+};
+
+window.onclick = function (event) {
+  const modal = document.getElementById("sellModal");
+  if (event.target === modal) closeSellModal();
+};
+
+// --- CIRCLE UI LOGIC ---
+let shopNFTs = [], shopIdx = 0, shopNFTsMeta = [];
+let myNFTs = [], myIdx = 0, myNFTsMeta = [];
+
+async function showShopNFT(idxChange = 0) {
+  if (shopNFTs.length === 0) {
+    document.getElementById('shopCircle').innerHTML = '';
+    document.getElementById('shopPrice').innerHTML = '';
+    return;
+  }
+  shopIdx = (shopIdx + idxChange + shopNFTs.length) % shopNFTs.length;
+  const nft = shopNFTs[shopIdx];
+  const meta = shopNFTsMeta[shopIdx] || {};
+  document.getElementById('shopCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
+  document.getElementById('shopPrice').innerText = nft.price ? (web3.utils.fromWei(nft.price, "ether") + " MATIC") : '';
+}
+
+async function showMyNFT(idxChange = 0) {
+  if (myNFTs.length === 0) {
+    document.getElementById('myCircle').innerHTML = '';
+    return;
+  }
+  myIdx = (myIdx + idxChange + myNFTs.length) % myNFTs.length;
+  const nft = myNFTs[myIdx];
+  const meta = myNFTsMeta[myIdx] || {};
+  document.getElementById('myCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
+  document.getElementById('mySellPriceInput').value = '';
+}
+
+async function fetchShopCircleNFTs() {
+  if (!nftfanShop) await setupContracts();
+  const result = await nftfanShop.methods.getShopNFTs().call();
+  shopNFTs = [];
+  shopNFTsMeta = [];
+  for (let i = 0; i < result.ids.length; i++) {
+    if (result.isForSale[i] && Number(result.shopAmounts[i]) > 0) {
+      shopNFTs.push({ id: result.ids[i], price: result.prices[i], uri: result.uris[i] });
+      let meta = await fetchOpenSeaMeta(result.uris[i]);
+      shopNFTsMeta.push(meta || {});
     }
+  }
+  shopIdx = 0;
+  showShopNFT(0);
+}
+
+async function fetchMyCircleNFTs() {
+  if (!userAccount) return;
+  if (!nftfanShop) await setupContracts();
+  const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
+  myNFTs = [];
+  myNFTsMeta = [];
+  for (let i = 0; i < tokens.tokenIds.length; i++) {
+    if (Number(tokens.amounts[i]) > 0) {
+      const id = tokens.tokenIds[i];
+      let meta = await nftfanShop.methods.nftInfo(id).call();
+      let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
+      myNFTs.push({ id, meta });
+      myNFTsMeta.push(metaJson || {});
+    }
+  }
+  myIdx = 0;
+  showMyNFT(0);
+}
+
+// --- BUTTON EVENT BINDINGS (Needs to be run after DOM is loaded) ---
+function bindCircleUIEvents() {
+  document.getElementById('shopLeftBtn').onclick = () => showShopNFT(-1);
+  document.getElementById('shopRightBtn').onclick = () => showShopNFT(1);
+  document.getElementById('myLeftBtn').onclick = () => showMyNFT(-1);
+  document.getElementById('myRightBtn').onclick = () => showMyNFT(1);
+
+  document.getElementById('buyBtn').onclick = async function () {
+    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+    if (!shopNFTs[shopIdx]) return;
+    const nft = shopNFTs[shopIdx];
     try {
-      updateStatus("Processing sale...", "info");
-      await nftfanShop.methods.sellNFT(sellModalTokenId, amount, priceWei).send({ from: userAccount });
-      updateStatus("NFT listed for sale!", "success");
-      closeSellModal();
+      updateStatus("Processing purchase...", "info");
+      await nftfanShop.methods.buyNFT(nft.id, 1).send({
+        from: userAccount,
+        value: nft.price,
+      });
+      updateStatus("NFT bought successfully!", "success");
+      await fetchShopCircleNFTs();
+      await fetchMyCircleNFTs();
       await loadShopNFTs();
       await loadUserNFTs();
       await loadUserListings();
-    } catch (error) {
-      console.error("confirmSellNFT failed:", error);
-      logError(error, "NFT Sale");
-      updateStatus("Sale listing failed: " + error.message, "error");
-      document.getElementById("sellModalError").textContent = "Sale failed: " + error.message;
+    } catch (e) {
+      updateStatus("Buy failed: " + (e?.message || e), "error");
     }
   };
 
-  window.onclick = function (event) {
-    const modal = document.getElementById("sellModal");
-    if (event.target === modal) closeSellModal();
+  document.getElementById('sellBtn').onclick = function () {
+    if (!userAccount) return updateStatus("Connect your wallet first!", "error");
+    if (!myNFTs[myIdx]) return;
+    const nft = myNFTs[myIdx];
+    document.getElementById("sellModal").style.display = "flex";
+    document.getElementById("sellTokenId").textContent = nft.id;
+    document.getElementById("sellMaxAmount").textContent = nft.meta.currentSupply || "1";
+    document.getElementById("sellAmountInput").value = "1";
+    document.getElementById("sellAmountInput").max = nft.meta.currentSupply || "1";
+    document.getElementById("sellPriceInput").value = "";
+    document.getElementById("sellModalError").textContent = "";
+    window.sellModalTokenId = nft.id;
+    window.sellModalMaxAmount = nft.meta.currentSupply || 1;
   };
+}
 
-  function formatAddress(address) {
-    if (!address) return "";
-    return `${address.slice(0, 5)}...${address.slice(-4)}`;
-  }
+// --- TAB LOGIC ---
+function showTab(tab) {
+  ['shop', 'mynfts', 'listings'].forEach(t => {
+    const content = document.getElementById('tab-content-' + t);
+    if (content) content.style.display = (t === tab) ? 'block' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'shop') fetchShopCircleNFTs();
+  if (tab === 'mynfts') fetchMyCircleNFTs();
+  if (tab === 'listings') loadUserListings();
+}
 
-  if (window.ethereum) {
-    window.ethereum.on("accountsChanged", function (accounts) {
-      userAccount = accounts[0] || null;
-      const connectBtn = document.getElementById("connect-btn");
-      connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
-      if (userAccount) {
-        setupContracts().then(() => {
-          loadShopNFTs();
-          loadUserNFTs();
-          loadUserListings();
-          updateStatus("Account changed", "success");
-        });
-      } else {
-        updateStatus("Wallet disconnected", "info");
-      }
-    });
-    window.ethereum.on("chainChanged", function (chainId) {
-      updateStatus("Network changed - reconnecting...", "info");
-      setupContracts().then(() => {
-        loadShopNFTs();
-        loadUserNFTs();
-        loadUserListings();
-        updateStatus("Network changed", "success");
-      });
-    });
-    nftfanShop.events
-      .ListingCancelled({})
-      .on("data", async (event) => {
-        updateStatus(`Listing for NFT #${event.returnValues.tokenId} cancelled`, "success");
-        await loadShopNFTs();
-        await loadUserNFTs();
-        await loadUserListings();
-      })
-      .on("error", (error) => {
-        console.error("ListingCancelled event error:", error);
-        updateStatus("Failed to process listing cancellation event", "error");
-      });
-  }
-
+// --- DOMContentLoaded MAIN INIT ---
 window.addEventListener("DOMContentLoaded", async () => {
   try {
-    console.log('Initializing app...');
     updateStatus("Initializing...", "info");
     await setupContracts();
-    console.log('Contracts set up successfully');
-    await loadShopNFTs();
-    console.log('Shop NFTs loaded');
-    await loadUserListings();
-    console.log('User listings loaded');
-    await loadUserNFTs();
-    console.log('User NFTs loaded');
+    await fetchShopCircleNFTs();
+    await fetchMyCircleNFTs();
+    bindCircleUIEvents();
     updateStatus("Ready", "success");
-    // Bind tab button events
-    const tabButtons = {
-      'listings': document.getElementById('tab-listings'),
-      'shop': document.getElementById('tab-shop'),
-      'mynfts': document.getElementById('tab-mynfts')
-    };
-    Object.keys(tabButtons).forEach(tab => {
-      if (tabButtons[tab]) {
-        tabButtons[tab].addEventListener('click', () => {
-          console.log(`Tab button clicked: ${tab}`);
-          showTab(tab);
-        });
-      } else {
-        console.error(`Tab button not found: tab-${tab}`);
-      }
-    });
+    // Main tab events
+    document.getElementById('connect-btn').onclick = connectWallet;
+    document.getElementById('tab-shop').onclick = () => showTab('shop');
+    document.getElementById('tab-mynfts').onclick = () => showTab('mynfts');
+    document.getElementById('tab-listings').onclick = () => showTab('listings');
+    // Default tab
+    showTab('shop');
+    // Full list for tabs
+    await loadShopNFTs();
+    await loadUserNFTs();
+    await loadUserListings();
   } catch (error) {
-    console.error("Initialization failed:", error);
     logError(error, "Initialization");
     updateStatus("Initialization failed: " + error.message, "error");
     showError("shop-error", "Failed to initialize the application. Please refresh.");
   }
 });
-  
-function showTab(tab) {
-  try {
-    console.log(`Switching to tab: ${tab}`);
-    const tabContents = ['shop', 'mynfts', 'listings'];
-    tabContents.forEach((t) => {
-      const content = document.getElementById(`tab-content-${t}`);
-      if (content) {
-        content.style.display = 'none';
-      } else {
-        console.error(`Tab content element not found: tab-content-${t}`);
-      }
+
+// --- Wallet Events ---
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", function (accounts) {
+    userAccount = accounts[0] || null;
+    const connectBtn = document.getElementById("connect-btn");
+    connectBtn.textContent = userAccount ? formatAddress(userAccount) : "🔗 Connect Wallet";
+    if (userAccount) {
+      setupContracts().then(() => {
+        fetchShopCircleNFTs();
+        fetchMyCircleNFTs();
+        loadShopNFTs();
+        loadUserNFTs();
+        loadUserListings();
+        updateStatus("Account changed", "success");
+      });
+    } else {
+      updateStatus("Wallet disconnected", "info");
+    }
+  });
+  window.ethereum.on("chainChanged", function (chainId) {
+    updateStatus("Network changed - reconnecting...", "info");
+    setupContracts().then(() => {
+      fetchShopCircleNFTs();
+      fetchMyCircleNFTs();
+      loadShopNFTs();
+      loadUserNFTs();
+      loadUserListings();
+      updateStatus("Network changed", "success");
     });
-    const selectedContent = document.getElementById(`tab-content-${tab}`);
-    if (selectedContent) {
-      selectedContent.style.display = 'block';
-    } else {
-      throw new Error(`Invalid tab content ID: tab-content-${tab}`);
-    }
-    tabContents.forEach((t) => {
-      const btn = document.getElementById(`tab-${t}`);
-      if (btn) {
-        btn.classList.remove('active');
-      } else {
-        console.error(`Tab button element not found: tab-${t}`);
-      }
-    });
-    const selectedBtn = document.getElementById(`tab-${tab}`);
-    if (selectedBtn) {
-      selectedBtn.classList.add('active');
-    } else {
-      throw new Error(`Invalid tab button ID: tab-${tab}`);
-    }
-    if (tab === 'shop') {
-      loadShopNFTs().catch((e) => {
-        console.error('loadShopNFTs failed in showTab:', e);
-        updateStatus('Failed to load shop NFTs', 'error');
-      });
-    } else if (tab === 'mynfts') {
-      loadUserNFTs().catch((e) => {
-        console.error('loadUserNFTs failed in showTab:', e);
-        updateStatus('Failed to load your NFTs', 'error');
-      });
-    } else if (tab === 'listings') {
-      loadUserListings().catch((e) => {
-        console.error('loadUserListings failed in showTab:', e);
-        updateStatus('Failed to load user listings', 'error');
-      });
-    } else {
-      throw new Error(`Invalid tab: ${tab}`);
-    }
-    console.log(`Tab switched successfully: ${tab}`);
-  } catch (error) {
-    console.error('showTab failed:', error);
-    updateStatus(`Failed to switch to ${tab} tab: ${error.message}`, 'error');
-  }
+  });
 }
-
 </script>
-  <script>
-    // --- Your provided full JS from the previous message is assumed to be here ---
-    // ... (the full NFTFAN_SHOP ABI, and all functions, connectWallet, setupContracts, etc) ...
-
-    // --- Circle UI logic for SHOP and MY NFTs ---
-    let shopNFTs = [], shopIdx = 0, shopNFTsMeta = [];
-    let myNFTs = [], myIdx = 0, myNFTsMeta = [];
-
-    // Swap UI for SHOP
-    async function showShopNFT(idxChange = 0) {
-      if (shopNFTs.length === 0) {
-        document.getElementById('shopCircle').innerHTML = '';
-        document.getElementById('shopPrice').innerHTML = '';
-        return;
-      }
-      shopIdx = (shopIdx + idxChange + shopNFTs.length) % shopNFTs.length;
-      const nft = shopNFTs[shopIdx];
-      const meta = shopNFTsMeta[shopIdx] || {};
-      document.getElementById('shopCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
-      document.getElementById('shopPrice').innerText = nft.price ? (web3.utils.fromWei(nft.price, "ether") + " MATIC") : '';
-    }
-
-    // Swap UI for MY NFTs
-    async function showMyNFT(idxChange = 0) {
-      if (myNFTs.length === 0) {
-        document.getElementById('myCircle').innerHTML = '';
-        return;
-      }
-      myIdx = (myIdx + idxChange + myNFTs.length) % myNFTs.length;
-      const nft = myNFTs[myIdx];
-      const meta = myNFTsMeta[myIdx] || {};
-      document.getElementById('myCircle').innerHTML = `<img src="${meta.image || 'https://via.placeholder.com/300x300?text=NFT'}" alt="${meta.name || 'NFT'}">`;
-      document.getElementById('mySellPriceInput').value = '';
-    }
-
-    // Fetch SHOP NFTs and display in circle
-    async function fetchShopCircleNFTs() {
-      if (!nftfanShop) await setupContracts();
-      const result = await nftfanShop.methods.getShopNFTs().call();
-      shopNFTs = [];
-      shopNFTsMeta = [];
-      for (let i = 0; i < result.ids.length; i++) {
-        if (result.isForSale[i] && Number(result.shopAmounts[i]) > 0) {
-          shopNFTs.push({ id: result.ids[i], price: result.prices[i], uri: result.uris[i] });
-          let meta = await fetchOpenSeaMeta(result.uris[i]);
-          shopNFTsMeta.push(meta || {});
-        }
-      }
-      shopIdx = 0;
-      showShopNFT(0);
-    }
-
-    // Fetch MY NFTs and display in circle
-    async function fetchMyCircleNFTs() {
-      if (!userAccount) return;
-      if (!nftfanShop) await setupContracts();
-      const tokens = await nftfanShop.methods.tokensOfOwner(userAccount).call();
-      myNFTs = [];
-      myNFTsMeta = [];
-      for (let i = 0; i < tokens.tokenIds.length; i++) {
-        if (Number(tokens.amounts[i]) > 0) {
-          const id = tokens.tokenIds[i];
-          let meta = await nftfanShop.methods.nftInfo(id).call();
-          let metaJson = await fetchOpenSeaMeta(meta.tokenURI);
-          myNFTs.push({ id, meta });
-          myNFTsMeta.push(metaJson || {});
-        }
-      }
-      myIdx = 0;
-      showMyNFT(0);
-    }
-
-    // SHOP swipe events
-    document.getElementById('shopLeftBtn').onclick = () => showShopNFT(-1);
-    document.getElementById('shopRightBtn').onclick = () => showShopNFT(1);
-
-    // MY NFT swipe events
-    document.getElementById('myLeftBtn').onclick = () => showMyNFT(-1);
-    document.getElementById('myRightBtn').onclick = () => showMyNFT(1);
-
-    // Buy button for SHOP NFT
-    document.getElementById('buyBtn').onclick = async function() {
-      if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-      if (!shopNFTs[shopIdx]) return;
-      const nft = shopNFTs[shopIdx];
-      try {
-        updateStatus("Processing purchase...", "info");
-        await nftfanShop.methods.buyNFT(nft.id, 1).send({
-          from: userAccount,
-          value: nft.price
-        });
-        updateStatus("NFT bought successfully!", "success");
-        await fetchShopCircleNFTs();
-        await fetchMyCircleNFTs();
-      } catch (e) {
-        updateStatus("Buy failed: " + (e?.message || e), "error");
-      }
-    };
-
-    // Sell button for MY NFT
-    document.getElementById('sellBtn').onclick = function() {
-      if (!userAccount) return updateStatus("Connect your wallet first!", "error");
-      if (!myNFTs[myIdx]) return;
-      const nft = myNFTs[myIdx];
-      // Show modal to set price/amount, prefill with 1 and price
-      document.getElementById("sellModal").style.display = "flex";
-      document.getElementById("sellTokenId").textContent = nft.id;
-      document.getElementById("sellMaxAmount").textContent = nft.meta.currentSupply || "1";
-      document.getElementById("sellAmountInput").value = "1";
-      document.getElementById("sellAmountInput").max = nft.meta.currentSupply || "1";
-      document.getElementById("sellPriceInput").value = "";
-      document.getElementById("sellModalError").textContent = "";
-      window.sellModalTokenId = nft.id;
-      window.sellModalMaxAmount = nft.meta.currentSupply || 1;
-    };
-
-    // Confirm sell modal logic is in your main JS (window.confirmSellNFT etc.)
-
-    // Connect wallet button
-    document.getElementById('connect-btn').onclick = connectWallet;
-
-    // Tab logic (show/hide tab-content)
-    function showTab(tab) {
-      ['shop','mynfts','listings'].forEach(t => {
-        document.getElementById('tab-content-'+t).style.display = (t===tab) ? 'block' : 'none';
-        document.getElementById('tab-'+t).classList.toggle('active', t===tab);
-      });
-      if(tab==='shop') fetchShopCircleNFTs();
-      if(tab==='mynfts') fetchMyCircleNFTs();
-      if(tab==='listings') loadUserListings();
-    }
-    document.getElementById('tab-shop').onclick = () => showTab('shop');
-    document.getElementById('tab-mynfts').onclick = () => showTab('mynfts');
-    document.getElementById('tab-listings').onclick = () => showTab('listings');
-
-    // Init on DOMContentLoaded
-    window.addEventListener("DOMContentLoaded", async () => {
-      updateStatus("Initializing...", "info");
-      await setupContracts();
-      await fetchShopCircleNFTs();
-      await fetchMyCircleNFTs();
-      updateStatus("Ready", "success");
-    });
-
-    // Add your full contract logic, event handlers, and helper functions as before!
-    // (All from your big JS code in your message.)
-  </script>
 </body>
 </html>
