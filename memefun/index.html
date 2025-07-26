@@ -12,7 +12,6 @@
   <!-- Ethers.js -->
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    /* ... CSS remains unchanged ... */
     :root {
       --primary: #fff;
       --accent: #ffc107;
@@ -371,44 +370,11 @@
       box-shadow: 0 2px 16px #3cbfff44;
     }
     .sell-price-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 18px 0 0 0;
-      gap: 6px;
+      display: none !important;
     }
-    .sell-price-label {
-      font-size: 12px;
-      color: #65e6ff;
-      margin-right: 2px;
-      font-weight: 700;
-      letter-spacing: 0.45px;
-    }
-    .sell-price-input {
-      width: 54px;
-      padding: 4px 10px;
-      border: 1.5px solid #3cbfff;
-      border-radius: 13px;
-      font-size: 12px;
-      outline: none;
-      background: #181824;
-      color: #81f7ff;
-      text-align: right;
-      transition: border 0.14s;
-      box-shadow: 0 1px 6px #00eaff10 inset;
-      font-weight: 600;
-    }
-    .sell-price-input:focus {
-      border: 1.5px solid #81f7ff;
-      background: #101020;
-    }
-    .sell-price-coin {
-      color: #65e6ff;
-      font-size: 18px;
-      margin-left: 2px;
-      vertical-align: middle;
-      filter: drop-shadow(0 0 4px #3cbfff36);
-    }
+    .sell-price-label {display: none;}
+    .sell-price-input {display: none;}
+    .sell-price-coin {display: none;}
     #uploadInput {
       display: none;
     }
@@ -466,7 +432,6 @@
          -moz-user-select: text;
           -ms-user-select: text;
               user-select: text;
-      /* Prevent zoom on mobile: */
       touch-action: manipulation;
     }
     .modal input[type="number"]:focus,
@@ -510,10 +475,12 @@
     }
     .modal-error {
       color: #ff5469;
-      font-size: 12px;
+      font-size: 6px;
       margin-top: -3px;
       margin-bottom: 3px;
       font-weight: 500;
+      text-align: center;
+      min-height: 12px;
     }
     .meme-name {
       display: block;
@@ -528,6 +495,15 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       letter-spacing: .1px;
+    }
+    .meme-modal-detail {
+      font-size: 11px;
+      color: #ffe082;
+      margin: 0 0 2px 0;
+      text-align: center;
+      line-height: 1.2;
+      word-break: break-word;
+      max-width: 90vw;
     }
     .loading-overlay {
       position: fixed;
@@ -579,23 +555,6 @@
       .swipe-btn { width: 28px; font-size: 22px; }
       .buy-btn, .sell-btn, .set-price-btn { font-size: 11px;}
       .section-title { font-size: 10px;}
-      .sell-price-input { width: 33px; font-size: 9px;}
-      .sell-price-row { margin-top: 14px;}
-      .buy-btn { margin-top: 24px; }
-      .sell-btn { margin-top: 12px; }
-      .section-bottom .sell-btn { margin-top: 10px; }
-      .wallet-upload-bar {
-        padding-right: 6px;
-        gap: 6px;
-      }
-      .wallet-btn, .upload-btn {
-        font-size: 10px;
-        min-width: 70px;
-        padding: 4px 8px 4px 8px;
-      }
-      .upload-btn {
-        min-width: 65px;
-      }
       .set-price-btn {
         font-size: 10px;
         width: 64px;
@@ -610,24 +569,14 @@
       }
       .meme-price { font-size: 8px; padding: 2px 5px 2px 5px; bottom: -15px;}
       .buy-btn, .sell-btn, .set-price-btn { font-size: 8px;}
-      .sell-price-input { width: 22px; font-size: 8px;}
       .swipe-btn { width: 18px; font-size: 15px; }
       .section-title { font-size: 8px;}
-      .sell-price-row { margin-top: 8px;}
-      .buy-btn { margin-top: 13px; }
-      .sell-btn { margin-top: 7px; }
-      .section-bottom .sell-btn { margin-top: 7px; }
-      .wallet-upload-bar {
-        padding-right: 2px;
-        gap: 3px;
-      }
       .set-price-btn {
         font-size: 8px;
         width: 44px;
         height: 13px;
       }
     }
-    /* Prevent mobile zoom on input focus for iOS Safari */
     input, select, textarea {
       font-size: 16px !important;
     }
@@ -660,11 +609,6 @@
             <span class="meme-name" id="myMemeName"></span>
           </div>
           <button class="swipe-btn" id="myMemeRightBtn" tabindex="0"><span class="material-icons">chevron_right</span></button>
-        </div>
-        <div class="sell-price-row">
-          <span class="sell-price-label">Set Price:</span>
-          <input class="sell-price-input" id="sellPriceInput" type="number" min="0" step="0.01" value="0.02" inputmode="decimal" pattern="[0-9]*">
-          <span class="material-icons sell-price-coin">monetization_on</span>
         </div>
         <button class="sell-btn" id="mySellBtn"><span class="material-icons" style="font-size:16px;margin-right:6px;">sell</span>Sell</button>
       </div>
@@ -716,6 +660,23 @@
       <div class="modal-error" id="setPriceModalError"></div>
       <div class="modal-btn-row">
         <button class="modal-btn" id="confirmSetPriceBtn">Set Price</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sell Meme Modal for My Memes -->
+  <div class="modal-bg" id="sellModalBg">
+    <div class="modal" id="sellModal">
+      <button class="modal-close" id="sellModalCloseBtn" title="Close">&times;</button>
+      <div class="meme-modal-detail" id="sellMemeTitle"></div>
+      <div class="meme-modal-detail" id="sellMemeCurrentPrice"></div>
+      <div>
+        <label for="sellMemePriceInput">Set new Price (MATIC):</label>
+        <input type="number" min="0" step="0.0001" id="sellMemePriceInput" value="0.02" inputmode="decimal" pattern="[0-9]*">
+      </div>
+      <div class="modal-error" id="sellModalError"></div>
+      <div class="modal-btn-row">
+        <button class="modal-btn" id="confirmSellBtn">Sell</button>
       </div>
     </div>
   </div>
