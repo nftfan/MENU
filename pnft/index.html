@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NFTFans X Share (30min, Score, Leaderboard)</title>
+    <meta name="viewport" content="width=340, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body { background:#181d26; color:#dce1ea; font-family:sans-serif; }
+        .container { width:340px; margin:32px auto 0 auto; background:#232b42; border-radius:8px; padding:18px 14px; }
+        h1 { color:#8b6ee6; font-size:18px; text-align:center; }
+        .tweet-preview { background:#1e2536; color:#fff; font-family:monospace; border-radius:6px; padding:12px 10px; margin:12px 0 14px 0; font-size:13px; }
+        .share-btn { background:#5273e0; color:#fff; border:none; border-radius:5px; font-weight:600; font-size:14px; padding:8px 0; width:100%; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .share-btn[disabled] { background:#353e5c; color:#bbb; cursor: not-allowed; }
+        .card { background:#181d26; border-radius:7px; padding:14px 11px; margin:13px 0; box-shadow:0 1px 2px rgba(80,70,220,0.06);}
+        label { font-weight:600; font-size:12px;}
+        input[type="text"] { width:100%; padding:8px 9px; border-radius:5px; border:1px solid #28304a; background:#232b42; color:#fff; font-size:12px; margin-bottom:8px; }
+        .cooldown-msg, .success-msg, .error-msg { text-align:center; font-size:12px; margin:10px 0 0 0; }
+        .cooldown-msg { color:#f0b86e; }
+        .success-msg { color:#42b883; }
+        .error-msg { color:#ff6b81; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; background:#1e2536; border-radius:7px; padding:8px 10px 8px 10px; margin-bottom:10px;}
+        .score-main {font-size:13px; color:#ffd700; font-weight:600; }
+        .score-token {font-size:12px; color:#42b883; font-weight:600;}
+        .tabs { display:flex; gap:8px; margin-top:12px; margin-bottom:14px;}
+        .tab-btn { flex:1; text-align:center; background:#232b42; color:#8b6ee6; border:none; border-radius:6px; padding:7px 0; font-size:13px; font-weight:600; cursor:pointer;}
+        .tab-btn.active {background:#5273e0; color:#fff;}
+        .leaderboard-list {margin:0 0 10px 0; border-radius:6px; background:#232b42; padding:5px;}
+        .lb-item {display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #28304a;font-size:13px;}
+        .lb-item:last-child {border-bottom:none;}
+        .lb-rank {color:#f0b86e; font-weight:700; width:30px;}
+        .lb-user {color:#8b6ee6; font-weight:600;flex:1;}
+        .lb-score {color:#42b883; font-weight:600; width:60px; text-align:right;}
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>NFTFans X Share (30min)</h1>
+    <div id="loginCard" class="card">
+        <form id="loginForm">
+            <label for="usernameInput">Enter your X username</label>
+            <input type="text" id="usernameInput" placeholder="@yourusername" autocomplete="username" required>
+            <button type="submit" class="share-btn" style="margin-bottom:4px;"><span class="material-icons">login</span>Login</button>
+        </form>
+    </div>
+    <div id="mainArea" style="display:none;">
+        <div class="topbar">
+            <span class="score-main" id="tweetScore"></span>
+            <span class="score-token" id="tokenScore"></span>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" id="tabShare">Share</button>
+            <button class="tab-btn" id="tabLeaderboard">Leaderboard</button>
+        </div>
+        <div id="tabShareContent">
+            <div class="card">
+                <div style="font-size:13px;font-weight:600;color:#f0b86e;">Share this tweet (usernames auto-inserted):</div>
+                <div class="tweet-preview" id="tweetPreview">Loading...</div>
+                <button class="share-btn" id="shareBtn"><span class="material-icons">share</span>Share on X</button>
+                <div class="cooldown-msg" id="cooldownMsg" style="display:none;"></div>
+                <div class="success-msg" id="successMsg" style="display:none;"></div>
+                <div class="error-msg" id="errorMsg" style="display:none;"></div>
+            </div>
+            <button class="share-btn" onclick="logoutUser()" style="background:#232b42; color:#f0b86e; border:1px solid #28304a;"><span class="material-icons">logout</span>Logout</button>
+        </div>
+        <div id="tabLeaderboardContent" style="display:none;">
+            <div class="card" style="margin-bottom:10px;">
+                <div style="font-size:14px;color:#8b6ee6;font-weight:700;text-align:center;margin-bottom:7px;">
+                    <span class="material-icons" style="vertical-align:middle;">leaderboard</span> Leaderboard
+                </div>
+                <div id="leaderboardList" class="leaderboard-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Firebase config (replace if needed)
+const firebaseConfig = {
+    apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+    authDomain: "nftfanactive.firebaseapp.com",
+    databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+    projectId: "nftfanactive",
+    storageBucket: "nftfanactive.appspot.com",
+    messagingSenderId: "311309982791",
+    appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+    measurementId: "G-3TRDL9749N"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentUser = null;
+let assignedGroupId = null;
+let assignedUsernames = [];
+const TOKENS_PER_SHARE = 10;
+const COOLDOWN_MINUTES = 30;
+
+const tweetTemplate = `NFTFans Token @nftfanstoken: Shoutout to {usernames} ! Earn free $NFTFAN tokens. Claim 1B free $NFTFAN TOKENS without any gas fee. Claim here: https://www.nftfanstoken.com/nftfree`;
+
+function show(el) { el.style.display = ""; }
+function hide(el) { el.style.display = "none"; }
+function setText(el, txt) { el.textContent = txt; }
+function resetMsgs() {
+    hide(document.getElementById('cooldownMsg'));
+    hide(document.getElementById('successMsg'));
+    hide(document.getElementById('errorMsg'));
+}
+function getLastShareKey() {
+    if (!currentUser) return null;
+    return `nftfans-auto-share30-lastshare-${currentUser.replace('@','')}`;
+}
+function getScoreKey() {
+    if (!currentUser) return null;
+    return `nftfans-auto-share30-score-${currentUser.replace('@','')}`;
+}
+function updateScoresDisplay() {
+    const shares = Number(localStorage.getItem(getScoreKey()) || "0");
+    setText(document.getElementById('tweetScore'), `Tweets Shared: ${shares}`);
+    setText(document.getElementById('tokenScore'), `Tokens: ${shares*TOKENS_PER_SHARE}T`);
+}
+function checkCooldown() {
+    const lastShare = Number(localStorage.getItem(getLastShareKey())) || 0;
+    const now = Date.now();
+    if (lastShare && (now - lastShare < COOLDOWN_MINUTES*60*1000)) {
+        const mins = Math.ceil((COOLDOWN_MINUTES*60*1000 - (now - lastShare))/60000);
+        setText(document.getElementById('cooldownMsg'), `You can share again in ${mins} minutes.`);
+        show(document.getElementById('cooldownMsg'));
+        document.getElementById('shareBtn').disabled = true;
+        return true;
+    }
+    document.getElementById('shareBtn').disabled = false;
+    hide(document.getElementById('cooldownMsg'));
+    return false;
+}
+async function fetchGroupUsernames() {
+    // Find a group with status=pending and not assigned
+    const snapshot = await db.ref('groups').orderByChild('status').equalTo('pending').once('value');
+    const allGroups = snapshot.val() || {};
+    for (const groupId in allGroups) {
+        const group = allGroups[groupId];
+        if (!group.assignedTo) {
+            // Assign to user (prevent others from using)
+            await db.ref('groups/' + groupId).update({ assignedTo: currentUser });
+            return { groupId, usernames: (group.usernames || []).map(u => decodeURIComponent(u)) };
+        }
+    }
+    return null;
+}
+async function markGroupDone(groupId) {
+    await db.ref('groups/' + groupId).update({ status: "done" });
+}
+async function renderTweetWithGroup() {
+    document.getElementById('tweetPreview').textContent = "Loading...";
+    resetMsgs();
+    assignedGroupId = null;
+    assignedUsernames = [];
+    if (checkCooldown()) return;
+    try {
+        const groupData = await fetchGroupUsernames();
+        if (!groupData || !groupData.usernames || groupData.usernames.length < 3) {
+            setText(document.getElementById('tweetPreview'), "No usernames available right now. Please try again later.");
+            document.getElementById('shareBtn').disabled = true;
+            return;
+        }
+        assignedGroupId = groupData.groupId;
+        assignedUsernames = groupData.usernames;
+        const tweet = tweetTemplate.replace("{usernames}", assignedUsernames.join(' '));
+        setText(document.getElementById('tweetPreview'), tweet);
+        document.getElementById('shareBtn').disabled = false;
+    } catch (e) {
+        setText(document.getElementById('tweetPreview'), "Error loading usernames.");
+        document.getElementById('shareBtn').disabled = true;
+    }
+}
+async function handleShare() {
+    if (!assignedGroupId || assignedUsernames.length < 3) return;
+    if (checkCooldown()) return;
+    resetMsgs();
+    const tweet = tweetTemplate.replace("{usernames}", assignedUsernames.join(' '));
+    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`, "_blank");
+    try {
+        await markGroupDone(assignedGroupId);
+        localStorage.setItem(getLastShareKey(), Date.now() + "");
+        // update per-user share count/score in localStorage (and leaderboard in Firebase)
+        let n = Number(localStorage.getItem(getScoreKey())||"0") + 1;
+        localStorage.setItem(getScoreKey(), n);
+        updateScoresDisplay();
+        // update global leaderboard node
+        await db.ref('tweetLeaderboard/' + encodeURIComponent(currentUser)).set({
+            username: currentUser,
+            shares: n,
+            tokens: n*TOKENS_PER_SHARE
+        });
+        setText(document.getElementById('successMsg'), `Shared! 10T $NFTFAN tokens earned. Come back in ${COOLDOWN_MINUTES} minutes.`);
+        show(document.getElementById('successMsg'));
+        document.getElementById('shareBtn').disabled = true;
+        setTimeout(renderTweetWithGroup, 1000);
+    } catch (e) {
+        setText(document.getElementById('errorMsg'), "Failed to update group status.");
+        show(document.getElementById('errorMsg'));
+    }
+}
+function logoutUser() {
+    currentUser = null;
+    hide(document.getElementById('mainArea'));
+    show(document.getElementById('loginCard'));
+}
+async function renderLeaderboard() {
+    const lbDiv = document.getElementById('leaderboardList');
+    lbDiv.innerHTML = "Loading...";
+    try {
+        const snap = await db.ref('tweetLeaderboard').once('value');
+        const all = snap.val() || {};
+        let arr = Object.values(all);
+        arr.sort((a,b) => (b.shares||0)-(a.shares||0));
+        let html = '';
+        arr.slice(0,100).forEach((item, idx) => {
+            html += `<div class="lb-item"><span class="lb-rank">#${idx+1}</span><span class="lb-user">${item.username}</span><span class="lb-score">${item.tokens||0}T</span></div>`;
+        });
+        lbDiv.innerHTML = html || "<div style='text-align:center;color:#f0b86e;'>No shares yet.</div>";
+    } catch (e) {
+        lbDiv.innerHTML = "<div style='color:#ff6b81;'>Failed to load leaderboard.</div>";
+    }
+}
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    resetMsgs();
+    const username = document.getElementById('usernameInput').value.trim();
+    if (!/^@[A-Za-z0-9_]{2,32}$/.test(username)) {
+        setText(document.getElementById('errorMsg'), "Invalid X username.");
+        show(document.getElementById('errorMsg'));
+        return;
+    }
+    currentUser = username;
+    hide(document.getElementById('loginCard'));
+    show(document.getElementById('mainArea'));
+    updateScoresDisplay();
+    renderTweetWithGroup();
+});
+document.getElementById('shareBtn').addEventListener('click', handleShare);
+// Tabs
+document.getElementById('tabShare').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('tabLeaderboard').classList.remove('active');
+    show(document.getElementById('tabShareContent'));
+    hide(document.getElementById('tabLeaderboardContent'));
+});
+document.getElementById('tabLeaderboard').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('tabShare').classList.remove('active');
+    hide(document.getElementById('tabShareContent'));
+    show(document.getElementById('tabLeaderboardContent'));
+    renderLeaderboard();
+});
+// On load, show login
+hide(document.getElementById('mainArea'));
+show(document.getElementById('loginCard'));
+</script>
+</body>
+</html>
