@@ -128,10 +128,27 @@
       margin-right: 6px;
       display: inline-block;
     }
+    .delete-btn {
+      background: #2c2c2c;
+      color: #ff6868;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.92em;
+      font-weight: 600;
+      padding: 2px 10px;
+      cursor: pointer;
+      margin-left: 7px;
+      transition: background 0.13s, color 0.13s;
+    }
+    .delete-btn:hover, .delete-btn:focus {
+      background: #ff6868;
+      color: #fff;
+    }
     @media (max-width: 480px) {
       main { padding: 13px 4px 65px 4px;}
       .url-thumb { width: 26px; height: 26px;}
       .pro-badge { font-size: 0.7em; padding: 1px 5px;}
+      .delete-btn { font-size: 0.85em; padding: 1.5px 6px;}
     }
   </style>
   <!-- Firebase App (the core Firebase SDK) -->
@@ -205,10 +222,11 @@
       urls.sort((a, b) => b.ts - a.ts); // newest first
       urlCount.textContent = "Submitted URLs: " + urls.length;
       urlList.innerHTML = urls.map(item => `
-        <div class="url-item">
+        <div class="url-item" data-key="${item.key}">
           <img class="url-thumb" src="${item.url}" alt="thumb" onerror="this.style.display='none'">
           <a href="${item.url}" target="_blank" style="color:#00bfae;text-decoration:underline;">${item.url}</a>
           ${item.pro ? '<span class="pro-badge">PRO</span>' : ''}
+          <button class="delete-btn" onclick="deleteUrl('${item.key}')">Delete</button>
         </div>
       `).join('');
     });
@@ -227,6 +245,15 @@
       urlInput.value = "";
       proCheckbox.checked = false;
     });
+
+    // Delete function
+    function deleteUrl(key) {
+      if (confirm("Delete this post?")) {
+        db.ref('urls/' + key).remove();
+      }
+    }
+    // Make deleteUrl globally available
+    window.deleteUrl = deleteUrl;
   </script>
 </body>
 </html>
