@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFTFAN ADMINS</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: linear-gradient(180deg, #2A0140 0%, #17002B 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .app-bar {
+      background: #3D0173;
+      padding: 18px 0 10px 0;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 18px 0 rgba(123,66,246,0.12);
+    }
+    .submit-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 28px 0 20px 0;
+      gap: 10px;
+    }
+    .submit-section label {
+      font-size: 17px;
+      font-weight: 500;
+      color: #dedede;
+      margin-bottom: 6px;
+    }
+    .submit-section input[type="text"], .submit-section input[type="time"] {
+      padding: 11px 14px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #fff;
+      color: #2A0140;
+      width: 220px;
+      margin-bottom: 6px;
+    }
+    .submit-section .time-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .submit-section .time-row label {
+      margin: 0 3px 0 0;
+      color: #dedede;
+      font-size: 15px;
+      font-weight: 400;
+    }
+    .submit-section button {
+      font-size: 16px;
+      font-weight: 600;
+      background: linear-gradient(90deg, #7B42F6 0%, #B01EFF 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 32px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .submit-section button:active {
+      background: #5b0ea2;
+    }
+    .panel {
+      background: #4B1E7A;
+      border-radius: 18px;
+      margin: 0 12px 24px 12px;
+      padding: 0 0 22px 0;
+      box-shadow: 0 4px 32px 0 rgba(123,66,246,0.13);
+      overflow: hidden;
+      max-width: 620px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .panel-header {
+      background: rgba(255,255,255,0.06);
+      font-size: 18px;
+      font-weight: 600;
+      padding: 18px 24px 13px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      text-align: center;
+    }
+    .leaderboard-header {
+      display: grid;
+      grid-template-columns: 1fr 2.2fr 1.6fr;
+      color: #dedede;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 0 24px 12px 24px;
+      margin-top: 10px;
+    }
+    .leaderboard-row {
+      display: flex;
+      align-items: center;
+      background: rgba(40, 13, 74, 0.89);
+      border-radius: 14px;
+      margin: 0 14px 12px 14px;
+      padding: 12px 14px;
+      font-size: 16px;
+      position: relative;
+      gap: 18px;
+    }
+    .leaderboard-row .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #444;
+      flex-shrink: 0;
+      border: 2px solid #fff;
+    }
+    .leaderboard-row .name {
+      font-weight: 500;
+      font-size: 17px;
+      color: #fff;
+      word-break: break-all;
+      margin-left: 8px;
+      text-decoration: none;
+      transition: color 0.18s;
+    }
+    .leaderboard-row .name:hover {
+      color: #FFD700;
+      text-decoration: underline;
+    }
+    .leaderboard-row .time {
+      font-size: 15px;
+      color: #fff;
+      min-width: 120px;
+      font-weight: 500;
+    }
+    #mobile-block {
+      color: #FFD700;
+      background: #40205d;
+      border-radius: 10px;
+      padding: 20px 18px;
+      margin: 38px auto 16px auto;
+      max-width: 390px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+      display: none;
+    }
+    @media (max-width: 900px) {
+      .panel { max-width: 99vw;}
+      .leaderboard-header { padding: 0 8px 12px 8px;}
+      .leaderboard-row { margin: 0 3px 9px 3px; padding: 8px 7px; font-size: 15px;}
+      .leaderboard-row .avatar { width: 34px; height: 34px; }
+    }
+  </style>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+  <div class="app-bar">NFTFAN ADMINS</div>
+  <div id="mobile-block">
+    Registration is only allowed on desktop or laptop computers. Please open this page on a computer to register.
+  </div>
+  <div class="submit-section" id="register-section">
+    <label for="x-username">Please submit your X (Twitter) username and available time below:</label>
+    <input id="x-username" type="text" placeholder="e.g. elonmusk" autocomplete="off" maxlength="32">
+    <div class="time-row">
+      <label for="start-time">From</label>
+      <input id="start-time" type="time">
+      <label for="end-time">To</label>
+      <input id="end-time" type="time">
+    </div>
+    <button id="submit-btn">Submit</button>
+    <span id="submit-message" style="font-size:14px;color:#FFD700;font-weight:500;"></span>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Admins List</div>
+    <div class="leaderboard-header">
+      <span>Profile</span>
+      <span style="text-align:left;">Username</span>
+      <span style="text-align:left;">Available Time</span>
+    </div>
+    <div id="leaderboard"></div>
+  </div>
+  <script>
+    // Device detection: block mobile/tablet, allow only desktop/laptop
+    function isMobileDevice() {
+      const ua = navigator.userAgent;
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 2;
+      return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || 
+             (isTouch && /iPad|Macintosh/i.test(ua));
+    }
+
+    function handleDeviceBlock() {
+      const registerSection = document.getElementById('register-section');
+      const mobileBlock = document.getElementById('mobile-block');
+      if (isMobileDevice() || window.innerWidth < 700) {
+        registerSection.style.display = 'none';
+        mobileBlock.style.display = 'block';
+      } else {
+        registerSection.style.display = 'flex';
+        mobileBlock.style.display = 'none';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', handleDeviceBlock);
+    window.addEventListener('resize', handleDeviceBlock);
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Helper: get X profile picture by username (uses X unauthed public endpoint fallback)
+    async function fetchXProfilePic(username) {
+      if (!username) return '';
+      try {
+        return `https://unavatar.io/x/${encodeURIComponent(username)}`;
+      } catch (e) { return ''; }
+    }
+
+    // Add admin to Firebase
+    async function addAdmin(username, start, end) {
+      const cleanUsername = username.replace(/^@/, '').trim();
+      if (!cleanUsername) return false;
+      await db.ref('admins/' + cleanUsername.toLowerCase()).set({
+        username: cleanUsername,
+        start: start || "",
+        end: end || ""
+      });
+      return true;
+    }
+
+    // Format time for display (HH:mm => hh:mm AM/PM)
+    function formatTime(t) {
+      if (!t) return '';
+      const [h, m] = t.split(':');
+      let hour = parseInt(h, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12 || 12;
+      return `${hour}:${m} ${ampm}`;
+    }
+
+    // Render admins list
+    async function renderAdmins() {
+      const leaderboard = document.getElementById('leaderboard');
+      leaderboard.innerHTML = '';
+      db.ref('admins').once('value', async (snapshot) => {
+        const admins = snapshot.val() || {};
+        // Create array and sort alphabetically
+        const entries = Object.values(admins).sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+        for (const admin of entries) {
+          const row = document.createElement('div');
+          row.className = 'leaderboard-row';
+          const avatarUrl = await fetchXProfilePic(admin.username);
+          // Username clickable, opens X profile in new tab
+          row.innerHTML = `
+            <img class="avatar" src="${avatarUrl}" alt="${admin.username}">
+            <a class="name" href="https://x.com/${encodeURIComponent(admin.username)}" target="_blank" rel="noopener">@${admin.username}</a>
+            <span class="time">${formatTime(admin.start)} - ${formatTime(admin.end)}</span>
+          `;
+          leaderboard.appendChild(row);
+        }
+      });
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const input = document.getElementById('x-username');
+      const startInput = document.getElementById('start-time');
+      const endInput = document.getElementById('end-time');
+      const msg = document.getElementById('submit-message');
+      let username = input.value.trim().replace(/^@/, '');
+      let start = startInput.value;
+      let end = endInput.value;
+      if (!username) {
+        msg.textContent = 'Please enter your X (Twitter) username.';
+        return;
+      }
+      if (!start || !end) {
+        msg.textContent = 'Please enter your available time (from & to).';
+        return;
+      }
+      msg.textContent = '';
+      try {
+        await addAdmin(username, start, end);
+        msg.textContent = 'Your info has been submitted!';
+        input.value = '';
+        startInput.value = '';
+        endInput.value = '';
+        renderAdmins();
+        setTimeout(() => { msg.textContent = ''; }, 3500);
+      } catch (e) {
+        msg.textContent = 'Submission failed. Try again.';
+      }
+    });
+
+    // Support enter key in username or time fields
+    ['x-username', 'start-time', 'end-time'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('submit-btn').click();
+        }
+      });
+    });
+
+    // Initial
+    renderAdmins();
+  </script>
+</body>
+</html>
