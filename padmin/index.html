@@ -59,6 +59,18 @@
       font-size: 15px;
       font-weight: 400;
     }
+    .submit-section .country-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .submit-section .country-row label {
+      color: #dedede;
+      font-size: 15px;
+      font-weight: 400;
+      margin: 0 3px 0 0;
+    }
     .submit-section button {
       font-size: 16px;
       font-weight: 600;
@@ -80,7 +92,7 @@
       padding: 0 0 22px 0;
       box-shadow: 0 4px 32px 0 rgba(123,66,246,0.13);
       overflow: hidden;
-      max-width: 620px;
+      max-width: 820px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -94,7 +106,7 @@
     }
     .leaderboard-header {
       display: grid;
-      grid-template-columns: 1fr 2.2fr 1.6fr;
+      grid-template-columns: 1fr 2.2fr 1.3fr 1.1fr;
       color: #dedede;
       font-size: 15px;
       font-weight: 500;
@@ -140,6 +152,13 @@
       min-width: 120px;
       font-weight: 500;
     }
+    .leaderboard-row .country {
+      font-size: 15px;
+      color: #ffd700;
+      min-width: 80px;
+      font-weight: 500;
+      margin-left: 6px;
+    }
     #mobile-block {
       color: #FFD700;
       background: #40205d;
@@ -152,7 +171,7 @@
       font-weight: 600;
       display: none;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
       .panel { max-width: 99vw;}
       .leaderboard-header { padding: 0 8px 12px 8px;}
       .leaderboard-row { margin: 0 3px 9px 3px; padding: 8px 7px; font-size: 15px;}
@@ -169,13 +188,17 @@
     Registration is only allowed on desktop or laptop computers. Please open this page on a computer to register.
   </div>
   <div class="submit-section" id="register-section">
-    <label for="x-username">Please submit your X (Twitter) username and available time below:</label>
+    <label for="x-username">Please submit your X (Twitter) username, available time, and country below:</label>
     <input id="x-username" type="text" placeholder="e.g. elonmusk" autocomplete="off" maxlength="32">
     <div class="time-row">
       <label for="start-time">From</label>
       <input id="start-time" type="time">
       <label for="end-time">To</label>
       <input id="end-time" type="time">
+    </div>
+    <div class="country-row">
+      <label for="country-name">Country</label>
+      <input id="country-name" type="text" placeholder="e.g. USA" maxlength="56">
     </div>
     <button id="submit-btn">Submit</button>
     <span id="submit-message" style="font-size:14px;color:#FFD700;font-weight:500;"></span>
@@ -186,6 +209,7 @@
       <span>Profile</span>
       <span style="text-align:left;">Username</span>
       <span style="text-align:left;">Available Time</span>
+      <span style="text-align:left;">Country</span>
     </div>
     <div id="leaderboard"></div>
   </div>
@@ -236,13 +260,14 @@
     }
 
     // Add admin to Firebase
-    async function addAdmin(username, start, end) {
+    async function addAdmin(username, start, end, country) {
       const cleanUsername = username.replace(/^@/, '').trim();
       if (!cleanUsername) return false;
       await db.ref('admins/' + cleanUsername.toLowerCase()).set({
         username: cleanUsername,
         start: start || "",
-        end: end || ""
+        end: end || "",
+        country: country || ""
       });
       return true;
     }
@@ -269,11 +294,11 @@
           const row = document.createElement('div');
           row.className = 'leaderboard-row';
           const avatarUrl = await fetchXProfilePic(admin.username);
-          // Username clickable, opens X profile in new tab
           row.innerHTML = `
             <img class="avatar" src="${avatarUrl}" alt="${admin.username}">
             <a class="name" href="https://x.com/${encodeURIComponent(admin.username)}" target="_blank" rel="noopener">@${admin.username}</a>
             <span class="time">${formatTime(admin.start)} - ${formatTime(admin.end)}</span>
+            <span class="country">${admin.country ? admin.country : ''}</span>
           `;
           leaderboard.appendChild(row);
         }
@@ -284,10 +309,12 @@
       const input = document.getElementById('x-username');
       const startInput = document.getElementById('start-time');
       const endInput = document.getElementById('end-time');
+      const countryInput = document.getElementById('country-name');
       const msg = document.getElementById('submit-message');
       let username = input.value.trim().replace(/^@/, '');
       let start = startInput.value;
       let end = endInput.value;
+      let country = countryInput.value.trim();
       if (!username) {
         msg.textContent = 'Please enter your X (Twitter) username.';
         return;
@@ -296,13 +323,18 @@
         msg.textContent = 'Please enter your available time (from & to).';
         return;
       }
+      if (!country) {
+        msg.textContent = 'Please enter your country name.';
+        return;
+      }
       msg.textContent = '';
       try {
-        await addAdmin(username, start, end);
+        await addAdmin(username, start, end, country);
         msg.textContent = 'Your info has been submitted!';
         input.value = '';
         startInput.value = '';
         endInput.value = '';
+        countryInput.value = '';
         renderAdmins();
         setTimeout(() => { msg.textContent = ''; }, 3500);
       } catch (e) {
@@ -310,8 +342,8 @@
       }
     });
 
-    // Support enter key in username or time fields
-    ['x-username', 'start-time', 'end-time'].forEach(id => {
+    // Support enter key in username, country, or time fields
+    ['x-username', 'start-time', 'end-time', 'country-name'].forEach(id => {
       document.getElementById(id).addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           document.getElementById('submit-btn').click();
