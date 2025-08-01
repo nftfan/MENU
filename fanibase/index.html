@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>Fani's Lifestyle</title>
+  <!-- Material Icons CDN -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <!-- Firebase Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- Firebase Auth -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <!-- Ethers.js for wallet interaction -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #16171a;
+      --card-bg: #202127;
+      --accent: #00bfae;
+      --accent-hover: #22dfd5;
+      --accent2: #ffd600;
+      --red: #e53935;
+      --red-hover: #ff1744;
+      --green: #4CAF50;
+      --green-hover: #45a049;
+      --text: #f7f7f7;
+      --subtitle: #b0b0b0;
+      --footer-bg: #191a1d;
+      --footer-icon: #b9b9b9;
+      --footer-active: #00bfae;
+      --tab-bg: #202127;
+      --tab-active: #191a1d;
+      --tab-inactive: #232329;
+      --tab-text: #cccccc;
+      --tab-active-text: #00bfae;
+      --like-bg: #232329;
+      --tip-popup-bg: #16171a;
+      --tip-popup-border: #00bfae;
+      --tip-popup-shadow: 0 3px 24px rgba(0,191,174,0.17), 0 1.5px 4px rgba(0,0,0,0.11);
+      --tip-popup-close: #00bfae;
+      --subscribe-popup-bg: #19191c;
+      --subscribe-popup-border: #e53935;
+      --subscribe-popup-shadow: 0 3px 24px rgba(229,57,53,0.15), 0 1.5px 4px rgba(0,0,0,0.17);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      box-sizing: border-box;
+    }
+    *, *:before, *:after {
+      box-sizing: inherit;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      background: var(--card-bg);
+      border-bottom: 1px solid #232329;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: 50px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #232329;
+      background: var(--bg);
+      box-shadow: 0 0.5px 1.5px rgba(0,0,0,0.10);
+    }
+    .title-container {
+      display: flex;
+      flex-direction: column;
+    }
+    h1 {
+      font-size: 0.9em;
+      margin: 0;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      color: var(--tab-text);
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 8px;
+      color: var(--subtitle);
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+    .tip-btn {
+      background: var(--like-bg);
+      color: var(--accent2);
+      border: none;
+      border-radius: 15px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      gap: 4px;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.12s;
+    }
+    .tip-btn:hover, .tip-btn:active {
+      background: var(--accent2);
+      color: #232329;
+    }
+    .tip-btn .material-icons {
+      font-size: 14px;
+    }
+    .subscribe-btn-main {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 15px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 1px 8px rgba(229,57,53,0.14);
+      letter-spacing: 0.05em;
+      transition: background 0.15s, color 0.12s;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .subscribe-btn-main:active, .subscribe-btn-main:hover {
+      background: var(--red-hover);
+      color: #fff;
+    }
+    .subscribe-btn-main.subscribed {
+      background: var(--green);
+      color: white;
+    }
+    .subscribe-btn-main.subscribed:hover {
+      background: var(--green-hover);
+    }
+    .subscribe-btn-main .material-icons {
+      font-size: 14px;
+    }
+    /* Toolbar - fixed position above tabs */
+    .toolbar {
+      display: flex;
+      gap: 7px;
+      justify-content: center;
+      align-items: center;
+      padding: 8px 0;
+      background: var(--card-bg);
+      position: sticky;
+      top: 50px;
+      z-index: 9;
+      border-bottom: 1px solid #232329;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      background: var(--like-bg);
+      color: var(--accent);
+      border: none;
+      border-radius: 19px;
+      padding: 0.37em 1.5em 0.37em 0.9em;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.12s;
+      gap: 7px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.09);
+      position: relative;
+      height: 32px;
+    }
+    .toolbar-btn:active {
+      background: var(--accent-hover);
+      color: #232329;
+    }
+    .toolbar-btn .material-icons {
+      font-size: 1.2em;
+    }
+    .toolbar-btn .count-span {
+      font-weight: 600;
+      margin-left: 2px;
+      font-size: 11px;
+      color: var(--tab-active-text);
+    }
+    /* Tabs row */
+    .main-tabs {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--tab-bg);
+      border-bottom: 1px solid #232329;
+      position: sticky;
+      top: 90px; /* Position below toolbar */
+      z-index: 8;
+      gap: 2px;
+      padding: 0 2px;
+      height: 38px;
+    }
+    /* Tabs */
+    .main-tab-btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 7px 0;
+      background: var(--tab-inactive);
+      border: none;
+      color: var(--tab-text);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      outline: none;
+      border-radius: 8px 8px 0 0;
+      border-bottom: 2px solid transparent;
+      transition: background 0.14s, color 0.13s, border-bottom 0.13s;
+      text-transform: uppercase;
+      margin: 0 1.5px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .main-tab-btn.active {
+      background: var(--tab-active);
+      color: var(--tab-active-text);
+      border-bottom: 2px solid var(--accent);
+    }
+    .main-tab-btn .material-icons {
+      font-size: 15px;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+    /* Popups */
+    .popup,
+    .tip-popup-bg,
+    .subscribe-popup-bg {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      top: 0; left: 0; right: 0; bottom: 0;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: rgba(12,12,13,0.95);
+      animation: fadeIn 0.2s;
+    }
+    .popup.active,
+    .tip-popup-bg.active,
+    .subscribe-popup-bg.active {
+      display: flex;
+    }
+    .popup img {
+      max-width: 90vw;
+      max-height: 70vh;
+      border-radius: 13px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.40);
+      border: 2px solid #232329;
+      background: #202127;
+    }
+    .popup .close-btn {
+      margin-top: 18px;
+      background: var(--card-bg);
+      color: var(--accent);
+      border: none;
+      font-size: 1em;
+      padding: 0.35em 2em;
+      border-radius: 19px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+      cursor: pointer;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+    }
+    /* Subscribe Popup */
+    .subscribe-popup-bg {
+      background: rgba(22, 23, 26, 0.84);
+      z-index: 210;
+    }
+    .subscribe-popup {
+      background: var(--subscribe-popup-bg);
+      border: 2px solid var(--subscribe-popup-border);
+      border-radius: 13px;
+      box-shadow: var(--subscribe-popup-shadow);
+      max-width: 94vw;
+      min-width: 220px;
+      max-width: 350px;
+      padding: 18px 11px 17px 11px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      color: var(--text);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 400;
+    }
+    .subscribe-popup .close-subscribe {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--red);
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 0;
+    }
+    .subscribe-popup .material-icons {
+      color: var(--red);
+      font-size: 2em;
+      margin-bottom: 5px;
+    }
+    .subscribe-popup .subscribe-title {
+      font-size: 1.01em;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 7px;
+      letter-spacing: 0.03em;
+    }
+    .subscribe-popup .subscribe-desc {
+      font-size: 11px;
+      margin-bottom: 12px;
+      color: var(--tab-text);
+      line-height: 1.55;
+      font-weight: 500;
+    }
+    .subscribe-popup .connect-btn {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 29px 6px 28px;
+      cursor: pointer;
+      margin-bottom: 11px;
+      margin-top: 4px;
+      transition: background 0.13s;
+      box-shadow: 0 1px 8px rgba(229,57,53,0.13);
+      letter-spacing: 0.04em;
+    }
+    .subscribe-popup .connect-btn:active {
+      background: var(--red-hover);
+    }
+    .subscribe-popup .subscribe-step {
+      margin: 7px 0 0 0;
+      font-size: 11px;
+      color: var(--subtitle);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+    .subscribe-popup .username-label {
+      margin-top: 8px;
+      margin-bottom: 3px;
+      color: var(--tab-text);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .subscribe-popup .username-input {
+      width: 90%;
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 7px;
+      border: 1px solid #313133;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+      background: #222;
+      color: #fff;
+      outline: none;
+      margin-top: 0;
+      font-family: inherit;
+      text-align: center;
+    }
+    .subscribe-popup .subscribe-btn {
+      margin-top: 7px;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 34px;
+      cursor: pointer;
+      transition: background 0.14s;
+      letter-spacing: 0.05em;
+      box-shadow: 0 1px 8px rgba(229,57,53,0.14);
+    }
+    .subscribe-popup .subscribe-btn:active {
+      background: var(--red-hover);
+    }
+    .subscribe-popup .subscribe-success {
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 10px;
+      margin-bottom: 0;
+      letter-spacing: 0.04em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 10px 5px 65px 5px;
+      background: var(--bg);
+      min-height: 110px;
+      margin-top: 5px;
+    }
+    .grid img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: 7px;
+      cursor: pointer;
+      background: #232329;
+      box-shadow: 0 0.5px 2px rgba(0,0,0,0.08);
+      border: 1px solid #232329;
+      transition: box-shadow 0.12s, transform 0.15s;
+    }
+    .grid img:active,
+    .grid img:hover {
+      box-shadow: 0 2px 10px rgba(0,191,174,0.15);
+      transform: scale(1.01);
+    }
+    .no-photos, .subscribe-message {
+      color: var(--subtitle);
+      text-align: center;
+      padding: 2em 0 0 0;
+      font-size: 1em;
+    }
+    .subscribe-message {
+      color: var(--text);
+      background: var(--bg);
+      padding: 30px 15px;
+      border-radius: 10px;
+      margin: 20px auto;
+      max-width: 90%;
+      text-align: center;
+    }
+    .subscribe-now-btn {
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin-top: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .subscribe-now-btn:hover {
+      background: var(--red-hover);
+    }
+    .pro-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: #00bfae;
+      color: #232329;
+      font-size: 0.85em;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 1px 6px;
+      z-index: 3;
+      pointer-events: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.13);
+    }
+    .img-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0 }
+      to { opacity: 1 }
+    }
+    /* Footer */
+    .footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 45px;
+      background: var(--footer-bg);
+      border-top: 1px solid #232329;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 20;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.11);
+    }
+    .footer a {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: var(--footer-icon);
+      font-size: 11px;
+      transition: color 0.17s;
+      padding-top: 3px;
+      height: 100%;
+      position: relative;
+    }
+    .footer a.active, .footer a:focus, .footer a:hover {
+      color: var(--footer-active);
+    }
+    .footer .material-icons {
+      font-size: 22px;
+      margin-bottom: 1px;
+      display: block;
+    }
+    /* Tip popup unchanged... */
+    .tip-popup-bg {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(17,20,21,0.78);
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.2s;
+    }
+    .tip-popup-bg.active { display: flex; }
+    .tip-popup {
+      background: var(--tip-popup-bg);
+      border: 1.5px solid var(--tip-popup-border);
+      border-radius: 13px;
+      box-shadow: var(--tip-popup-shadow);
+      max-width: 90vw;
+      min-width: 210px;
+      max-width: 340px;
+      padding: 20px 18px 17px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      color: var(--text);
+      text-align: center;
+      font-size: 0.98em;
+      font-weight: 400;
+    }
+    .tip-popup .close-tip {
+      position: absolute;
+      top: 9px;
+      right: 11px;
+      background: none;
+      border: none;
+      color: var(--tip-popup-close);
+      font-size: 1.3em;
+      cursor: pointer;
+      padding: 0;
+    }
+    .tip-popup .material-icons {
+      color: var(--accent2);
+      font-size: 2.15em;
+      margin-bottom: 6px;
+    }
+    .tip-popup .tip-title {
+      font-size: 1.01em;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .tip-popup .tip-desc {
+      font-size: 0.98em;
+      margin-bottom: 12px;
+      color: var(--tab-text);
+      line-height: 1.55;
+      font-weight: 500;
+    }
+    .tip-popup .tip-wallet-label {
+      font-size: 0.95em;
+      color: var(--subtitle);
+      margin-bottom: 2px;
+      margin-top: 7px;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+    }
+    .tip-popup .tip-wallet {
+      font-size: 7px;
+      background: #232329;
+      color: #ffd600;
+      border-radius: 4px;
+      font-family: monospace, 'Roboto Mono', monospace;
+      padding: 4px 8px 4px 7px;
+      margin-bottom: 9px;
+      margin-top: 0;
+      letter-spacing: 0.02em;
+      display: inline-block;
+      word-break: break-all;
+      border: none;
+      outline: none;
+      vertical-align: middle;
+    }
+    .tip-popup .copy-tip-btn {
+      margin-left: 5px;
+      background: var(--accent2);
+      color: #232329;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85em;
+      font-weight: 700;
+      padding: 2px 12px 2.5px 12px;
+      cursor: pointer;
+      transition: background 0.13s;
+      vertical-align: middle;
+      line-height: 1.1;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    }
+    .tip-popup .copy-tip-btn:active {
+      background: #e9c200;
+    }
+    .tip-popup .tip-note {
+      color: var(--subtitle);
+      font-size: 0.92em;
+      margin-top: 7px;
+      margin-bottom: 0;
+      line-height: 1.4;
+      font-weight: 400;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 450px) {
+      header {
+        padding: 0 8px;
+        height: 50px;
+      }
+      .logo { width: 24px; height: 24px; }
+      h1 { font-size: 0.85em;}
+      .subtitle { font-size: 7px;}
+      .footer { height: 42px;}
+      .footer .material-icons { font-size: 19px;}
+      .toolbar-btn { font-size: 10px; padding: 0.29em 1.2em 0.29em 0.7em;}
+      .main-tab-btn { font-size: 10px; padding: 7px 0;}
+      .subscribe-btn-main, .tip-btn { font-size: 9px; padding: 4px 8px;}
+      .grid { gap: 2px; }
+      .subscribe-popup { padding: 10px 4px 9px 4px; min-width: 0; }
+      .tip-popup { padding: 13px 8px 11px 8px; min-width: 0; }
+      .tip-btn .material-icons, .subscribe-btn-main .material-icons {
+        font-size: 12px;
+      }
+      .main-tabs { top: 90px; }
+      .toolbar { height: 40px; }
+    }
+    
+    /* Loading indicator */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 150px;
+    }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 191, 174, 0.1);
+      border-top-color: var(--accent);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="logo-title">
+        <img class="logo" src="https://pbs.twimg.com/media/Gw-dQtYXsAASdEg?format=jpg&name=large" alt="Fani Logo">
+        <div class="title-container">
+          <h1>Fani's Lifestyle</h1>
+          <div class="subtitle">AI Agent of NFTFANS TOKEN</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- Tip button removed -->
+      <button id="subscribeButton" class="subscribe-btn-main" onclick="openSubscribePopup()">
+        <span class="material-icons">subscriptions</span>
+        <span id="subscribeButtonText">Subscribe</span>
+      </button>
+    </div>
+  </header>
+  <div class="toolbar">
+    <button class="toolbar-btn" id="followBtn" onclick="handleFollow()">
+      <span class="material-icons">person_add</span>
+      Basers <span class="count-span" id="followCount">0</span>
+    </button>
+    <button class="toolbar-btn" id="likeBtn" onclick="handleLike()">
+      <span class="material-icons">favorite</span>
+      Hearts <span class="count-span" id="likeCount">0</span>
+    </button>
+  </div>
+  <div class="main-tabs">
+    <button id="tab-basic" class="main-tab-btn active" onclick="showTab('basic')">Daily Life</button>
+    <button id="tab-pro" class="main-tab-btn" onclick="showTab('pro')">At Work</button>
+  </div>
+
+  <!-- Subscribe Popup -->
+  <div class="subscribe-popup-bg" id="subscribePopupBg">
+    <div class="subscribe-popup">
+      <button class="close-subscribe" onclick="closeSubscribePopup()" title="Close">
+        <span class="material-icons">close</span>
+      </button>
+      <span class="material-icons">subscriptions</span>
+      <div class="subscribe-title">Subscribe Fani's Lifestyle</div>
+      <div class="subscribe-desc" id="subscribeStepConnect">
+        <b>Connect your wallet</b> to subscribe.<br>
+        <b>Open the URL in </b> your wallet's built in browser.<br>
+        <span style="color:#e53935;">Base chain network</span>
+      </div>
+      <button class="connect-btn" id="connectWalletBtn" onclick="connectWallet()" style="font-size:11px;">Connect Wallet</button>
+      <div class="subscribe-step" id="subscribeStepSub" style="display:none;">
+        Subscribe Fani's Lifestyle for only <b>0.001 $ETH</b>
+      </div>
+      <div class="username-label" id="usernameLabel" style="display:none;">Enter your X (Twitter) username:</div>
+      <input type="text" class="username-input" id="xUsernameInput" style="display:none;" placeholder="e.g. @yourxusername">
+      <button class="subscribe-btn" id="sendSubscribeBtn" style="display:none;" onclick="subscribeFani()">Subscribe</button>
+      <div class="subscribe-success" id="subscribeSuccess" style="display:none;"></div>
+    </div>
+  </div>
+  
+  <!-- Tip PopUp removed -->
+
+  <main>
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+    </div>
+    <div class="grid" id="photoGrid" style="display: none;"></div>
+    <div class="no-photos" id="noPhotos" style="display:none;">
+      No photos found. Submit some images to the database!
+    </div>
+    <div class="subscribe-message" id="subscribeProMessage" style="display:none;">
+      <span class="material-icons" style="font-size: 32px; color: var(--red); margin-bottom: 10px;">lock</span>
+      <h3>Pro Content Exclusive for Subscribers</h3>
+      <p>Subscribe to Fani's Lifestyle to access premium content.</p>
+      <button class="subscribe-now-btn" onclick="openSubscribePopup()">Subscribe Now</button>
+    </div>
+  </main>
+  
+  <div class="footer">
+    <a href="http://nftfanstoken.com/apps" target="_blank" title="Apps">
+      <span class="material-icons">apps</span>
+    </a>
+    <a href="http://nftfanstoken.com/artfun" target="_blank" title="Art Fun">
+      <span class="material-icons">palette</span>
+    </a>
+    <a href="https://x.com/nftfanstoken" target="_blank" title="X (Twitter)">
+      <span class="material-icons">public</span>
+    </a>
+  </div>
+  
+  <div class="popup" id="popup">
+    <img src="" alt="Photo" id="popupImg">
+    <button class="close-btn" onclick="closePopup()">Close</button>
+  </div>
+  
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
+      authDomain: "nftfanactive.firebaseapp.com",
+      databaseURL: "https://nftfanactive-default-rtdb.firebaseio.com",
+      projectId: "nftfanactive",
+      storageBucket: "nftfanactive.appspot.com",
+      messagingSenderId: "311309982791",
+      appId: "1:311309982791:web:3e55bba6b78feb57ea6562",
+      measurementId: "G-3TRDL9749N"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const grid = document.getElementById('photoGrid');
+    const noPhotos = document.getElementById('noPhotos');
+    const loadingIndicator = document.getElementById('loading');
+    const tabBasic = document.getElementById('tab-basic');
+    const tabPro = document.getElementById('tab-pro');
+    const subscribeButton = document.getElementById('subscribeButton');
+    const subscribeButtonText = document.getElementById('subscribeButtonText');
+    const subscribeProMessage = document.getElementById('subscribeProMessage');
+
+    let currentTab = 'basic';
+    let allPhotos = [];
+    let userAddress = null;
+    let userSubscribed = false;
+
+    // Follow/Like counts
+    const followBtn = document.getElementById('followBtn');
+    const likeBtn = document.getElementById('likeBtn');
+    const followCount = document.getElementById('followCount');
+    const likeCount = document.getElementById('likeCount');
+
+    function checkSubscriptionStatus() {
+      if (!userAddress) return;
+      db.ref('subscriptions').orderByChild('address').equalTo(userAddress).once('value', snapshot => {
+        if (snapshot.exists()) {
+          userSubscribed = true;
+          updateSubscribeButton(true);
+          if (currentTab === 'pro') {
+            renderPhotos(allPhotos, 'pro');
+          }
+        } else {
+          userSubscribed = false;
+          updateSubscribeButton(false);
+          if (currentTab === 'pro') {
+            showSubscribeMessage();
+          }
+        }
+      });
+    }
+
+    function updateSubscribeButton(isSubscribed) {
+      if (isSubscribed) {
+        subscribeButton.classList.add('subscribed');
+        subscribeButtonText.textContent = 'Subscribed';
+      } else {
+        subscribeButton.classList.remove('subscribed');
+        subscribeButtonText.textContent = 'Subscribe';
+      }
+    }
+
+    function showSubscribeMessage() {
+      grid.style.display = 'none';
+      noPhotos.style.display = 'none';
+      loadingIndicator.style.display = 'none';
+      subscribeProMessage.style.display = 'block';
+    }
+
+    function renderPhotos(photos, tab) {
+      loadingIndicator.style.display = 'none';
+      subscribeProMessage.style.display = 'none';
+      if (tab === 'pro' && !userSubscribed) {
+        showSubscribeMessage();
+        return;
+      }
+      grid.style.display = 'grid';
+      grid.innerHTML = '';
+      let filtered;
+      if (tab === 'basic') {
+        filtered = photos.filter(p => !p.pro);
+      } else {
+        filtered = photos.filter(p => !!p.pro);
+      }
+      if (filtered.length === 0) {
+        noPhotos.style.display = 'block';
+        grid.style.display = 'none';
+        return;
+      }
+      noPhotos.style.display = 'none';
+      filtered.forEach((item, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = "img-wrap";
+        if (item.pro && tab === 'basic') {
+          const badge = document.createElement('span');
+          badge.className = "pro-badge";
+          badge.textContent = "PRO";
+          wrap.appendChild(badge);
+        }
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = "Fani's Lifestyle Photo " + (i + 1);
+        img.loading = "lazy";
+        img.onload = function() {
+          img.classList.add('loaded');
+        };
+        img.addEventListener('click', function () {
+          openPopup(item.url);
+        });
+        wrap.appendChild(img);
+        grid.appendChild(wrap);
+      });
+    }
+
+    function showTab(tab) {
+      currentTab = tab;
+      tabBasic.classList.toggle('active', tab === 'basic');
+      tabPro.classList.toggle('active', tab === 'pro');
+      grid.style.display = 'none';
+      subscribeProMessage.style.display = 'none';
+      loadingIndicator.style.display = 'flex';
+      if (tab === 'pro' && !userSubscribed) {
+        showSubscribeMessage();
+        return;
+      }
+      if (allPhotos.length > 0) {
+        renderPhotos(allPhotos, currentTab);
+      }
+    }
+
+    db.ref('urls').on('value', snapshot => {
+      const photos = [];
+      snapshot.forEach(child => {
+        const data = child.val();
+        if (data && typeof data.url === 'string' && data.url.trim()) {
+          photos.push({ url: data.url, ts: data.ts || 0, pro: !!data.pro });
+        }
+      });
+      photos.sort((a, b) => b.ts - a.ts);
+      allPhotos = photos;
+      renderPhotos(allPhotos, currentTab);
+    });
+
+    function updateToolbarCounts(data) {
+      followCount.textContent = data && data.follow ? data.follow : 0;
+      likeCount.textContent = data && data.like ? data.like : 0;
+    }
+
+    db.ref('stats').on('value', snapshot => {
+      updateToolbarCounts(snapshot.val());
+    });
+
+    function handleFollow() {
+      const statRef = db.ref('stats/follow');
+      statRef.transaction(count => (count || 0) + 1);
+    }
+
+    function handleLike() {
+      const statRef = db.ref('stats/like');
+      statRef.transaction(count => (count || 0) + 1);
+    }
+
+    function openPopup(url) {
+      document.getElementById('popupImg').src = url;
+      document.getElementById('popup').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closePopup() {
+      document.getElementById('popup').classList.remove('active');
+      document.getElementById('popupImg').src = '';
+      document.body.style.overflow = '';
+    }
+
+    // Tip popup logic removed
+
+    document.getElementById('popup').addEventListener('click', function(e) {
+      if (e.target === this) closePopup();
+    });
+
+    // Tip popup event listener removed
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key === "Escape") {
+        closePopup();
+        closeSubscribePopup();
+      }
+    });
+
+    // --- Subscribe popup logic ---
+    const subscribePopupBg = document.getElementById('subscribePopupBg');
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const subscribeStepSub = document.getElementById('subscribeStepSub');
+    const usernameLabel = document.getElementById('usernameLabel');
+    const xUsernameInput = document.getElementById('xUsernameInput');
+    const sendSubscribeBtn = document.getElementById('sendSubscribeBtn');
+    const subscribeSuccess = document.getElementById('subscribeSuccess');
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            userAddress = accounts[0];
+            checkSubscriptionStatus();
+          }
+        } catch (err) {
+          console.error("Error checking wallet:", err);
+        }
+      }
+      if (window.ethereum) {
+        window.ethereum.on('accountsChanged', (accounts) => {
+          if (accounts.length > 0) {
+            userAddress = accounts[0];
+            checkSubscriptionStatus();
+          } else {
+            userAddress = null;
+            updateSubscribeButton(false);
+            userSubscribed = false;
+            if (currentTab === 'pro') {
+              showSubscribeMessage();
+            }
+          }
+        });
+      }
+      const today = new Date();
+      console.log("Current date:", today.toISOString().split('T')[0]);
+    });
+
+    function openSubscribePopup() {
+      if (userSubscribed) {
+        alert("You are already subscribed to Fani's Lifestyle. Thank you for your support!");
+        return;
+      }
+      subscribePopupBg.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      connectWalletBtn.style.display = '';
+      connectWalletBtn.disabled = false;
+      connectWalletBtn.textContent = 'Connect Wallet';
+      subscribeStepSub.style.display = 'none';
+      usernameLabel.style.display = 'none';
+      xUsernameInput.style.display = 'none';
+      xUsernameInput.value = '';
+      sendSubscribeBtn.style.display = 'none';
+      sendSubscribeBtn.disabled = false;
+      subscribeSuccess.style.display = 'none';
+      subscribeSuccess.textContent = '';
+      if (userAddress) {
+        connectWalletBtn.style.display = 'none';
+        subscribeStepSub.style.display = '';
+        usernameLabel.style.display = '';
+        xUsernameInput.style.display = '';
+        sendSubscribeBtn.style.display = '';
+      }
+    }
+
+    function closeSubscribePopup() {
+      subscribePopupBg.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    subscribePopupBg.addEventListener('click', function(e) {
+      if (e.target === this) closeSubscribePopup();
+    });
+
+    // Connect wallet, enforce Base Mainnet
+    async function connectWallet() {
+      if (!window.ethereum) {
+        connectWalletBtn.textContent = "No wallet found";
+        connectWalletBtn.disabled = true;
+        return;
+      }
+      connectWalletBtn.textContent = "Connecting...";
+      connectWalletBtn.disabled = true;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }], // Base Mainnet
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105',
+                chainName: 'Base Mainnet',
+                rpcUrls: ['https://mainnet.base.org'],
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                blockExplorerUrls: ['https://basescan.org/'],
+              }],
+            });
+          } catch (addErr) {
+            connectWalletBtn.textContent = "Add Base failed";
+            connectWalletBtn.disabled = false;
+            return;
+          }
+        } else {
+          connectWalletBtn.textContent = "Switch failed";
+          connectWalletBtn.disabled = false;
+          return;
+        }
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAddress = accounts[0];
+        checkSubscriptionStatus();
+        connectWalletBtn.textContent = "Connected!";
+        connectWalletBtn.style.display = 'none';
+        subscribeStepSub.style.display = '';
+        usernameLabel.style.display = '';
+        xUsernameInput.style.display = '';
+        sendSubscribeBtn.style.display = '';
+        subscribeSuccess.style.display = 'none';
+      } catch (err) {
+        connectWalletBtn.textContent = "Connect failed";
+        connectWalletBtn.disabled = false;
+      }
+    }
+
+    // Subscribe - send 0.001 ETH to Fani's address
+    async function subscribeFani() {
+      if (!window.ethereum || !userAddress) return;
+      const username = xUsernameInput.value.trim();
+      if (!username) {
+        xUsernameInput.focus();
+        return;
+      }
+      sendSubscribeBtn.textContent = "Processing...";
+      sendSubscribeBtn.disabled = true;
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tx = await signer.sendTransaction({
+          to: "0x92d550cdbc234211957bd1b579d962c885a127ba",
+          value: ethers.utils.parseEther("0.001"),
+        });
+        const subscriptionRef = db.ref('subscriptions').push();
+        await subscriptionRef.set({
+          address: userAddress,
+          username: username,
+          txHash: tx.hash,
+          ts: Date.now()
+        });
+        userSubscribed = true;
+        updateSubscribeButton(true);
+        if (currentTab === 'pro') {
+          renderPhotos(allPhotos, 'pro');
+        }
+        subscribeSuccess.style.display = '';
+        subscribeSuccess.textContent = "Subscribed!! Thank you.";
+        subscribeSuccess.style.color = "var(--green)";
+        sendSubscribeBtn.textContent = "Subscribed";
+        sendSubscribeBtn.style.background = "var(--green)";
+        setTimeout(() => {
+          closeSubscribePopup();
+        }, 3000);
+      } catch (e) {
+        console.error("Subscription error:", e);
+        subscribeSuccess.style.display = '';
+        subscribeSuccess.textContent = "Transaction failed. Try again.";
+        sendSubscribeBtn.textContent = "Subscribe";
+        sendSubscribeBtn.disabled = false;
+      }
+    }
+
+    showTab('basic');
+  </script>
+</body>
+</html>
