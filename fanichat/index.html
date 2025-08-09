@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Fani AI Assistant</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fani AI">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -29,6 +32,19 @@
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      
+      /* iOS Safe Area Variables */
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-right: env(safe-area-inset-right);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+    }
+
+    /* iOS Specific Fixes */
+    html {
+      height: 100%;
+      overflow: hidden;
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
@@ -40,120 +56,321 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       height: 100vh;
+      height: 100dvh; /* Dynamic viewport height for iOS */
       overflow: hidden;
+      position: fixed;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
     }
 
     .chat-container {
       max-width: 414px;
       margin: 0 auto;
       height: 100vh;
+      height: 100dvh; /* Dynamic viewport height */
       display: flex;
       flex-direction: column;
       background: var(--background-card);
       position: relative;
       overflow: hidden;
       box-shadow: var(--shadow-xl);
+      /* iOS Safe Area Support */
+      padding-top: var(--safe-area-inset-top);
+      padding-left: var(--safe-area-inset-left);
+      padding-right: var(--safe-area-inset-right);
     }
 
-    /* Header Section */
+    /* Enhanced Header Section */
     .chat-header {
-      background: var(--primary-gradient);
-      padding: 20px 20px 24px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
       position: relative;
+      overflow: hidden;
       z-index: 10;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0; /* Prevent shrinking */
     }
 
-    .header-content {
+    /* Animated Background Elements */
+    .header-bg-animation {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .floating-shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .floating-shape:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      top: 20%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .floating-shape:nth-child(2) {
+      width: 60px;
+      height: 60px;
+      top: 60%;
+      right: 15%;
+      animation-delay: 2s;
+    }
+
+    .floating-shape:nth-child(3) {
+      width: 40px;
+      height: 40px;
+      top: 80%;
+      left: 20%;
+      animation-delay: 4s;
+    }
+
+    .floating-shape:nth-child(4) {
+      width: 100px;
+      height: 100px;
+      top: 10%;
+      right: 5%;
+      animation-delay: 1s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(120deg); }
+      66% { transform: translateY(10px) rotate(240deg); }
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 20px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      z-index: 3;
+      position: relative;
+    }
+
+    .status-left {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-top: 24px;
+      gap: 4px;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .battery-icon {
+      width: 24px;
+      height: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      right: -3px;
+      width: 2px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 0 1px 1px 0;
+    }
+
+    .battery-fill {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      bottom: 1px;
+      width: 80%;
+      background: var(--success-color);
+      border-radius: 1px;
+    }
+
+    /* Main Header Content */
+    .header-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 20px 20px 20px;
+      z-index: 3;
+      position: relative;
+    }
+
+    /* Avatar Section with Enhanced Design */
+    .avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
     }
 
     .avatar-container {
       position: relative;
+      margin-bottom: 12px;
+    }
+
+    .avatar-frame {
+      width: 100%;
+      height: 300px;
+      border-radius: 28px;
+      padding: 4px;
+      background: linear-gradient(45deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+      backdrop-filter: blur(10px);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 16px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
       object-fit: cover;
       background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
     .status-indicator {
       position: absolute;
-      bottom: -2px;
-      right: -2px;
-      width: 16px;
-      height: 16px;
+      bottom: 8px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
       background: var(--success-color);
       border: 3px solid white;
       border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       animation: pulse 2s infinite;
     }
 
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3); }
+      70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0), 0 2px 8px rgba(0, 0, 0, 0.3); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 2px 8px rgba(0, 0, 0, 0.3); }
     }
 
-    .header-info {
-      flex: 1;
-    }
-
-    .chat-title {
-      font-size: 18px;
-      font-weight: 600;
+    /* Profile Info */
+    .profile-info {
+      text-align: center;
       color: white;
-      margin-bottom: 2px;
     }
 
-    .chat-subtitle {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.8);
-      font-weight: 400;
+    .profile-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      letter-spacing: 0.5px;
     }
 
-    .header-actions {
+    .profile-title {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-status {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
     }
 
-    .header-btn {
-      width: 40px;
-      height: 40px;
+    .profile-status .material-icons-round {
+      font-size: 14px;
+      color: var(--success-color);
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 0 20px 20px 20px;
+      z-index: 3;
+      position: relative;
+    }
+
+    .action-btn {
+      width: 48px;
+      height: 48px;
       border: none;
       background: rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
+      border-radius: 16px;
       color: white;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
 
-    .header-btn:hover {
+    .action-btn:hover {
       background: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
 
-    .header-btn .material-icons-round {
-      font-size: 20px;
+    .action-btn:active {
+      transform: translateY(0);
     }
 
-    /* Messages Section */
+    .action-btn .material-icons-round {
+      font-size: 22px;
+    }
+
+    .action-btn.primary {
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* Curved bottom border */
+    .header-curve {
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: var(--background-dark);
+      border-radius: 20px 20px 0 0;
+      z-index: 2;
+    }
+
+    /* Messages Section - CRITICAL iOS FIX */
     .chat-messages {
-      flex: 1;
+      flex: 1 1 auto; /* Allow flex grow and shrink */
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 24px 16px 16px 16px;
       background: var(--background-dark);
       position: relative;
+      -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+      /* Ensure messages don't interfere with keyboard */
+      min-height: 0; /* Important for flex shrinking */
     }
 
     .message-group {
@@ -267,12 +484,29 @@
       }
     }
 
-    /* Input Section */
+    /* Input Section - CRITICAL iOS KEYBOARD FIX */
     .chat-input-section {
       padding: 16px;
+      padding-bottom: calc(16px + var(--safe-area-inset-bottom, 0px)); /* iOS safe area */
       background: var(--background-card);
       border-top: 1px solid var(--border-color);
       position: relative;
+      flex-shrink: 0; /* Never shrink the input */
+      z-index: 100; /* Always on top */
+      /* iOS Keyboard Fix */
+      transform: translateZ(0); /* Force hardware acceleration */
+      -webkit-transform: translateZ(0);
+    }
+
+    /* iOS Keyboard Detection */
+    .ios-keyboard-open .chat-input-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 414px;
+      margin: 0 auto;
+      z-index: 1000;
     }
 
     .input-container {
@@ -284,6 +518,8 @@
       padding: 8px;
       border: 1px solid var(--border-color);
       transition: all 0.2s ease;
+      position: relative;
+      z-index: 101;
     }
 
     .input-container:focus-within {
@@ -297,13 +533,16 @@
       border: none;
       outline: none;
       color: var(--text-primary);
-      font-size: 14px;
+      font-size: 16px; /* IMPORTANT: 16px prevents zoom on iOS */
       font-family: inherit;
       padding: 8px 12px;
       resize: none;
       max-height: 100px;
       min-height: 20px;
       line-height: 1.4;
+      -webkit-appearance: none;
+      -webkit-border-radius: 0;
+      border-radius: 0;
     }
 
     .chat-input::placeholder {
@@ -323,6 +562,7 @@
       justify-content: center;
       transition: all 0.2s ease;
       box-shadow: var(--shadow-md);
+      flex-shrink: 0;
     }
 
     .send-button:hover {
@@ -398,19 +638,24 @@
       background: rgba(255, 255, 255, 0.2);
     }
 
-    /* Responsive Design */
+    /* Responsive Design with iOS Optimizations */
     @media (max-width: 414px) {
       .chat-container {
         max-width: 100vw;
         height: 100vh;
+        height: 100dvh;
       }
       
       .chat-header {
-        padding: 16px 16px 20px 16px;
+        height: 260px;
       }
       
-      .header-content {
-        margin-top: 20px;
+      .header-main {
+        padding: 0 16px 16px 16px;
+      }
+      
+      .action-bar {
+        padding: 0 16px 16px 16px;
       }
       
       .chat-messages {
@@ -419,6 +664,35 @@
       
       .chat-input-section {
         padding: 12px;
+        padding-bottom: calc(12px + var(--safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* iOS Specific Keyboard Handling */
+    @supports (-webkit-touch-callout: none) {
+      /* iOS Safari specific styles */
+      body {
+        height: 100vh;
+        height: -webkit-fill-available;
+      }
+      
+      .chat-container {
+        height: 100vh;
+        height: -webkit-fill-available;
+      }
+      
+      /* Prevent zoom on input focus */
+      .chat-input {
+        font-size: 16px;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+      }
+    }
+
+    /* iOS PWA Optimizations */
+    @media (display-mode: standalone) {
+      .chat-container {
+        padding-top: var(--safe-area-inset-top);
       }
     }
 
@@ -434,33 +708,84 @@
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.2);
     }
+
+    /* iOS Keyboard Open State */
+    .keyboard-open {
+      height: auto !important;
+      min-height: auto !important;
+    }
+
+    .keyboard-open .chat-messages {
+      max-height: calc(100vh - 360px); /* Adjust based on keyboard height */
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
-  <div class="chat-container">
-    <!-- Header -->
+  <div class="chat-container" id="chatContainer">
+    <!-- Enhanced Header -->
     <div class="chat-header">
-      <div class="header-content">
-        <div class="avatar-container">
-          <img src="https://pbs.twimg.com/media/Gx66fHBXcAAEFpA?format=jpg&name=large" alt="Fani AI" class="avatar" />
-          <div class="status-indicator"></div>
+      <!-- Animated Background -->
+      <div class="header-bg-animation">
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-left">
+          <span id="current-time">21:06</span>
         </div>
-        <div class="header-info">
-          <div class="chat-title">Fani AI</div>
-          <div class="chat-subtitle">Web3 Assistant • Online</div>
-        </div>
-        <div class="header-actions">
-          <button class="header-btn" title="Voice Call">
-            <span class="material-icons-round">phone</span>
-          </button>
-          <button class="header-btn" title="Video Call">
-            <span class="material-icons-round">videocam</span>
-          </button>
-          <button class="header-btn" title="More Options">
-            <span class="material-icons-round">more_vert</span>
-          </button>
+        <div class="status-right">
+          <span class="material-icons-round" style="font-size: 14px;">signal_cellular_4_bar</span>
+          <span class="material-icons-round" style="font-size: 14px;">wifi</span>
+          <div class="battery-icon">
+            <div class="battery-fill"></div>
+          </div>
         </div>
       </div>
+
+      <!-- Main Header Content -->
+      <div class="header-main">
+        <div class="avatar-section">
+          <div class="avatar-container">
+            <div class="avatar-frame">
+              <img src="https://pbs.twimg.com/media/Gx66fHBXcAAEFpA?format=jpg&name=large" alt="Fani AI" class="avatar" />
+            </div>
+            <div class="status-indicator"></div>
+          </div>
+          
+          <div class="profile-info">
+            <div class="profile-name">Fani AI</div>
+            <div class="profile-title">Web3 & Blockchain Assistant</div>
+            <div class="profile-status">
+              <span class="material-icons-round">circle</span>
+              <span>Online</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <button class="action-btn" title="Voice Call">
+          <span class="material-icons-round">mic</span>
+        </button>
+        <button class="action-btn primary" title="Video Call">
+          <span class="material-icons-round">videocam</span>
+        </button>
+        <button class="action-btn" title="Share Screen">
+          <span class="material-icons-round">screen_share</span>
+        </button>
+        <button class="action-btn" title="More Options">
+          <span class="material-icons-round">more_horiz</span>
+        </button>
+      </div>
+
+      <!-- Curved Bottom -->
+      <div class="header-curve"></div>
     </div>
 
     <!-- Messages -->
@@ -475,7 +800,7 @@
     </div>
 
     <!-- Input Section -->
-    <div class="chat-input-section">
+    <div class="chat-input-section" id="inputSection">
       <form class="input-container" id="chat-form" autocomplete="off">
         <textarea 
           id="chat-input" 
@@ -483,6 +808,9 @@
           placeholder="Type your message..." 
           rows="1"
           autocomplete="off"
+          autocorrect="off"
+          autocapitalize="sentences"
+          spellcheck="true"
           required
         ></textarea>
         <button type="submit" class="send-button" id="send-button" title="Send Message">
@@ -502,10 +830,13 @@
     };
 
     // DOM Elements
+    const chatContainer = document.getElementById('chatContainer');
     const chatMessages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const sendButton = document.getElementById('send-button');
+    const inputSection = document.getElementById('inputSection');
+    const currentTimeElement = document.getElementById('current-time');
 
     // State
     let conversation = [
@@ -515,6 +846,122 @@
       }
     ];
     let isTyping = false;
+    let isKeyboardOpen = false;
+    let initialViewportHeight = window.innerHeight;
+
+    // iOS Keyboard Detection and Handling
+    function setupIOSKeyboardHandling() {
+      let visualViewport = window.visualViewport;
+      
+      if (visualViewport) {
+        // Modern approach using Visual Viewport API
+        visualViewport.addEventListener('resize', handleViewportResize);
+      } else {
+        // Fallback for older iOS versions
+        window.addEventListener('resize', handleWindowResize);
+      }
+
+      // Additional input focus handling
+      chatInput.addEventListener('focus', handleInputFocus);
+      chatInput.addEventListener('blur', handleInputBlur);
+    }
+
+    function handleViewportResize() {
+      const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+      
+      if (heightDifference > 150) { // Keyboard is likely open
+        if (!isKeyboardOpen) {
+          isKeyboardOpen = true;
+          document.body.classList.add('keyboard-open');
+          adjustForKeyboard(heightDifference);
+        }
+      } else { // Keyboard is likely closed
+        if (isKeyboardOpen) {
+          isKeyboardOpen = false;
+          document.body.classList.remove('keyboard-open');
+          resetFromKeyboard();
+        }
+      }
+    }
+
+    function handleWindowResize() {
+      const currentHeight = window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+      
+      if (heightDifference > 150) {
+        if (!isKeyboardOpen) {
+          isKeyboardOpen = true;
+          document.body.classList.add('keyboard-open');
+          adjustForKeyboard(heightDifference);
+        }
+      } else {
+        if (isKeyboardOpen) {
+          isKeyboardOpen = false;
+          document.body.classList.remove('keyboard-open');
+          resetFromKeyboard();
+        }
+      }
+    }
+
+    function handleInputFocus() {
+      // Small delay to ensure keyboard animation has started
+      setTimeout(() => {
+        if (isKeyboardOpen) {
+          scrollToBottom();
+        }
+      }, 300);
+    }
+
+    function handleInputBlur() {
+      // Reset any temporary adjustments
+      setTimeout(() => {
+        if (!isKeyboardOpen) {
+          resetFromKeyboard();
+        }
+      }, 100);
+    }
+
+    function adjustForKeyboard(keyboardHeight) {
+      // Ensure input stays visible above keyboard
+      const safeBottomArea = getComputedStyle(document.documentElement)
+        .getPropertyValue('--safe-area-inset-bottom').replace('px', '') || 0;
+      
+      inputSection.style.bottom = '0px';
+      inputSection.style.position = 'fixed';
+      inputSection.style.width = '100%';
+      inputSection.style.maxWidth = '414px';
+      inputSection.style.left = '50%';
+      inputSection.style.transform = 'translateX(-50%)';
+      inputSection.style.zIndex = '1000';
+      
+      // Adjust messages container
+      const inputHeight = inputSection.offsetHeight;
+      chatMessages.style.paddingBottom = `${inputHeight + 20}px`;
+      
+      scrollToBottom();
+    }
+
+    function resetFromKeyboard() {
+      // Reset input section positioning
+      inputSection.style.position = 'relative';
+      inputSection.style.bottom = 'auto';
+      inputSection.style.width = 'auto';
+      inputSection.style.maxWidth = 'none';
+      inputSection.style.left = 'auto';
+      inputSection.style.transform = 'none';
+      inputSection.style.zIndex = '100';
+      
+      // Reset messages container
+      chatMessages.style.paddingBottom = '16px';
+    }
+
+    // Update current time
+    function updateCurrentTime() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      currentTimeElement.textContent = timeString;
+    }
 
     // Utility Functions
     function formatTime(date = new Date()) {
@@ -522,7 +969,10 @@
     }
 
     function scrollToBottom() {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
     }
 
     function autoResizeTextarea() {
@@ -606,7 +1056,6 @@
     async function sendMessageToAPI(userMessage) {
       conversation.push({ role: "user", content: userMessage });
       
-      // Keep conversation history manageable
       if (conversation.length > CONFIG.MAX_HISTORY) {
         conversation = [conversation[0]].concat(conversation.slice(-CONFIG.MAX_HISTORY + 1));
       }
@@ -657,16 +1106,13 @@
       const userInput = chatInput.value.trim();
       if (!userInput || isTyping) return;
 
-      // Add user message
       addMessage('user', userInput);
       chatInput.value = '';
       autoResizeTextarea();
 
-      // Show typing indicator
       showTypingIndicator();
       sendButton.disabled = true;
 
-      // Send to API
       sendMessageToAPI(userInput)
         .then(reply => {
           hideTypingIndicator();
@@ -696,15 +1142,34 @@
 
     // Initialize
     function init() {
+      // Update time immediately and then every minute
+      updateCurrentTime();
+      setInterval(updateCurrentTime, 60000);
+
+      // Set up iOS keyboard handling
+      setupIOSKeyboardHandling();
+
+      // Store initial viewport height
+      initialViewportHeight = window.innerHeight;
+
       // Event listeners
       chatForm.addEventListener('submit', handleFormSubmit);
       chatInput.addEventListener('keydown', handleInputKeydown);
       chatInput.addEventListener('input', handleInputChange);
 
-      // Initial focus
-      chatInput.focus();
+      // Prevent zoom on iOS
+      chatInput.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+          e.stopPropagation();
+        }
+      });
 
-      // Send initial greeting after a short delay
+      // Initial focus
+      setTimeout(() => {
+        chatInput.focus();
+      }, 500);
+
+      // Send initial greeting
       setTimeout(() => {
         showTypingIndicator();
         setTimeout(() => {
@@ -716,6 +1181,13 @@
 
     // Start the app
     document.addEventListener('DOMContentLoaded', init);
+
+    // Handle page visibility changes (iOS app switching)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        updateCurrentTime();
+      }
+    });
   </script>
 </body>
 </html>
