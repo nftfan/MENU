@@ -23,6 +23,9 @@
       --snake: #4fd4ff;
       --snake-head: #9df0ff;
       --power-glow: rgba(140, 255, 108, 0.45);
+
+      --pad: 10px;
+      --gap: 10px;
     }
 
     * { box-sizing: border-box; }
@@ -35,23 +38,39 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* Viewport clamp: always fit vertically, max 800px tall */
+    .viewport {
+      height: min(100svh, 800px);
+      max-height: 800px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
     .app {
-      min-height: 100%;
+      height: 100%;
+      width: 100%;
+      max-width: 560px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px;
-      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-      gap: 14px;
+      padding: var(--pad);
+      padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom, 0px));
+      gap: var(--gap);
+      overflow: hidden; /* prevent scroll; we size the canvas to fit */
     }
 
     .title {
-      margin-top: 2px;
+      margin-top: 0;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      font-size: 20px;
+      letter-spacing: 0.3px;
+      font-size: 18px;
       color: var(--text);
       text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+      line-height: 1.1;
+      width: 100%;
+      text-align: center;
     }
 
     .hud {
@@ -59,7 +78,6 @@
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       width: 100%;
-      max-width: 560px;
       gap: 8px;
     }
 
@@ -70,23 +88,25 @@
       background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
       border: 1px solid #1d2740;
       border-radius: 12px;
-      padding: 8px 12px;
-      min-height: 40px;
+      padding: 6px 10px;
+      min-height: 36px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
       color: var(--text);
     }
     .badge img {
-      width: 20px; height: 20px; object-fit: contain; image-rendering: pixelated;
+      width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated;
     }
     .badge .label {
       font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
+      line-height: 1;
     }
     .badge .value {
       font-weight: 800;
-      font-size: 16px;
+      font-size: 15px;
       letter-spacing: 0.3px;
+      line-height: 1.1;
     }
 
     .controls-top {
@@ -99,13 +119,14 @@
       background: var(--btn);
       color: var(--text);
       border: 1px solid #1d2740;
-      border-radius: 12px;
-      height: 40px;
-      padding: 0 12px;
+      border-radius: 10px;
+      height: 36px;
+      padding: 0 10px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       font-weight: 700;
+      font-size: 12px;
       letter-spacing: 0.3px;
       cursor: pointer;
       user-select: none;
@@ -114,20 +135,21 @@
     }
     .btn:active { background: var(--btn-pressed); transform: translateY(1px); }
 
-    .game-wrap {
+    /* Middle section grows to fill leftover height */
+    .middle {
+      flex: 1;
       width: 100%;
-      max-width: 560px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      min-height: 0; /* allow shrinking */
     }
 
     .canvas-wrap {
       position: relative;
       width: 100%;
-      /* Maintain a square via padding-top trick for perfect mobile scaling */
-      padding-top: 100%;
+      height: 100%; /* actual pixel size set via JS to keep it square and fit vertically */
       background: linear-gradient(180deg, #0f1524 0%, #0c1220 100%);
       border: 1px solid #1d2740;
       border-radius: 16px;
@@ -160,38 +182,45 @@
       background: linear-gradient(180deg, #121a2b 0%, #0e1626 100%);
       border: 1px solid #223052;
       border-radius: 14px;
-      padding: 16px;
-      min-width: 75%;
+      padding: 14px;
+      min-width: 72%;
       max-width: 92%;
       text-align: center;
       color: var(--text);
       box-shadow: 0 10px 35px rgba(0,0,0,0.4);
     }
     .card h2 {
-      margin: 4px 0 10px;
-      font-size: 18px;
+      margin: 2px 0 8px;
+      font-size: 16px;
     }
     .card p {
-      margin: 4px 0;
+      margin: 2px 0;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.3;
+      font-size: 13px;
+      line-height: 1.25;
     }
     .card .actions {
       display: flex;
       gap: 8px;
       justify-content: center;
-      margin-top: 12px;
+      margin-top: 10px;
       flex-wrap: wrap;
+    }
+
+    .legend {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.2;
+      min-height: 18px;
     }
 
     .dpad {
       width: 100%;
-      max-width: 560px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       grid-template-rows: auto auto auto;
-      gap: 10px;
+      gap: 8px;
       user-select: none;
       touch-action: manipulation;
     }
@@ -200,7 +229,7 @@
       background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
       border: 1px solid #1d2740;
       border-radius: 14px;
-      height: 64px;
+      height: clamp(48px, 12svh, 64px);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -216,16 +245,14 @@
       height: 0;
       border-style: solid;
     }
-    .arrow.up   { border-width: 0 14px 18px 14px; border-color: transparent transparent var(--accent) transparent; }
-    .arrow.down { border-width: 18px 14px 0 14px; border-color: var(--accent) transparent transparent transparent; }
-    .arrow.left { border-width: 14px 18px 14px 0; border-color: transparent var(--accent) transparent transparent; }
-    .arrow.right{ border-width: 14px 0 14px 18px; border-color: transparent transparent transparent var(--accent); }
+    .arrow.up   { border-width: 0 12px 16px 12px; border-color: transparent transparent var(--accent) transparent; }
+    .arrow.down { border-width: 16px 12px 0 12px; border-color: var(--accent) transparent transparent transparent; }
+    .arrow.left { border-width: 12px 16px 12px 0; border-color: transparent var(--accent) transparent transparent; }
+    .arrow.right{ border-width: 12px 0 12px 16px; border-color: transparent transparent transparent var(--accent); }
 
-    .legend {
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      margin-top: 4px;
+    .bottom-legend {
+      font-size: 11px;
+      opacity: 0.9;
     }
 
     .power-indicator {
@@ -244,56 +271,54 @@
       0%, 100% { box-shadow: 0 0 0 6px var(--power-glow); }
       50% { box-shadow: 0 0 0 10px rgba(140,255,108,0.25); }
     }
-
-    @media (min-width: 480px) {
-      .dpad .dir-btn { height: 74px; }
-    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="title">Snake — NFTFAN & MATIC</div>
+  <div class="viewport" id="viewport">
+    <div class="app">
+      <div class="title">Snake — NFTFAN & MATIC</div>
 
-    <div class="hud">
-      <div class="badge" id="badge-nftfan" aria-live="polite">
-        <img src="https://i.imgur.com/ODP45iQ.png" alt="Token" />
-        <div>
-          <div class="label">NFTFAN</div>
-          <div class="value" id="nftfan">0</div>
+      <div class="hud">
+        <div class="badge" id="badge-nftfan" aria-live="polite">
+          <img src="https://i.imgur.com/ODP45iQ.png" alt="Token" />
+          <div>
+            <div class="label">NFTFAN</div>
+            <div class="value" id="nftfan">0</div>
+          </div>
         </div>
-      </div>
 
-      <div class="controls-top">
-        <button class="btn" id="btn-pause" aria-pressed="false">Pause</button>
-        <button class="btn" id="btn-restart">Restart</button>
-      </div>
-
-      <div class="badge" id="badge-matic" aria-live="polite" style="justify-self: end;">
-        <img src="https://i.imgur.com/RwdMFUB.png" alt="Power" />
-        <div>
-          <div class="label">MATIC</div>
-          <div class="value" id="matic">0</div>
+        <div class="controls-top">
+          <button class="btn" id="btn-pause" aria-pressed="false">Pause</button>
+          <button class="btn" id="btn-restart">Restart</button>
         </div>
-      </div>
-    </div>
 
-    <div class="game-wrap">
-      <div class="canvas-wrap" id="canvas-wrap" aria-label="Snake game area">
-        <canvas id="game"></canvas>
-
-        <div class="overlay" id="overlay">
-          <div class="card">
-            <h2 id="overlay-title">Paused</h2>
-            <p id="overlay-sub">Tap Resume to continue</p>
-            <div class="actions">
-              <button class="btn" id="btn-resume">Resume</button>
-              <button class="btn" id="btn-restart-2">Restart</button>
-            </div>
+        <div class="badge" id="badge-matic" aria-live="polite" style="justify-self: end;">
+          <img src="https://i.imgur.com/RwdMFUB.png" alt="Power" />
+          <div>
+            <div class="label">MATIC</div>
+            <div class="value" id="matic">0</div>
           </div>
         </div>
       </div>
 
-      <div id="power-active" class="legend" aria-live="polite" style="min-height: 28px;"></div>
+      <div class="middle" id="middle">
+        <div class="canvas-wrap" id="canvas-wrap" aria-label="Snake game area">
+          <canvas id="game"></canvas>
+
+          <div class="overlay" id="overlay">
+            <div class="card">
+              <h2 id="overlay-title">Paused</h2>
+              <p id="overlay-sub">Tap Resume to continue</p>
+              <div class="actions">
+                <button class="btn" id="btn-resume">Resume</button>
+                <button class="btn" id="btn-restart-2">Restart</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="power-active" class="legend" aria-live="polite"></div>
+      </div>
 
       <div class="dpad" aria-label="Directional controls">
         <div class="spacer"></div>
@@ -309,7 +334,7 @@
         <div class="spacer"></div>
       </div>
 
-      <div class="legend">Eat tokens to earn NFTFAN. Grab power to boost and earn MATIC.</div>
+      <div class="legend bottom-legend">Eat tokens to earn NFTFAN. Grab power to boost and earn MATIC.</div>
     </div>
   </div>
 
@@ -334,9 +359,11 @@
     powerImg.crossOrigin = 'anonymous';
     powerImg.src = 'https://i.imgur.com/RwdMFUB.png';
 
-    // Canvas and sizing
+    // DOM
+    const viewport = document.getElementById('viewport');
     const canvas = document.getElementById('game');
     const wrap = document.getElementById('canvas-wrap');
+    const middle = document.getElementById('middle');
     const ctx = canvas.getContext('2d');
 
     // UI
@@ -390,17 +417,35 @@
     }
 
     function resizeCanvas() {
-      // Keep canvas square based on wrapper size
-      const rect = wrap.getBoundingClientRect();
-      const size = Math.min(rect.width, rect.height); // height equals width due to padding-top:100%
+      // Determine the largest square that fits inside the middle area,
+      // leaving room for the power indicator below the canvas.
       const dpr = window.devicePixelRatio || 1;
+
+      const middleStyles = getComputedStyle(middle);
+      const rowGap = parseFloat(middleStyles.rowGap || middleStyles.gap || '8') || 8;
+
+      const availableWidth = middle.clientWidth;
+      const indicatorHeight = powerActiveEl.offsetHeight || 0;
+
+      // Middle height minus indicator and gap between canvas and indicator
+      const availableHeight = Math.max(0, middle.clientHeight - indicatorHeight - rowGap);
+
+      const size = Math.floor(Math.min(availableWidth, availableHeight));
+
+      // Set square size on the wrapper
+      wrap.style.width = size + 'px';
+      wrap.style.height = size + 'px';
+
+      // Configure canvas internal resolution and CSS size
       canvas.width = Math.round(size * dpr);
       canvas.height = Math.round(size * dpr);
       canvas.style.width = size + 'px';
       canvas.style.height = size + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
       pixelSize = size;
       tileSize = size / GRID_SIZE;
+
       draw(); // redraw after resize
     }
 
@@ -516,6 +561,9 @@
       } else {
         powerActiveEl.textContent = '';
       }
+
+      // Reshrink canvas if indicator appears/disappears
+      resizeCanvas();
     }
 
     function drawGridBackground() {
@@ -576,7 +624,6 @@
         const py = power.y * tileSize;
         const pad = tileSize * 0.12;
         ctx.save();
-        // glow
         ctx.shadowColor = 'rgba(138,255,108,0.8)';
         ctx.shadowBlur = tileSize * 0.35;
         ctx.drawImage(powerImg, px + pad, py + pad, tileSize - 2*pad, tileSize - 2*pad);
@@ -672,10 +719,7 @@
       // maybe spawn power
       if (!power && now() >= nextPowerAt && now() >= powerActiveUntil) {
         spawnPower();
-        // if it isn't picked for a while, auto-despawn and reschedule
-        // We'll implement a soft TTL via nextPowerAt reuse:
-        // set a despawn time ~ 10s after spawn; if present after, clear and reschedule
-        power.despawnAt = now() + 10000;
+        power.despawnAt = now() + 10000; // TTL for power
       }
       if (power && power.despawnAt && now() > power.despawnAt) {
         power = null;
@@ -752,10 +796,13 @@
       el.addEventListener('touchend', () => { tracking = false; }, { passive: true });
     })(wrap);
 
-    // Resize handler
+    // Resize handling: any size/orientation or indicator change resizes the canvas to fit
     const ro = new ResizeObserver(resizeCanvas);
-    ro.observe(wrap);
+    ro.observe(viewport);
+    ro.observe(middle);
+
     window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
+    window.addEventListener('load', resizeCanvas);
 
     // Start when images are ready
     Promise.all([
