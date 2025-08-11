@@ -481,7 +481,7 @@
         <div class="num">1,000,000,000</div>
         <div class="ticker">$NFTFAN</div>
       </div>
-      <div class="hint">Per claim • Limit: once every 6 hours</div>
+      <div class="hint">Per claim • One-time claim per wallet</div>
 
       <!-- Wallet input -->
       <div class="field">
@@ -552,7 +552,7 @@
               Paste and claim
             </div>
             <div class="step-text">
-              Paste your wallet address above and tap <b>Claim Tokens</b>. You can claim once every 6 hours.
+              Paste your wallet address above and tap <b>Claim Tokens</b>. Each wallet can claim only once.
             </div>
           </div>
         </li>
@@ -634,7 +634,6 @@
     const toastAction = document.getElementById('toastAction');
 
     const celebrateLayer = document.getElementById('celebrateLayer');
-    const CLAIM_WINDOW_MS = 6 * 3600 * 1000; // 6 hours
     const SEND_ENDPOINT = 'https://us-central1-autosend-c64ee.cloudfunctions.net/sendToken';
     const CONTRACT = '0x2017fcaea540d2925430586dc92818035bfc2f50';
     const TOKEN_IMG = 'https://pbs.twimg.com/media/GyFndQoXQAAnYNJ?format=png&name=small';
@@ -665,16 +664,6 @@
 
     function short(addr) {
       return addr ? addr.slice(0, 6) + '...' + addr.slice(-4) : '';
-    }
-
-    function formatRemaining(ms) {
-      const s = Math.ceil(ms / 1000);
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const sec = s % 60;
-      if (h > 0) return `${h}h ${m}m`;
-      if (m > 0) return `${m}m ${sec}s`;
-      return `${sec}s`;
     }
 
     // Copy contract address on tap
@@ -778,26 +767,16 @@
       claimBtn.innerHTML = '<span class="spinner"></span><span>Processing...</span>';
 
       try {
-        // Get last claim for wallet
+        // Check if wallet has claimed before
         const refWallet = ref(db, `claims/${wallet}`);
         const snap = await get(refWallet);
-        let lastTs = 0;
-        let count = 0;
+        
+        // If wallet exists in the database, it has claimed before
         if (snap.exists()) {
-          const val = snap.val() || {};
-          lastTs = val.timestamp || 0;
-          count = val.count || 0;
-        }
-
-        const now = Date.now();
-        const elapsed = now - lastTs;
-
-        if (elapsed < CLAIM_WINDOW_MS) {
-          const remain = CLAIM_WINDOW_MS - elapsed;
           showToast({
             type: 'error',
-            title: 'Claim limit reached',
-            desc: `You can claim again in ${formatRemaining(remain)}.<br/><span class="inline-code wallet-text">Last: ${lastTs ? new Date(lastTs).toLocaleString() : '-'}</span>`
+            title: 'Already claimed',
+            desc: 'This wallet address has already claimed tokens. Each wallet can only claim once.'
           });
           if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
           return;
@@ -806,7 +785,7 @@
         // Inform user
         showToast({
           title: 'Sending tokens',
-          desc: `Sending <b>5,000,000,000 $NFTFAN</b> to <span class="inline-code wallet-text">${short(wallet)}</span>...`
+          desc: `Sending <b>1,000,000,000 $NFTFAN</b> to <span class="inline-code wallet-text">${short(wallet)}</span>...`
         });
 
         // Call endpoint
@@ -820,10 +799,10 @@
 
         if (json.success) {
           const tx = json.txHash || '';
-          // Save record
+          // Save record with timestamp
           await set(refWallet, {
-            timestamp: now,
-            count: count + 1,
+            timestamp: Date.now(),
+            count: 1,
             lastTx: tx
           });
 
