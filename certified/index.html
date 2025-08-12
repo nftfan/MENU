@@ -629,6 +629,29 @@
       0%, 100% { opacity: 0.2; transform: scale(0.8); }
       50% { opacity: 1; transform: scale(1.2); }
     }
+
+    /* Download badge button */
+    .download-badge-btn {
+      margin: 0.6rem auto;
+      max-width: 70%;
+      padding: 0.45rem;
+      font-size: 8px;
+      background: var(--rainbow-gradient);
+      background-size: 200% auto;
+      animation: button-rainbow 3s linear infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      box-shadow: 0 0 8px rgba(134, 168, 231, 0.3);
+    }
+
+    /* Canvas for badge download (hidden) */
+    #badgeCanvas {
+      position: absolute;
+      left: -9999px;
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
@@ -652,11 +675,11 @@
     <div class="user-info">
       <span>
         <span class="material-icons">person</span>
-        usmanunimib
+        NFTFANS
       </span>
       <span>
         <span class="material-icons">schedule</span>
-        2025-08-12 19:48:32
+        2025-08-12 19:53:08
       </span>
     </div>
   </div>
@@ -679,6 +702,11 @@
       <div class="wallet-balance">
         <span id="balance-display">3.217<span class="kt-unit">KT</span></span>
       </div>
+      
+      <button class="download-badge-btn" id="download-badge-btn" onclick="downloadBadge()">
+        <span class="material-icons">download</span>
+        <span>DOWNLOAD YOUR BADGE</span>
+      </button>
       
       <div class="level-progress">
         <div class="progress-label">
@@ -728,6 +756,9 @@
     </div>
   </div>
 
+  <!-- Hidden canvas for badge download -->
+  <canvas id="badgeCanvas" width="300" height="300"></canvas>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -755,6 +786,13 @@
     
     // KT conversion constant
     const KT_VALUE = 1000000000000000; // 1 KT = 10^15
+    
+    // Current wallet data for badge
+    let currentWalletData = {
+      address: '',
+      balanceKT: 0,
+      level: 'Basic'
+    };
     
     // Certification levels thresholds (in KT)
     const LEVELS = {
@@ -985,6 +1023,14 @@
           const level = getCertificationLevel(balanceKT);
           const nextLevel = getNextLevel(level);
           
+          // Update current wallet data for badge download
+          currentWalletData = {
+            address: wallet,
+            balanceKT: balanceKT,
+            balance: balance,
+            level: level.name
+          };
+          
           // Save wallet data to Firebase
           const walletRef = db.ref('certified-wallets/' + wallet.toLowerCase());
           
@@ -1116,6 +1162,111 @@
         generateStars();
       } else if (level.name === 'Platinum' || level.name === 'Gold') {
         generateSparkles();
+      }
+    }
+    
+    // Download badge as PNG
+    function downloadBadge() {
+      if (!currentWalletData.address) {
+        alert('No wallet data available. Please check a wallet first.');
+        return;
+      }
+      
+      const canvas = document.getElementById('badgeCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set up the badge background (dark theme)
+      ctx.fillStyle = '#222630';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw rainbow border
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, '#FF5757'); // Red
+      gradient.addColorStop(0.16, '#FFBD59'); // Orange
+      gradient.addColorStop(0.33, '#FFEE59'); // Yellow
+      gradient.addColorStop(0.5, '#59FF8E'); // Green
+      gradient.addColorStop(0.66, '#59BFFF'); // Blue
+      gradient.addColorStop(0.83, '#7C59FF'); // Indigo
+      gradient.addColorStop(1, '#C159FF'); // Violet
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+      
+      // Draw NFTFANS title
+      ctx.font = 'bold 24px Arial';
+      ctx.fillStyle = '#91EAE4';
+      ctx.textAlign = 'center';
+      ctx.fillText('NFTFANS CERTIFICATION', canvas.width / 2, 40);
+      
+      // Draw badge circle with rainbow border
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, 130, 70, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      
+      // Draw inner badge circle
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, 130, 65, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = '#222630';
+      ctx.fill();
+      
+      // Draw level icon and name
+      ctx.font = 'bold 16px Arial';
+      ctx.fillStyle = '#91EAE4';
+      ctx.fillText(currentWalletData.level.toUpperCase(), canvas.width / 2, 130);
+      
+      // Draw icon representation
+      let iconSymbol = '⭐';
+      switch(currentWalletData.level) {
+        case 'Diamond': iconSymbol = '💎'; break;
+        case 'Platinum': iconSymbol = '🌟'; break;
+        case 'Gold': iconSymbol = '⭐'; break;
+        case 'Silver': iconSymbol = '⭐'; break;
+        case 'Bronze': iconSymbol = '🏆'; break;
+        default: iconSymbol = '⭐';
+      }
+      ctx.font = '40px Arial';
+      ctx.fillText(iconSymbol, canvas.width / 2, 110);
+      
+      // Draw wallet info
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#A2A9B7';
+      ctx.fillText(shortenAddress(currentWalletData.address), canvas.width / 2, 190);
+      
+      // Draw balance info
+      ctx.font = 'bold 18px Arial';
+      ctx.fillStyle = '#86A8E7';
+      ctx.fillText(`${formatKT(currentWalletData.balance)} KT`, canvas.width / 2, 220);
+      
+      // Draw certification date
+      const currentDate = new Date();
+      const dateStr = currentDate.toISOString().split('T')[0];
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#A2A9B7';
+      ctx.fillText(`Certified on: ${dateStr}`, canvas.width / 2, 250);
+      
+      // Draw NFTFANS footer
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#A2A9B7';
+      ctx.fillText('nftfanstoken.com', canvas.width / 2, 280);
+      
+      // Convert to data URL and download
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `NFTFANS_${currentWalletData.level}_Badge.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Error creating badge image:', err);
+        alert('Error creating badge image. Please try again.');
       }
     }
     
