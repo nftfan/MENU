@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFTFan Certificate Minting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <!-- Web3Modal (WalletConnect v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@2.7.1/dist/index.umd.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 18px;
+      margin-top: 36px;
+      padding: 22px 20px 32px 20px;
+      box-sizing: border-box;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.12);
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 18px;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+    #walletBtn, #mintBtn {
+      width: 100%;
+      padding: 18px;
+      font-size: 1.1rem;
+      background: linear-gradient(90deg, #f7971e 0%, #ffd200 100%);
+      color: #222;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+      box-shadow: 0 2px 8px rgba(255,107,0,0.10);
+    }
+    #walletBtn:active, #mintBtn:active {
+      background: linear-gradient(90deg, #ffd200 0%, #f7971e 100%);
+    }
+    #result {
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 1rem;
+      margin-top: 18px;
+      word-break: break-all;
+      min-height: 64px;
+      text-align: center;
+    }
+    #mintDiv {
+      margin-top: 16px;
+    }
+    @media (max-width: 500px) {
+      .container {
+        margin-top: 18px;
+        padding: 14px 6px 24px 6px;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      #result {
+        font-size: 0.95rem;
+        min-height: 52px;
+      }
+      #walletBtn, #mintBtn {
+        font-size: 1rem;
+        padding: 14px;
+      }
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .logo img {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(255,107,0,0.10);
+    }
+    .small {
+      font-size: 0.9rem;
+      color: #ffd200;
+      margin-top: 4px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <!-- You can upload your logo here -->
+      <img src="https://raw.githubusercontent.com/ethereum/ethereum-org-website/master/static/nft-token.png" alt="NFTFan" />
+    </div>
+    <h1>NFTFan Certificate Mint</h1>
+    <div class="small">Connect your wallet (Polygon only)</div>
+    <button id="walletBtn">Connect Wallet</button>
+    <div id="result"></div>
+    <div id="mintDiv" style="display:none;">
+      <button id="mintBtn">Mint & Download Certificate</button>
+    </div>
+  </div>
+  <script>
+    // NFTFan Token Info (Polygon chain)
+    const tokenAddress = '0x2017fcaea540d2925430586dc92818035bfc2f50';
+    const minAmount = ethers.BigNumber.from("1000000000000000"); // 0.001 NFTFan with 18 decimals
+    const polygonChainId = 137;
+    const polygonRpc = 'https://polygon-rpc.com';
+    const abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function decimals() view returns (uint8)"
+    ];
+    let userWallet, userBalance, formattedBalance, provider, signer;
+
+    // WalletConnect & Web3Modal setup
+    const modal = new window.WalletConnectWeb3Modal.Web3Modal({
+      projectId: "demo", // For demo, use "demo". For production, replace with your WalletConnect projectId
+      walletConnectVersion: 2,
+      chains: [polygonChainId],
+      standaloneChains: [polygonChainId],
+      themeMode: "light"
+    });
+
+    document.getElementById('walletBtn').onclick = async function() {
+      document.getElementById('result').textContent = "Connecting wallet...";
+      try {
+        // Open Web3Modal for user to choose wallet
+        const conn = await modal.openModal();
+        provider = new ethers.providers.Web3Provider(conn);
+        signer = provider.getSigner();
+
+        // Switch to Polygon network if needed
+        const { chainId } = await provider.getNetwork();
+        if (chainId !== polygonChainId) {
+          try {
+            await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]); // 0x89 = 137
+          } catch (e) {
+            // If Polygon is not added, request to add it
+            await provider.send("wallet_addEthereumChain", [{
+              chainId: "0x89",
+              chainName: "Polygon Mainnet",
+              nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+              rpcUrls: [polygonRpc],
+              blockExplorerUrls: ["https://polygonscan.com/"]
+            }]);
+          }
+        }
+
+        // Get wallet address
+        userWallet = await signer.getAddress();
+        document.getElementById('result').textContent = "Checking NFTFan token balance...";
+        // Query balance from NFTFan token contract
+        const contract = new ethers.Contract(tokenAddress, abi, provider);
+        const balance = await contract.balanceOf(userWallet);
+        const decimals = await contract.decimals();
+        formattedBalance = ethers.utils.formatUnits(balance, decimals);
+        userBalance = balance;
+        document.getElementById('result').textContent =
+          `Wallet: ${userWallet}\nBalance: ${formattedBalance} NFTFan`;
+
+        if (balance.gte(minAmount)) {
+          document.getElementById('mintDiv').style.display = '';
+        } else {
+          document.getElementById('mintDiv').style.display = 'none';
+          document.getElementById('result').textContent += " (Not enough tokens!)";
+        }
+      } catch (err) {
+        document.getElementById('result').textContent = "Error: " + err.message;
+        document.getElementById('mintDiv').style.display = 'none';
+      }
+    };
+
+    document.getElementById('mintBtn').onclick = function() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("NFTFan Certificate", 25, 25);
+      doc.setFontSize(13);
+      doc.text(`Wallet Address: ${userWallet}`, 25, 40);
+      doc.text(`NFTFan Token Balance: ${formattedBalance}`, 25, 55);
+      doc.setFontSize(11);
+      doc.text(`Minted on: ${new Date().toLocaleString()}`, 25, 70);
+      doc.save("NFTFan_Certificate.pdf");
+    };
+  </script>
+</body>
+</html>
