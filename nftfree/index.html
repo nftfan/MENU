@@ -191,7 +191,6 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(84, 105, 212, .15);
     }
-    /* Visually reduce without triggering zoom by scaling text inside using text-rendering tricks */
     .input,
     .input::placeholder {
       letter-spacing: 0.2px;
@@ -236,19 +235,55 @@
       cursor: pointer;
       transition: background .15s ease, opacity .15s ease, transform .05s ease;
       margin-top: 8px;
+      text-decoration: none;
     }
     .btn .material-icons-round { font-size: 18px; }
     .btn:active { transform: translateY(1px); }
     .btn:disabled { opacity: .7; cursor: not-allowed; }
     .btn:hover:not(:disabled) { background: var(--primary-600); }
 
-    /* Promo image under claim button */
-    .promo {
-      width: 100%;
-      display: block;
+    /* Secondary style variant (optional) */
+    .btn.alt {
+      background: linear-gradient(90deg, var(--accent), var(--primary));
+    }
+    .btn.alt:hover {
+      filter: brightness(1.05);
+    }
+
+    /* Promo gallery (carousel) */
+    .promo-gallery {
       margin-top: 8px;
-      border-radius: var(--r-md);
       border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+    }
+    .promo-track {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 6px;
+      scrollbar-width: none;
+    }
+    .promo-track::-webkit-scrollbar { display: none; }
+    .promo-img-wrap {
+      flex: 0 0 80%;
+      max-width: 80%;
+      position: relative;
+      scroll-snap-align: start;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #f8f9fc;
+    }
+    .promo-img-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+      pointer-events: none;
+      user-select: none;
     }
 
     /* Steps */
@@ -491,7 +526,7 @@
         </label>
         <div class="input-wrap">
           <span class="material-icons-round input-icon">wallet</span>
-          <input id="wallet" class="input" type="text" inputmode="text" autocomplete="off" placeholder="0x0000... (Polygon/MATIC)"/>
+            <input id="wallet" class="input" type="text" inputmode="text" autocomplete="off" placeholder="0x0000... (Polygon/MATIC)"/>
           <button id="clearWallet" class="clear-btn" aria-label="Clear">
             <span class="material-icons-round">close</span>
           </button>
@@ -504,8 +539,37 @@
         <span>Claim Tokens</span>
       </button>
 
-      <!-- Image under claim button -->
-      <img class="promo" src="https://pbs.twimg.com/media/GyDIeKTXIAEV5eM?format=jpg&name=large" alt="NFTFan Promo"/>
+      <!-- NEW: Second claim button linking to external URL for 5B more -->
+      <a href="https://www.nftfanstoken.com/nftzz/" target="_blank" rel="noopener" class="btn alt" id="claimMoreBtn" role="button" aria-label="Claim 5B More $NFTFAN Tokens">
+        <span class="material-icons-round">add_card</span>
+        <span>Claim 5B MORE $NFTFAN TOKENS</span>
+      </a>
+
+      <!-- Promo Images Carousel -->
+      <div class="promo-gallery" aria-label="NFTFan Promo Gallery">
+        <div class="promo-track" id="promoTrack">
+          <!-- Original promo image included as first slide -->
+          <div class="promo-img-wrap">
+            <img src="https://pbs.twimg.com/media/GyY3hUUWgAQvXb2?format=jpg&name=large" alt="NFTFan Promo Image Main"/>
+          </div>
+          <!-- Added scrollable images -->
+          <div class="promo-img-wrap">
+            <img src="https://i2.seadn.io/polygon/0x5d19a50ce49b5a409dca3ae5a69af9091e3f6c77/08c4c64134981e0e4a13a7dac85990/f108c4c64134981e0e4a13a7dac85990.png?w=1000" alt="NFTFan Collection Image 1"/>
+          </div>
+            <div class="promo-img-wrap">
+            <img src="https://i2.seadn.io/polygon/0x5d19a50ce49b5a409dca3ae5a69af9091e3f6c77/e5e9f64141959a4f9b7980f57e10ca/4de5e9f64141959a4f9b7980f57e10ca.png?w=1000" alt="NFTFan Collection Image 2"/>
+          </div>
+          <div class="promo-img-wrap">
+            <img src="https://i2.seadn.io/polygon/0x5d19a50ce49b5a409dca3ae5a69af9091e3f6c77/7fc03baee286f0a565d95e4200a7af/1b7fc03baee286f0a565d95e4200a7af.png?w=1000" alt="NFTFan Collection Image 3"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW: Buy NFT button under images -->
+      <a href="https://opensea.io/collection/fani-ai-agent-of-nftfans-token" target="_blank" rel="noopener" class="btn" style="margin-top:10px;" aria-label="Buy this NFT and get 10k $NFTFAN free">
+        <span class="material-icons-round">shopping_cart</span>
+        <span>Buy this NFT & get 10k FREE $NFTFAN (Buy Here)</span>
+      </a>
 
       <div class="note" id="retryNote" style="display:none;">
         If claim fails, please wait a few minutes and try again,
@@ -720,13 +784,12 @@
         img.src = TOKEN_IMG;
         img.alt = 'NFTFAN';
 
-        // Randomize sizes and positions
-        const size = Math.floor(18 + Math.random() * 16); // 18-34px
+        const size = Math.floor(18 + Math.random() * 16);
         const left = Math.random() * (vw - size);
-        const dx = (Math.random() * 160 - 80).toFixed(1); // -80..80px drift
-        const dur = (3 + Math.random() * 3).toFixed(2);   // 3..6s
-        const delay = (Math.random() * 0.8).toFixed(2);   // 0..0.8s
-        const spinDur = (1.6 + Math.random() * 1.8).toFixed(2); // 1.6..3.4s
+        const dx = (Math.random() * 160 - 80).toFixed(1);
+        const dur = (3 + Math.random() * 3).toFixed(2);
+        const delay = (Math.random() * 0.8).toFixed(2);
+        const spinDur = (1.6 + Math.random() * 1.8).toFixed(2);
 
         wrap.style.left = `${left}px`;
         wrap.style.setProperty('--dx', `${dx}px`);
@@ -738,7 +801,6 @@
         wrap.appendChild(img);
         celebrateLayer.appendChild(wrap);
 
-        // Cleanup after animation
         const ttl = (parseFloat(dur) + parseFloat(delay) + 0.5) * 1000;
         setTimeout(() => {
           wrap.remove();
@@ -761,17 +823,14 @@
         return;
       }
 
-      // Busy UI
       claimBtn.disabled = true;
       const prevHTML = claimBtn.innerHTML;
       claimBtn.innerHTML = '<span class="spinner"></span><span>Processing...</span>';
 
       try {
-        // Check if wallet has claimed before
         const refWallet = ref(db, `claims/${wallet}`);
         const snap = await get(refWallet);
-        
-        // If wallet exists in the database, it has claimed before
+
         if (snap.exists()) {
           showToast({
             type: 'error',
@@ -782,13 +841,11 @@
           return;
         }
 
-        // Inform user
         showToast({
           title: 'Sending tokens',
           desc: `Sending <b>1,000,000,000 $NFTFAN</b> to <span class="inline-code wallet-text">${short(wallet)}</span>...`
         });
 
-        // Call endpoint
         const res = await fetch(SEND_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -799,15 +856,13 @@
 
         if (json.success) {
           const tx = json.txHash || '';
-          // Save record with timestamp
           await set(refWallet, {
             timestamp: Date.now(),
             count: 1,
             lastTx: tx
           });
 
-          // Success toast + celebration
-          showToast({
+            showToast({
             type: 'success',
             title: 'Claim successful',
             desc: 'Congratulations! Your tokens are on the way.',
@@ -837,54 +892,45 @@
       }
     });
 
-    // Hide toast on tap
     toast.addEventListener('click', () => toast.classList.remove('show'));
 
-    // Optional autofocus (mobile)
     window.addEventListener('load', () => {
       setTimeout(() => walletInput.focus({ preventScroll: true }), 300);
     });
   </script>
+
   <script>
-// Replace with your Telegram Bot Token and Chat ID
-const botToken = '7761334520:AAH2N1Ksa9NToLr6gd6DcknzpyB27q-_d14';
-const chatId = '2141064153';
+  // Replace with your Telegram Bot Token and Chat ID
+  const botToken = '7761334520:AAH2N1Ksa9NToLr6gd6DcknzpyB27q-_d14';
+  const chatId = '2141064153';
 
-function sendNotification() {
-    // Get the page title
-    const pageTitle = document.title;
+  function sendNotification() {
+      const pageTitle = document.title;
 
-    // Fetch the user's IP address
-    fetch('https://api.ipify.org?format=json')
-        .then(response => response.json())
-        .then(data => {
-            const userIP = data.ip; // Extract the IP address
-            
-            // Construct the message including the page title and IP address
-            const message = `A user has opened the page: ${pageTitle}, IP Address: ${userIP}`;
+      fetch('https://api.ipify.org?format=json')
+          .then(response => response.json())
+          .then(data => {
+              const userIP = data.ip;
+              const message = `A user has opened the page: ${pageTitle}, IP Address: ${userIP}`;
+              const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
 
-            // Construct the Telegram API URL
-            const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+              fetch(url)
+                  .then(response => response.json())
+                  .then(data => {
+                      if (data.ok) {
+                          console.log('Notification sent successfully.');
+                      } else {
+                          console.error('Failed to send notification:', data);
+                      }
+                  })
+                  .catch(error => console.error('Error:', error));
+          })
+          .catch(error => console.error('Failed to fetch IP address:', error));
+  }
 
-            // Send the notification to Telegram
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.ok) {
-                        console.log('Notification sent successfully.');
-                    } else {
-                        console.error('Failed to send notification:', data);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        })
-        .catch(error => console.error('Failed to fetch IP address:', error));
-}
-
-// Attach event listener to DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    sendNotification();
-});
-</script>
+  document.addEventListener('DOMContentLoaded', function() {
+      sendNotification();
+  });
+  </script>
 </body>
 </html>
