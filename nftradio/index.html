@@ -603,9 +603,11 @@ function flagEmoji(code){
   if(!code || code.length !==2) return "";
   return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0)-65)));
 }
+
 function uniqKey(st){
   return (st.stationuuid) ? st.stationuuid : (st.name + "::" + st.url);
 }
+
 function loadFavorites(){
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
@@ -613,13 +615,16 @@ function loadFavorites(){
     if(!Array.isArray(favorites)) favorites = [];
   } catch(e){ favorites = []; }
 }
+
 function saveFavorites(){
   try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites)); } catch(e){}
 }
+
 function isFavorite(st){
   return favorites.includes(uniqKey(st));
 }
-function toast(msg,type="info",icon="info"){
+
+function toast(msg, type="info", icon="info"){
   const tc = document.getElementById('toast-container');
   const el = document.createElement('div');
   el.className = `toast ${type}`;
@@ -632,6 +637,7 @@ function toast(msg,type="info",icon="info"){
     setTimeout(()=>el.remove(),420);
   },2500);
 }
+
 function stationPool(){
   if(favoritesMode){
     const set = new Set(favorites);
@@ -639,6 +645,7 @@ function stationPool(){
   }
   return masterStations;
 }
+
 function randomStation(){
   const pool = stationPool();
   if(!pool.length) return null;
@@ -690,6 +697,7 @@ function resetFeed(){
   currentIndex = 0;
   lastStationKey = null;
 }
+
 function initFeed(){
   for(let i=0; i<INITIAL_SLIDES; i++){
     addSlide(slideCount++);
@@ -697,12 +705,14 @@ function initFeed(){
   initObserver();
   setTimeout(()=>goTo(0,false),40);
 }
+
 function addSlide(index){
   const tpl = document.getElementById('slide-template');
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.dataset.index = index;
   const st = randomStation();
   node._station = st;
+  node._errorShown = false; // Initialize error tracking flag for this slide
   fillSlide(node, st);
   attachSlideEvents(node);
   slidesMap.set(index,node);
@@ -711,6 +721,7 @@ function addSlide(index){
   trimSlides();
   return node;
 }
+
 function fillSlide(slide, st){
   const nameEl = slide.querySelector('.name');
   const flagEl = slide.querySelector('.flag');
@@ -916,15 +927,23 @@ function setupAudio(slide, audio){
     playBtn.querySelector('.material-icons').textContent='pause';
     scheduleUIHide();
   });
+  
   audio.addEventListener('pause', ()=>{
     showUI(true);
     playBtn.querySelector('.material-icons').textContent='play_arrow';
   });
+  
   audio.addEventListener('waiting', ()=> showLoader(loading));
+  
+  // FIX: Improved error handling to prevent multiple error notifications
   audio.addEventListener('error', ()=>{
-    loading.querySelector('span').textContent='ERROR';
-    setTimeout(()=>hideLoader(loading), 3000);
-    toast('Stream error','error','error');
+    // Only show error once per slide/station
+    if (!slide._errorShown) {
+      loading.querySelector('span').textContent='ERROR';
+      setTimeout(()=>hideLoader(loading), 3000);
+      toast('Stream error','error','error');
+      slide._errorShown = true; // Mark that we've shown an error for this slide
+    }
   });
 
   // Set src
@@ -998,6 +1017,8 @@ function prepareSlideAudio(index){
   if(!audio){
     ensureAudio(slide);
   } else if(audio.src === "" && slide._station){
+    // Reset error tracking when loading a new source
+    slide._errorShown = false;
     audio.src = slide._station.url;
     audio.load();
     if(firstInteractionDone) safePlay(audio);
@@ -1057,9 +1078,11 @@ function toggleFavorite(st){
     }
   }
   saveFavorites();
-  // Update current slide icon
-  const slide = slidesMap.get(currentIndex);
-  if(slide) updateFavButton(slide);
+  refreshAllFavButtons();
+}
+
+function refreshAllFavButtons(){
+  slidesMap.forEach(slide => updateFavButton(slide));
 }
 
 function setFavoritesMode(on, silent=false){
@@ -1079,6 +1102,7 @@ function setFavoritesMode(on, silent=false){
   }
   rebuildFeed();
 }
+
 function rebuildFeed(){
   resetFeed();
   initFeed();
@@ -1097,6 +1121,7 @@ document.getElementById('open-search').addEventListener('click', ()=>{
   setTimeout(()=>searchInput.focus(),50);
   renderSearchResults();
 });
+
 document.getElementById('close-search').addEventListener('click', ()=>{
   searchPanel.classList.remove('active');
   searchInput.value="";
@@ -1176,6 +1201,10 @@ function replaceCurrentSlide(st){
     audio.pause();
     audio.src="";
     audio.load();
+    
+    // Reset error tracking when replacing with a new station
+    slide._errorShown = false;
+    
     audio.src = st.url;
     audio.load();
     if(firstInteractionDone) safePlay(audio);
@@ -1190,6 +1219,7 @@ function showUI(forcePaused=false){
   if(uiHideTimeout) clearTimeout(uiHideTimeout);
   if(forcePaused) return;
 }
+
 function hideUI(){
   const slide = slidesMap.get(currentIndex);
   if(!slide) return;
@@ -1198,10 +1228,12 @@ function hideUI(){
   if(searchPanel.classList.contains('active')) return;
   document.body.classList.add('ui-hidden');
 }
+
 function scheduleUIHide(){
   if(uiHideTimeout) clearTimeout(uiHideTimeout);
   uiHideTimeout = setTimeout(hideUI, UI_HIDE_DELAY);
 }
+
 ['mousemove','mousedown','touchstart','touchmove','keydown','wheel'].forEach(evt=>{
   window.addEventListener(evt, ()=>{
     if(document.body.classList.contains('ui-hidden')) showUI();
@@ -1269,43 +1301,6 @@ document.getElementById('start-btn').addEventListener('click', ()=>{
   }
   scheduleUIHide();
 });
-
-/* ================================
-   FAVORITE BUTTON REFRESH
-=================================== */
-function refreshAllFavButtons(){
-  slidesMap.forEach(slide => updateFavButton(slide));
-}
-
-/* ================================
-   FAVORITES MODE LOGIC
-=================================== */
-function rebuildFeed(){
-  resetFeed();
-  initFeed();
-}
-
-/* ================================
-   TOGGLE FAVORITE
-=================================== */
-function toggleFavorite(st){
-  if(!st) return;
-  const key = uniqKey(st);
-  const idx = favorites.indexOf(key);
-  if(idx === -1){
-    favorites.push(key);
-    toast("Added to favorites","success","star");
-  } else {
-    favorites.splice(idx,1);
-    toast("Removed from favorites","warn","star_border");
-    if(favoritesMode && favorites.length === 0){
-      setFavoritesMode(false,true);
-      toast("Favorites empty","info","info");
-    }
-  }
-  saveFavorites();
-  refreshAllFavButtons();
-}
 
 /* ================================
    SCROLL / THROTTLE
