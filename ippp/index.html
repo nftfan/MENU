@@ -2,289 +2,89 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>IPTV Vertical Swipe Player (Random Feed)</title>
+<title>IPTV Vertical Swipe Player (Random + Favorites)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
 <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" type="image/png">
- <link rel="manifest" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/and.json">
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
-  <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
+<link rel="manifest" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/and.json">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
+<link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/leuvenfd/coinfun/refs/heads/main/Copy%20of%20NFT.jpg">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
 <script src="https://vjs.zencdn.net/7.20.3/video.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js" defer></script>
-
 <style>
 :root {
-  --bg: #0f1113;
-  --panel-bg: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.9));
-  --accent: #19d77f;
-  --danger: #ff4b55;
-  --text: #ffffff;
-  --text-dim: #bbbbc1;
-  --radius: 14px;
-  --transition: 0.28s cubic-bezier(.4,.0,.2,1);
-  --snap-speed: 450ms;
+  --bg:#0f1113;
+  --panel-bg:linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.9));
+  --accent:#19d77f;
+  --danger:#ff4b55;
+  --warn:#ffb347;
+  --text:#ffffff;
+  --text-dim:#bbbbc1;
+  --radius:14px;
+  --transition:.28s cubic-bezier(.4,.0,.2,1);
 }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html,body {
-  margin:0; padding:0;
-  background:#000;
-  color:var(--text);
-  font-family:'Roboto',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;
-  height:100%;
-  overscroll-behavior-y:contain;
-}
-::-webkit-scrollbar { width:0; height:0; }
-
-.app-shell {
-  position:fixed;
-  inset:0;
-  overflow-y:scroll;
-  scroll-snap-type:y mandatory;
-  scroll-snap-stop:always;
-  background:#000;
-}
-
-.slide {
-  position:relative;
-  width:100%;
-  height:100vh;
-  scroll-snap-align:start;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-  isolation:isolate;
-}
-
-.slide video {
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:#000;
-}
-
-.slide::after {
-  content:"";
-  position:absolute;
-  inset:0;
-  background:var(--panel-bg);
-  pointer-events:none;
-  opacity:.85;
-  transition:opacity .4s;
-}
-.slide.active::after { opacity:.6; }
-
-.meta-overlay {
-  position:absolute;
-  left:14px;
-  bottom:72px;
-  right:90px;
-  display:flex;
-  flex-direction:column;
-  z-index:4;
-  gap:6px;
-  pointer-events:none;
-}
-.channel-title {
-  font-size:clamp(16px,4.5vw,22px);
-  font-weight:600;
-  line-height:1.15;
-  display:flex;
-  align-items:center;
-  gap:.4em;
-  text-shadow:0 4px 18px rgba(0,0,0,.75);
-}
-.badges { display:flex; flex-wrap:wrap; gap:6px; }
-.badge {
-  background:rgba(255,255,255,0.14);
-  padding:4px 9px 5px;
-  border-radius:999px;
-  backdrop-filter:blur(8px);
-  font-size:11px;
-  font-weight:500;
-  letter-spacing:.3px;
-}
-
-.right-controls {
-  position:absolute;
-  right:8px;
-  bottom:84px;
-  z-index:5;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:18px;
-}
-
-.ctrl-button {
-  width:58px; height:58px;
-  border-radius:17px;
-  background:rgba(255,255,255,0.14);
-  border:1px solid rgba(255,255,255,0.09);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#fff;
-  font-size:28px;
-  box-shadow:0 4px 18px -2px rgba(0,0,0,.5);
-  backdrop-filter:blur(10px) saturate(180%);
-  cursor:pointer;
-  transition:background .25s, transform .25s;
-}
-.ctrl-button:active { transform:scale(.92); }
-.ctrl-button:hover { background:rgba(255,255,255,0.22); }
-
-.loading-indicator {
-  position:absolute;
-  top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  background:rgba(0,0,0,0.55);
-  padding:10px 16px;
-  border-radius:999px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-weight:500;
-  backdrop-filter:blur(8px);
-  color:#d0d5dc;
-  z-index:10;
-}
-.spinner {
-  width:18px; height:18px;
-  border-radius:50%;
-  border:3px solid rgba(255,255,255,0.18);
-  border-top-color:var(--accent);
-  animation:spin .9s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-
-.top-bar {
-  position:fixed;
-  top:0; left:0; right:0;
-  height:56px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 12px;
-  z-index:20;
-  background:linear-gradient(180deg, rgba(0,0,0,0.72), rgba(0,0,0,0.25), rgba(0,0,0,0));
-  pointer-events:none;
-}
-.top-bar .brand { display:flex; align-items:center; gap:10px; font-weight:600; font-size:18px; pointer-events:auto; }
-.top-bar img { width:34px; height:34px; border-radius:11px; box-shadow:0 4px 12px -2px rgba(0,0,0,.5); }
-.top-bar .actions { display:flex; gap:10px; pointer-events:auto; }
-.icon-btn {
-  width:42px; height:42px;
-  display:flex; align-items:center; justify-content:center;
-  background:rgba(255,255,255,0.14);
-  backdrop-filter:blur(8px);
-  border-radius:14px;
-  cursor:pointer;
-  color:#fff;
-  font-size:24px;
-  border:1px solid rgba(255,255,255,0.07);
-  transition:background .25s;
-}
-.icon-btn:active { transform:scale(.9); }
-.icon-btn:hover { background:rgba(255,255,255,0.22); }
-
-.search-panel {
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.82);
-  backdrop-filter:blur(14px) brightness(.9);
-  z-index:40;
-  display:none;
-  flex-direction:column;
-  padding:70px 14px 24px;
-}
-.search-panel.active { display:flex; }
-.search-panel input {
-  width:100%;
-  background:#1d2226;
-  border:1px solid #2c3236;
-  border-radius:14px;
-  padding:16px 18px;
-  font-size:16px;
-  color:#fff;
-  outline:none;
-  font-family:inherit;
-}
-.search-results {
-  margin-top:16px;
-  overflow-y:auto;
-  max-height:calc(100vh - 180px);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  -webkit-overflow-scrolling:touch;
-}
-.result-item {
-  background:#161a1d;
-  padding:12px 14px;
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  cursor:pointer;
-  border:1px solid #232a2f;
-}
-.result-item:hover { background:#20262a; }
-.result-item img {
-  width:44px; height:44px;
-  object-fit:contain;
-  border-radius:10px;
-  background:#0d0f11;
-}
-.result-item .r-meta { display:flex; flex-direction:column; flex:1; min-width:0; }
-.r-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.r-country { font-size:11px; letter-spacing:.5px; opacity:.7; margin-top:2px; display:flex; align-items:center; gap:4px; }
-.close-search {
-  position:absolute;
-  top:14px; right:14px;
-  background:rgba(255,255,255,0.18);
-  border-radius:14px;
-  width:48px; height:48px;
-  display:flex; align-items:center; justify-content:center;
-  border:1px solid rgba(255,255,255,0.09);
-  cursor:pointer;
-  font-size:30px;
-}
-
-.mute-indicator {
-  position:absolute;
-  bottom:18px; left:14px;
-  padding:10px 16px;
-  font-size:13px;
-  border-radius:999px;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(8px);
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-weight:500;
-  letter-spacing:.3px;
-  z-index:7;
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,0.12);
-  transition:background .25s;
-}
-.mute-indicator:active { transform:scale(.94); }
-.mute-indicator:hover { background:rgba(0,0,0,0.7); }
-
-.safe-area { height: env(safe-area-inset-bottom); width:100%; }
-
-@media (min-width:780px) {
-  .slide video { object-fit:contain; }
-  .app-shell { width:420px; margin:0 auto; border-left:1px solid #1c1f22; border-right:1px solid #1c1f22; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:#000;color:var(--text);font-family:'Roboto',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;height:100%;overscroll-behavior-y:contain;}
+::-webkit-scrollbar{width:0;height:0;}
+.app-shell{position:fixed;inset:0;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-snap-stop:always;background:#000;}
+.slide{position:relative;width:100%;height:100vh;scroll-snap-align:start;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;isolation:isolate;touch-action:manipulation;}
+.slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;}
+.slide::after{content:"";position:absolute;inset:0;background:var(--panel-bg);pointer-events:none;opacity:.85;transition:opacity .4s;}
+.slide.active::after{opacity:.6;}
+.meta-overlay{position:absolute;left:14px;bottom:72px;right:90px;display:flex;flex-direction:column;z-index:4;gap:6px;pointer-events:none;transition:opacity .35s;}
+.channel-title{font-size:clamp(16px,4.5vw,22px);font-weight:600;line-height:1.15;display:flex;align-items:center;gap:.4em;text-shadow:0 4px 18px rgba(0,0,0,.75);}
+.badges{display:flex;flex-wrap:wrap;gap:6px;}
+.badge{background:rgba(255,255,255,0.14);padding:4px 9px 5px;border-radius:999px;backdrop-filter:blur(8px);font-size:11px;font-weight:500;letter-spacing:.3px;transition:opacity .35s;}
+.right-controls{position:absolute;right:8px;bottom:84px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:16px;transition:opacity .35s;}
+.ctrl-button{width:56px;height:56px;border-radius:17px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;box-shadow:0 4px 18px -2px rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(180%);cursor:pointer;transition:background .25s,transform .25s;}
+.ctrl-button.small{width:50px;height:50px;font-size:23px;}
+.ctrl-button:active{transform:scale(.9);}
+.ctrl-button:hover{background:rgba(255,255,255,0.22);}
+.ctrl-button.favorited{color:#ffd54d;background:rgba(255,213,77,0.18);border-color:rgba(255,213,77,0.35);}
+.ctrl-button.favorited:hover{background:rgba(255,213,77,0.28);}
+.loading-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,0.55);padding:10px 16px;border-radius:999px;display:flex;align-items:center;gap:8px;font-weight:500;backdrop-filter:blur(8px);color:#d0d5dc;z-index:10;transition:opacity .3s;}
+.spinner{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,0.18);border-top-color:var(--accent);animation:spin .9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;z-index:20;background:linear-gradient(180deg, rgba(0,0,0,0.72), rgba(0,0,0,0.25), rgba(0,0,0,0));pointer-events:none;transition:opacity .35s;}
+.top-bar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;pointer-events:auto;}
+.top-bar img{width:34px;height:34px;border-radius:11px;box-shadow:0 4px 12px -2px rgba(0,0,0,.5);}
+.top-bar .actions{display:flex;gap:10px;pointer-events:auto;}
+.icon-btn{width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.14);backdrop-filter:blur(8px);border-radius:14px;cursor:pointer;color:#fff;font-size:24px;border:1px solid rgba(255,255,255,0.07);transition:background .25s;}
+.icon-btn:active{transform:scale(.9);}
+.icon-btn:hover{background:rgba(255,255,255,0.22);}
+.icon-btn.mode-active{background:rgba(255,213,77,0.25);color:#ffd54d;border-color:rgba(255,213,77,0.45);}
+.search-panel{position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(14px) brightness(.9);z-index:40;display:none;flex-direction:column;padding:70px 14px 24px;}
+.search-panel.active{display:flex;}
+.search-panel input{width:100%;background:#1d2226;border:1px solid #2c3236;border-radius:14px;padding:16px 18px;font-size:16px;color:#fff;outline:none;font-family:inherit;}
+.search-results{margin-top:16px;overflow-y:auto;max-height:calc(100vh - 180px);display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;}
+.result-item{background:#161a1d;padding:12px 14px;border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border:1px solid #232a2f;position:relative;}
+.result-item:hover{background:#20262a;}
+.result-item img{width:44px;height:44px;object-fit:contain;border-radius:10px;background:#0d0f11;}
+.result-item .r-meta{display:flex;flex-direction:column;flex:1;min-width:0;}
+.r-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.r-country{font-size:11px;letter-spacing:.5px;opacity:.7;margin-top:2px;display:flex;align-items:center;gap:4px;}
+.fav-badge{position:absolute;top:6px;right:6px;font-size:18px;color:#ffd54d;text-shadow:0 2px 6px rgba(0,0,0,.55);}
+.close-search{position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.18);border-radius:14px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.09);cursor:pointer;font-size:30px;}
+.mute-indicator{position:absolute;bottom:18px;left:14px;padding:10px 16px;font-size:13px;border-radius:999px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;font-weight:500;letter-spacing:.3px;z-index:7;cursor:pointer;border:1px solid rgba(255,255,255,0.12);transition:background .25s,opacity .35s;}
+.safe-area{height:env(safe-area-inset-bottom);width:100%;}
+/* Auto-hide */
+body.ui-hidden .top-bar,
+body.ui-hidden .slide.active .meta-overlay,
+body.ui-hidden .slide.active .right-controls,
+body.ui-hidden .slide.active .mute-indicator{opacity:0;pointer-events:none;}
+body.ui-hidden .slide.active::after{opacity:0;}
+.toast-container{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:60;pointer-events:none;}
+.toast{min-width:180px;max-width:78vw;padding:12px 16px;border-radius:14px;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);color:#eee;font-size:13px;letter-spacing:.3px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 24px -4px rgba(0,0,0,.55);animation:slideUp .42s cubic-bezier(.4,.0,.2,1);}
+.toast.success{border:1px solid rgba(25,215,127,0.55);}
+.toast.info{border:1px solid rgba(120,160,255,0.4);}
+.toast.warn{border:1px solid rgba(255,213,77,0.55);}
+@keyframes slideUp{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}
+@media (min-width:780px){
+  .slide video{object-fit:contain;}
+  .app-shell{width:420px;margin:0 auto;border-left:1px solid #1c1f22;border-right:1px solid #1c1f22;}
+  .toast{max-width:360px;}
 }
 </style>
 </head>
@@ -292,15 +92,21 @@ html,body {
 <div class="top-bar">
   <div class="brand">
     <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Logo" />
-    <span>IPTV Swipe</span>
+    <span id="mode-label">IPTV Swipe</span>
   </div>
   <div class="actions">
+    <div class="icon-btn" id="toggle-favorites-mode" title="Favorites Mode (toggle)">
+      <span class="material-icons" id="fav-mode-icon">favorite_border</span>
+    </div>
     <div class="icon-btn" id="open-search" title="Search"><span class="material-icons">search</span></div>
     <div class="icon-btn" id="reload-btn" title="Reload playlist"><span class="material-icons">refresh</span></div>
   </div>
 </div>
 
 <div id="app" class="app-shell"></div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toast-container"></div>
 
 <!-- Search Overlay -->
 <div class="search-panel" id="search-panel">
@@ -326,91 +132,188 @@ html,body {
     <div class="right-controls">
       <div class="ctrl-button playpause" title="Play/Pause"><span class="material-icons">pause</span></div>
       <div class="ctrl-button mute" title="Mute / Unmute"><span class="material-icons">volume_off</span></div>
-      <div class="ctrl-button next" title="Next"><span class="material-icons">arrow_downward</span></div>
+      <div class="ctrl-button favorite small" title="Add to Favorites"><span class="material-icons">star_border</span></div>
+      <div class="ctrl-button next small" title="Next"><span class="material-icons">arrow_downward</span></div>
     </div>
   </div>
 </template>
 
 <script>
-/**
- * MODS:
- * - Each new slide is assigned a RANDOM channel (not sequential).
- * - Infinite random feed: scroll keeps adding random slides (duplicates allowed, immediate repeat avoided).
- * - Loading indicator now hides when video is actually playing / canplay / timeout / error.
- */
-
+/* =========================
+   CONFIG & STATE
+========================= */
 const PLAYLIST_URL = "https://iptv-org.github.io/iptv/index.m3u";
 const PROXY_PREFIX = "https://corsproxy.io/?";
 const INITIAL_SLIDES = 6;
 const PRELOAD_AHEAD = 2;
-const KEEP_BEFORE_AFTER = 5; // Keep this many slides before/after current in DOM
-const MAX_DOM_SLIDES = 25;   // Hard cap to avoid memory bloat
+const KEEP_BEFORE_AFTER = 5;
+const MAX_DOM_SLIDES = 25;
+const UI_HIDE_DELAY = 4000;
+
+const FAVORITES_KEY = "iptvFavoritesV1"; // localStorage key
 
 let allChannels = [];
+let favoriteKeys = []; // array of unique keys (tvg-id || url)
+let favoritesMode = false;
+
 let currentIndex = 0;
-let slideCount = 0; // total slides created
-let slidesMap = new Map(); // index -> slide element
-let hlsSupported = false;
+let slideCount = 0;
+let slidesMap = new Map();
 let lastChannelId = null;
 let isLoadingPlaylist = false;
+let observer = null;
 
-// Utility
-function getFlagEmoji(code) {
-  if(!code || code.length !== 2) return "";
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0) - 65)));
+let uiHideTimeout = null;
+let autoHideEnabled = true;
+
+/* =========================
+   UTILITIES
+========================= */
+function getFlagEmoji(code){
+  if(!code || code.length!==2) return "";
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0)-65)));
+}
+function uniqKey(ch){
+  return ch["tvg-id"] && ch["tvg-id"].trim() ? ch["tvg-id"].trim() : ch.url;
+}
+function loadFavorites(){
+  try{
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    favoriteKeys = raw ? JSON.parse(raw) : [];
+    if(!Array.isArray(favoriteKeys)) favoriteKeys = [];
+  }catch(e){ favoriteKeys = []; }
+}
+function saveFavorites(){
+  try{ localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteKeys)); }catch(e){}
+}
+function isFavorite(channel){
+  if(!channel) return false;
+  return favoriteKeys.includes(uniqKey(channel));
+}
+function toggleFavorite(channel, slide){
+  if(!channel) return;
+  const key = uniqKey(channel);
+  const idx = favoriteKeys.indexOf(key);
+  if(idx === -1){
+    favoriteKeys.push(key);
+    toast("Added to favorites","success","star");
+  } else {
+    favoriteKeys.splice(idx,1);
+    toast("Removed from favorites","warn","star_border");
+    if(favoritesMode && favoriteKeys.length===0){
+      setFavoritesMode(false,true);
+      toast("Favorites empty. Back to All.","info","info");
+    }
+  }
+  saveFavorites();
+  // Update button icon if slide provided
+  if(slide){
+    updateSlideFavoriteButton(slide);
+  } else {
+    // update current slide
+    const s = slidesMap.get(currentIndex);
+    if(s) updateSlideFavoriteButton(s);
+  }
+}
+function favoritesChannels(){
+  const set = new Set(favoriteKeys);
+  return allChannels.filter(ch => set.has(uniqKey(ch)));
 }
 
-function randomChannel() {
-  if (!allChannels.length) return null;
+/* =========================
+   TOAST SYSTEM
+========================= */
+function toast(msg,type="info",icon="info"){
+  const tc = document.getElementById('toast-container');
+  const div = document.createElement('div');
+  div.className = `toast ${type}`;
+  div.innerHTML = `<span class="material-icons" style="font-size:18px;">${icon}</span><span>${msg}</span>`;
+  tc.appendChild(div);
+  setTimeout(()=> {
+    div.style.transition = 'opacity .4s, transform .4s';
+    div.style.opacity = '0';
+    div.style.transform = 'translate(-50%,12px)';
+    setTimeout(()=>div.remove(),420);
+  }, 2600);
+}
+
+/* =========================
+   RANDOM / FEED LOGIC
+========================= */
+function randomChannel(){
+  const sourceArray = favoritesMode ? favoritesChannels() : allChannels;
+  if(!sourceArray.length) return null;
   let attempt = 0;
   let ch;
-  do {
-    ch = allChannels[Math.floor(Math.random() * allChannels.length)];
+  do{
+    ch = sourceArray[Math.floor(Math.random()*sourceArray.length)];
     attempt++;
-    // Avoid immediate repeat by comparing id/url
-  } while (attempt < 15 && lastChannelId && (ch["tvg-id"] || ch.url) === lastChannelId);
-  lastChannelId = ch["tvg-id"] || ch.url;
+  }while(attempt < 15 && lastChannelId && (uniqKey(ch) === lastChannelId) && sourceArray.length>1);
+  lastChannelId = uniqKey(ch);
   return ch;
 }
 
-async function loadPlaylist(force = false) {
-  if (isLoadingPlaylist) return;
+function setFavoritesMode(on, silent=false){
+  if(on && favoriteKeys.length === 0){
+    toast("No favorites yet","warn","star_border");
+    return;
+  }
+  favoritesMode = on;
+  document.getElementById('toggle-favorites-mode').classList.toggle('mode-active', favoritesMode);
+  document.getElementById('fav-mode-icon').textContent = favoritesMode ? 'favorite' : 'favorite_border';
+  document.getElementById('mode-label').textContent = favoritesMode ? 'Favorites' : 'IPTV Swipe';
+  if(!silent){
+    toast(favoritesMode ? "Favorites Mode" : "All Channels Mode", "info", favoritesMode ? "favorite" : "shuffle");
+  }
+  rebuildFeed();
+}
+
+function rebuildFeed(){
+  // Reset feed and rebuild from scratch for new mode
+  resetFeed();
+  initFeed();
+}
+
+/* =========================
+   PLAYLIST LOADING
+========================= */
+async function loadPlaylist(force=false){
+  if(isLoadingPlaylist) return;
   isLoadingPlaylist = true;
-  try {
+  try{
     const resp = await fetch(PROXY_PREFIX + encodeURIComponent(PLAYLIST_URL));
     const text = await resp.text();
     allChannels = parseM3U(text);
-    if (force) resetFeed();
-    if (!slidesMap.size) initFeed();
-  } catch (e) {
-    console.error("Playlist load failed", e);
-    const app = document.getElementById('app');
-    app.innerHTML = '<div style="padding:40px;text-align:center;font:14px/1.4 system-ui;color:#bbb;">Failed to load playlist.</div>';
-  } finally {
-    isLoadingPlaylist = false;
+    if(force) resetFeed();
+    if(!slidesMap.size) initFeed();
+  }catch(e){
+    console.error(e);
+    document.getElementById('app').innerHTML='<div style="padding:40px;text-align:center;font:14px/1.4 system-ui;color:#bbb;">Failed to load playlist.</div>';
+  }finally{
+    isLoadingPlaylist=false;
   }
 }
 
-function parseM3U(m3u) {
+function parseM3U(m3u){
   const lines = m3u.split('\n');
   const channels = [];
   let cur = null;
-  for (let raw of lines) {
+  for(const raw of lines){
     const line = raw.trim();
-    if (!line) continue;
-    if (line.startsWith("#EXTINF:")) {
+    if(!line) continue;
+    if(line.startsWith("#EXTINF:")){
       cur = {};
       const attrRe = /([a-zA-Z0-9\-_]+)="([^"]*)"/g;
       let m;
-      while ((m = attrRe.exec(line)) !== null) cur[m[1]] = m[2];
+      while((m=attrRe.exec(line))!==null) cur[m[1]] = m[2];
       const nameMatch = line.match(/,(.*)$/);
       cur.name = nameMatch ? nameMatch[1].trim() : "";
-      cur["tvg-id"] = cur["tvg-id"] || "";
-      cur["tvg-country"] = cur["tvg-country"] || "";
-      cur["tvg-logo"] = cur["tvg-logo"] || "";
-      cur["group-title"] = cur["group-title"] || "";
-    } else if (line.startsWith("http")) {
-      if (cur) {
+      cur["tvg-id"] = cur["tvg-id"]||"";
+      cur["tvg-country"] = cur["tvg-country"]||"";
+      cur["tvg-logo"] = cur["tvg-logo"]||"";
+      cur["group-title"] = cur["group-title"]||"";
+    } else if(line.startsWith("http")){
+      if(cur){
         cur.url = line;
         channels.push(cur);
         cur = null;
@@ -420,36 +323,36 @@ function parseM3U(m3u) {
   return channels;
 }
 
-function resetFeed() {
+/* =========================
+   FEED / SLIDE BUILD
+========================= */
+function resetFeed(){
   document.getElementById('app').innerHTML = "";
   slidesMap.clear();
   slideCount = 0;
   currentIndex = 0;
+  lastChannelId = null;
 }
 
-function initFeed() {
+function initFeed(){
   const app = document.getElementById('app');
-  for (let i = 0; i < INITIAL_SLIDES; i++) {
+  for(let i=0;i<INITIAL_SLIDES;i++){
     const slide = createRandomSlide(slideCount++);
     app.appendChild(slide);
   }
   initObserver();
-  // Scroll to first slide
-  setTimeout(() => {
-    goTo(0, false);
-  }, 30);
+  setTimeout(()=>goTo(0,false),30);
 }
 
-function createRandomSlide(index) {
+function createRandomSlide(index){
   const tpl = document.getElementById('slide-template');
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.dataset.index = index;
   const channel = randomChannel();
   node._channel = channel;
 
-  // Attach video
   const video = document.createElement('video');
-  video.className = 'channel-video';
+  video.className='channel-video';
   video.setAttribute('playsinline','');
   video.setAttribute('webkit-playsinline','');
   video.setAttribute('preload','none');
@@ -458,69 +361,116 @@ function createRandomSlide(index) {
   video.disableRemotePlayback = true;
   node.appendChild(video);
 
-  // Metadata
-  node.querySelector('.name').textContent = (channel && channel.name) || 'Unknown';
-  const cc = channel && channel["tvg-country"] ? channel["tvg-country"].split(';')[0] : '';
-  node.querySelector('.flag').textContent = getFlagEmoji(cc);
-  node.querySelector('.group').textContent = (channel && channel["group-title"]) || 'General';
-  node.querySelector('.country-code').textContent = cc || 'N/A';
-  node.title = channel ? channel.name : "Channel";
+  fillSlideMeta(node, channel);
 
-  // Controls
-  node.querySelector('.ctrl-button.next').addEventListener('click', e => {
-    e.stopPropagation();
-    goTo(index + 1);
-  });
-
+  const nextBtn = node.querySelector('.ctrl-button.next');
   const muteBtn = node.querySelector('.ctrl-button.mute');
-  muteBtn.addEventListener('click', e => {
+  const ppBtn   = node.querySelector('.ctrl-button.playpause');
+  const favBtn  = node.querySelector('.ctrl-button.favorite');
+
+  nextBtn.addEventListener('click', e => { e.stopPropagation(); goTo(index+1); });
+
+  muteBtn.addEventListener('click', e=>{
     e.stopPropagation();
     video.muted = !video.muted;
     muteBtn.querySelector('.material-icons').textContent = video.muted ? 'volume_off' : 'volume_up';
+    showUI(); scheduleUIHide();
   });
 
-  const playPauseBtn = node.querySelector('.ctrl-button.playpause');
-  playPauseBtn.addEventListener('click', e => {
+  ppBtn.addEventListener('click', e=>{
     e.stopPropagation();
-    if (video.paused) {
+    if(video.paused){
       safePlay(video);
-      playPauseBtn.querySelector('.material-icons').textContent = 'pause';
-    } else {
+      ppBtn.querySelector('.material-icons').textContent = 'pause';
+      scheduleUIHide();
+    }else{
       video.pause();
-      playPauseBtn.querySelector('.material-icons').textContent = 'play_arrow';
+      ppBtn.querySelector('.material-icons').textContent = 'play_arrow';
+      showUI(true);
     }
   });
 
-  node.addEventListener('dblclick', () => {
-    video.muted = !video.muted;
-    muteBtn.querySelector('.material-icons').textContent = video.muted ? 'volume_off' : 'volume_up';
+  favBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    toggleFavorite(channel, node);
   });
 
-  slidesMap.set(index, node);
+  node.addEventListener('click', e=>{
+    if(e.target.closest('.ctrl-button')) return;
+    const hidden = document.body.classList.contains('ui-hidden');
+    if(video.paused){
+      showUI(true);
+    }else{
+      if(hidden){ showUI(); scheduleUIHide(); }
+      else hideUI();
+    }
+  });
+
+  node.addEventListener('dblclick', ()=>{
+    video.muted = !video.muted;
+    muteBtn.querySelector('.material-icons').textContent = video.muted ? 'volume_off':'volume_up';
+    showUI(); scheduleUIHide();
+  });
+
+  updateSlideFavoriteButton(node);
+  slidesMap.set(index,node);
   return node;
 }
 
-function ensureSlide(index) {
-  if (slidesMap.has(index)) return slidesMap.get(index);
+function fillSlideMeta(slide, channel){
+  const nameEl = slide.querySelector('.name');
+  const flagEl = slide.querySelector('.flag');
+  const groupEl = slide.querySelector('.group');
+  const ccEl = slide.querySelector('.country-code');
+  if(!channel){
+    nameEl.textContent = 'Unknown';
+    flagEl.textContent = '';
+    groupEl.textContent = 'General';
+    ccEl.textContent = 'N/A';
+    return;
+  }
+  nameEl.textContent = channel.name || 'Unknown';
+  const cc = channel["tvg-country"] ? channel["tvg-country"].split(';')[0] : '';
+  flagEl.textContent = getFlagEmoji(cc);
+  groupEl.textContent = channel["group-title"] || 'General';
+  ccEl.textContent = cc || 'N/A';
+  slide.title = channel.name;
+}
+
+function updateSlideFavoriteButton(slide){
+  const channel = slide._channel;
+  const favBtn = slide.querySelector('.ctrl-button.favorite');
+  if(!channel || !favBtn) return;
+  const favIcon = favBtn.querySelector('.material-icons');
+  if(isFavorite(channel)){
+    favBtn.classList.add('favorited');
+    favBtn.title = "Remove from Favorites";
+    favIcon.textContent = 'star';
+  } else {
+    favBtn.classList.remove('favorited');
+    favBtn.title = "Add to Favorites";
+    favIcon.textContent = 'star_border';
+  }
+}
+
+function ensureSlide(index){
+  if(slidesMap.has(index)) return slidesMap.get(index);
   const slide = createRandomSlide(index);
-  const app = document.getElementById('app');
-  app.appendChild(slide);
-  if (observer) observer.observe(slide);
+  document.getElementById('app').appendChild(slide);
+  if(observer) observer.observe(slide);
   trimSlides();
   return slide;
 }
 
-function trimSlides() {
-  // Keep DOM from growing unbounded: remove slides far from currentIndex
+function trimSlides(){
   const indices = [...slidesMap.keys()].sort((a,b)=>a-b);
-  if (indices.length <= MAX_DOM_SLIDES) return;
-  indices.forEach(i => {
-    if (Math.abs(i - currentIndex) > KEEP_BEFORE_AFTER && indices.length > MAX_DOM_SLIDES) {
+  if(indices.length <= MAX_DOM_SLIDES) return;
+  indices.forEach(i=>{
+    if(Math.abs(i-currentIndex) > KEEP_BEFORE_AFTER && indices.length > MAX_DOM_SLIDES){
       const slide = slidesMap.get(i);
-      if (slide && slide.parentNode) {
-        // Destroy hls instance if any
+      if(slide && slide.parentNode){
         const v = slide.querySelector('video');
-        if (v && v._hls) { try { v._hls.destroy(); } catch(e){} }
+        if(v && v._hls){ try{ v._hls.destroy(); }catch(e){} }
         slide.parentNode.removeChild(slide);
       }
       slidesMap.delete(i);
@@ -528,205 +478,223 @@ function trimSlides() {
   });
 }
 
-let observer = null;
-function initObserver() {
-  observer = new IntersectionObserver(onIntersect, {
-    root: document.getElementById('app'),
-    threshold: 0.65
+/* =========================
+   OBSERVER / PLAYBACK
+========================= */
+function initObserver(){
+  observer = new IntersectionObserver(onIntersect,{
+    root:document.getElementById('app'),
+    threshold:0.65
   });
-  slidesMap.forEach(slide => observer.observe(slide));
-  document.getElementById('app').addEventListener('scroll', throttle(onScrollCheck, 120), { passive:true });
+  slidesMap.forEach(slide=>observer.observe(slide));
+  document.getElementById('app').addEventListener('scroll', throttle(onScrollCheck,120), { passive:true });
 }
 
-function onScrollCheck() {
-  // Pre-create next slide if nearing end
-  const maxIndex = Math.max(...slidesMap.keys());
+function onScrollCheck(){
   const app = document.getElementById('app');
   const nearBottom = app.scrollTop + app.clientHeight * 1.2 > app.scrollHeight;
-  if (nearBottom) {
-    for (let i = 0; i < 3; i++) {
-      ensureSlide(++slideCount);
-    }
+  if(nearBottom){
+    for(let i=0;i<3;i++) ensureSlide(++slideCount);
   }
 }
 
-function onIntersect(entries) {
-  entries.forEach(entry => {
+function onIntersect(entries){
+  entries.forEach(entry=>{
     const slide = entry.target;
-    const idx = parseInt(slide.dataset.index, 10);
-    if (entry.isIntersecting) {
+    const idx = parseInt(slide.dataset.index,10);
+    if(entry.isIntersecting){
       currentIndex = idx;
       slide.classList.add('active');
       prepareSlideMedia(idx);
       pauseOthers(idx);
-      for (let i=1; i<=PRELOAD_AHEAD; i++) ensureSlide(idx + i);
+      for(let i=1;i<=PRELOAD_AHEAD;i++) ensureSlide(idx+i);
       cleanupMedia(idx);
+      showUI(); scheduleUIHide();
     } else {
       slide.classList.remove('active');
       const v = slide.querySelector('video');
-      if (v && !slide.classList.contains('keep-alive')) v.pause();
+      if(v && !slide.classList.contains('keep-alive')) v.pause();
     }
   });
 }
 
-function prepareSlideMedia(index) {
+function prepareSlideMedia(index){
   const slide = slidesMap.get(index);
-  if (!slide) return;
+  if(!slide) return;
   const channel = slide._channel;
-  if (!channel) return;
   const video = slide.querySelector('video');
   const loader = slide.querySelector('.loading-indicator');
+  if(!channel) return;
 
-  // Already set up?
-  if (!video.dataset.init) {
-    video.dataset.init = "1";
-    video.addEventListener('playing', () => hideLoader(loader));
-    video.addEventListener('canplay', () => hideLoader(loader));
-    video.addEventListener('loadeddata', () => hideLoader(loader));
-    video.addEventListener('error', () => {
-      loader && (loader.innerHTML = '<span style="color:#ff7676;font-size:12px;">Error loading stream</span>');
-      // Hide after a while even on error
-      setTimeout(()=>hideLoader(loader), 3500);
+  if(!video.dataset.init){
+    video.dataset.init="1";
+    video.addEventListener('playing',()=>{ hideLoader(loader); scheduleUIHide(); });
+    video.addEventListener('canplay',()=>hideLoader(loader));
+    video.addEventListener('loadeddata',()=>hideLoader(loader));
+    video.addEventListener('pause',()=>{ showUI(true); });
+    video.addEventListener('ended',()=>{ showUI(true); });
+    video.addEventListener('error',()=>{
+      loader && (loader.innerHTML='<span style="color:#ff7676;font-size:12px;">Error</span>');
+      setTimeout(()=>hideLoader(loader),3500);
+      showUI(true);
     });
   }
-
-  if (!video.dataset.srcSet) {
+  if(!video.dataset.srcSet){
     showLoader(loader);
-    setVideoSource(video, channel.url, () => hideLoader(loader));
-    video.dataset.srcSet = "1";
-    // Fallback hide after 6s in case events don't fire
-    setTimeout(()=>hideLoader(loader), 6000);
+    setVideoSource(video, channel.url, ()=>hideLoader(loader));
+    video.dataset.srcSet="1";
+    setTimeout(()=>hideLoader(loader),6000);
   }
-
   safePlay(video);
 }
 
-function showLoader(loader) {
-  if (loader) {
-    loader.style.display = 'flex';
-  }
-}
-function hideLoader(loader) {
-  if (loader && loader.style.display !== 'none') {
-    loader.style.display = 'none';
-  }
-}
+function showLoader(loader){ if(loader) loader.style.display='flex'; }
+function hideLoader(loader){ if(loader) loader.style.display='none'; }
 
-function setVideoSource(video, url, manifestCallback) {
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = url;
-  } else if (window.Hls && window.Hls.isSupported()) {
-    const hls = new Hls({ lowLatencyMode: true, backBufferLength: 60 });
+function setVideoSource(video,url, cb){
+  if(video.canPlayType('application/vnd.apple.mpegurl')){
+    video.src=url;
+  } else if(window.Hls && window.Hls.isSupported()){
+    const hls = new Hls({ lowLatencyMode:true, backBufferLength:60 });
     video._hls = hls;
     hls.attachMedia(video);
-    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-      hls.loadSource(url);
-    });
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      if (manifestCallback) manifestCallback();
-    });
-    hls.on(Hls.Events.ERROR, (e,data) => {
-      if (data && data.fatal) {
-        try { hls.destroy(); } catch(_) {}
-      }
+    hls.on(Hls.Events.MEDIA_ATTACHED, ()=> hls.loadSource(url));
+    hls.on(Hls.Events.MANIFEST_PARSED, ()=> { cb && cb(); });
+    hls.on(Hls.Events.ERROR,(e,data)=>{
+      if(data && data.fatal){ try{ hls.destroy(); }catch(_){} }
     });
   } else {
     video.src = url;
   }
 }
 
-function safePlay(video) {
+function safePlay(video){
   const p = video.play();
-  if (p && p.catch) {
-    p.catch(() => {
-      showTapToUnmute(video);
-    });
+  if(p && p.catch){
+    p.catch(()=> showTapToUnmute(video));
   }
 }
 
-function showTapToUnmute(video) {
-  if (video.parentElement.querySelector('.mute-indicator')) return;
+function showTapToUnmute(video){
+  if(video.parentElement.querySelector('.mute-indicator')) return;
   const btn = document.createElement('div');
-  btn.className = 'mute-indicator';
-  btn.innerHTML = '<span class="material-icons">touch_app</span><span>Tap to Play / Unmute</span>';
-  btn.addEventListener('click', () => {
-    video.muted = false;
+  btn.className='mute-indicator';
+  btn.innerHTML='<span class="material-icons">touch_app</span><span>Tap to Play / Unmute</span>';
+  btn.addEventListener('click',()=>{
+    video.muted=false;
     safePlay(video);
     btn.remove();
+    showUI(); scheduleUIHide();
   });
   video.parentElement.appendChild(btn);
 }
 
-function pauseOthers(activeIdx) {
-  slidesMap.forEach((slide, idx) => {
-    if (idx !== activeIdx) {
+function pauseOthers(activeIdx){
+  slidesMap.forEach((slide, idx)=>{
+    if(idx!==activeIdx){
       const v = slide.querySelector('video');
-      if (v && !v.paused) v.pause();
+      if(v && !v.paused) v.pause();
     }
   });
 }
 
-function cleanupMedia(centerIdx) {
-  slidesMap.forEach((slide, idx) => {
-    if (Math.abs(idx - centerIdx) > KEEP_BEFORE_AFTER) {
+function cleanupMedia(centerIdx){
+  slidesMap.forEach((slide, idx)=>{
+    if(Math.abs(idx-centerIdx) > KEEP_BEFORE_AFTER){
       const v = slide.querySelector('video');
-      if (v && v.dataset.srcSet) {
-        try {
-          if (v._hls) { v._hls.destroy(); delete v._hls; }
+      if(v && v.dataset.srcSet){
+        try{
+          if(v._hls){ v._hls.destroy(); delete v._hls; }
           v.removeAttribute('src');
           v.load();
-        } catch(e){}
+        }catch(e){}
         delete v.dataset.srcSet;
       }
     }
   });
 }
 
-function goTo(index, smooth = true) {
-  if (index < 0) return;
+function goTo(index, smooth=true){
+  if(index<0) return;
   ensureSlide(index);
   const slide = slidesMap.get(index);
-  if (slide) {
-    slide.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
-  }
+  if(slide) slide.scrollIntoView({ behavior: smooth ? 'smooth':'auto' });
+  showUI(); scheduleUIHide();
 }
 
-/* Search */
+/* =========================
+   UI AUTO HIDE
+========================= */
+function showUI(forceVisibleWhilePaused=false){
+  document.body.classList.remove('ui-hidden');
+  if(uiHideTimeout) clearTimeout(uiHideTimeout);
+  if(forceVisibleWhilePaused) return;
+}
+function hideUI(){
+  if(!autoHideEnabled) return;
+  const activeSlide = slidesMap.get(currentIndex);
+  if(!activeSlide) return;
+  const video = activeSlide.querySelector('video');
+  if(!video || video.paused) return;
+  if(document.getElementById('search-panel').classList.contains('active')) return;
+  document.body.classList.add('ui-hidden');
+}
+function scheduleUIHide(){
+  if(uiHideTimeout) clearTimeout(uiHideTimeout);
+  uiHideTimeout = setTimeout(hideUI, UI_HIDE_DELAY);
+}
+['mousemove','mousedown','touchstart','touchmove','keydown'].forEach(evt=>{
+  window.addEventListener(evt, ()=>{
+    if(document.body.classList.contains('ui-hidden')){
+      showUI();
+    }
+    scheduleUIHide();
+  }, { passive:true });
+});
+
+/* =========================
+   SEARCH
+========================= */
 const openSearchBtn = document.getElementById('open-search');
 const searchPanel = document.getElementById('search-panel');
 const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 
-openSearchBtn.addEventListener('click', () => {
+openSearchBtn.addEventListener('click', ()=>{
+  showUI(true);
   searchPanel.classList.add('active');
-  setTimeout(() => searchInput.focus(), 50);
+  if(uiHideTimeout) clearTimeout(uiHideTimeout);
+  setTimeout(()=>searchInput.focus(),50);
 });
-closeSearchBtn.addEventListener('click', () => {
+closeSearchBtn.addEventListener('click', ()=>{
   searchPanel.classList.remove('active');
-  searchInput.value = '';
-  searchResults.innerHTML = '';
+  searchInput.value='';
+  searchResults.innerHTML='';
+  showUI(); scheduleUIHide();
 });
-searchInput.addEventListener('input', () => {
+searchInput.addEventListener('input', ()=>{
   const q = searchInput.value.trim().toLowerCase();
-  searchResults.innerHTML = '';
-  if (!q) return;
+  searchResults.innerHTML='';
+  if(!q) return;
   const found = allChannels
     .map((c,i)=>({c,i}))
     .filter(({c}) =>
       (c.name && c.name.toLowerCase().includes(q)) ||
       (c["tvg-country"] && c["tvg-country"].toLowerCase().includes(q)) ||
       (c["group-title"] && c["group-title"].toLowerCase().includes(q))
-    ).slice(0,80);
-  if (!found.length) {
-    searchResults.innerHTML = '<div style="opacity:.6;font-size:13px;padding:6px 2px;">No results.</div>';
+    ).slice(0,120);
+  if(!found.length){
+    searchResults.innerHTML='<div style="opacity:.6;font-size:13px;padding:6px 2px;">No results.</div>';
     return;
   }
-  for (const {c,i} of found) {
+  for(const {c,i} of found){
     const div = document.createElement('div');
-    div.className = 'result-item';
-    div.innerHTML = `
-      <img src="${c["tvg-logo"] || ''}" alt="" onerror="this.style.display='none';">
+    const key = uniqKey(c);
+    const fav = favoriteKeys.includes(key);
+    div.className='result-item';
+    div.innerHTML=`
+      <img src="${c["tvg-logo"]||''}" alt="" onerror="this.style.display='none';">
       <div class="r-meta">
         <div class="r-name">${c.name}</div>
         <div class="r-country">
@@ -734,94 +702,118 @@ searchInput.addEventListener('input', () => {
           <span>${(c["tvg-country"]||'').split(';')[0] || '??'}</span>
         </div>
       </div>
-      <span style="font-size:22px;color:#888;" class="material-icons">play_arrow</span>
+      <span class="material-icons" style="font-size:22px;color:#888;">play_arrow</span>
+      ${fav ? '<span class="material-icons fav-badge" title="Favorite">star</span>' : ''}
     `;
-    div.addEventListener('click', () => {
+    div.addEventListener('click', ()=>{
       searchPanel.classList.remove('active');
-      // Jump by creating a new slide just after currentIndex and moving there,
-      // OR replace current slide with selected channel for immediate view.
       replaceCurrentSlideWithChannel(c);
+      showUI(); scheduleUIHide();
+    });
+    // Long press (touch & hold) to toggle favorite inside search
+    let pressTimer;
+    div.addEventListener('touchstart', (e)=>{
+      pressTimer = setTimeout(()=>{
+        toggleFavorite(c);
+        searchInput.dispatchEvent(new Event('input'));
+      },550);
+    }, {passive:true});
+    ['touchend','touchmove','touchcancel'].forEach(evt=>{
+      div.addEventListener(evt, ()=> clearTimeout(pressTimer), {passive:true});
+    });
+    // Right-click toggle favorite (desktop)
+    div.addEventListener('contextmenu', e=>{
+      e.preventDefault();
+      toggleFavorite(c);
+      searchInput.dispatchEvent(new Event('input'));
     });
     searchResults.appendChild(div);
   }
 });
 
-function replaceCurrentSlideWithChannel(channel) {
-  // Replace channel of active slide
+function replaceCurrentSlideWithChannel(channel){
   const slide = slidesMap.get(currentIndex);
-  if (!slide) return;
-  lastChannelId = channel["tvg-id"] || channel.url; // avoid immediate duplicate next random
+  if(!slide) return;
+  lastChannelId = uniqKey(channel);
   slide._channel = channel;
-  slide.querySelector('.name').textContent = channel.name || 'Unknown';
-  const cc = (channel["tvg-country"]||'').split(';')[0];
-  slide.querySelector('.flag').textContent = getFlagEmoji(cc);
-  slide.querySelector('.group').textContent = channel["group-title"] || 'General';
-  slide.querySelector('.country-code').textContent = cc || 'N/A';
+  fillSlideMeta(slide, channel);
+  updateSlideFavoriteButton(slide);
   const video = slide.querySelector('video');
   const loader = slide.querySelector('.loading-indicator');
   showLoader(loader);
-  // Reset video
-  try {
-    if (video._hls) { video._hls.destroy(); delete video._hls; }
-  } catch(e){}
+  try{
+    if(video._hls){ video._hls.destroy(); delete video._hls; }
+  }catch(e){}
   video.removeAttribute('src');
   video.load();
   delete video.dataset.srcSet;
   prepareSlideMedia(currentIndex);
 }
 
-/* Reload */
-document.getElementById('reload-btn').addEventListener('click', () => {
-  loadPlaylist(true);
+/* =========================
+   FAVORITES MODE TOGGLE
+========================= */
+document.getElementById('toggle-favorites-mode').addEventListener('click', ()=>{
+  setFavoritesMode(!favoritesMode);
 });
 
-/* Keyboard nav (desktop) */
-document.addEventListener('keydown', (e) => {
-  if (searchPanel.classList.contains('active')) {
-    if (e.key === 'Escape') searchPanel.classList.remove('active');
+/* =========================
+   RELOAD
+========================= */
+document.getElementById('reload-btn').addEventListener('click', ()=>{
+  loadPlaylist(true);
+  showUI(true);
+});
+
+/* =========================
+   KEYBOARD NAV (DESKTOP)
+========================= */
+document.addEventListener('keydown', (e)=>{
+  if(searchPanel.classList.contains('active')){
+    if(e.key==='Escape'){
+      searchPanel.classList.remove('active');
+      showUI(); scheduleUIHide();
+    }
     return;
   }
-  if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-    e.preventDefault();
-    goTo(currentIndex + 1);
-  } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-    e.preventDefault();
-    goTo(currentIndex - 1);
-  } else if (e.key === ' ') {
+  if(e.key==='ArrowDown' || e.key==='PageDown'){ e.preventDefault(); goTo(currentIndex+1); }
+  else if(e.key==='ArrowUp' || e.key==='PageUp'){ e.preventDefault(); goTo(currentIndex-1); }
+  else if(e.key===' ') {
     const slide = slidesMap.get(currentIndex);
-    if (slide) {
+    if(slide){
       const v = slide.querySelector('video');
-      if (v) { if (v.paused) safePlay(v); else v.pause(); }
+      if(v){
+        if(v.paused){ safePlay(v); scheduleUIHide(); }
+        else { v.pause(); showUI(true); }
+      }
     }
   }
 });
 
-/* Helpers */
-function throttle(fn, wait) {
-  let last = 0, t;
-  return function(...args) {
-    const now = Date.now();
-    const remain = wait - (now - last);
-    if (remain <= 0) {
-      clearTimeout(t);
-      last = now;
-      fn.apply(this, args);
-    } else if (!t) {
-      t = setTimeout(()=> {
-        last = Date.now();
-        t = null;
-        fn.apply(this,args);
-      }, remain);
+/* =========================
+   HELPERS
+========================= */
+function throttle(fn,wait){
+  let last=0,t;
+  return (...args)=>{
+    const now=Date.now();
+    const remain=wait-(now-last);
+    if(remain<=0){
+      clearTimeout(t); last=now; fn(...args);
+    }else if(!t){
+      t=setTimeout(()=>{ last=Date.now(); t=null; fn(...args); },remain);
     }
   };
 }
 
-// Start
-window.addEventListener('load', () => {
-  hlsSupported = !!(window.Hls && window.Hls.isSupported());
+/* =========================
+   STARTUP
+========================= */
+window.addEventListener('load', ()=>{
+  loadFavorites();
   loadPlaylist();
+  showUI();
 });
-
 </script>
 </body>
 </html>
