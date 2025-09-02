@@ -68,8 +68,6 @@ html,body{margin:0;padding:0;background:#000;color:var(--text);font-family:'Robo
 .fav-badge{position:absolute;top:6px;right:6px;font-size:18px;color:#ffd54d;text-shadow:0 2px 6px rgba(0,0,0,.55);}
 .close-search{position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.18);border-radius:14px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.09);cursor:pointer;font-size:30px;}
 .mute-indicator{position:absolute;bottom:18px;left:14px;padding:10px 16px;font-size:13px;border-radius:999px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;font-weight:500;letter-spacing:.3px;z-index:7;cursor:pointer;border:1px solid rgba(255,255,255,0.12);transition:background .25s,opacity .35s;}
-.safe-area{height:env(safe-area-inset-bottom);width:100%;}
-/* Auto-hide */
 body.ui-hidden .top-bar,
 body.ui-hidden .slide.active .meta-overlay,
 body.ui-hidden .slide.active .right-controls,
@@ -80,18 +78,18 @@ body.ui-hidden .slide.active::after{opacity:0;}
 .toast.success{border:1px solid rgba(25,215,127,0.55);}
 .toast.info{border:1px solid rgba(120,160,255,0.4);}
 .toast.warn{border:1px solid rgba(255,213,77,0.55);}
-@keyframes slideUp{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}
+@keyframes slideUp{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}
+
 @media (min-width:780px){
-  .slide video{object-fit:contain;}
-  .app-shell{width:420px;margin:0 auto;border-left:1px solid #1c1f22;border-right:1px solid #1c1f22;}
-  .toast{max-width:360px;}
+  .slide video{object-fit:cover;}
+  .toast{max-width:460px;}
 }
 </style>
 </head>
 <body>
 <div class="top-bar">
   <div class="brand">
-    <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Logo" />
+    <img src="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/play/Copy%20of%20Copy%20of%20Copy%20of%20Copy%20of%20Untitled%20Design.png" alt="Logo" />
     <span id="mode-label">IPTV Swipe</span>
   </div>
   <div class="actions">
@@ -104,11 +102,8 @@ body.ui-hidden .slide.active::after{opacity:0;}
 </div>
 
 <div id="app" class="app-shell"></div>
-
-<!-- Toasts -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- Search Overlay -->
 <div class="search-panel" id="search-panel">
   <div class="close-search" id="close-search"><span class="material-icons">close</span></div>
   <input id="search-input" type="text" placeholder="Search channels: e.g. BBC, France, Sports..." autocomplete="off" />
@@ -116,7 +111,6 @@ body.ui-hidden .slide.active::after{opacity:0;}
   <div class="safe-area"></div>
 </div>
 
-<!-- Template -->
 <template id="slide-template">
   <div class="slide" data-index="">
     <div class="loading-indicator">
@@ -150,10 +144,10 @@ const KEEP_BEFORE_AFTER = 5;
 const MAX_DOM_SLIDES = 25;
 const UI_HIDE_DELAY = 4000;
 
-const FAVORITES_KEY = "iptvFavoritesV1"; // localStorage key
+const FAVORITES_KEY = "iptvFavoritesV1";
 
 let allChannels = [];
-let favoriteKeys = []; // array of unique keys (tvg-id || url)
+let favoriteKeys = [];
 let favoritesMode = false;
 
 let currentIndex = 0;
@@ -166,6 +160,11 @@ let observer = null;
 let uiHideTimeout = null;
 let autoHideEnabled = true;
 
+/* Failed channel tracking */
+const failedChannels = new Map();
+const FAIL_COOLDOWN_MS = 15 * 60 * 1000;
+const MAX_FAIL_REMEMBER = 5000;
+
 /* =========================
    UTILITIES
 ========================= */
@@ -174,7 +173,7 @@ function getFlagEmoji(code){
   return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0)-65)));
 }
 function uniqKey(ch){
-  return ch["tvg-id"] && ch["tvg-id"].trim() ? ch["tvg-id"].trim() : ch.url;
+  return ch && (ch["tvg-id"] && ch["tvg-id"].trim() ? ch["tvg-id"].trim() : ch.url);
 }
 function loadFavorites(){
   try{
@@ -206,11 +205,9 @@ function toggleFavorite(channel, slide){
     }
   }
   saveFavorites();
-  // Update button icon if slide provided
   if(slide){
     updateSlideFavoriteButton(slide);
   } else {
-    // update current slide
     const s = slidesMap.get(currentIndex);
     if(s) updateSlideFavoriteButton(s);
   }
@@ -220,9 +217,30 @@ function favoritesChannels(){
   return allChannels.filter(ch => set.has(uniqKey(ch)));
 }
 
-/* =========================
-   TOAST SYSTEM
-========================= */
+/* Failure management */
+function isChannelFailed(ch){
+  const key = uniqKey(ch);
+  if(!failedChannels.has(key)) return false;
+  const entry = failedChannels.get(key);
+  if(Date.now() - entry.lastFail > FAIL_COOLDOWN_MS){
+    failedChannels.delete(key);
+    return false;
+  }
+  return true;
+}
+function markChannelFailed(ch){
+  if(!ch) return;
+  const key = uniqKey(ch);
+  const prev = failedChannels.get(key) || {count:0,lastFail:0};
+  failedChannels.set(key,{count:prev.count+1,lastFail:Date.now()});
+  if(failedChannels.size > MAX_FAIL_REMEMBER){
+    let oldestKey=null, oldestTime=Infinity;
+    failedChannels.forEach((v,k)=>{ if(v.lastFail < oldestTime){ oldestTime=v.lastFail; oldestKey=k; }});
+    if(oldestKey) failedChannels.delete(oldestKey);
+  }
+}
+
+/* Toast */
 function toast(msg,type="info",icon="info"){
   const tc = document.getElementById('toast-container');
   const div = document.createElement('div');
@@ -237,22 +255,36 @@ function toast(msg,type="info",icon="info"){
   }, 2600);
 }
 
-/* =========================
-   RANDOM / FEED LOGIC
-========================= */
+/* Random / feed */
 function randomChannel(){
   const sourceArray = favoritesMode ? favoritesChannels() : allChannels;
   if(!sourceArray.length) return null;
+
+  let activePool = sourceArray.filter(ch => !isChannelFailed(ch));
+  if(!activePool.length){
+    if(favoritesMode){
+      toast("All favorites failed recently – retrying them.","warn","warning");
+    }
+    activePool = sourceArray;
+  }
   let attempt = 0;
   let ch;
   do{
-    ch = sourceArray[Math.floor(Math.random()*sourceArray.length)];
+    ch = activePool[Math.floor(Math.random()*activePool.length)];
     attempt++;
-  }while(attempt < 15 && lastChannelId && (uniqKey(ch) === lastChannelId) && sourceArray.length>1);
+  }while(attempt < 25 && lastChannelId && (uniqKey(ch) === lastChannelId) && activePool.length > 1);
   lastChannelId = uniqKey(ch);
   return ch;
 }
-
+function findNextWorkingChannel(maxAttempts=30){
+  let ch = null;
+  for(let i=0;i<maxAttempts;i++){
+    ch = randomChannel();
+    if(!ch) return null;
+    if(!isChannelFailed(ch)) return ch;
+  }
+  return ch;
+}
 function setFavoritesMode(on, silent=false){
   if(on && favoriteKeys.length === 0){
     toast("No favorites yet","warn","star_border");
@@ -267,16 +299,12 @@ function setFavoritesMode(on, silent=false){
   }
   rebuildFeed();
 }
-
 function rebuildFeed(){
-  // Reset feed and rebuild from scratch for new mode
   resetFeed();
   initFeed();
 }
 
-/* =========================
-   PLAYLIST LOADING
-========================= */
+/* Playlist */
 async function loadPlaylist(force=false){
   if(isLoadingPlaylist) return;
   isLoadingPlaylist = true;
@@ -293,7 +321,6 @@ async function loadPlaylist(force=false){
     isLoadingPlaylist=false;
   }
 }
-
 function parseM3U(m3u){
   const lines = m3u.split('\n');
   const channels = [];
@@ -323,9 +350,7 @@ function parseM3U(m3u){
   return channels;
 }
 
-/* =========================
-   FEED / SLIDE BUILD
-========================= */
+/* Feed / slides */
 function resetFeed(){
   document.getElementById('app').innerHTML = "";
   slidesMap.clear();
@@ -333,7 +358,6 @@ function resetFeed(){
   currentIndex = 0;
   lastChannelId = null;
 }
-
 function initFeed(){
   const app = document.getElementById('app');
   for(let i=0;i<INITIAL_SLIDES;i++){
@@ -343,13 +367,13 @@ function initFeed(){
   initObserver();
   setTimeout(()=>goTo(0,false),30);
 }
-
 function createRandomSlide(index){
   const tpl = document.getElementById('slide-template');
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.dataset.index = index;
   const channel = randomChannel();
   node._channel = channel;
+  node._failReplacements = 0;
 
   const video = document.createElement('video');
   video.className='channel-video';
@@ -369,14 +393,12 @@ function createRandomSlide(index){
   const favBtn  = node.querySelector('.ctrl-button.favorite');
 
   nextBtn.addEventListener('click', e => { e.stopPropagation(); goTo(index+1); });
-
   muteBtn.addEventListener('click', e=>{
     e.stopPropagation();
     video.muted = !video.muted;
     muteBtn.querySelector('.material-icons').textContent = video.muted ? 'volume_off' : 'volume_up';
     showUI(); scheduleUIHide();
   });
-
   ppBtn.addEventListener('click', e=>{
     e.stopPropagation();
     if(video.paused){
@@ -389,7 +411,6 @@ function createRandomSlide(index){
       showUI(true);
     }
   });
-
   favBtn.addEventListener('click', e=>{
     e.stopPropagation();
     toggleFavorite(channel, node);
@@ -397,11 +418,10 @@ function createRandomSlide(index){
 
   node.addEventListener('click', e=>{
     if(e.target.closest('.ctrl-button')) return;
-    const hidden = document.body.classList.contains('ui-hidden');
     if(video.paused){
       showUI(true);
     }else{
-      if(hidden){ showUI(); scheduleUIHide(); }
+      if(document.body.classList.contains('ui-hidden')){ showUI(); scheduleUIHide(); }
       else hideUI();
     }
   });
@@ -416,7 +436,6 @@ function createRandomSlide(index){
   slidesMap.set(index,node);
   return node;
 }
-
 function fillSlideMeta(slide, channel){
   const nameEl = slide.querySelector('.name');
   const flagEl = slide.querySelector('.flag');
@@ -436,7 +455,6 @@ function fillSlideMeta(slide, channel){
   ccEl.textContent = cc || 'N/A';
   slide.title = channel.name;
 }
-
 function updateSlideFavoriteButton(slide){
   const channel = slide._channel;
   const favBtn = slide.querySelector('.ctrl-button.favorite');
@@ -452,7 +470,6 @@ function updateSlideFavoriteButton(slide){
     favIcon.textContent = 'star_border';
   }
 }
-
 function ensureSlide(index){
   if(slidesMap.has(index)) return slidesMap.get(index);
   const slide = createRandomSlide(index);
@@ -461,7 +478,6 @@ function ensureSlide(index){
   trimSlides();
   return slide;
 }
-
 function trimSlides(){
   const indices = [...slidesMap.keys()].sort((a,b)=>a-b);
   if(indices.length <= MAX_DOM_SLIDES) return;
@@ -478,9 +494,7 @@ function trimSlides(){
   });
 }
 
-/* =========================
-   OBSERVER / PLAYBACK
-========================= */
+/* Observer / Playback */
 function initObserver(){
   observer = new IntersectionObserver(onIntersect,{
     root:document.getElementById('app'),
@@ -489,7 +503,6 @@ function initObserver(){
   slidesMap.forEach(slide=>observer.observe(slide));
   document.getElementById('app').addEventListener('scroll', throttle(onScrollCheck,120), { passive:true });
 }
-
 function onScrollCheck(){
   const app = document.getElementById('app');
   const nearBottom = app.scrollTop + app.clientHeight * 1.2 > app.scrollHeight;
@@ -497,7 +510,6 @@ function onScrollCheck(){
     for(let i=0;i<3;i++) ensureSlide(++slideCount);
   }
 }
-
 function onIntersect(entries){
   entries.forEach(entry=>{
     const slide = entry.target;
@@ -518,42 +530,65 @@ function onIntersect(entries){
   });
 }
 
+/* FIXED prepareSlideMedia with correct loader + fallbacks */
 function prepareSlideMedia(index){
   const slide = slidesMap.get(index);
   if(!slide) return;
   const channel = slide._channel;
   const video = slide.querySelector('video');
-  const loader = slide.querySelector('.loading-indicator');
+  const loader = slide.querySelector('.loading-indicator'); // correct element
   if(!channel) return;
+
+  let loaderCleared = false;
+  const hideOnce = () => {
+    if(loaderCleared) return;
+    hideLoader(loader);
+    loaderCleared = true;
+  };
 
   if(!video.dataset.init){
     video.dataset.init="1";
-    video.addEventListener('playing',()=>{ hideLoader(loader); scheduleUIHide(); });
-    video.addEventListener('canplay',()=>hideLoader(loader));
-    video.addEventListener('loadeddata',()=>hideLoader(loader));
+
+    video.addEventListener('playing',()=>{ hideOnce(); scheduleUIHide(); });
+    video.addEventListener('canplay', hideOnce);
+    video.addEventListener('loadeddata', hideOnce);
+    video.addEventListener('timeupdate', hideOnce, { once:true });
+
     video.addEventListener('pause',()=>{ showUI(true); });
     video.addEventListener('ended',()=>{ showUI(true); });
+
     video.addEventListener('error',()=>{
-      loader && (loader.innerHTML='<span style="color:#ff7676;font-size:12px;">Error</span>');
-      setTimeout(()=>hideLoader(loader),3500);
-      showUI(true);
+      if(!loaderCleared) hideOnce();
+      handleChannelError(index,'Video error');
     });
   }
+
   if(!video.dataset.srcSet){
     showLoader(loader);
-    setVideoSource(video, channel.url, ()=>hideLoader(loader));
+    loaderCleared = false;
+    setVideoSource(video, channel.url, hideOnce, index);
     video.dataset.srcSet="1";
-    setTimeout(()=>hideLoader(loader),6000);
+
+    // Timeout fallback (9s)
+    setTimeout(()=>{
+      if(!loaderCleared){
+        if(video.readyState >= 2){
+          hideOnce();
+        } else {
+          handleChannelError(index,'Timeout starting stream');
+        }
+      }
+    }, 9000);
   }
   safePlay(video);
 }
 
 function showLoader(loader){ if(loader) loader.style.display='flex'; }
 function hideLoader(loader){ if(loader) loader.style.display='none'; }
-
-function setVideoSource(video,url, cb){
+function setVideoSource(video,url, cb, slideIndex){
   if(video.canPlayType('application/vnd.apple.mpegurl')){
     video.src=url;
+    if(cb) video.addEventListener('loadedmetadata', cb, {once:true});
   } else if(window.Hls && window.Hls.isSupported()){
     const hls = new Hls({ lowLatencyMode:true, backBufferLength:60 });
     video._hls = hls;
@@ -561,34 +596,21 @@ function setVideoSource(video,url, cb){
     hls.on(Hls.Events.MEDIA_ATTACHED, ()=> hls.loadSource(url));
     hls.on(Hls.Events.MANIFEST_PARSED, ()=> { cb && cb(); });
     hls.on(Hls.Events.ERROR,(e,data)=>{
-      if(data && data.fatal){ try{ hls.destroy(); }catch(_){} }
+      if(data && data.fatal){
+        handleChannelError(slideIndex,'HLS fatal: '+(data.type||''));
+      }
     });
   } else {
     video.src = url;
+    if(cb) video.addEventListener('loadedmetadata', cb, {once:true});
   }
 }
-
 function safePlay(video){
   const p = video.play();
   if(p && p.catch){
-    p.catch(()=> showTapToUnmute(video));
+    p.catch(()=>{ /* Autoplay block – ignore */ });
   }
 }
-
-function showTapToUnmute(video){
-  if(video.parentElement.querySelector('.mute-indicator')) return;
-  const btn = document.createElement('div');
-  btn.className='mute-indicator';
-  btn.innerHTML='<span class="material-icons">touch_app</span><span>Tap to Play / Unmute</span>';
-  btn.addEventListener('click',()=>{
-    video.muted=false;
-    safePlay(video);
-    btn.remove();
-    showUI(); scheduleUIHide();
-  });
-  video.parentElement.appendChild(btn);
-}
-
 function pauseOthers(activeIdx){
   slidesMap.forEach((slide, idx)=>{
     if(idx!==activeIdx){
@@ -597,7 +619,6 @@ function pauseOthers(activeIdx){
     }
   });
 }
-
 function cleanupMedia(centerIdx){
   slidesMap.forEach((slide, idx)=>{
     if(Math.abs(idx-centerIdx) > KEEP_BEFORE_AFTER){
@@ -613,7 +634,6 @@ function cleanupMedia(centerIdx){
     }
   });
 }
-
 function goTo(index, smooth=true){
   if(index<0) return;
   ensureSlide(index);
@@ -622,9 +642,62 @@ function goTo(index, smooth=true){
   showUI(); scheduleUIHide();
 }
 
-/* =========================
-   UI AUTO HIDE
-========================= */
+/* Error handling / replacement */
+function handleChannelError(index, reason){
+  const slide = slidesMap.get(index);
+  if(!slide) return;
+  const channel = slide._channel;
+  if(channel) markChannelFailed(channel);
+
+  if(favoritesMode){
+    const remainingFav = favoritesChannels().filter(ch=>!isChannelFailed(ch));
+    if(remainingFav.length===0){
+      setFavoritesMode(false,true);
+      toast("All favorites failing. Back to All.","warn","warning");
+    }
+  }
+
+  slide._failReplacements = (slide._failReplacements||0)+1;
+  if(slide._failReplacements > 6){
+    const loader = slide.querySelector('.loading-indicator');
+    if(loader){
+      loader.style.display='flex';
+      loader.innerHTML='<span style="color:#ff7676;font-size:12px;">Failed repeatedly</span>';
+    }
+    toast("Channel failed repeatedly: "+(channel?channel.name:""),"warn","warning");
+    return;
+  }
+
+  toast("Skipping failed channel","info","skip_next");
+  const newCh = findNextWorkingChannel();
+  if(!newCh){
+    toast("No alternative channel available.","warn","error");
+    return;
+  }
+  replaceSlideChannel(slide,newCh,true);
+}
+function replaceSlideChannel(slide, channel, silent=false){
+  if(!slide) return;
+  lastChannelId = uniqKey(channel);
+  slide._channel = channel;
+  fillSlideMeta(slide, channel);
+  updateSlideFavoriteButton(slide);
+  const video = slide.querySelector('video');
+  const loader = slide.querySelector('.loading-indicator');
+  showLoader(loader);
+  try{
+    if(video._hls){ video._hls.destroy(); delete video._hls; }
+  }catch(e){}
+  video.removeAttribute('src');
+  video.load();
+  delete video.dataset.srcSet;
+  if(!silent){
+    toast("Loading: "+(channel.name||"Channel"),"info","play_arrow");
+  }
+  prepareSlideMedia(parseInt(slide.dataset.index,10));
+}
+
+/* UI Auto Hide */
 function showUI(forceVisibleWhilePaused=false){
   document.body.classList.remove('ui-hidden');
   if(uiHideTimeout) clearTimeout(uiHideTimeout);
@@ -652,9 +725,7 @@ function scheduleUIHide(){
   }, { passive:true });
 });
 
-/* =========================
-   SEARCH
-========================= */
+/* Search */
 const openSearchBtn = document.getElementById('open-search');
 const searchPanel = document.getElementById('search-panel');
 const closeSearchBtn = document.getElementById('close-search');
@@ -688,15 +759,16 @@ searchInput.addEventListener('input', ()=>{
     searchResults.innerHTML='<div style="opacity:.6;font-size:13px;padding:6px 2px;">No results.</div>';
     return;
   }
-  for(const {c,i} of found){
-    const div = document.createElement('div');
+  for(const {c} of found){
     const key = uniqKey(c);
     const fav = favoriteKeys.includes(key);
+    const failed = isChannelFailed(c);
+    const div = document.createElement('div');
     div.className='result-item';
     div.innerHTML=`
       <img src="${c["tvg-logo"]||''}" alt="" onerror="this.style.display='none';">
       <div class="r-meta">
-        <div class="r-name">${c.name}</div>
+        <div class="r-name">${c.name}${failed ? ' <span style="color:#ff7676;font-size:11px;">(failed)</span>':''}</div>
         <div class="r-country">
           <span>${getFlagEmoji((c["tvg-country"]||'').split(';')[0])}</span>
           <span>${(c["tvg-country"]||'').split(';')[0] || '??'}</span>
@@ -710,9 +782,8 @@ searchInput.addEventListener('input', ()=>{
       replaceCurrentSlideWithChannel(c);
       showUI(); scheduleUIHide();
     });
-    // Long press (touch & hold) to toggle favorite inside search
     let pressTimer;
-    div.addEventListener('touchstart', (e)=>{
+    div.addEventListener('touchstart', ()=>{
       pressTimer = setTimeout(()=>{
         toggleFavorite(c);
         searchInput.dispatchEvent(new Event('input'));
@@ -721,7 +792,6 @@ searchInput.addEventListener('input', ()=>{
     ['touchend','touchmove','touchcancel'].forEach(evt=>{
       div.addEventListener(evt, ()=> clearTimeout(pressTimer), {passive:true});
     });
-    // Right-click toggle favorite (desktop)
     div.addEventListener('contextmenu', e=>{
       e.preventDefault();
       toggleFavorite(c);
@@ -730,44 +800,25 @@ searchInput.addEventListener('input', ()=>{
     searchResults.appendChild(div);
   }
 });
-
 function replaceCurrentSlideWithChannel(channel){
   const slide = slidesMap.get(currentIndex);
   if(!slide) return;
-  lastChannelId = uniqKey(channel);
-  slide._channel = channel;
-  fillSlideMeta(slide, channel);
-  updateSlideFavoriteButton(slide);
-  const video = slide.querySelector('video');
-  const loader = slide.querySelector('.loading-indicator');
-  showLoader(loader);
-  try{
-    if(video._hls){ video._hls.destroy(); delete video._hls; }
-  }catch(e){}
-  video.removeAttribute('src');
-  video.load();
-  delete video.dataset.srcSet;
-  prepareSlideMedia(currentIndex);
+  slide._failReplacements = 0;
+  replaceSlideChannel(slide, channel);
 }
 
-/* =========================
-   FAVORITES MODE TOGGLE
-========================= */
+/* Mode toggle */
 document.getElementById('toggle-favorites-mode').addEventListener('click', ()=>{
   setFavoritesMode(!favoritesMode);
 });
 
-/* =========================
-   RELOAD
-========================= */
+/* Reload */
 document.getElementById('reload-btn').addEventListener('click', ()=>{
   loadPlaylist(true);
   showUI(true);
 });
 
-/* =========================
-   KEYBOARD NAV (DESKTOP)
-========================= */
+/* Keyboard nav */
 document.addEventListener('keydown', (e)=>{
   if(searchPanel.classList.contains('active')){
     if(e.key==='Escape'){
@@ -790,9 +841,7 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 
-/* =========================
-   HELPERS
-========================= */
+/* Helpers */
 function throttle(fn,wait){
   let last=0,t;
   return (...args)=>{
@@ -806,9 +855,7 @@ function throttle(fn,wait){
   };
 }
 
-/* =========================
-   STARTUP
-========================= */
+/* Startup */
 window.addEventListener('load', ()=>{
   loadFavorites();
   loadPlaylist();
