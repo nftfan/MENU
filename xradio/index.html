@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Pocket Radio — PK / IN / US</title>
+<style>
+  :root{
+    --bg:#f7f7f9; --card:#fff; --muted:#6b7280; --accent:#0ea5a4;
+    --glass: rgba(255,255,255,0.6);
+  }
+  .dark{
+    --bg:#071022; --card:#07172a; --muted:#93a3b8; --accent:#2dd4bf; --glass: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:#0b1220}
+  .app{min-height:100vh; display:flex; flex-direction:column; padding:12px; gap:12px}
+  .header{display:flex; align-items:center; gap:8px; justify-content:space-between}
+  .title{font-weight:700; font-size:18px}
+  .controls{display:flex; gap:8px; align-items:center}
+  .seg{display:flex; gap:6px; background:var(--glass); padding:6px; border-radius:10px}
+  .seg button{background:transparent;border:0;padding:8px 10px;border-radius:8px;color:var(--muted);font-weight:600}
+  .seg button.active{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#fff; box-shadow:0 4px 12px rgba(2,6,23,0.12)}
+  .search{display:flex; gap:8px; align-items:center; margin-top:4px}
+  input[type="search"]{flex:1;padding:10px 12px;border-radius:12px;border:1px solid rgba(11,18,32,0.06);background:var(--card);outline:none}
+  .small{font-size:13px;color:var(--muted)}
+  .stations{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:8px; padding-bottom:84px}
+  .station{background:var(--card); border-radius:12px; padding:10px; display:flex; gap:10px; align-items:center; box-shadow: 0 6px 18px rgba(2,6,23,0.04)}
+  .fav{margin-left:auto;background:transparent;border:0;padding:6px;border-radius:8px}
+  .logo{width:46px;height:46px;border-radius:10px;background:#eef2ff; display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .logo img{width:100%; height:100%; object-fit:cover}
+  .meta{min-width:0}
+  .name{font-weight:700;font-size:14px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .playbtn{background:var(--accent); color:#fff; border:0; padding:8px 10px; border-radius:10px; font-weight:700}
+  .player{position:fixed; left:12px; right:12px; bottom:12px; background:var(--card); border-radius:14px; padding:10px; display:flex; gap:10px; align-items:center; box-shadow:0 12px 30px rgba(2,6,23,0.12)}
+  .player .big{width:64px;height:64px;border-radius:10px;overflow:hidden;background:#e6eef6; display:flex;align-items:center;justify-content:center}
+  .player .info{flex:1; min-width:0}
+  .player .title{font-weight:800;font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .player .controls{display:flex; gap:8px; align-items:center}
+  .btn-circle{width:48px;height:48px;border-radius:12px;border:0;background:var(--accent); color:#fff; font-weight:800}
+  .tiny{font-size:12px;color:var(--muted)}
+  .empty{padding:18px;border-radius:12px;background:var(--card);text-align:center;color:var(--muted);font-size:14px}
+  footer{padding:10px 0;text-align:center;font-size:12px;color:var(--muted)}
+  @media (min-width:700px){ .stations{grid-template-columns:repeat(3,1fr)} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div>
+      <div class="title">Pocket Radio</div>
+      <div class="tiny">Free Pakistan · India · US stations (radio-browser)</div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="tablist">
+        <button id="c-pk" class="active" data-country="Pakistan">PK</button>
+        <button id="c-in" data-country="India">IN</button>
+        <button id="c-us" data-country="United States">US</button>
+      </div>
+      <button id="toggle-dark" title="Toggle dark" style="margin-left:8px;border:0;background:transparent;font-weight:700">🌓</button>
+    </div>
+  </div>
+
+  <div class="search">
+    <input id="search" type="search" placeholder="Search station name..." />
+    <button id="btn-refresh" class="playbtn" title="Reload stations">↻</button>
+  </div>
+
+  <div id="stations" class="stations" aria-live="polite"></div>
+
+  <div id="empty" class="empty" style="display:none">No stations found. Try refresh or another country.</div>
+
+  <div id="player" class="player" style="display:none">
+    <div class="big" id="player-fav-wrap"><img id="player-fav" src="" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+    <div class="info">
+      <div class="title" id="player-title">...</div>
+      <div class="tiny" id="player-meta">...</div>
+    </div>
+    <div class="controls">
+      <button id="fav-toggle" class="btn-circle" title="Favorite">♡</button>
+      <button id="play-toggle" class="btn-circle" title="Play/Pause">▶</button>
+    </div>
+  </div>
+
+  <footer>Streams provided by radio-browser.info · Offline fallback when API unavailable</footer>
+</div>
+
+<audio id="audio" crossorigin="anonymous"></audio>
+
+<script>
+(function(){
+  // GitHub Copilot Chat Assistant — single-file mobile radio app
+  const API = 'https://de1.api.radio-browser.info/json';
+  const countries = { pk: 'Pakistan', in: 'India', us: 'United States' };
+  let currentCountry = 'Pakistan';
+  let stationsCache = {};
+  let shownStations = [];
+  let currentStation = null;
+  const audio = document.getElementById('audio');
+  const stationsEl = document.getElementById('stations');
+  const emptyEl = document.getElementById('empty');
+  const player = document.getElementById('player');
+  const playerTitle = document.getElementById('player-title');
+  const playerMeta = document.getElementById('player-meta');
+  const playerFav = document.getElementById('player-fav');
+  const playToggle = document.getElementById('play-toggle');
+  const favToggle = document.getElementById('fav-toggle');
+  const searchInput = document.getElementById('search');
+  const refreshBtn = document.getElementById('btn-refresh');
+
+  // Dark mode from localStorage
+  const root = document.documentElement;
+  const body = document.body;
+  const darkBtn = document.getElementById('toggle-dark');
+  function applyDark(d){
+    if(d){ body.classList.add('dark'); localStorage.setItem('pr_dark','1') } else { body.classList.remove('dark'); localStorage.removeItem('pr_dark') }
+  }
+  applyDark(!!localStorage.getItem('pr_dark'));
+  darkBtn.addEventListener('click', ()=> applyDark(!body.classList.contains('dark')) );
+
+  // Favorites storage
+  function favsLoad(){ try{ return JSON.parse(localStorage.getItem('pr_favs')||'[]') }catch(e){return[]} }
+  function favsSave(arr){ localStorage.setItem('pr_favs', JSON.stringify(arr)) }
+  function isFav(uid){ return favsLoad().includes(uid) }
+  function toggleFav(uid){
+    const arr = favsLoad();
+    const i = arr.indexOf(uid);
+    if(i>=0) arr.splice(i,1); else arr.push(uid);
+    favsSave(arr);
+    renderStations(shownStations);
+    updateFavButton();
+  }
+
+  // Countries tab
+  document.querySelectorAll('.seg button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCountry = btn.dataset.country;
+      loadStations(currentCountry);
+    });
+  });
+
+  // Player controls
+  playToggle.addEventListener('click', ()=>{
+    if(audio.paused) audio.play(); else audio.pause();
+  });
+  audio.addEventListener('play', ()=> playToggle.textContent = '❚❚');
+  audio.addEventListener('pause', ()=> playToggle.textContent = '▶');
+  audio.addEventListener('error', (e)=> {
+    playToggle.textContent = '⚠';
+    console.warn('Audio error', e);
+    alert('Unable to play this stream (CORS or stream offline). Try another station or refresh.');
+  });
+
+  favToggle.addEventListener('click', ()=>{
+    if(!currentStation) return;
+    toggleFav(currentStation.stationuuid || currentStation.uuid || currentStation.stationId || currentStation.id);
+  });
+
+  // Search
+  searchInput.addEventListener('input', ()=> filterAndRender() );
+  refreshBtn.addEventListener('click', ()=> loadStations(currentCountry, true) );
+
+  // Fetch top stations for a country (radio-browser)
+  async function fetchStationsByCountry(country, limit=50){
+    try{
+      // order by clickcount desc to get popular stations
+      const url = `${API}/stations/bycountry/${encodeURIComponent(country)}?order=clickcount&reverse=true&limit=${limit}`;
+      const res = await fetch(url, {cache:'no-cache'});
+      if(!res.ok) throw new Error('api error');
+      const json = await res.json();
+      return json;
+    }catch(err){
+      console.warn('Radio-browser fetch failed', err);
+      return null;
+    }
+  }
+
+  // Fallback curated (very small) list when API fails.
+  const fallback = {
+    "Pakistan": [
+      { name:"Radio Pakistan", url_resolved:"http://live.radiopakistan.pk:8000/;?type=mp3", codec:"mp3", country:"Pakistan", stationuuid:"pk-radiopak" },
+      { name:"FM 100 Pakistan", url_resolved:"http://159.69.90.201:8006/;", codec:"mp3", country:"Pakistan", stationuuid:"pk-fm100" }
+    ],
+    "India": [
+      { name:"All India Radio FM", url_resolved:"http://live.radiostreaming.in:8000/aira", codec:"mp3", country:"India", stationuuid:"in-aira" },
+      { name:"Radio Mirchi (sample)", url_resolved:"http://stream.radiomirchi.com/mirchi128", codec:"mp3", country:"India", stationuuid:"in-mirchi" }
+    ],
+    "United States": [
+      { name:"NPR News (sample)", url_resolved:"https://npr-ice.streamguys1.com/live.mp3", codec:"mp3", country:"United States", stationuuid:"us-npr" },
+      { name:"KEXP 90.3", url_resolved:"https://kexp-mp3-128.streamguys1.com/kexp128.mp3", codec:"mp3", country:"United States", stationuuid:"us-kexp" }
+    ]
+  };
+
+  function ensureUrl(st){
+    // preferred properties for stream URL
+    return st.url_resolved || st.url || st.stream || st.streams?.[0] || "";
+  }
+
+  async function loadStations(country, forceReload=false){
+    stationsEl.innerHTML = '<div class="empty">Loading…</div>';
+    emptyEl.style.display = 'none';
+    if(!forceReload && stationsCache[country]) { shownStations = stationsCache[country]; filterAndRender(); return; }
+    const result = await fetchStationsByCountry(country, 60);
+    let list = result && result.length ? result.map(s=>({
+      name:s.name||s.stationname||s.title||s.title || 'Unknown',
+      url_resolved:s.url_resolved || s.url || (s.streams && s.streams[0]) || '',
+      favicon:s.favicon || s.logo || s.icon || '',
+      tags:s.tags || s.codec || '',
+      country:s.country || country,
+      stationuuid:s.stationuuid || s.stationuuid || s.uuid || s.id,
+      bitrate: s.bitrate || s.bitrate || ''
+    })) : fallback[country] || [];
+    stationsCache[country] = list;
+    shownStations = list;
+    filterAndRender();
+  }
+
+  function filterAndRender(){
+    const q = (searchInput.value||'').trim().toLowerCase();
+    const filtered = (stationsCache[currentCountry]||[]).filter(s=>{
+      if(!s) return false;
+      if(q==='') return true;
+      return (s.name||'').toLowerCase().includes(q) || (s.tags||'').toLowerCase().includes(q);
+    });
+    shownStations = filtered;
+    renderStations(filtered);
+  }
+
+  function renderStations(list){
+    stationsEl.innerHTML = '';
+    if(!list || !list.length){ emptyEl.style.display = 'block'; return }
+    emptyEl.style.display = 'none';
+    for(const s of list){
+      const uid = s.stationuuid || s.stationuuid || s.name;
+      const el = document.createElement('div');
+      el.className = 'station';
+      const logo = document.createElement('div'); logo.className='logo';
+      const img = document.createElement('img');
+      img.alt = s.name;
+      img.src = s.favicon || ('https://icons.duckduckgo.com/ip3/' + (new URL(ensureUrl(s) || 'https://example.com')).hostname + '.ico');
+      img.onerror = ()=> { img.src = ''; logo.textContent = s.name.slice(0,1).toUpperCase() }
+      logo.appendChild(img);
+
+      const meta = document.createElement('div'); meta.className='meta';
+      const nm = document.createElement('div'); nm.className='name'; nm.textContent = s.name;
+      const sb = document.createElement('div'); sb.className='sub'; sb.textContent = (s.tags || '') + (s.bitrate ? ` · ${s.bitrate} kbps` : '');
+      meta.appendChild(nm); meta.appendChild(sb);
+
+      const play = document.createElement('button'); play.className='playbtn'; play.textContent='Play';
+      play.addEventListener('click', ()=> playStation(s));
+
+      const fav = document.createElement('button'); fav.className='fav'; fav.title='Toggle favorite';
+      fav.innerHTML = isFav(uid) ? '❤️' : '🤍';
+      fav.addEventListener('click', (e)=>{ e.stopPropagation(); toggleFav(uid); });
+
+      el.appendChild(logo);
+      el.appendChild(meta);
+      el.appendChild(fav);
+      el.appendChild(play);
+
+      stationsEl.appendChild(el);
+    }
+  }
+
+  function playStation(st){
+    const url = ensureUrl(st);
+    if(!url){ alert('No playable stream URL found for this station.'); return; }
+    currentStation = st;
+    audio.src = url;
+    audio.play().catch(err=> {
+      console.warn('Play failed', err);
+      alert('Unable to start playback. The stream may block cross-origin requests (CORS) or be offline.');
+    });
+    showPlayerFor(st);
+  }
+
+  function showPlayerFor(st){
+    player.style.display = 'flex';
+    playerTitle.textContent = st.name || 'Unknown station';
+    playerMeta.textContent = `${st.country || ''} · ${st.tags || ''}`;
+    playerFav.src = st.favicon || '';
+    favToggle.textContent = isFav(st.stationuuid || st.stationuuid || st.name) ? '❤️' : '🤍';
+    updateFavButton();
+  }
+
+  function updateFavButton(){
+    if(!currentStation) return;
+    favToggle.textContent = isFav(currentStation.stationuuid || currentStation.stationuuid || currentStation.name) ? '❤️' : '🤍';
+  }
+
+  // initial load
+  loadStations(currentCountry);
+
+  // Welcome small gesture: show favorites first when searching 'fav'
+  searchInput.addEventListener('keydown', (e)=> {
+    if(e.key === 'Enter') filterAndRender();
+  });
+
+  // expose for debugging
+  window.PocketRadio = { loadStations, stationsCache, playStation, toggleFav };
+})();
+</script>
+</body>
+</html>
