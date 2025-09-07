@@ -2,15 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>NFT Circle Map — Draw a Circle (≤ 1 km) and Mint</title>
+  <title>NFT Countries — Mint Countries on the Map</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet" />
-  <!-- Leaflet + Leaflet.draw via jsDelivr -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -68,10 +66,10 @@
     .wallet { color: #a7f3d0; font-size: 12px; font-weight: 700; }
 
     main { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 12px 12px; }
-    @media (min-width: 900px) { main { grid-template-columns: 1.5fr 1fr; } }
+    @media (min-width: 980px) { main { grid-template-columns: 1.6fr 1fr; } }
 
     #map {
-      height: 62vh; width: 100%;
+      height: 64vh; width: 100%;
       border-radius: var(--radius); border: 1px solid var(--border);
       overflow: hidden; background: #0e1023; box-shadow: 0 8px 20px var(--shadow);
     }
@@ -82,6 +80,11 @@
     }
     .row { display: grid; gap: 8px; }
     .row.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--border);
+      background: #0f1329; color: #cbd5e1;
+    }
 
     .status {
       min-height: 38px; display: grid; place-items: center; text-align: center;
@@ -98,26 +101,25 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .hint { color: var(--muted); font-size: 12px; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--border);
-      background: #0f1329; color: #cbd5e1;
+    .legend {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      font-size: 12px; color: #cbd5e1;
     }
+    .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .box { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #334155; }
+
     .leaflet-container { background: #0e1023; }
     .leaflet-control-attribution, .leaflet-control-zoom a { background: #14162b; color: #cbd5e1; border-color: #2a3560; }
     .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111327; color: #e5e7eb; border: 1px solid var(--border); }
-    .leaflet-draw-toolbar a { background: #14162b; border-color: #2a3560; }
-    .leaflet-draw-toolbar a:hover { background: #1a1d36; }
   </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <div class="logo"><span class="material-icons">radio_button_checked</span></div>
+      <div class="logo"><span class="material-icons">public</span></div>
       <div class="title">
-        <h1>NFT Circle Map</h1>
-        <p>Draw a circle (max 1 km diameter) and mint it</p>
+        <h1>NFT Countries</h1>
+        <p>Click a country to mint it as an NFT</p>
       </div>
     </div>
     <div class="actions">
@@ -132,21 +134,23 @@
 
     <div class="panel">
       <div class="row">
-        <div class="hint">Instructions</div>
-        <ul class="hint" style="margin:0 0 6px 18px;">
-          <li>Use the circle tool on the map to draw an area.</li>
-          <li>Maximum diameter is 1 km (radius ≤ 500 m). Larger circles will be rejected.</li>
-          <li>Connect your wallet, then press Mint Circle.</li>
-        </ul>
+        <div class="legend">
+          <div class="key"><span class="box" style="background:#28314f;"></span> Unminted</div>
+          <div class="key"><span class="box" style="background:#d97706;"></span> Minted (anyone)</div>
+          <div class="key"><span class="box" style="background:#059669;"></span> You own</div>
+          <div class="key"><span class="box" style="background:#4f46e5;"></span> Selected</div>
+        </div>
         <div class="row inline">
-          <span id="circleInfo" class="pill" style="display:none;"></span>
+          <span id="selectionPill" class="pill" style="display:none;"></span>
+          <span id="ownedCountPill" class="pill" style="display:none;"></span>
+          <span id="mintedCountPill" class="pill" style="display:none;"></span>
         </div>
       </div>
 
       <div class="row inline">
-        <button id="mintBtn" class="success" disabled><span class="material-icons">rocket_launch</span>Mint Circle</button>
-        <button id="clearBtn" class="accent"><span class="material-icons">delete_sweep</span>Clear</button>
-        <button id="recenterBtn"><span class="material-icons">center_focus_strong</span>Recenter</button>
+        <button id="mintBtn" class="success" disabled><span class="material-icons">rocket_launch</span>Mint Country</button>
+        <button id="clearBtn" class="accent"><span class="material-icons">delete_sweep</span>Clear Selection</button>
+        <button id="refreshBtn"><span class="material-icons">refresh</span>Refresh Minted</button>
       </div>
 
       <div id="status" class="status"></div>
@@ -154,7 +158,7 @@
   </main>
 
   <script>
-    // Network: Polygon Mainnet
+    // Polygon Mainnet
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -163,27 +167,43 @@
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
-    // Contract (must support mintWithURI(string) payable)
+    // Contract (must be ERC721-compatible)
     const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
     const CONTRACT_ABI = [
       "function mintWithURI(string tokenURI) external payable returns (uint256)",
-      "function mintPrice() view returns (uint256)"
+      "function mintPrice() view returns (uint256)",
+      "function tokenURI(uint256 tokenId) view returns (string)",
+      "function ownerOf(uint256 tokenId) view returns (address)",
+      "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
     ];
 
-    const MAX_RADIUS_M = 500; // 1km diameter
+    // Optional: If known, set deployment start block to speed up log queries. Otherwise it scans from 0.
+    const START_BLOCK = 0; // set to contract deployment block for better performance
 
-    let provider, signer, userAddress;
-    let map, drawnItems, drawControl;
-    let selectedCircle = null; // Leaflet circle layer
+    // Map & data
+    let map;
+    let countriesLayer;
+    let geojsonData;
+    let selectedCode = null;
+    let selectedName = null;
+
+    // Minted sets
+    let mintedCodes = new Set(); // All minted country codes
+    let myOwnedCodes = new Set(); // Codes currently owned by connected wallet
+
+    // Ethers
+    let web3Provider, readProvider, signer, userAddress;
 
     // UI
     const connectBtn = document.getElementById('connectBtn');
     const walletEl = document.getElementById('wallet');
     const mintBtn = document.getElementById('mintBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const recenterBtn = document.getElementById('recenterBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
     const statusEl = document.getElementById('status');
-    const circleInfo = document.getElementById('circleInfo');
+    const selectionPill = document.getElementById('selectionPill');
+    const ownedCountPill = document.getElementById('ownedCountPill');
+    const mintedCountPill = document.getElementById('mintedCountPill');
 
     function setStatus(msg, type = '') {
       if (!msg) {
@@ -202,105 +222,136 @@
       }
     }
 
-    function toFixed(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
+    function toFixed5(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
 
-    function updateUIFromCircle() {
-      if (!selectedCircle) {
-        circleInfo.style.display = 'none';
-        mintBtn.disabled = true;
-        return;
-      }
-      const center = selectedCircle.getLatLng();
-      const r = selectedCircle.getRadius(); // meters
-      circleInfo.style.display = 'inline-flex';
-      circleInfo.innerHTML = `<span class="material-icons" style="font-size:16px;">info</span> Lat: ${toFixed(center.lat)}, Lng: ${toFixed(center.lng)} • Radius: ${Math.round(r)} m`;
-      mintBtn.disabled = !(userAddress && r > 0 && r <= MAX_RADIUS_M);
+    function getCountryProps(props) {
+      // Try multiple common field names across datasets
+      const code =
+        props.ISO_A3 || props.iso_a3 || props.ADM0_A3 || props.adm0_a3 ||
+        props.cca3 || props.a3 || props.iso3 || props.iso3code || props.ISO3;
+      const name =
+        props.ADMIN || props.name || props.ADMIN_NAME || props.NAME_EN ||
+        props.country || props.Country || props.sovereignt || props.sov_a3 || props.NAME;
+      return { code: code || null, name: name || 'Unknown' };
     }
 
-    function updateMintEnabled() {
-      if (!selectedCircle || !userAddress) {
-        mintBtn.disabled = true;
-        return;
-      }
-      const r = selectedCircle.getRadius();
-      mintBtn.disabled = !(r > 0 && r <= MAX_RADIUS_M);
+    function styleFeature(feature) {
+      const { code } = getCountryProps(feature.properties || {});
+      const isSelected = (selectedCode && code === selectedCode);
+      const isMine = (code && myOwnedCodes.has(code));
+      const isMinted = (code && mintedCodes.has(code));
+
+      let fill = '#28314f'; // default unminted
+      if (isMinted) fill = '#d97706'; // minted by anyone
+      if (isMine) fill = '#059669'; // I own
+      if (isSelected) fill = '#4f46e5'; // selected overrides
+
+      return {
+        weight: isSelected ? 1.5 : 0.6,
+        opacity: 1,
+        color: isSelected ? '#a5b4fc' : '#1f2937',
+        fillOpacity: isSelected ? 0.75 : 0.55,
+        fillColor: fill
+      };
     }
 
-    // Map init
+    function onEachFeature(feature, layer) {
+      const { code, name } = getCountryProps(feature.properties || {});
+      layer.on('click', () => {
+        if (!code) return;
+
+        selectedCode = code;
+        selectedName = name;
+        updateSelectionPill();
+
+        const alreadyMinted = mintedCodes.has(code);
+        if (alreadyMinted) {
+          setStatus(`"${name}" (${code}) is already minted.`, 'error');
+          mintBtn.disabled = true;
+        } else {
+          setStatus(`Selected "${name}" (${code}). You can mint it.`, 'success');
+          mintBtn.disabled = !userAddress;
+        }
+
+        // Update styles on selection
+        countriesLayer.setStyle(styleFeature);
+        try { layer.bringToFront(); } catch {}
+        // Popup info
+        const center = layer.getBounds().getCenter();
+        const meta = `
+          <div style="min-width:200px;">
+            <div style="font-weight:800;margin-bottom:6px;">${escapeHTML(name)} (${escapeHTML(code)})</div>
+            <div style="font-size:12px;color:#94a3b8;">Center: ${toFixed5(center.lat)}, ${toFixed5(center.lng)}</div>
+            <div style="margin-top:8px;font-size:12px;color:#cbd5e1;">${mintedCodes.has(code) ? 'Already minted' : 'Not minted yet'}</div>
+          </div>
+        `;
+        layer.bindPopup(meta).openPopup();
+      });
+
+      layer.on('mouseover', function() {
+        this.setStyle({ weight: 1.5 });
+      });
+      layer.on('mouseout', function() {
+        this.setStyle(styleFeature(feature));
+      });
+    }
+
+    function updateSelectionPill() {
+      if (!selectedCode) {
+        selectionPill.style.display = 'none';
+        return;
+      }
+      const minted = mintedCodes.has(selectedCode);
+      const mine = myOwnedCodes.has(selectedCode);
+      selectionPill.style.display = 'inline-flex';
+      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">flag</span> ${escapeHTML(selectedName)} (${escapeHTML(selectedCode)}) · ${mine ? 'You own' : minted ? 'Minted' : 'Unminted'}`;
+    }
+
+    function updateCountsPills() {
+      const owned = myOwnedCodes.size;
+      const minted = mintedCodes.size;
+      if (owned > 0) {
+        ownedCountPill.style.display = 'inline-flex';
+        ownedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;">verified</span> You own: <strong style="margin-left:4px;">${owned}</strong>`;
+      } else {
+        ownedCountPill.style.display = 'none';
+      }
+      mintedCountPill.style.display = 'inline-flex';
+      mintedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;">public</span> Minted total: <strong style="margin-left:4px;">${minted}</strong>`;
+    }
+
+    async function loadCountries() {
+      setStatus('Loading countries...', 'loading');
+      // World countries GeoJSON (lightweight)
+      const url = 'https://cdn.jsdelivr.net/npm/geojson-world@4.0.0/countries.geo.json';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to load countries GeoJSON');
+      geojsonData = await res.json();
+
+      countriesLayer = L.geoJSON(geojsonData, {
+        style: styleFeature,
+        onEachFeature
+      }).addTo(map);
+
+      map.fitBounds(countriesLayer.getBounds(), { padding: [10, 10] });
+      setStatus('Map ready. Click a country to select it.', 'success');
+    }
+
     function initMap() {
       if (!window.L) {
-        setStatus('Leaflet failed to load (CDN blocked?). Try refreshing.', 'error');
-        return;
+        setStatus('Leaflet failed to load. Refresh and try again.', 'error'); return;
       }
-      map = L.map('map', { center: [20, 0], zoom: 3, zoomControl: true });
+      map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: true, worldCopyJump: true });
       const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+        maxZoom: 8,
         attribution: '&copy; OpenStreetMap'
       })
-      .on('load', () => { if (!statusEl.textContent) setStatus('Map ready. Use the circle tool to draw.', 'success'); })
-      .on('tileerror', () => setStatus('Tile load error (rate limit/network). Try again later.', 'error'));
+      .on('load', () => { /* tiles ok */ })
+      .on('tileerror', () => setStatus('Tile load error (network/rate limit).', 'error'));
       tiles.addTo(map);
-
-      drawnItems = new L.FeatureGroup();
-      map.addLayer(drawnItems);
-
-      drawControl = new L.Control.Draw({
-        draw: {
-          polygon: false,
-          polyline: false,
-          rectangle: false,
-          marker: false,
-          circlemarker: false,
-          circle: {
-            shapeOptions: { color: '#f59e0b', weight: 2, fillOpacity: 0.15 },
-            showArea: false
-          }
-        },
-        edit: {
-          featureGroup: drawnItems,
-          edit: false,
-          remove: true
-        }
-      });
-      map.addControl(drawControl);
-
-      // When a circle is created, enforce radius <= 500m
-      map.on(L.Draw.Event.CREATED, (e) => {
-        if (e.layerType !== 'circle') return;
-        const circle = e.layer;
-        const r = circle.getRadius();
-
-        if (r > MAX_RADIUS_M) {
-          setStatus('Circle too big. Max diameter is 1 km (radius ≤ 500 m). Draw a smaller circle.', 'error');
-          return;
-        }
-
-        // Keep only one circle
-        drawnItems.clearLayers();
-        drawnItems.addLayer(circle);
-        selectedCircle = circle;
-
-        const c = circle.getLatLng();
-        circle.bindPopup(`<div style="min-width:180px;">
-          <div style="font-weight:700;margin-bottom:6px;">Circle Selected</div>
-          <div style="color:#94a3b8;font-size:12px;">Center: ${toFixed(c.lat)}, ${toFixed(c.lng)}</div>
-          <div style="color:#94a3b8;font-size:12px;">Radius: ${Math.round(r)} m</div>
-        </div>`).openPopup();
-
-        setStatus('Circle ready. Connect your wallet to mint.', 'success');
-        updateUIFromCircle();
-      });
-
-      // If user deletes the circle
-      map.on('draw:deleted', () => {
-        selectedCircle = null;
-        setStatus('Circle cleared. Draw again to select a new area.');
-        updateUIFromCircle();
-      });
-
-      setTimeout(() => map.invalidateSize(), 300);
     }
 
+    // Wallet
     async function switchToPolygon() {
       if (!window.ethereum) return false;
       try {
@@ -312,45 +363,68 @@
             await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
             return true;
           } catch {
-            setStatus('Failed to add Polygon to wallet', 'error');
-            return false;
+            setStatus('Failed to add Polygon to wallet', 'error'); return false;
           }
         }
-        setStatus('Failed to switch network', 'error');
-        return false;
+        setStatus('Failed to switch network', 'error'); return false;
       }
     }
 
     async function connectWallet() {
-      if (!window.ethereum) {
-        setStatus('Please install MetaMask to continue', 'error');
-        return;
-      }
+      if (!window.ethereum) { setStatus('Please install MetaMask to continue', 'error'); return; }
       try {
         setStatus('Connecting wallet...', 'loading');
         const switched = await switchToPolygon();
         if (!switched) return;
 
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send('eth_requestAccounts', []);
-        signer = provider.getSigner();
+        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        await web3Provider.send('eth_requestAccounts', []);
+        signer = web3Provider.getSigner();
         userAddress = await signer.getAddress();
 
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         walletEl.textContent = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-        setStatus('Wallet connected. Draw your circle then mint.', 'success');
-        updateMintEnabled();
-      } catch {
+        setStatus('Wallet connected. Fetching minted countries...', 'loading');
+
+        // Separate read provider for log queries
+        readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
+        await refreshMinted(true);
+
+        // Enable mint button if a valid selection exists
+        if (selectedCode && !mintedCodes.has(selectedCode)) mintBtn.disabled = false;
+        else mintBtn.disabled = true;
+
+      } catch (e) {
+        console.error(e);
         setStatus('Wallet connection failed', 'error');
       }
     }
 
-    // Build minimal SVG visualization (no user photo)
-    function buildCircleSVG(lat, lng, radiusM) {
-      const label = `r=${Math.round(radiusM)}m`;
-      const pos = `${lat}, ${lng}`;
+    function escapeHTML(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    // Build tokenURI JSON (data URL) with country code and name
+    function buildCountryMetadata({ code, name }) {
+      const image = buildCountrySVG(code, name);
+      const metadata = {
+        name: `Country: ${name} (${code})`,
+        description: `Minted country NFT for ${name} (${code}).`,
+        image,
+        attributes: [
+          { trait_type: "Country Name", value: name },
+          { trait_type: "Country Code", value: code }
+        ]
+      };
+      const json = JSON.stringify(metadata);
+      return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
+    }
+
+    function buildCountrySVG(code, name) {
+      const safeName = escapeHTML(name);
+      const safeCode = escapeHTML(code);
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420">
           <defs>
@@ -361,120 +435,183 @@
           </defs>
           <rect width="100%" height="100%" fill="#0b0c1a"/>
           <rect x="20" y="20" width="760" height="380" rx="20" fill="url(#g)" opacity="0.25"/>
-          <g transform="translate(110,60)">
-            <circle cx="170" cy="150" r="120" fill="#22d3ee22" stroke="#60a5fa" stroke-width="4"/>
-            <circle cx="170" cy="150" r="4" fill="#10b981"/>
-          </g>
           <g font-family="Inter, Arial, sans-serif" fill="#e5e7eb">
-            <text x="420" y="150" font-size="38" font-weight="700">Minted Circle</text>
-            <text x="420" y="195" font-size="22" fill="#cbd5e1">Center: ${pos}</text>
-            <text x="420" y="225" font-size="22" fill="#cbd5e1">${label}</text>
-            <g transform="translate(420,270)">
-              <rect width="220" height="48" rx="10" fill="#10b981" />
-              <text x="16" y="32" font-size="20" font-weight="700" fill="#00110d">NFT Geometry</text>
+            <text x="40" y="160" font-size="44" font-weight="700">${safeName}</text>
+            <text x="40" y="210" font-size="28" fill="#cbd5e1">Code: ${safeCode}</text>
+            <g transform="translate(40,260)">
+              <rect width="260" height="50" rx="10" fill="#10b981" />
+              <text x="18" y="33" font-size="20" font-weight="700" fill="#00110d">NFT Country</text>
             </g>
           </g>
-        </svg>`;
+        </svg>
+      `;
       return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
     }
 
-    function buildTokenURI({ lat, lng, radius }) {
-      const name = `Circle @ ${lat.toFixed(5)}, ${lng.toFixed(5)} (r=${Math.round(radius)}m)`;
-      const description = "User-minted circle on the map (max diameter 1 km).";
-      const image = buildCircleSVG(lat.toFixed(5), lng.toFixed(5), radius);
-
-      // Note: GeoJSON doesn't define Circle; we encode as an extension
-      const metadata = {
-        name,
-        description,
-        image, // data:image/svg+xml; for marketplaces
-        attributes: [
-          { trait_type: "Center Latitude", value: Number(lat.toFixed(6)) },
-          { trait_type: "Center Longitude", value: Number(lng.toFixed(6)) },
-          { trait_type: "Radius (m)", value: Math.round(radius) },
-          { trait_type: "Diameter (m)", value: Math.round(radius * 2) }
-        ],
-        geometry: {
-          type: "Circle",
-          coordinates: [Number(lng.toFixed(6)), Number(lat.toFixed(6))],
-          radius_m: Math.round(radius),
-          crs: "EPSG:4326"
-        }
-      };
-
-      const json = JSON.stringify(metadata);
-      return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
-    }
-
-    async function mintCircle() {
+    async function mintSelectedCountry() {
       try {
         if (!userAddress) { setStatus('Connect wallet first', 'error'); return; }
-        if (!selectedCircle) { setStatus('Draw a circle first', 'error'); return; }
+        if (!selectedCode || !selectedName) { setStatus('Select a country first', 'error'); return; }
+        if (mintedCodes.has(selectedCode)) { setStatus('This country is already minted', 'error'); return; }
 
-        const radius = selectedCircle.getRadius();
-        if (!(radius > 0 && radius <= MAX_RADIUS_M)) {
-          setStatus('Circle invalid. Radius must be ≤ 500 m.', 'error');
-          return;
-        }
+        const tokenURI = buildCountryMetadata({ code: selectedCode, name: selectedName });
 
-        const center = selectedCircle.getLatLng();
-        const tokenURI = buildTokenURI({ lat: center.lat, lng: center.lng, radius });
-
-        setStatus('Minting NFT...', 'loading');
-
+        setStatus('Submitting mint transaction...', 'loading');
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        // Fixed 1 POL price (override). If contract supports mintPrice(), consider reading it.
-        const mintPrice = ethers.utils.parseUnits('1', 18);
+
+        let mintPrice;
+        try {
+          mintPrice = await contract.mintPrice();
+        } catch {
+          mintPrice = ethers.utils.parseUnits('1', 18);
+        }
 
         const tx = await contract.mintWithURI(tokenURI, { value: mintPrice });
         await tx.wait();
 
-        // Style the circle as minted (green)
-        if (selectedCircle) {
-          selectedCircle.setStyle({ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.12, weight: 3 });
-          const c = selectedCircle.getLatLng();
-          selectedCircle.bindPopup(`<div style="min-width:200px;text-align:center;">
-            <div style="font-weight:800;margin-bottom:6px;color:#10b981;">Circle Minted!</div>
-            <div style="font-size:12px;color:#a7f3d0;">Center: ${toFixed(c.lat)}, ${toFixed(c.lng)}</div>
-            <div style="font-size:12px;color:#a7f3d0;">Radius: ${Math.round(radius)} m</div>
-            <div style="margin-top:10px;">
-              <a href="https://opensea.io/collection/nft-photography-5" target="_blank" rel="noopener noreferrer">View Collection →</a>
-            </div>
-          </div>`).openPopup();
-        }
+        // Update local state
+        mintedCodes.add(selectedCode);
+        myOwnedCodes.add(selectedCode);
+        updateSelectionPill();
+        updateCountsPills();
+        countriesLayer.setStyle(styleFeature);
 
-        setStatus('Success! Your circle NFT has been minted.', 'success');
+        setStatus(`Success! You minted "${selectedName}" (${selectedCode}).`, 'success');
+        mintBtn.disabled = true;
       } catch (e) {
         console.error(e);
-        setStatus('Minting failed: ' + (e?.message || 'Unknown error'), 'error');
+        const msg = e?.data?.message || e?.message || 'Unknown error';
+        setStatus('Minting failed: ' + msg, 'error');
       }
     }
 
-    function recenter() {
-      if (selectedCircle) {
-        map.setView(selectedCircle.getLatLng(), 16, { animate: true });
-        setStatus('Map centered to your circle', 'success');
-      } else {
-        setStatus('No circle yet. Draw one with the circle tool.', 'error');
+    async function refreshMinted(showToast = false) {
+      try {
+        setStatus('Fetching minted countries from chain...', 'loading');
+        if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
+        const contractRead = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
+
+        // Query mint events: Transfer(from=0x0, to=any)
+        const zero = '0x0000000000000000000000000000000000000000';
+        const filter = contractRead.filters.Transfer(zero, null);
+        const logs = await contractRead.queryFilter(filter, START_BLOCK, 'latest');
+
+        // Unique token IDs
+        const tokenIds = Array.from(new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean)));
+
+        // Helper to batch process requests to avoid RPC overload
+        async function batch(items, size, cb) {
+          const results = [];
+          for (let i = 0; i < items.length; i += size) {
+            const slice = items.slice(i, i + size);
+            const res = await Promise.all(slice.map(cb));
+            results.push(...res);
+            // slight delay to be gentle
+            await new Promise(r => setTimeout(r, 150));
+          }
+          return results;
+        }
+
+        const codeByToken = new Map();
+
+        // Fetch tokenURI for each tokenId, parse country code
+        await batch(tokenIds, 20, async (tid) => {
+          try {
+            const uri = await contractRead.tokenURI(tid);
+            const meta = await resolveTokenMetadata(uri);
+            const code = extractCountryCode(meta);
+            if (code) codeByToken.set(tid, code);
+          } catch (e) {
+            // ignore parse issues
+          }
+        });
+
+        // Build mintedCodes set
+        mintedCodes = new Set(Array.from(codeByToken.values()));
+
+        // If wallet connected, find which of those you currently own
+        myOwnedCodes = new Set();
+        if (userAddress) {
+          await batch(Array.from(codeByToken.keys()), 15, async (tid) => {
+            try {
+              const owner = await contractRead.ownerOf(tid);
+              if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
+                const code = codeByToken.get(tid);
+                if (code) myOwnedCodes.add(code);
+              }
+            } catch {}
+          });
+        }
+
+        // Update UI
+        updateCountsPills();
+        if (countriesLayer) countriesLayer.setStyle(styleFeature);
+
+        if (showToast) setStatus('Minted countries updated.', 'success');
+        else setStatus('', '');
+      } catch (e) {
+        console.error(e);
+        setStatus('Failed to fetch minted data. Try Refresh again.', 'error');
       }
     }
 
-    function clearCircle() {
-      drawnItems?.clearLayers();
-      selectedCircle = null;
-      setStatus('Circle cleared. Draw a new one.');
-      updateUIFromCircle();
+    async function resolveTokenMetadata(uri) {
+      // data:application/json;base64,...
+      if (uri.startsWith('data:application/json')) {
+        const base64 = uri.split(',')[1] || '';
+        const json = atob(base64);
+        return JSON.parse(json);
+      }
+      // IPFS or HTTP(S)
+      let url = uri;
+      if (uri.startsWith('ipfs://')) {
+        url = 'https://ipfs.io/ipfs/' + uri.replace('ipfs://', '');
+      }
+      const res = await fetch(url);
+      return await res.json();
     }
 
-    // Bind UI
+    function extractCountryCode(meta) {
+      if (!meta) return null;
+      // Prefer attributes array entries
+      if (Array.isArray(meta.attributes)) {
+        for (const a of meta.attributes) {
+          const key = (a.trait_type || a.trait || '').toLowerCase();
+          if (key.includes('country code') || key === 'code') {
+            return String(a.value || '').toUpperCase();
+          }
+        }
+      }
+      // Fallback keys
+      const direct = meta.country_code || meta.code || meta.countryCode || meta.iso_a3 || meta.ISO_A3;
+      return direct ? String(direct).toUpperCase() : null;
+    }
+
+    function clearSelection() {
+      selectedCode = null;
+      selectedName = null;
+      mintBtn.disabled = true;
+      selectionPill.style.display = 'none';
+      if (countriesLayer) countriesLayer.setStyle(styleFeature);
+      setStatus('Selection cleared. Click a country to select it.');
+    }
+
     connectBtn.addEventListener('click', connectWallet);
-    mintBtn.addEventListener('click', mintCircle);
-    clearBtn.addEventListener('click', clearCircle);
-    recenterBtn.addEventListener('click', recenter);
+    mintBtn.addEventListener('click', mintSelectedCountry);
+    clearBtn.addEventListener('click', clearSelection);
+    refreshBtn.addEventListener('click', () => refreshMinted(true));
 
     // Init
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       initMap();
+      try {
+        await loadCountries();
+      } catch (e) {
+        console.error(e);
+        setStatus('Failed to load countries. Check network and refresh.', 'error');
+      }
+
+      // Attempt to auto-connect if already authorized
       if (window.ethereum?.selectedAddress) {
         connectWallet().catch(() => {});
       }
