@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFT Areas — Click any area (e.g., a city) to mint it</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet" />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Ethers -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --error: #ef4444;
+      --bg: #0f1020;
+      --card: #14162b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #253357;
+      --radius: 12px;
+      --shadow: rgba(0,0,0,0.25);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 0% 0%, rgba(99,102,241,0.12), transparent 60%),
+                  radial-gradient(1200px 600px at 100% 0%, rgba(245,158,11,0.1), transparent 60%),
+                  linear-gradient(180deg, #0b0c1a, #0f1020);
+      color: var(--text);
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; gap: 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: grid; place-items: center; box-shadow: 0 4px 12px var(--shadow);
+    }
+    .logo .material-icons { font-size: 16px; color: #fff; }
+    .title h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .title p { margin: 0; font-size: 11px; color: var(--muted); }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    button {
+      appearance: none; border: 1px solid transparent; border-radius: 10px;
+      padding: 8px 10px; font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1a1d36; border-color: #2a3560; transition: transform .15s ease, opacity .2s ease;
+    }
+    button .material-icons { font-size: 16px; }
+    button.primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-color: transparent; }
+    button.success { background: linear-gradient(135deg, var(--success), #34d399); border-color: transparent; color: #052318; }
+    button.accent { background: linear-gradient(135deg, var(--accent), #fb923c); border-color: transparent; color: #1a1305; }
+    button:disabled { opacity: .6; cursor: not-allowed; transform: none !important; }
+    button:not(:disabled):active { transform: translateY(1px); }
+    .wallet { color: #a7f3d0; font-size: 12px; font-weight: 700; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--border);
+      background: #0f1329; color: #cbd5e1;
+    }
+
+    main { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 12px 12px; }
+    @media (min-width: 980px) { main { grid-template-columns: 1.6fr 1fr; } }
+
+    #map {
+      height: 64vh; width: 100%;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      overflow: hidden; background: #0e1023; box-shadow: 0 8px 20px var(--shadow);
+    }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px; display: grid; gap: 10px;
+    }
+    .row { display: grid; gap: 8px; }
+    .row.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .legend {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      font-size: 12px; color: #cbd5e1;
+    }
+    .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .box { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #334155; }
+
+    .status {
+      min-height: 38px; display: grid; place-items: center; text-align: center;
+      font-size: 12px; border-radius: 10px; padding: 8px;
+      border: 1px solid #22345a; color: var(--muted);
+    }
+    .status.success { background: rgba(16,185,129,.12); color: var(--success); border-color: rgba(16,185,129,.35); }
+    .status.error { background: rgba(239,68,68,.12); color: var(--error); border-color: rgba(239,68,68,.35); }
+    .status.loading { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+    .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.25); border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .leaflet-container { background: #0e1023; }
+    .leaflet-control-attribution, .leaflet-control-zoom a { background: #14162b; color: #cbd5e1; border-color: #2a3560; }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111327; color: #e5e7eb; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"><span class="material-icons">maps_home_work</span></div>
+      <div class="title">
+        <h1>NFT Areas</h1>
+        <p>Click any area (e.g., a city) to highlight and mint it</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill"><span class="material-icons" style="font-size:16px;">paid</span> Mint Price: <strong style="margin-left:4px;">1 $POL</strong></span>
+      <button id="connectBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
+      <span id="wallet" class="wallet"></span>
+    </div>
+  </header>
+
+  <main>
+    <div id="map" aria-label="Map"></div>
+
+    <div class="panel">
+      <div class="row">
+        <div class="legend">
+          <div class="key"><span class="box" style="background:#28314f;"></span> Not selected</div>
+          <div class="key"><span class="box" style="background:#4f46e5;"></span> Selected (unminted)</div>
+          <div class="key"><span class="box" style="background:#d97706;"></span> Minted (anyone)</div>
+          <div class="key"><span class="box" style="background:#059669;"></span> You own</div>
+        </div>
+      </div>
+
+      <div class="row inline">
+        <span id="selectionPill" class="pill" style="display:none;"></span>
+        <span id="ownedCountPill" class="pill" style="display:none;"></span>
+        <span id="mintedCountPill" class="pill" style="display:none;"></span>
+      </div>
+
+      <div class="row inline">
+        <button id="mintBtn" class="success" disabled><span class="material-icons">rocket_launch</span>Mint Area</button>
+        <button id="clearBtn" class="accent"><span class="material-icons">delete_sweep</span>Clear</button>
+        <button id="refreshBtn"><span class="material-icons">refresh</span>Refresh Minted</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    // Polygon Mainnet
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    // Contract
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "function mintPrice() view returns (uint256)",
+      "function tokenURI(uint256 tokenId) view returns (string)",
+      "function ownerOf(uint256 tokenId) view returns (address)",
+      "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+    ];
+    const START_BLOCK = 0; // optionally set to deployment block for faster refresh
+
+    // Map / state
+    let map;
+    let selectionLayer; // L.GeoJSON layer for selected area
+    let selected = null; // { id, name, type, center:{lat,lng}, geojson }
+    let mintedAreaIds = new Set();
+    let myOwnedAreaIds = new Set();
+
+    // Ethers
+    let web3Provider, readProvider, signer, userAddress;
+
+    // UI
+    const connectBtn = document.getElementById('connectBtn');
+    const walletEl = document.getElementById('wallet');
+    const mintBtn = document.getElementById('mintBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const statusEl = document.getElementById('status');
+    const selectionPill = document.getElementById('selectionPill');
+    const ownedCountPill = document.getElementById('ownedCountPill');
+    const mintedCountPill = document.getElementById('mintedCountPill');
+
+    function setStatus(msg, type = '') {
+      if (!msg) {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+        return;
+      }
+      statusEl.className = 'status';
+      if (type === 'success') statusEl.classList.add('success');
+      if (type === 'error') statusEl.classList.add('error');
+      if (type === 'loading') {
+        statusEl.classList.add('loading');
+        statusEl.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
+      } else {
+        statusEl.textContent = msg;
+      }
+    }
+    function toFixed5(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
+    function escapeHTML(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    function initMap() {
+      if (!window.L) { setStatus('Leaflet failed to load.', 'error'); return; }
+      map = L.map('map', { center: [20, 0], zoom: 3, zoomControl: true, worldCopyJump: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18, attribution: '&copy; OpenStreetMap'
+      })
+      .on('tileerror', () => setStatus('Tile load error (network/rate limit).', 'error'))
+      .addTo(map);
+
+      map.on('click', onMapClick);
+      setTimeout(() => map.invalidateSize(), 300);
+      setStatus('Click on the map to select an area (city, administrative boundary, etc.)', 'success');
+    }
+
+    async function onMapClick(e) {
+      const { lat, lng } = e.latlng;
+      try {
+        setStatus('Looking up area for this location...', 'loading');
+        const area = await reverseGeocodeWithPolygon(lat, lng);
+        if (!area) {
+          setStatus('No polygon area found here. Try clicking closer to a city center or administrative area.', 'error');
+          return;
+        }
+        selectArea(area);
+      } catch (err) {
+        console.error(err);
+        setStatus('Area lookup failed. Try again.', 'error');
+      }
+    }
+
+    // Use Nominatim reverse geocoding to fetch the polygon of the area under the click
+    async function reverseGeocodeWithPolygon(lat, lng) {
+      // Choose zoom based on map zoom: target city/town when possible
+      const z = map.getZoom();
+      let zoomParam = 10; // ~city/town
+      if (z >= 14) zoomParam = 14; // suburb/neighbourhood
+      else if (z >= 12) zoomParam = 12; // town/city district
+      else if (z >= 10) zoomParam = 10; // city/town
+      else if (z >= 7) zoomParam = 8;   // state/province
+      else zoomParam = 5;               // country level
+
+      const url = new URL('https://nominatim.openstreetmap.org/reverse');
+      url.searchParams.set('format', 'jsonv2');
+      url.searchParams.set('lat', lat);
+      url.searchParams.set('lon', lng);
+      url.searchParams.set('zoom', zoomParam);
+      url.searchParams.set('polygon_geojson', '1');
+      url.searchParams.set('addressdetails', '1');
+      // Be a good citizen: add an explicit header via fetch options (UA is limited in browsers, but Referer is present)
+      const res = await fetch(url.toString(), {
+        headers: { 'Accept-Language': 'en' }
+      });
+      if (!res.ok) throw new Error('Nominatim reverse failed');
+      const data = await res.json();
+
+      const geojson = data.geojson || data.geometry;
+      if (!geojson || !geojson.type || !geojson.coordinates) {
+        return null;
+      }
+      const osm_id = data.osm_id;
+      const osm_type = data.osm_type; // node | way | relation
+      const dispName = data.display_name || 'Unknown area';
+      const cls = data.class || '';
+      const typ = data.type || '';
+
+      const center = { lat: Number(data.lat), lng: Number(data.lon) };
+      const id = makeAreaId(osm_type, osm_id);
+      return { id, name: dispName, type: `${cls}:${typ}`, center, geojson };
+    }
+
+    function makeAreaId(osmType, osmId) {
+      const t = (osmType || '').toLowerCase();
+      return `osm:${t}:${osmId}`;
+    }
+
+    function selectArea(area) {
+      selected = area;
+      // Remove previous selection layer
+      if (selectionLayer) {
+        try { selectionLayer.remove(); } catch {}
+        selectionLayer = null;
+      }
+      const isMinted = mintedAreaIds.has(area.id);
+      const isMine = myOwnedAreaIds.has(area.id);
+
+      selectionLayer = L.geoJSON(area.geojson, {
+        style: () => areaStyle(isMinted, isMine, true)
+      }).addTo(map);
+
+      const bounds = selectionLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [16, 16] });
+      } else {
+        map.setView([area.center.lat, area.center.lng], Math.max(map.getZoom(), 12));
+      }
+
+      // Popup with info
+      selectionLayer.bindPopup(`
+        <div style="min-width:220px;">
+          <div style="font-weight:800;margin-bottom:6px;">${escapeHTML(shortenName(area.name))}</div>
+          <div style="font-size:12px;color:#94a3b8;">Center: ${toFixed5(area.center.lat)}, ${toFixed5(area.center.lng)}</div>
+          <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">${isMine ? 'You own this area' : isMinted ? 'Already minted' : 'Not minted yet'}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:6px;">ID: ${escapeHTML(area.id)}</div>
+        </div>
+      `).openPopup();
+
+      // Update UI
+      selectionPill.style.display = 'inline-flex';
+      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(area.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
+      mintBtn.disabled = !userAddress || isMinted;
+      setStatus(isMinted ? 'This area is already minted.' : 'Area selected. You can mint it.', isMinted ? 'error' : 'success');
+    }
+
+    function areaStyle(isMinted, isMine, isSelected) {
+      let fill = '#28314f'; // default
+      if (isMinted) fill = '#d97706';
+      if (isMine) fill = '#059669';
+      if (isSelected && !isMinted && !isMine) fill = '#4f46e5';
+      return { color: '#1f2937', weight: 1, opacity: 1, fillColor: fill, fillOpacity: 0.55 };
+    }
+
+    function shortenName(name) {
+      // Use leading segment of display_name if very long
+      const n = String(name || '');
+      if (n.length <= 60) return n;
+      const firstComma = n.indexOf(',');
+      if (firstComma > 0) return n.slice(0, firstComma) + '…';
+      return n.slice(0, 57) + '…';
+    }
+
+    // Wallet
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
+        return true;
+      } catch (e) {
+        if (e.code === 4902) {
+          try {
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+            return true;
+          } catch { setStatus('Failed to add Polygon network', 'error'); return false; }
+        }
+        setStatus('Failed to switch network', 'error'); return false;
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) { setStatus('Please install MetaMask to continue', 'error'); return; }
+      try {
+        setStatus('Connecting wallet...', 'loading');
+        const switched = await switchToPolygon();
+        if (!switched) return;
+
+        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        await web3Provider.send('eth_requestAccounts', []);
+        signer = web3Provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
+        walletEl.textContent = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+
+        // Separate read provider
+        readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
+
+        setStatus('Wallet connected. Loading minted areas...', 'loading');
+        await refreshMinted(true);
+
+        // Re-evaluate selected area button state
+        if (selected) {
+          const isMinted = mintedAreaIds.has(selected.id);
+          mintBtn.disabled = isMinted;
+        } else {
+          mintBtn.disabled = true;
+        }
+      } catch (e) {
+        console.error(e);
+        setStatus('Wallet connection failed', 'error');
+      }
+    }
+
+    // TokenURI builder (data:application/json)
+    function buildAreaTokenURI(area) {
+      const image = buildAreaSVG(area);
+      const metadata = {
+        name: `Area: ${shortenName(area.name)}`,
+        description: `User-minted area NFT (from OSM) — ${area.type}`,
+        image,
+        attributes: [
+          { trait_type: "Area ID", value: area.id },
+          { trait_type: "Area Type", value: area.type },
+          { trait_type: "Center Latitude", value: Number(area.center.lat.toFixed(6)) },
+          { trait_type: "Center Longitude", value: Number(area.center.lng.toFixed(6)) }
+        ],
+        area_id: area.id
+      };
+      const json = JSON.stringify(metadata);
+      return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
+    }
+
+    function buildAreaSVG(area) {
+      const name = escapeHTML(shortenName(area.name));
+      const type = escapeHTML(area.type || '');
+      const lat = toFixed5(area.center.lat);
+      const lng = toFixed5(area.center.lng);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f46e5"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="#0b0c1a"/>
+          <rect x="20" y="20" width="760" height="380" rx="20" fill="url(#g)" opacity="0.25"/>
+          <g font-family="Inter, Arial, sans-serif" fill="#e5e7eb">
+            <text x="40" y="150" font-size="40" font-weight="700">${name}</text>
+            <text x="40" y="190" font-size="22" fill="#cbd5e1">${type}</text>
+            <text x="40" y="225" font-size="22" fill="#cbd5e1">Center: ${lat}, ${lng}</text>
+            <g transform="translate(40,270)">
+              <rect width="240" height="50" rx="10" fill="#10b981" />
+              <text x="18" y="33" font-size="20" font-weight="700" fill="#00110d">NFT Area</text>
+            </g>
+          </g>
+        </svg>`;
+      return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+    }
+
+    async function mintSelectedArea() {
+      try {
+        if (!userAddress) { setStatus('Connect wallet first', 'error'); return; }
+        if (!selected) { setStatus('Select an area first', 'error'); return; }
+        if (mintedAreaIds.has(selected.id)) { setStatus('This area is already minted', 'error'); return; }
+
+        setStatus('Submitting mint transaction...', 'loading');
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+        let price;
+        try { price = await contract.mintPrice(); }
+        catch { price = ethers.utils.parseUnits('1', 18); }
+
+        const tokenURI = buildAreaTokenURI(selected);
+        const tx = await contract.mintWithURI(tokenURI, { value: price });
+        await tx.wait();
+
+        // Update local state
+        mintedAreaIds.add(selected.id);
+        myOwnedAreaIds.add(selected.id);
+        updateCountsPills();
+
+        // Re-style selection
+        if (selectionLayer) {
+          selectionLayer.setStyle(() => areaStyle(true, true, true));
+          selectionLayer.bindPopup(`
+            <div style="min-width:220px;text-align:center;">
+              <div style="font-weight:800;margin-bottom:6px;color:#10b981;">Area Minted!</div>
+              <div style="font-size:13px;margin-bottom:8px;">${escapeHTML(shortenName(selected.name))}</div>
+              <a href="https://opensea.io" target="_blank" rel="noopener noreferrer">View on marketplace →</a>
+            </div>
+          `).openPopup();
+        }
+
+        selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">verified</span> ${escapeHTML(shortenName(selected.name))} · You own`;
+        mintBtn.disabled = true;
+        setStatus('Success! Your area NFT has been minted.', 'success');
+      } catch (e) {
+        console.error(e);
+        const msg = e?.data?.message || e?.message || 'Unknown error';
+        setStatus('Minting failed: ' + msg, 'error');
+      }
+    }
+
+    // Minted data sync (parses tokenURIs to collect area_id values)
+    async function refreshMinted(showToast = false) {
+      try {
+        if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
+        const contractRead = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
+        setStatus('Fetching minted areas...', 'loading');
+
+        const zero = '0x0000000000000000000000000000000000000000';
+        const filter = contractRead.filters.Transfer(zero, null);
+        const logs = await contractRead.queryFilter(filter, START_BLOCK, 'latest');
+
+        const tokenIds = Array.from(new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean)));
+        const codeByToken = new Map();
+
+        // batch helper
+        async function batch(items, size, cb) {
+          const out = [];
+          for (let i = 0; i < items.length; i += size) {
+            const slice = items.slice(i, i + size);
+            const res = await Promise.all(slice.map(cb));
+            out.push(...res);
+            await new Promise(r => setTimeout(r, 120));
+          }
+          return out;
+        }
+
+        await batch(tokenIds, 20, async (tid) => {
+          try {
+            const uri = await contractRead.tokenURI(tid);
+            const meta = await resolveTokenMetadata(uri);
+            const areaId = extractAreaId(meta);
+            if (areaId) codeByToken.set(tid, areaId);
+          } catch {}
+        });
+
+        mintedAreaIds = new Set(Array.from(codeByToken.values()));
+
+        myOwnedAreaIds = new Set();
+        if (userAddress) {
+          await batch(Array.from(codeByToken.keys()), 15, async (tid) => {
+            try {
+              const owner = await contractRead.ownerOf(tid);
+              if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
+                const code = codeByToken.get(tid);
+                if (code) myOwnedAreaIds.add(code);
+              }
+            } catch {}
+          });
+        }
+
+        updateCountsPills();
+
+        // Update current selection style if any
+        if (selected && selectionLayer) {
+          const isMinted = mintedAreaIds.has(selected.id);
+          const isMine = myOwnedAreaIds.has(selected.id);
+          selectionLayer.setStyle(() => areaStyle(isMinted, isMine, true));
+          selectionPill.style.display = 'inline-flex';
+          selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(selected.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
+          mintBtn.disabled = !userAddress || isMinted;
+        }
+
+        if (showToast) setStatus('Minted list updated.', 'success');
+        else setStatus('', '');
+      } catch (e) {
+        console.error(e);
+        setStatus('Failed to refresh minted areas. Try again.', 'error');
+      }
+    }
+
+    async function resolveTokenMetadata(uri) {
+      if (!uri) return null;
+      if (uri.startsWith('data:application/json')) {
+        const base64 = uri.split(',')[1] || '';
+        try { return JSON.parse(atob(base64)); } catch { return null; }
+      }
+      let url = uri;
+      if (uri.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + uri.slice('ipfs://'.length);
+      const res = await fetch(url);
+      try { return await res.json(); } catch { return null; }
+    }
+    function extractAreaId(meta) {
+      if (!meta) return null;
+      if (meta.area_id) return String(meta.area_id);
+      if (Array.isArray(meta.attributes)) {
+        for (const a of meta.attributes) {
+          const key = (a.trait_type || a.trait || '').toLowerCase();
+          if (key.includes('area id')) return String(a.value);
+        }
+      }
+      return null;
+    }
+
+    function updateCountsPills() {
+      const owned = myOwnedAreaIds.size;
+      const minted = mintedAreaIds.size;
+      if (owned > 0) {
+        ownedCountPill.style.display = 'inline-flex';
+        ownedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;">verified</span> You own: <strong style="margin-left:4px;">${owned}</strong>`;
+      } else {
+        ownedCountPill.style.display = 'none';
+      }
+      mintedCountPill.style.display = 'inline-flex';
+      mintedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;">public</span> Minted total: <strong style="margin-left:4px;">${minted}</strong>`;
+    }
+
+    function clearSelection() {
+      selected = null;
+      if (selectionLayer) {
+        try { selectionLayer.remove(); } catch {}
+        selectionLayer = null;
+      }
+      selectionPill.style.display = 'none';
+      mintBtn.disabled = true;
+      setStatus('Selection cleared. Click another area.', 'success');
+    }
+
+    // UI bindings
+    connectBtn.addEventListener('click', connectWallet);
+    mintBtn.addEventListener('click', mintSelectedArea);
+    clearBtn.addEventListener('click', clearSelection);
+    refreshBtn.addEventListener('click', () => refreshMinted(true));
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      if (window.ethereum?.selectedAddress) {
+        connectWallet().catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
