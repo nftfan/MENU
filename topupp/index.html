@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$NFTFAN Token Purchase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <link rel="icon" href="https://i.imgur.com/ODP45iQ.png" type="image/png">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --primary: #00bfae;
+  --secondary: #a259e6;
+  --accent: #ffd900;
+  --success: #27ae60;
+  --error: #e74c3c;
+  --warning: #f39c12;
+  --bg-main: #0f0f23;
+  --bg-card: #1a1a2e;
+  --bg-step: #16213e;
+  --text-primary: #ffffff;
+  --text-secondary: #b8bcc8;
+  --text-muted: #6c7293;
+  --border: #2d3748;
+  --gradient-primary: linear-gradient(135deg, #00bfae 0%, #a259e6 100%);
+  --shadow-card: 0 8px 25px rgba(0,0,0,0.2);
+  --shadow-button: 0 4px 15px rgba(0,191,174,0.2);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font-title: 'Orbitron', monospace;
+  --font-main: 'Inter', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-main);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+.app-container {
+  min-height: 100vh;
+  padding: 8px;
+  background: var(--bg-main);
+  position: relative;
+  padding-top: 12px; /* Start from top with small margin */
+}
+
+.app-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0,191,174,0.08) 0%, transparent 60%),
+              radial-gradient(circle at 70% 80%, rgba(162,89,230,0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wizard-container {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto; /* Center horizontally but start from top */
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  background: var(--gradient-primary);
+  padding: 16px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.app-title {
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+}
+
+.app-subtitle {
+  color: rgba(255,255,255,0.8);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.step-container {
+  padding: 16px 12px;
+  min-height: auto; /* Remove fixed height */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Start from top */
+}
+
+.step {
+  display: none;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.step.active {
+  display: block;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.step-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.step-description {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-step);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--font-main);
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0,191,174,0.1);
+}
+
+.form-input.error {
+  border-color: var(--error);
+}
+
+.address-input {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.amount-input-group {
+  position: relative;
+}
+
+.amount-input {
+  padding-right: 50px;
+}
+
+.currency-label {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.info-card {
+  background: var(--bg-step);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.info-title {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.info-title .material-icons {
+  margin-right: 4px;
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.kt-explanation {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  margin: 8px 0;
+  color: white;
+  text-align: center;
+  font-size: 11px;
+}
+
+.kt-value {
+  font-family: var(--font-title);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.contract-address {
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  word-break: break-all;
+  position: relative;
+  margin: 8px 0;
+}
+
+.copy-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background: #009b8e;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-step);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.summary-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.processing-animation {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.countdown {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 8px 0;
+  font-family: var(--font-title);
+}
+
+.success-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  animation: successPulse 1s ease-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.balance-display {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+  margin: 12px 0;
+  color: white;
+}
+
+.balance-amount {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-title);
+  margin-bottom: 4px;
+}
+
+.balance-unit {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.balance-conversion {
+  font-size: 10px;
+  opacity: 0.8;
+  background: rgba(255,255,255,0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  margin-bottom: 8px; /* Add bottom margin for spacing */
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: var(--shadow-button);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,191,174,0.3);
+}
+
+.btn-secondary {
+  background: var(--bg-step);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn .material-icons {
+  font-size: 16px;
+}
+
+.error-message {
+  background: rgba(231,76,60,0.1);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  color: var(--error);
+  font-size: 10px;
+  margin-top: 4px;
+  display: none;
+}
+
+.social-links {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--primary);
+  transition: all 0.2s ease;
+  font-size: 11px;
+}
+
+.social-link:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.social-link .material-icons {
+  font-size: 14px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 400px) {
+  .app-container {
+    padding: 4px;
+    padding-top: 8px; /* Reduced top padding for mobile */
+  }
+  
+  .wizard-container {
+    margin: 0;
+    max-width: none;
+  }
+  
+  .header {
+    padding: 12px 8px;
+  }
+  
+  .step-container {
+    padding: 12px 8px;
+  }
+  
+  .step-title {
+    font-size: 16px;
+  }
+  
+  .step-description {
+    font-size: 11px;
+  }
+  
+  .balance-amount {
+    font-size: 20px;
+  }
+  
+  .countdown {
+    font-size: 28px;
+  }
+  
+  .form-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  
+  .info-card {
+    padding: 8px;
+    font-size: 11px;
+  }
+  
+  .summary-item {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .contract-address {
+    font-size: 9px;
+    padding: 6px;
+  }
+}
+
+@media (max-width: 320px) {
+  .app-container {
+    padding: 2px;
+    padding-top: 4px; /* Minimal top padding for very small screens */
+  }
+  
+  .step-container {
+    padding: 10px 6px;
+  }
+  
+  .header {
+    padding: 10px 6px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .btn {
+    padding: 10px;
+  }
+  
+  .app-title {
+    font-size: 16px;
+  }
+  
+  .app-subtitle {
+    font-size: 10px;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-height: 600px) and (orientation: landscape) {
+  .app-container {
+    padding-top: 4px; /* Very minimal top padding in landscape */
+  }
+  
+  .step-container {
+    padding: 8px 12px;
+  }
+  
+  .header {
+    padding: 8px 12px;
+  }
+  
+  .logo {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .logo img {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .step-header {
+    margin-bottom: 8px;
+  }
+  
+  .form-group {
+    margin-bottom: 8px;
+  }
+  
+  .info-card {
+    margin: 4px 0;
+    padding: 6px;
+  }
+  
+  .processing-animation {
+    padding: 10px 0;
+  }
+  
+  .spinner {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 8px;
+  }
+  
+  .countdown {
+    font-size: 24px;
+    margin: 4px 0;
+  }
+}
+
+/* Ultra compact for very small screens */
+@media (max-width: 280px) {
+  .app-container {
+    padding: 1px;
+    padding-top: 2px; /* Ultra minimal top padding */
+  }
+  
+  .wizard-container {
+    border-radius: 6px;
+  }
+  
+  .step-container {
+    padding: 8px 4px;
+  }
+  
+  .step-title {
+    font-size: 14px;
+  }
+  
+  .form-input {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .btn {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  
+  .info-card {
+    padding: 6px;
+    font-size: 10px;
+  }
+}
+
+/* Add bottom spacing for last step */
+.step:last-child .button-group {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 400px) {
+  .step:last-child .button-group {
+    margin-bottom: 12px;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="wizard-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <img src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN Logo"/>
+        </div>
+        <h1 class="app-title">$NFTFAN</h1>
+        <p class="app-subtitle">Token Purchase</p>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <!-- Steps Container -->
+      <div class="step-container">
+        
+        <!-- Step 1: Welcome -->
+        <div class="step active" id="step1">
+          <div class="step-header">
+            <div class="step-number">1</div>
+            <h2 class="step-title">Welcome</h2>
+            <p class="step-description">
+              Secure token purchases on Polygon Network
+            </p>
+          </div>
+          
+          <div class="kt-explanation">
+            <div style="font-size: 10px; margin-bottom: 4px;">
+              <span class="material-icons" style="vertical-align: middle; margin-right: 2px; font-size: 12px;">info</span>
+              Token Unit
+            </div>
+            <div class="kt-value">
+              1 KT = <span style="font-size:9px;">1,000,000,000,000,000</span>
+            </div>
+            <div style="font-size: 9px; opacity: 0.9;">
+              Measured in KiloTrillions (KT)
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <div class="info-title">
+              <span class="material-icons">security</span>
+              Features
+            </div>
+            <div style="color: var(--text-secondary); line-height: 1.4; font-size: 11px;">
+              ✓ Auto delivery ✓ Smart contracts<br>
+              ✓ Real-time updates ✓ Polygon network
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-primary" onclick="nextStep()">
+              <span class="material-icons">arrow_forward</span>
+              Start
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Wallet Address -->
+        <div class="step" id="step2">
+          <div class="step-header">
+            <div class="step-number">2</div>
+            <h2 class="step-title">Wallet</h2>
+            <p class="step-description">
+              Enter your Polygon wallet address
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Wallet Address</label>
+            <input 
+              type="text" 
+              class="form-input address-input" 
+              id="walletAddress"
+              placeholder="0x..." 
+              maxlength="42"
+            />
+            <div class="error-message" id="walletError">
+              Invalid wallet address
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-title">
+              <span class="material-icons">info</span>
+              Note
+            </div>
+            <div style="color: var(--text-secondary); line-height: 1.3;">
+              Tokens delivered to this address automatically
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span class="material-icons">arrow_back</span>
+              Back
+            </button>
+            <button class="btn btn-primary" onclick="validateWallet()">
+              <span class="material-icons">arrow_forward</span>
+              Next
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Purchase Amount -->
+        <div class="step" id="step3">
+          <div class="step-header">
+            <div class="step-number">3</div>
+            <h2 class="step-title">Amount</h2>
+            <p class="step-description">
+              How much $POL to spend?
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Amount</label>
+            <div class="amount-input-group">
+              <input 
+                type="number" 
+                class="form-input amount-input" 
+                id="purchaseAmount"
+                placeholder="0.00"
+                min="0.01"
+                max="100"
+                step="0.01"
+              />
+              <span class="currency-label">$POL</span>
+            </div>
+            <div class="error-message" id="amountError">
+              Enter 0.01-100 $POL
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-title">
+              <span class="material-icons">calculate</span>
+              Rate
+            </div>
+            <div style="color: var(--text-secondary); margin-bottom: 4px; font-size: 11px;">
+              <strong>1 $POL = 1 KT $NFTFAN</strong>
+            </div>
+            <div style="color: var(--primary); font-weight: 600; font-size: 11px;">
+              Get: <span id="estimatedTokens">0 KT</span>
+            </div>
+            <div style="margin-top: 4px; padding: 4px; background: rgba(255,215,0,0.1); border-radius: 4px; font-size: 9px; color: var(--accent);">
+              1 KT = 1,000,000,000,000,000 tokens
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span class="material-icons">arrow_back</span>
+              Back
+            </button>
+            <button class="btn btn-primary" onclick="validateAmount()">
+              <span class="material-icons">arrow_forward</span>
+              Next
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Payment Instructions -->
+        <div class="step" id="step4">
+          <div class="step-header">
+            <div class="step-number">4</div>
+            <h2 class="step-title">Send Payment</h2>
+            <p class="step-description">
+              Send to contract address
+            </p>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="summary-label">Wallet</span>
+              <span class="summary-value" id="summaryWallet">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Send</span>
+              <span class="summary-value" id="summaryAmount">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Get</span>
+              <span class="summary-value" id="summaryReceive" style="color: var(--primary);">-</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-title">
+              <span class="material-icons">account_balance</span>
+              Contract
+            </div>
+            <div class="contract-address" id="contractAddress">
+              0xaf2d132C8773bca3821C24EcF64e844E202A12e8
+              <button class="copy-button" onclick="copyContract()">Copy</button>
+            </div>
+            <div style="color: var(--text-secondary); font-size: 10px; margin-top: 4px;">
+              Send <strong>exact amount</strong> to this address
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span class="material-icons">arrow_back</span>
+              Back
+            </button>
+            <button class="btn btn-primary" onclick="confirmPayment()">
+              <span class="material-icons">check</span>
+              Sent
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5: Processing -->
+        <div class="step" id="step5">
+          <div class="step-header">
+            <div class="step-number">5</div>
+            <h2 class="step-title">Processing</h2>
+            <p class="step-description">
+              Verifying transaction
+            </p>
+          </div>
+
+          <div class="processing-animation">
+            <div class="spinner"></div>
+            <div class="countdown" id="countdown">10</div>
+            <p style="color: var(--text-secondary); margin-bottom: 8px; font-size: 11px;">
+              Checking blockchain...
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 6: Success -->
+        <div class="step" id="step6">
+          <div class="step-header">
+            <div class="step-number">6</div>
+            <h2 class="step-title">Complete!</h2>
+            <p class="step-description">
+              Tokens delivered successfully
+            </p>
+          </div>
+
+          <div class="success-icon">
+            <span class="material-icons" style="font-size: 32px; color: white;">check</span>
+          </div>
+
+          <div class="balance-display">
+            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Balance</div>
+            <div class="balance-amount" id="finalBalance">0</div>
+            <div class="balance-unit">KT $NFTFAN</div>
+            <div class="balance-conversion" id="balanceConversion">
+              = 0 tokens
+            </div>
+          </div>
+
+          <div class="social-links">
+            <a href="https://x.com/nftfanstoken" target="_blank" class="social-link">
+              <span class="material-icons">open_in_new</span>
+              Follow
+            </a>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="viewOnExplorer()">
+              <span class="material-icons">open_in_new</span>
+              Explorer
+            </button>
+            <button class="btn btn-primary" onclick="window.location.reload()">
+              <span class="material-icons">refresh</span>
+              Buy More
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const CONFIG = {
+      tokenAddress: "0x2017Fcaea540d2925430586DC92818035Bfc2F50",
+      apiKey: "3AFN3ZU4ANK3XEUJQ6BRJCBCITAFHKFVTV",
+      airdropContract: "0xaf2d132C8773bca3821C24EcF64e844E202A12e8",
+      exchangeRate: 1, // 1 POL = 1 KT
+      ktToTokens: 1000000000000000 // 1 KT = 1 trillion tokens
+    };
+
+    // State
+    let currentStep = 1;
+    let userWallet = '';
+    let purchaseAmount = 0;
+    let userBalance = 0;
+
+    // Utility functions
+    function updateProgress() {
+      const progress = ((currentStep - 1) / 5) * 100;
+      document.getElementById('progressFill').style.width = progress + '%';
+    }
+
+    function showStep(step) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById(`step${step}`).classList.add('active');
+      currentStep = step;
+      updateProgress();
+    }
+
+    function nextStep() {
+      if (currentStep < 6) {
+        showStep(currentStep + 1);
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        showStep(currentStep - 1);
+      }
+    }
+
+    function validateEthAddress(address) {
+      return /^0x[a-fA-F0-9]{40}$/.test(address);
+    }
+
+    function formatNumber(num) {
+      return new Intl.NumberFormat().format(num);
+    }
+
+    function formatKT(kt) {
+      return parseFloat(kt).toFixed(2);
+    }
+
+    function ktToIndividualTokens(kt) {
+      return kt * CONFIG.ktToTokens;
+    }
+
+    // Step 2: Wallet validation
+    function validateWallet() {
+      const wallet = document.getElementById('walletAddress').value.trim();
+      const errorDiv = document.getElementById('walletError');
+      const input = document.getElementById('walletAddress');
+
+      if (!wallet) {
+        showError(input, errorDiv, 'Enter wallet address');
+        return;
+      }
+
+      if (!validateEthAddress(wallet)) {
+        showError(input, errorDiv, 'Invalid wallet address');
+        return;
+      }
+
+      hideError(input, errorDiv);
+      userWallet = wallet;
+      nextStep();
+    }
+
+    // Step 3: Amount validation
+    function validateAmount() {
+      const amount = parseFloat(document.getElementById('purchaseAmount').value);
+      const errorDiv = document.getElementById('amountError');
+      const input = document.getElementById('purchaseAmount');
+
+      if (isNaN(amount) || amount < 0.01 || amount > 100) {
+        showError(input, errorDiv, 'Enter 0.01-100 $POL');
+        return;
+      }
+
+      hideError(input, errorDiv);
+      purchaseAmount = amount;
+      updateSummary();
+      nextStep();
+    }
+
+    function showError(input, errorDiv, message) {
+      input.classList.add('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    function hideError(input, errorDiv) {
+      input.classList.remove('error');
+      errorDiv.style.display = 'none';
+    }
+
+    // Update estimated tokens in KT
+    document.getElementById('purchaseAmount').addEventListener('input', function() {
+      const amount = parseFloat(this.value) || 0;
+      const estimatedKT = amount * CONFIG.exchangeRate;
+      document.getElementById('estimatedTokens').textContent = formatKT(estimatedKT) + ' KT';
+    });
+
+    // Update summary
+    function updateSummary() {
+      document.getElementById('summaryWallet').textContent = 
+        userWallet.substring(0, 4) + '...' + userWallet.substring(38);
+      document.getElementById('summaryAmount').textContent = `${purchaseAmount} $POL`;
+      
+      const ktAmount = purchaseAmount * CONFIG.exchangeRate;
+      document.getElementById('summaryReceive').textContent = `${formatKT(ktAmount)} KT`;
+    }
+
+    // Copy contract address
+    function copyContract() {
+      navigator.clipboard.writeText(CONFIG.airdropContract).then(() => {
+        const button = document.querySelector('.copy-button');
+        const originalText = button.textContent;
+        button.textContent = '✓';
+        button.style.background = CONFIG.success;
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.background = '';
+        }, 1500);
+      });
+    }
+
+    // Confirm payment and start processing
+    function confirmPayment() {
+      nextStep();
+      startProcessing();
+    }
+
+    // Processing animation
+    function startProcessing() {
+      let count = 10;
+      const countdownEl = document.getElementById('countdown');
+      
+      const interval = setInterval(() => {
+        count--;
+        countdownEl.textContent = count;
+        
+        if (count <= 0) {
+          clearInterval(interval);
+          completeProcessing();
+        }
+      }, 1000);
+    }
+
+    // Complete processing and fetch balance
+    async function completeProcessing() {
+      await fetchBalance();
+      const ktBalance = userBalance / CONFIG.ktToTokens;
+      const individualTokens = userBalance;
+      
+      document.getElementById('finalBalance').textContent = formatKT(ktBalance);
+      document.getElementById('balanceConversion').textContent = 
+        `= ${formatNumber(individualTokens)} tokens`;
+      
+      nextStep();
+    }
+
+    // Fetch token balance
+    async function fetchBalance() {
+      try {
+        const url = `https://api.polygonscan.com/api?module=account&action=tokenbalance&contractaddress=${CONFIG.tokenAddress}&address=${userWallet}&tag=latest&apikey=${CONFIG.apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.status === "1") {
+          const decimals = 18;
+          const balance = Number(data.result) / Math.pow(10, decimals);
+          userBalance = balance;
+        } else {
+          userBalance = purchaseAmount * CONFIG.exchangeRate * CONFIG.ktToTokens;
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+        userBalance = purchaseAmount * CONFIG.exchangeRate * CONFIG.ktToTokens;
+      }
+    }
+
+    // View on explorer
+    function viewOnExplorer() {
+      window.open(`https://polygonscan.com/address/${userWallet}`, '_blank');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      updateProgress();
+      
+      // Add enter key support for inputs
+      document.getElementById('walletAddress').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') validateWallet();
+      });
+      
+      document.getElementById('purchaseAmount').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') validateAmount();
+      });
+    });
+  </script>
+</body>
+</html>
