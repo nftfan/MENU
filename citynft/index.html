@@ -77,6 +77,7 @@
       height: 64vh; width: 100%;
       border-radius: var(--radius); border: 1px solid var(--border);
       overflow: hidden; background: #0e1023; box-shadow: 0 8px 20px var(--shadow);
+      position: relative;
     }
 
     .panel {
@@ -108,9 +109,26 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .leaflet-container { background: #0e1023; }
-    .leaflet-control-attribution, .leaflet-control-zoom a { background: #14162b; color: #cbd5e1; border-color: #2a3560; }
-    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111327; color: #e5e7eb; border: 1px solid var(--border); }
+    /* City loading toast (visible during reverse geocoding/polygon fetch) */
+    .toast {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #111327;
+      color: #e5e7eb;
+      border: 1px solid #2a3560;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      z-index: 9999;
+      font-size: 13px;
+    }
+    .toast .spinner { width: 16px; height: 16px; border-width: 2px; }
+    .toast .material-icons { font-size: 18px; color: #60a5fa; }
   </style>
 </head>
 <body>
@@ -135,10 +153,10 @@
     <div class="panel">
       <div class="row">
         <div class="legend">
-          <div class="key"><span class="box" style="background:#28314f;"></span> Not selected</div>
-          <div class="key"><span class="box" style="background:#4f46e5;"></span> Selected (unminted)</div>
-          <div class="key"><span class="box" style="background:#d97706;"></span> Minted (anyone)</div>
-          <div class="key"><span class="box" style="background:#059669;"></span> You own</div>
+          - <div class="key"><span class="box" style="background:#28314f;"></span> Not selected</div>
+          - <div class="key"><span class="box" style="background:#4f46e5;"></span> Selected (unminted)</div>
+          - <div class="key"><span class="box" style="background:#d97706;"></span> Minted (anyone)</div>
+          - <div class="key"><span class="box" style="background:#059669;"></span> You own</div>
         </div>
       </div>
 
@@ -157,6 +175,13 @@
       <div id="status" class="status"></div>
     </div>
   </main>
+
+  <!-- Loading toast shown while city/area polygon is being fetched -->
+  <div id="cityLoading" class="toast" role="status" aria-live="assertive" aria-atomic="true">
+    <span class="spinner" aria-hidden="true"></span>
+    <span class="material-icons" aria-hidden="true">location_city</span>
+    <span class="text">Please wait, loading city…</span>
+  </div>
 
   <script>
     // Polygon Mainnet
@@ -177,14 +202,15 @@
       "function ownerOf(uint256 tokenId) view returns (address)",
       "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
     ];
-    const START_BLOCK = 0; // optionally set to deployment block for faster refresh
+    const START_BLOCK = 0;
 
     // Map / state
     let map;
-    let selectionLayer; // L.GeoJSON layer for selected area
-    let selected = null; // { id, name, type, center:{lat,lng}, geojson }
+    let selectionLayer; // L.GeoJSON
+    let selected = null; // { id, name, type, center, geojson }
     let mintedAreaIds = new Set();
     let myOwnedAreaIds = new Set();
+    let isCityLoading = false;
 
     // Ethers
     let web3Provider, readProvider, signer, userAddress;
@@ -199,6 +225,15 @@
     const selectionPill = document.getElementById('selectionPill');
     const ownedCountPill = document.getElementById('ownedCountPill');
     const mintedCountPill = document.getElementById('mintedCountPill');
+    const cityLoadingEl = document.getElementById('cityLoading');
+
+    function showCityLoading(text = 'Please wait, loading city…') {
+      cityLoadingEl.querySelector('.text').textContent = text;
+      cityLoadingEl.style.display = 'inline-flex';
+    }
+    function hideCityLoading() {
+      cityLoadingEl.style.display = 'none';
+    }
 
     function setStatus(msg, type = '') {
       if (!msg) {
@@ -217,9 +252,7 @@
       }
     }
     function toFixed5(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
-    function escapeHTML(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-    }
+    function escapeHTML(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
     function initMap() {
       if (!window.L) { setStatus('Leaflet failed to load.', 'error'); return; }
@@ -236,31 +269,39 @@
     }
 
     async function onMapClick(e) {
+      if (isCityLoading) return; // prevent multiple concurrent lookups
       const { lat, lng } = e.latlng;
       try {
+        isCityLoading = true;
+        showCityLoading('Please wait, loading city…');
         setStatus('Looking up area for this location...', 'loading');
+
         const area = await reverseGeocodeWithPolygon(lat, lng);
+
         if (!area) {
           setStatus('No polygon area found here. Try clicking closer to a city center or administrative area.', 'error');
           return;
         }
         selectArea(area);
+        setStatus('Area selected. You can mint it.', 'success');
       } catch (err) {
         console.error(err);
         setStatus('Area lookup failed. Try again.', 'error');
+      } finally {
+        isCityLoading = false;
+        hideCityLoading();
       }
     }
 
-    // Use Nominatim reverse geocoding to fetch the polygon of the area under the click
+    // Reverse geocode to polygon (Nominatim)
     async function reverseGeocodeWithPolygon(lat, lng) {
-      // Choose zoom based on map zoom: target city/town when possible
       const z = map.getZoom();
-      let zoomParam = 10; // ~city/town
-      if (z >= 14) zoomParam = 14; // suburb/neighbourhood
-      else if (z >= 12) zoomParam = 12; // town/city district
-      else if (z >= 10) zoomParam = 10; // city/town
-      else if (z >= 7) zoomParam = 8;   // state/province
-      else zoomParam = 5;               // country level
+      let zoomParam = 10;
+      if (z >= 14) zoomParam = 14;
+      else if (z >= 12) zoomParam = 12;
+      else if (z >= 10) zoomParam = 10;
+      else if (z >= 7) zoomParam = 8;
+      else zoomParam = 5;
 
       const url = new URL('https://nominatim.openstreetmap.org/reverse');
       url.searchParams.set('format', 'jsonv2');
@@ -269,23 +310,19 @@
       url.searchParams.set('zoom', zoomParam);
       url.searchParams.set('polygon_geojson', '1');
       url.searchParams.set('addressdetails', '1');
-      // Be a good citizen: add an explicit header via fetch options (UA is limited in browsers, but Referer is present)
-      const res = await fetch(url.toString(), {
-        headers: { 'Accept-Language': 'en' }
-      });
+
+      const res = await fetch(url.toString(), { headers: { 'Accept-Language': 'en' } });
       if (!res.ok) throw new Error('Nominatim reverse failed');
       const data = await res.json();
 
       const geojson = data.geojson || data.geometry;
-      if (!geojson || !geojson.type || !geojson.coordinates) {
-        return null;
-      }
+      if (!geojson || !geojson.type || !geojson.coordinates) return null;
+
       const osm_id = data.osm_id;
-      const osm_type = data.osm_type; // node | way | relation
+      const osm_type = data.osm_type;
       const dispName = data.display_name || 'Unknown area';
       const cls = data.class || '';
       const typ = data.type || '';
-
       const center = { lat: Number(data.lat), lng: Number(data.lon) };
       const id = makeAreaId(osm_type, osm_id);
       return { id, name: dispName, type: `${cls}:${typ}`, center, geojson };
@@ -294,44 +331,6 @@
     function makeAreaId(osmType, osmId) {
       const t = (osmType || '').toLowerCase();
       return `osm:${t}:${osmId}`;
-    }
-
-    function selectArea(area) {
-      selected = area;
-      // Remove previous selection layer
-      if (selectionLayer) {
-        try { selectionLayer.remove(); } catch {}
-        selectionLayer = null;
-      }
-      const isMinted = mintedAreaIds.has(area.id);
-      const isMine = myOwnedAreaIds.has(area.id);
-
-      selectionLayer = L.geoJSON(area.geojson, {
-        style: () => areaStyle(isMinted, isMine, true)
-      }).addTo(map);
-
-      const bounds = selectionLayer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [16, 16] });
-      } else {
-        map.setView([area.center.lat, area.center.lng], Math.max(map.getZoom(), 12));
-      }
-
-      // Popup with info
-      selectionLayer.bindPopup(`
-        <div style="min-width:220px;">
-          <div style="font-weight:800;margin-bottom:6px;">${escapeHTML(shortenName(area.name))}</div>
-          <div style="font-size:12px;color:#94a3b8;">Center: ${toFixed5(area.center.lat)}, ${toFixed5(area.center.lng)}</div>
-          <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">${isMine ? 'You own this area' : isMinted ? 'Already minted' : 'Not minted yet'}</div>
-          <div style="font-size:11px;color:#64748b;margin-top:6px;">ID: ${escapeHTML(area.id)}</div>
-        </div>
-      `).openPopup();
-
-      // Update UI
-      selectionPill.style.display = 'inline-flex';
-      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(area.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
-      mintBtn.disabled = !userAddress || isMinted;
-      setStatus(isMinted ? 'This area is already minted.' : 'Area selected. You can mint it.', isMinted ? 'error' : 'success');
     }
 
     function areaStyle(isMinted, isMine, isSelected) {
@@ -343,12 +342,44 @@
     }
 
     function shortenName(name) {
-      // Use leading segment of display_name if very long
       const n = String(name || '');
       if (n.length <= 60) return n;
       const firstComma = n.indexOf(',');
       if (firstComma > 0) return n.slice(0, firstComma) + '…';
       return n.slice(0, 57) + '…';
+    }
+
+    function selectArea(area) {
+      selected = area;
+
+      if (selectionLayer) {
+        try { selectionLayer.remove(); } catch {}
+        selectionLayer = null;
+      }
+      const isMinted = mintedAreaIds.has(area.id);
+      const isMine = myOwnedAreaIds.has(area.id);
+
+      selectionLayer = L.geoJSON(area.geojson, { style: () => areaStyle(isMinted, isMine, true) }).addTo(map);
+
+      const bounds = selectionLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [16, 16] });
+      } else {
+        map.setView([area.center.lat, area.center.lng], Math.max(map.getZoom(), 12));
+      }
+
+      selectionLayer.bindPopup(`
+        <div style="min-width:220px;">
+          <div style="font-weight:800;margin-bottom:6px;">${escapeHTML(shortenName(area.name))}</div>
+          <div style="font-size:12px;color:#94a3b8;">Center: ${toFixed5(area.center.lat)}, ${toFixed5(area.center.lng)}</div>
+          <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">${isMine ? 'You own this area' : isMinted ? 'Already minted' : 'Not minted yet'}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:6px;">ID: ${escapeHTML(area.id)}</div>
+        </div>
+      `).openPopup();
+
+      selectionPill.style.display = 'inline-flex';
+      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(area.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
+      mintBtn.disabled = !userAddress || isMinted;
     }
 
     // Wallet
@@ -384,13 +415,11 @@
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         walletEl.textContent = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-        // Separate read provider
         readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
 
         setStatus('Wallet connected. Loading minted areas...', 'loading');
         await refreshMinted(true);
 
-        // Re-evaluate selected area button state
         if (selected) {
           const isMinted = mintedAreaIds.has(selected.id);
           mintBtn.disabled = isMinted;
@@ -403,7 +432,7 @@
       }
     }
 
-    // TokenURI builder (data:application/json)
+    // TokenURI
     function buildAreaTokenURI(area) {
       const image = buildAreaSVG(area);
       const metadata = {
@@ -467,12 +496,10 @@
         const tx = await contract.mintWithURI(tokenURI, { value: price });
         await tx.wait();
 
-        // Update local state
         mintedAreaIds.add(selected.id);
         myOwnedAreaIds.add(selected.id);
         updateCountsPills();
 
-        // Re-style selection
         if (selectionLayer) {
           selectionLayer.setStyle(() => areaStyle(true, true, true));
           selectionLayer.bindPopup(`
@@ -494,7 +521,6 @@
       }
     }
 
-    // Minted data sync (parses tokenURIs to collect area_id values)
     async function refreshMinted(showToast = false) {
       try {
         if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
@@ -506,9 +532,7 @@
         const logs = await contractRead.queryFilter(filter, START_BLOCK, 'latest');
 
         const tokenIds = Array.from(new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean)));
-        const codeByToken = new Map();
 
-        // batch helper
         async function batch(items, size, cb) {
           const out = [];
           for (let i = 0; i < items.length; i += size) {
@@ -520,25 +544,26 @@
           return out;
         }
 
+        const areaIdByToken = new Map();
         await batch(tokenIds, 20, async (tid) => {
           try {
             const uri = await contractRead.tokenURI(tid);
             const meta = await resolveTokenMetadata(uri);
             const areaId = extractAreaId(meta);
-            if (areaId) codeByToken.set(tid, areaId);
+            if (areaId) areaIdByToken.set(tid, areaId);
           } catch {}
         });
 
-        mintedAreaIds = new Set(Array.from(codeByToken.values()));
+        mintedAreaIds = new Set(Array.from(areaIdByToken.values()));
 
         myOwnedAreaIds = new Set();
         if (userAddress) {
-          await batch(Array.from(codeByToken.keys()), 15, async (tid) => {
+          await batch(Array.from(areaIdByToken.keys()), 15, async (tid) => {
             try {
               const owner = await contractRead.ownerOf(tid);
               if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
-                const code = codeByToken.get(tid);
-                if (code) myOwnedAreaIds.add(code);
+                const id = areaIdByToken.get(tid);
+                if (id) myOwnedAreaIds.add(id);
               }
             } catch {}
           });
@@ -546,7 +571,6 @@
 
         updateCountsPills();
 
-        // Update current selection style if any
         if (selected && selectionLayer) {
           const isMinted = mintedAreaIds.has(selected.id);
           const isMine = myOwnedAreaIds.has(selected.id);
