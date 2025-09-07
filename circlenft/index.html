@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFT Photo Map — Mint Photos at Your Location</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIJbrJ7C2G2bN7Gpzt+5nCtA2oZ8JbM=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --error: #ef4444;
+      --bg-main: #0f1020;
+      --bg-card: #14162b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #253357;
+      --shadow: rgba(0,0,0,0.25);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 0% 0%, rgba(99,102,241,0.12), transparent 60%),
+                  radial-gradient(1200px 600px at 100% 0%, rgba(6,182,212,0.1), transparent 60%),
+                  linear-gradient(180deg, #0b0c1a, #0f1020);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; gap: 10px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: grid; place-items: center; box-shadow: 0 4px 12px var(--shadow);
+    }
+    .logo .material-icons { font-size: 16px; color: #fff; }
+    .title h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+    .title p { margin: 0; font-size: 11px; color: var(--muted); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      appearance: none; border: 1px solid transparent; border-radius: 10px;
+      padding: 8px 10px; font-size: 12px; font-weight: 600; color: #fff; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: transform .15s ease, background .2s ease, opacity .2s ease;
+      background: #1a1d36; border-color: #2a3560;
+    }
+    button .material-icons { font-size: 16px; }
+    button.primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-color: transparent; }
+    button.secondary { background: linear-gradient(135deg, var(--secondary), #35c9dd); border-color: transparent; color: #05262a; }
+    button.accent { background: linear-gradient(135deg, var(--accent), #fb923c); border-color: transparent; }
+    button:disabled { opacity: .6; cursor: not-allowed; transform: none !important; }
+    button:not(:disabled):active { transform: translateY(1px); }
+    main {
+      display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 12px 12px 12px;
+    }
+    #map {
+      height: 56vh; width: 100%;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      box-shadow: 0 8px 20px var(--shadow); overflow: hidden;
+    }
+    .panel {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px; display: grid; gap: 10px;
+    }
+    .row { display: grid; gap: 8px; }
+    .row.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .status {
+      min-height: 36px; display: grid; place-items: center; text-align: center;
+      font-size: 12px; border-radius: 10px; padding: 8px;
+      border: 1px solid #22345a; color: var(--muted);
+    }
+    .status.success { background: rgba(16,185,129,.12); color: var(--success); border-color: rgba(16,185,129,.35); }
+    .status.error { background: rgba(239,68,68,.12); color: var(--error); border-color: rgba(239,68,68,.35); }
+    .status.loading { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+    .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.25); border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .preview {
+      display: grid; gap: 8px;
+    }
+    .preview img {
+      max-width: 100%; height: auto; border-radius: 10px; display: none;
+      border: 1px solid var(--border); box-shadow: 0 6px 14px var(--shadow);
+    }
+    input[type="file"] { position: absolute; left: -9999px; opacity: 0; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .wallet-tag { color: var(--success); font-size: 11px; font-weight: 700; }
+    /* Thumbnail marker on the map */
+    .thumb-marker {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid #fff; box-shadow: 0 8px 16px rgba(0,0,0,.45);
+      overflow: hidden; position: relative; background: #0b0c1a;
+    }
+    .thumb-marker img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb-badge {
+      position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%;
+      display: grid; place-items: center; color: #fff; font-size: 14px;
+      background: linear-gradient(135deg, var(--success), #3bd3a6); border: 2px solid #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,.35);
+    }
+    /* Leaflet skin tweaks */
+    .leaflet-container { background: #0e1023; }
+    .leaflet-control-attribution, .leaflet-control-zoom a { background: #14162b; color: #cbd5e1; border-color: #2a3560; }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111327; color: #e5e7eb; border: 1px solid var(--border); }
+    .leaflet-popup-content a { color: #60a5fa; }
+    @media (min-width: 880px) {
+      main { grid-template-columns: 1.4fr .9fr; }
+      #map { height: 68vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"><span class="material-icons">auto_awesome</span></div>
+      <div class="title">
+        <h1>NFT Photo Map</h1>
+        <p>Place and mint your photo where you are</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="connectWalletBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
+      <button id="locateBtn" class="secondary"><span class="material-icons">my_location</span>Share Location</button>
+      <button id="cameraBtn" class="accent"><span class="material-icons">add_a_photo</span>Take/Upload Photo</button>
+      <input type="file" id="imageFile" accept="image/*" capture="environment" />
+    </div>
+  </header>
+
+  <main>
+    <div id="map"></div>
+
+    <div class="panel">
+      <div class="row inline" style="justify-content: space-between;">
+        <div>
+          <div class="hint">Network: Polygon • Minting Price: <strong>1 $POL</strong></div>
+          <div class="hint">Collection: <a href="https://opensea.io/collection/nft-photography-5" target="_blank">NFT PHOTOGRAPHY</a></div>
+        </div>
+        <div id="walletAddress" class="wallet-tag"></div>
+      </div>
+
+      <div class="preview">
+        <img id="preview" alt="Photo preview" />
+        <div class="hint">Your photo will appear at your current location on the map. Then you can mint it as an NFT.</div>
+      </div>
+
+      <div class="row inline">
+        <button id="mintBtn" class="primary" disabled>
+          <span class="material-icons">rocket_launch</span>Mint NFT
+        </button>
+        <button id="recenterBtn">
+          <span class="material-icons">center_focus_strong</span>Recenter
+        </button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    // Polygon Mainnet
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    // Contract
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "function mintPrice() view returns (uint256)"
+    ];
+
+    // Cloudinary
+    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
+    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
+    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+    // Ethers
+    let provider, signer, userAddress;
+
+    // Map / Geo
+    let map, userMarker, userCircle, photoMarker;
+    let currentPosition = null;
+    let previewDataUrl = null;
+    let uploadedImageUrl = null;
+
+    // UI elements
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const locateBtn = document.getElementById('locateBtn');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const fileInput = document.getElementById('imageFile');
+    const previewImg = document.getElementById('preview');
+    const mintBtn = document.getElementById('mintBtn');
+    const recenterBtn = document.getElementById('recenterBtn');
+    const walletAddressEl = document.getElementById('walletAddress');
+    const statusEl = document.getElementById('status');
+
+    // Init map
+    initMap();
+
+    function initMap() {
+      map = L.map('map', { zoomControl: true, zoom: 3, center: [20, 0] });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+    }
+
+    function setStatus(msg, type = '') {
+      if (!msg) {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+        return;
+      }
+      statusEl.className = 'status';
+      if (type === 'success') statusEl.classList.add('success');
+      if (type === 'error') statusEl.classList.add('error');
+      if (type === 'loading') {
+        statusEl.classList.add('loading');
+        statusEl.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
+      } else {
+        statusEl.textContent = msg;
+      }
+    }
+
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_PARAMS.chainId }]
+        });
+        return true;
+      } catch (e) {
+        if (e.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [POLYGON_PARAMS]
+            });
+            return true;
+          } catch (err) {
+            setStatus('Failed to add Polygon to wallet', 'error');
+            return false;
+          }
+        }
+        setStatus('Failed to switch network', 'error');
+        return false;
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus('Please install MetaMask to continue', 'error');
+        return;
+      }
+      try {
+        setStatus('Connecting wallet...', 'loading');
+        const switched = await switchToPolygon();
+        if (!switched) return;
+
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        connectWalletBtn.disabled = true;
+        connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
+        walletAddressEl.textContent = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+
+        setStatus('Wallet connected. Share your location and add a photo.', 'success');
+        updateMintEnabled();
+      } catch (e) {
+        setStatus('Wallet connection failed', 'error');
+      }
+    }
+
+    function shareLocation() {
+      if (!('geolocation' in navigator)) {
+        setStatus('Geolocation not supported in this browser', 'error');
+        return;
+      }
+      setStatus('Getting your location...', 'loading');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          currentPosition = [latitude, longitude];
+
+          // Marker and accuracy circle
+          if (userMarker) map.removeLayer(userMarker);
+          if (userCircle) map.removeLayer(userCircle);
+
+          userMarker = L.marker(currentPosition).addTo(map).bindPopup('You are here');
+          userCircle = L.circle(currentPosition, { radius: accuracy, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 0.1 }).addTo(map);
+
+          map.setView(currentPosition, 16, { animate: true });
+          setStatus('Location set. Now add a photo.', 'success');
+
+          maybePlacePhotoMarker();
+          updateMintEnabled();
+        },
+        (err) => {
+          setStatus('Failed to get location: ' + err.message, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function updateMintEnabled() {
+      const ready = Boolean(userAddress && currentPosition && previewDataUrl);
+      mintBtn.disabled = !ready;
+    }
+
+    cameraBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', onFileSelected);
+
+    function onFileSelected() {
+      if (!fileInput.files || !fileInput.files[0]) {
+        previewImg.style.display = 'none';
+        previewDataUrl = null;
+        updateMintEnabled();
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewDataUrl = e.target.result;
+        previewImg.src = previewDataUrl;
+        previewImg.style.display = 'block';
+
+        setStatus('Photo added. Ready to mint once location and wallet are set.', 'success');
+        maybePlacePhotoMarker();
+        updateMintEnabled();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function makeThumbIcon(src, minted = false) {
+      const badge = minted ? `<div class="thumb-badge"><span class="material-icons" style="font-size:14px;">check</span></div>` : '';
+      return L.divIcon({
+        className: 'thumb-icon',
+        html: `<div class="thumb-marker"><img src="${src}"/>${badge}</div>`,
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
+        popupAnchor: [0, -26]
+      });
+    }
+
+    function maybePlacePhotoMarker() {
+      if (!currentPosition || !previewDataUrl) return;
+
+      if (photoMarker) {
+        photoMarker.setIcon(makeThumbIcon(previewDataUrl, Boolean(uploadedImageUrl)));
+        photoMarker.setLatLng(currentPosition);
+      } else {
+        photoMarker = L.marker(currentPosition, { icon: makeThumbIcon(previewDataUrl, false) }).addTo(map);
+      }
+
+      const metaHtml = `
+        <div style="min-width:180px">
+          <div style="font-weight:700;margin-bottom:6px;">Your Photo</div>
+          <img src="${previewDataUrl}" alt="preview" style="width:100%;border-radius:8px;border:1px solid #253357;"/>
+          ${uploadedImageUrl ? `<div style="margin-top:8px;">
+            <a href="${uploadedImageUrl}" target="_blank">Open image</a>
+          </div>` : ''}
+          <div style="margin-top:8px;color:#94a3b8;font-size:12px;">Lat: ${currentPosition[0].toFixed(5)}, Lng: ${currentPosition[1].toFixed(5)}</div>
+        </div>
+      `;
+      photoMarker.bindPopup(metaHtml).openPopup();
+    }
+
+    async function uploadToCloudinary(file) {
+      setStatus('Uploading photo...', 'loading');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!data || !data.secure_url) throw new Error('Upload failed');
+      return data.secure_url;
+    }
+
+    async function mintNFT(imageUrl) {
+      if (!provider || !signer) throw new Error('Connect wallet first');
+
+      setStatus('Minting NFT...', 'loading');
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      // Fixed 1 POL price (override). If your contract supports mintPrice(), consider reading it instead.
+      const mintPrice = ethers.utils.parseUnits('1', 18);
+
+      // NOTE: Contract accepts tokenURI (string). We pass the image URL directly.
+      // If you want location in metadata, consider uploading a JSON metadata object and passing that URL here.
+      const tx = await contract.mintWithURI(imageUrl, { value: mintPrice });
+      await tx.wait();
+    }
+
+    async function onMint() {
+      try {
+        if (!fileInput.files || !fileInput.files[0]) {
+          setStatus('Please select a photo first', 'error');
+          return;
+        }
+        if (!currentPosition) {
+          setStatus('Please share your location first', 'error');
+          return;
+        }
+        if (!userAddress) {
+          setStatus('Please connect your wallet first', 'error');
+          return;
+        }
+
+        mintBtn.disabled = true;
+
+        // Upload image
+        const imageUrl = await uploadToCloudinary(fileInput.files[0]);
+        uploadedImageUrl = imageUrl;
+
+        // Mint
+        await mintNFT(imageUrl);
+
+        // Update marker with minted badge and popup link
+        if (photoMarker) {
+          photoMarker.setIcon(makeThumbIcon(previewDataUrl || uploadedImageUrl, true));
+          const mintedHtml = `
+            <div style="min-width:200px;text-align:center;">
+              <div style="font-weight:800;margin-bottom:6px;color:#10b981;">NFT Minted!</div>
+              <img src="${uploadedImageUrl}" alt="minted" style="width:100%;border-radius:8px;border:1px solid #253357;"/>
+              <div style="margin-top:8px;font-size:12px;color:#94a3b8;">Lat: ${currentPosition[0].toFixed(5)}, Lng: ${currentPosition[1].toFixed(5)}</div>
+              <div style="margin-top:10px;">
+                <a href="https://opensea.io/collection/nft-photography-5" target="_blank">View Collection on OpenSea →</a>
+              </div>
+            </div>
+          `;
+          photoMarker.setPopupContent(mintedHtml).openPopup();
+        }
+
+        setStatus('Success! Your photo NFT has been minted.', 'success');
+
+        // Re-enable mint in case user wants to mint another
+        mintBtn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        setStatus('Minting failed: ' + (e?.message || 'Unknown error'), 'error');
+        mintBtn.disabled = false;
+      }
+    }
+
+    function recenter() {
+      if (!currentPosition) {
+        setStatus('No location yet. Tap Share Location first.', 'error');
+        return;
+      }
+      map.setView(currentPosition, 16, { animate: true });
+      setStatus('Map centered to your location', 'success');
+    }
+
+    connectWalletBtn.addEventListener('click', connectWallet);
+    locateBtn.addEventListener('click', shareLocation);
+    recenterBtn.addEventListener('click', recenter);
+    mintBtn.addEventListener('click', onMint);
+
+    // Auto-connect if wallet already connected and ask for location on load (best effort)
+    window.addEventListener('load', async () => {
+      try {
+        if (window.ethereum?.selectedAddress) await connectWallet();
+      } catch {}
+      // Only prompt geolocation after a small delay to avoid immediate popup
+      setTimeout(() => {
+        // Optionally auto-prompt; comment out if you prefer manual Share Location
+        // shareLocation();
+      }, 600);
+    });
+  </script>
+</body>
+</html>
