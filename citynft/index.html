@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Firebase (compat SDK for simple script use) -->
+  <!-- Firebase (compat SDK) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
   <style>
@@ -77,18 +77,16 @@
     @media (min-width: 980px) { main { grid-template-columns: 1.6fr 1fr; } }
 
     #map {
-      height: 64vh; width: 100%;
+      height: 72vh; width: 100%;
       border-radius: var(--radius); border: 1px solid var(--border);
       overflow: hidden; background: #0e1023; box-shadow: 0 8px 20px var(--shadow);
       position: relative;
+      grid-column: 1 / -1;
     }
 
     .panel {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 12px; display: grid; gap: 10px;
-    }
-    .panel h3 {
-      margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #e5e7eb;
     }
     .row { display: grid; gap: 8px; }
     .row.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -135,51 +133,6 @@
     }
     .toast .spinner { width: 16px; height: 16px; border-width: 2px; }
     .toast .material-icons { font-size: 18px; color: #60a5fa; }
-
-    /* NFT grids */
-    .nfts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 10px;
-      width: 100%;
-    }
-    .nft-card {
-      background: #0f1329;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      display: grid;
-      grid-template-rows: auto 1fr;
-    }
-    .nft-card .img {
-      width: 100%;
-      aspect-ratio: 4 / 2;
-      background: #0b0c1a;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-    }
-    .nft-card .img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .nft-card .meta {
-      padding: 8px;
-      display: grid;
-      gap: 4px;
-    }
-    .nft-title {
-      font-size: 12px; font-weight: 800; color: #e5e7eb;
-    }
-    .nft-sub {
-      font-size: 11px; color: #94a3b8;
-      display: flex; gap: 6px; flex-wrap: wrap;
-    }
-    .empty {
-      font-size: 12px; color: #94a3b8; padding: 8px; border: 1px dashed #22345a; border-radius: 10px; text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -225,20 +178,6 @@
 
       <div id="status" class="status"></div>
     </div>
-
-    <!-- My NFTs panel -->
-    <div class="panel">
-      <h3>My Minted NFTs</h3>
-      <div id="myNfts" class="nfts-grid"></div>
-      <div id="myNftsEmpty" class="empty" style="display:none;">Connect your wallet to see your minted NFTs.</div>
-    </div>
-
-    <!-- All NFTs panel -->
-    <div class="panel">
-      <h3>All Minted NFTs</h3>
-      <div id="allNfts" class="nfts-grid"></div>
-      <div id="allNftsEmpty" class="empty" style="display:none;">No NFTs minted yet.</div>
-    </div>
   </main>
 
   <!-- Loading toast shown while city/area polygon is being fetched -->
@@ -283,20 +222,27 @@
 
     // Map / state
     let map;
-    let selectionLayer; // L.GeoJSON
+    let selectionLayer; // L.GeoJSON for selected area
     let selected = null; // { id, name, type, center, geojson }
-    let mintedAreaIds = new Set();
-    let myOwnedAreaIds = new Set();
+    let mintedAreaIds = new Set(); // all minted area ids
+    let myOwnedAreaIds = new Set(); // area ids I own
     let isCityLoading = false;
+
+    // Layers for minted NFTs on map
+    let mintedLayerGroup; // L.LayerGroup
+    const mintedLayersByAreaId = new Map(); // areaId -> L.GeoJSON
+    const areaOwnerByAreaId = new Map(); // areaId -> ownerLower
+
+    // Caches for OSM polygons
+    const polygonCache = new Map(); // areaId -> GeoJSON
+    const polygonFetchPromises = new Map(); // areaId -> Promise<GeoJSON>
 
     // Ethers
     let web3Provider, readProvider, signer, userAddress;
 
     // Firebase
     let fbApp, fbDb;
-    let allNftsCache = {}; // { tokenId: nftObj }
     let allNftsRef = null;
-    let myNftsRef = null;
 
     // UI
     const connectBtn = document.getElementById('connectBtn');
@@ -309,10 +255,6 @@
     const ownedCountPill = document.getElementById('ownedCountPill');
     const mintedCountPill = document.getElementById('mintedCountPill');
     const cityLoadingEl = document.getElementById('cityLoading');
-    const myNftsEl = document.getElementById('myNfts');
-    const myNftsEmptyEl = document.getElementById('myNftsEmpty');
-    const allNftsEl = document.getElementById('allNfts');
-    const allNftsEmptyEl = document.getElementById('allNftsEmpty');
 
     function showCityLoading(text = 'Please wait, loading city…') {
       cityLoadingEl.querySelector('.text').textContent = text;
@@ -350,6 +292,8 @@
       })
       .on('tileerror', () => setStatus('Tile load error (network/rate limit).', 'error'))
       .addTo(map);
+
+      mintedLayerGroup = L.layerGroup().addTo(map);
 
       map.on('click', onMapClick);
       setTimeout(() => map.invalidateSize(), 300);
@@ -506,7 +450,10 @@
         readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
 
         setStatus('Wallet connected. Loading minted areas...', 'loading');
-        await refreshMinted(true);
+        await refreshMinted(true); // also syncs to Firebase
+
+        // Re-style any existing minted polygons for current ownership
+        restyleAllMintedPolygons();
 
         if (selected) {
           const isMinted = mintedAreaIds.has(selected.id);
@@ -514,9 +461,6 @@
         } else {
           mintBtn.disabled = true;
         }
-
-        // Start Firebase listener for my NFTs
-        updateMyNftsFromCache();
 
         // Listen for account changes
         if (window.ethereum && typeof window.ethereum.on === 'function') {
@@ -535,18 +479,19 @@
         walletEl.textContent = shortAddr(userAddress);
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
-        updateMyNftsFromCache();
-        refreshMinted(true).catch(console.error);
+        // Update my ownership set and restyle polygons
+        recomputeMyOwnershipFromOwners();
+        restyleAllMintedPolygons();
       } else {
         walletEl.textContent = '';
         connectBtn.disabled = false;
         connectBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect';
-        myNftsEl.innerHTML = '';
-        myNftsEmptyEl.style.display = '';
+        myOwnedAreaIds.clear();
+        restyleAllMintedPolygons();
       }
     }
 
-    // TokenURI
+    // TokenURI helpers
     function buildAreaTokenURI(area) {
       const image = buildAreaSVG(area);
       const metadata = {
@@ -593,6 +538,7 @@
       return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
     }
 
+    // Mint flow
     async function mintSelectedArea() {
       try {
         if (!userAddress) { setStatus('Connect wallet first', 'error'); return; }
@@ -646,7 +592,7 @@
           console.warn('Failed to write immediate NFT to Firebase:', e);
         }
 
-        // Refresh from chain and sync to Firebase
+        // Refresh from chain and sync to Firebase (other viewers will get it)
         await refreshMinted(true);
       } catch (e) {
         console.error(e);
@@ -655,6 +601,7 @@
       }
     }
 
+    // Refresh minted from chain and sync to Firebase (source of truth is chain)
     async function refreshMinted(showToast = false) {
       try {
         if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
@@ -691,8 +638,6 @@
           } catch {}
         });
 
-        mintedAreaIds = new Set(Array.from(areaIdByToken.values()));
-
         // Owners
         const ownerByToken = new Map();
         await batch(Array.from(areaIdByToken.keys()), 15, async (tid) => {
@@ -702,6 +647,8 @@
           } catch {}
         });
 
+        // Update in-memory sets for pills
+        mintedAreaIds = new Set(Array.from(areaIdByToken.values()));
         myOwnedAreaIds = new Set();
         if (userAddress) {
           for (const [tid, owner] of ownerByToken.entries()) {
@@ -711,21 +658,12 @@
             }
           }
         }
-
         updateCountsPills();
-
-        if (selected && selectionLayer) {
-          const isMinted = mintedAreaIds.has(selected.id);
-          const isMine = myOwnedAreaIds.has(selected.id);
-          selectionLayer.setStyle(() => areaStyle(isMinted, isMine, true));
-          selectionPill.style.display = 'inline-flex';
-          selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(selected.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
-          mintBtn.disabled = !userAddress || isMinted;
-        }
 
         // Sync to Firebase (nfts and byOwner)
         await syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById);
 
+        // After sync, polygons will be rendered via Firebase listeners
         if (showToast) setStatus('Minted list updated.', 'success');
         else setStatus('', '');
       } catch (e) {
@@ -734,6 +672,7 @@
       }
     }
 
+    // Metadata helpers
     async function resolveTokenMetadata(uri) {
       if (!uri) return null;
       if (uri.startsWith('data:application/json')) {
@@ -755,6 +694,17 @@
         }
       }
       return null;
+    }
+    function extractCenter(meta) {
+      let lat = null, lng = null;
+      if (Array.isArray(meta?.attributes)) {
+        for (const a of meta.attributes) {
+          const k = (a.trait_type || a.trait || '').toLowerCase();
+          if (k.includes('center latitude')) lat = Number(a.value);
+          if (k.includes('center longitude')) lng = Number(a.value);
+        }
+      }
+      return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
     }
 
     function updateCountsPills() {
@@ -781,47 +731,218 @@
       setStatus('Selection cleared. Click another area.', 'success');
     }
 
-    // Firebase init and helpers
+    // Firebase init and realtime listeners (map-only rendering)
     function initFirebase() {
       try {
         fbApp = firebase.initializeApp(firebaseConfig);
         fbDb = firebase.database();
-        // Subscribe to all NFTs for display
-        subscribeAllNfts();
+        subscribeMintedOnFirebase();
       } catch (e) {
         console.error('Firebase init failed', e);
       }
     }
 
-    function subscribeAllNfts() {
+    function subscribeMintedOnFirebase() {
       if (!fbDb) return;
-      if (allNftsRef) allNftsRef.off();
-      allNftsRef = fbDb.ref('nfts');
-      allNftsRef.on('value', (snap) => {
-        const val = snap.val() || {};
-        allNftsCache = val;
-        renderAllNfts(Object.entries(val).map(([tokenId, obj]) => ({ tokenId, ...obj })));
-        updateMyNftsFromCache();
-      }, (err) => console.warn('All NFTs listen error', err));
-    }
-
-    function updateMyNftsFromCache() {
-      if (!userAddress) {
-        myNftsEl.innerHTML = '';
-        myNftsEmptyEl.style.display = '';
-        return;
+      if (allNftsRef) {
+        allNftsRef.off();
       }
-      const lower = userAddress.toLowerCase();
-      const mine = Object.entries(allNftsCache)
-        .map(([tokenId, obj]) => ({ tokenId, ...obj }))
-        .filter(n => (n.ownerLower || '').toLowerCase() === lower);
+      allNftsRef = fbDb.ref('nfts');
 
-      renderMyNfts(mine);
+      allNftsRef.on('child_added', (snap) => {
+        const tokenId = snap.key;
+        const data = snap.val() || {};
+        upsertMintedAreaOnMap(tokenId, data);
+      });
+      allNftsRef.on('child_changed', (snap) => {
+        const tokenId = snap.key;
+        const data = snap.val() || {};
+        upsertMintedAreaOnMap(tokenId, data);
+      });
+      allNftsRef.on('child_removed', (snap) => {
+        const tokenId = snap.key;
+        const data = snap.val() || {};
+        removeMintedAreaFromMap(data.areaId);
+      });
     }
 
+    function recomputeMyOwnershipFromOwners() {
+      myOwnedAreaIds.clear();
+      if (!userAddress) return;
+      const lower = userAddress.toLowerCase();
+      for (const [areaId, ownerLower] of areaOwnerByAreaId.entries()) {
+        if (ownerLower && ownerLower === lower) myOwnedAreaIds.add(areaId);
+      }
+      updateCountsPills();
+    }
+
+    function restyleAllMintedPolygons() {
+      for (const [areaId, layer] of mintedLayersByAreaId.entries()) {
+        const isMine = myOwnedAreaIds.has(areaId);
+        const newStyle = areaStyle(true, isMine, false);
+        try { layer.setStyle(newStyle); } catch {}
+      }
+      // Also update current selection pill if relevant
+      if (selected && selectionLayer) {
+        const isMinted = mintedAreaIds.has(selected.id);
+        const isMine = myOwnedAreaIds.has(selected.id);
+        selectionLayer.setStyle(() => areaStyle(isMinted, isMine, true));
+        selectionPill.style.display = 'inline-flex';
+        selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">place</span> ${escapeHTML(shortenName(selected.name))} · ${isMine ? 'You own' : isMinted ? 'Minted' : 'Unminted'}`;
+        mintBtn.disabled = !userAddress || isMinted;
+      }
+    }
+
+    function areaIdToLookupParam(areaId) {
+      // areaId format: "osm:relation:12345" | "osm:way:123" | "osm:node:123"
+      if (!areaId || typeof areaId !== 'string') return null;
+      const parts = areaId.split(':');
+      if (parts.length !== 3) return null;
+      const type = parts[1];
+      const id = parts[2];
+      let prefix = null;
+      if (type === 'relation') prefix = 'R';
+      if (type === 'way') prefix = 'W';
+      if (type === 'node') prefix = 'N';
+      if (!prefix) return null;
+      return `${prefix}${id}`;
+    }
+
+    async function fetchPolygonForAreaId(areaId) {
+      if (polygonCache.has(areaId)) return polygonCache.get(areaId);
+      if (polygonFetchPromises.has(areaId)) return polygonFetchPromises.get(areaId);
+
+      const p = (async () => {
+        const osmParam = areaIdToLookupParam(areaId);
+        if (!osmParam) return null;
+        // Gentle rate limiting
+        await new Promise(r => setTimeout(r, 350));
+        const url = new URL('https://nominatim.openstreetmap.org/lookup');
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('osm_ids', osmParam);
+        url.searchParams.set('polygon_geojson', '1');
+        url.searchParams.set('addressdetails', '1');
+        const res = await fetch(url.toString(), { headers: { 'Accept-Language': 'en' } });
+        if (!res.ok) throw new Error('Nominatim lookup failed');
+        const arr = await res.json();
+        const item = Array.isArray(arr) ? arr[0] : null;
+        const geojson = item?.geojson || item?.geometry || null;
+        if (geojson && geojson.type && geojson.coordinates) {
+          polygonCache.set(areaId, geojson);
+          return geojson;
+        }
+        return null;
+      })().finally(() => {
+        polygonFetchPromises.delete(areaId);
+      });
+
+      polygonFetchPromises.set(areaId, p);
+      return p;
+    }
+
+    async function upsertMintedAreaOnMap(tokenId, nft) {
+      try {
+        const areaId = String(nft.areaId || '');
+        if (!areaId) return;
+
+        mintedAreaIds.add(areaId);
+
+        const ownerLower = (nft.ownerLower || '').toLowerCase();
+        areaOwnerByAreaId.set(areaId, ownerLower);
+
+        if (userAddress && ownerLower === userAddress.toLowerCase()) {
+          myOwnedAreaIds.add(areaId);
+        }
+
+        updateCountsPills();
+
+        // Fetch polygon if needed
+        let geojson = polygonCache.get(areaId);
+        if (!geojson) {
+          geojson = await fetchPolygonForAreaId(areaId).catch(() => null);
+        }
+        if (!geojson) return;
+
+        const isMine = userAddress && ownerLower === userAddress.toLowerCase();
+
+        // If exists, update style and popup
+        if (mintedLayersByAreaId.has(areaId)) {
+          const layer = mintedLayersByAreaId.get(areaId);
+          try {
+            layer.setStyle(areaStyle(true, isMine, false));
+            layer._popup && layer.setPopupContent(buildMintedPopupHTML(nft, areaId));
+          } catch {}
+          return;
+        }
+
+        // Create new layer
+        const layer = L.geoJSON(geojson, {
+          style: () => areaStyle(true, isMine, false)
+        });
+
+        // Determine center for popup and map view if needed
+        let center = null;
+        if (Number.isFinite(nft.centerLat) && Number.isFinite(nft.centerLng)) {
+          center = { lat: nft.centerLat, lng: nft.centerLng };
+        } else if (Array.isArray(nft.attributes)) {
+          const maybe = extractCenter({ attributes: nft.attributes });
+          if (maybe) center = maybe;
+        } else {
+          const b = layer.getBounds();
+          if (b.isValid()) center = b.getCenter();
+        }
+
+        // Bind popup
+        layer.bindPopup(buildMintedPopupHTML(nft, areaId));
+
+        // Click selects area
+        layer.on('click', () => {
+          const name = nft.name || 'Minted Area';
+          const type = ''; // unknown here
+          const sel = { id: areaId, name, type, center: center || { lat: 0, lng: 0 }, geojson };
+          selectArea(sel);
+        });
+
+        layer.addTo(mintedLayerGroup);
+        mintedLayersByAreaId.set(areaId, layer);
+      } catch (e) {
+        console.warn('Failed to upsert minted area on map', e);
+      }
+    }
+
+    function buildMintedPopupHTML(nft, areaId) {
+      const title = escapeHTML(nft?.name || 'Minted Area');
+      const owner = nft?.owner ? escapeHTML(shortAddr(nft.owner)) : '';
+      const img = nft?.image ? `<div style="margin:6px 0;border-radius:8px;overflow:hidden;"><img src="${nft.image}" alt="${title}" style="width:100%;max-width:260px;display:block;"/></div>` : '';
+      return `
+        <div style="min-width:220px;">
+          <div style="font-weight:800;margin-bottom:4px;">${title}</div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:6px;">ID: ${escapeHTML(areaId)}</div>
+          ${img}
+          ${owner ? `<div style="font-size:12px;color:#cbd5e1;">Owner: ${owner}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function removeMintedAreaFromMap(areaId) {
+      try {
+        mintedAreaIds.delete(areaId);
+        myOwnedAreaIds.delete(areaId);
+        areaOwnerByAreaId.delete(areaId);
+        const layer = mintedLayersByAreaId.get(areaId);
+        if (layer) {
+          layer.remove();
+          mintedLayersByAreaId.delete(areaId);
+        }
+        updateCountsPills();
+      } catch {}
+    }
+
+    // Firebase writers (called after mint or chain sync)
     async function writeNftToFirebase(tokenId, owner, meta) {
       if (!fbDb || !meta) return;
       const areaId = extractAreaId(meta) || '';
+      const center = extractCenter(meta);
       const payload = {
         tokenId: tokenId || '',
         owner: owner || '',
@@ -829,7 +950,9 @@
         areaId,
         name: meta.name || 'NFT Area',
         image: meta.image || '',
-        tokenURI: '', // optional, keep empty for data-URIs unless needed
+        centerLat: center?.lat ?? null,
+        centerLng: center?.lng ?? null,
+        tokenURI: '', // omit data-URIs to save space
         updatedAt: Date.now()
       };
       const updates = {};
@@ -839,7 +962,6 @@
           updates[`/byOwner/${payload.ownerLower}/${tokenId}`] = true;
         }
       } else {
-        // If tokenId unknown, push under a temp key for visibility
         const tempKey = fbDb.ref('/nfts').push().key;
         updates[`/nfts/${tempKey}`] = payload;
         if (payload.ownerLower) {
@@ -858,6 +980,7 @@
         const meta = metaObj?.meta;
         if (!meta) continue;
         const areaId = extractAreaId(meta) || '';
+        const center = extractCenter(meta);
         const payload = {
           tokenId: tid,
           owner,
@@ -865,6 +988,8 @@
           areaId,
           name: meta.name || 'NFT Area',
           image: meta.image || '',
+          centerLat: center?.lat ?? null,
+          centerLng: center?.lng ?? null,
           tokenURI: metaObj?.uri || '',
           updatedAt: Date.now()
         };
@@ -876,52 +1001,6 @@
       if (Object.keys(updates).length > 0) {
         await fbDb.ref().update(updates);
       }
-    }
-
-    // Rendering
-    function renderAllNfts(list) {
-      if (!Array.isArray(list) || list.length === 0) {
-        allNftsEl.innerHTML = '';
-        allNftsEmptyEl.style.display = '';
-        return;
-      }
-      allNftsEmptyEl.style.display = 'none';
-      allNftsEl.innerHTML = list.map(n => nftCardHTML(n)).join('');
-    }
-    function renderMyNfts(list) {
-      if (!userAddress) {
-        myNftsEl.innerHTML = '';
-        myNftsEmptyEl.style.display = '';
-        return;
-      }
-      if (!Array.isArray(list) || list.length === 0) {
-        myNftsEl.innerHTML = '';
-        myNftsEmptyEl.textContent = 'No NFTs minted for this wallet yet.';
-        myNftsEmptyEl.style.display = '';
-        return;
-      }
-      myNftsEmptyEl.style.display = 'none';
-      myNftsEl.innerHTML = list.map(n => nftCardHTML(n)).join('');
-    }
-    function nftCardHTML(n) {
-      const title = escapeHTML(n.name || 'NFT Area');
-      const areaId = escapeHTML(n.areaId || '');
-      const ownerShort = escapeHTML(shortAddr(n.owner || ''));
-      const tokenShort = escapeHTML(String(n.tokenId || '').slice(0,10));
-      const img = n.image || '';
-      return `
-        <div class="nft-card">
-          <div class="img">${img ? `<img src="${img}" alt="${title}">` : ''}</div>
-          <div class="meta">
-            <div class="nft-title">${title}</div>
-            <div class="nft-sub">
-              <span>Token: ${tokenShort}</span>
-              ${areaId ? `<span>Area: ${areaId}</span>` : ''}
-              ${ownerShort ? `<span>Owner: ${ownerShort}</span>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
     }
 
     // UI bindings
@@ -936,8 +1015,6 @@
       initFirebase();
       if (window.ethereum?.selectedAddress) {
         connectWallet().catch(() => {});
-      } else {
-        myNftsEmptyEl.style.display = '';
       }
     });
   </script>
