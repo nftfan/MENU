@@ -2,30 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>NFT Photo Map — Mint Photos at Your Location</title>
+  <title>NFT Circle Map — Draw a Circle (≤ 1 km) and Mint</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="preconnect" href="https://unpkg.com" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIJbrJ7C2G2bN7Gpzt+5nCtA2oZ8JbM=" crossorigin=""></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet" />
+  <!-- Leaflet + Leaflet.draw via jsDelivr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
       --primary: #6366f1;
       --primary-dark: #4f46e5;
-      --secondary: #06b6d4;
       --accent: #f59e0b;
       --success: #10b981;
       --error: #ef4444;
-      --bg-main: #0f1020;
-      --bg-card: #14162b;
+      --bg: #0f1020;
+      --card: #14162b;
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #253357;
-      --shadow: rgba(0,0,0,0.25);
       --radius: 12px;
+      --shadow: rgba(0,0,0,0.25);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -33,56 +34,57 @@
       margin: 0;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: radial-gradient(1200px 600px at 0% 0%, rgba(99,102,241,0.12), transparent 60%),
-                  radial-gradient(1200px 600px at 100% 0%, rgba(6,182,212,0.1), transparent 60%),
+                  radial-gradient(1200px 600px at 100% 0%, rgba(245,158,11,0.1), transparent 60%),
                   linear-gradient(180deg, #0b0c1a, #0f1020);
       color: var(--text);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
     header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 12px; gap: 10px;
     }
-    .brand {
-      display: flex; align-items: center; gap: 8px;
-    }
+    .brand { display: flex; align-items: center; gap: 10px; }
     .logo {
       width: 28px; height: 28px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background: linear-gradient(135deg, var(--primary), var(--accent));
       display: grid; place-items: center; box-shadow: 0 4px 12px var(--shadow);
     }
     .logo .material-icons { font-size: 16px; color: #fff; }
-    .title h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+    .title h1 { margin: 0; font-size: 16px; font-weight: 700; }
     .title p { margin: 0; font-size: 11px; color: var(--muted); }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     button {
       appearance: none; border: 1px solid transparent; border-radius: 10px;
-      padding: 8px 10px; font-size: 12px; font-weight: 600; color: #fff; cursor: pointer;
-      display: inline-flex; align-items: center; gap: 6px; transition: transform .15s ease, background .2s ease, opacity .2s ease;
-      background: #1a1d36; border-color: #2a3560;
+      padding: 8px 10px; font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1a1d36; border-color: #2a3560; transition: transform .15s ease, opacity .2s ease;
     }
     button .material-icons { font-size: 16px; }
     button.primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-color: transparent; }
-    button.secondary { background: linear-gradient(135deg, var(--secondary), #35c9dd); border-color: transparent; color: #05262a; }
-    button.accent { background: linear-gradient(135deg, var(--accent), #fb923c); border-color: transparent; }
+    button.accent { background: linear-gradient(135deg, var(--accent), #fb923c); border-color: transparent; color: #1a1305; }
+    button.success { background: linear-gradient(135deg, var(--success), #34d399); border-color: transparent; color: #052318; }
     button:disabled { opacity: .6; cursor: not-allowed; transform: none !important; }
     button:not(:disabled):active { transform: translateY(1px); }
-    main {
-      display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 12px 12px 12px;
-    }
+    .wallet { color: #a7f3d0; font-size: 12px; font-weight: 700; }
+
+    main { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 12px 12px; }
+    @media (min-width: 900px) { main { grid-template-columns: 1.5fr 1fr; } }
+
     #map {
-      height: 56vh; width: 100%;
+      height: 62vh; width: 100%;
       border-radius: var(--radius); border: 1px solid var(--border);
-      box-shadow: 0 8px 20px var(--shadow); overflow: hidden;
+      overflow: hidden; background: #0e1023; box-shadow: 0 8px 20px var(--shadow);
     }
+
     .panel {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 10px; display: grid; gap: 10px;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px; display: grid; gap: 10px;
     }
     .row { display: grid; gap: 8px; }
     .row.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
     .status {
-      min-height: 36px; display: grid; place-items: center; text-align: center;
+      min-height: 38px; display: grid; place-items: center; text-align: center;
       font-size: 12px; border-radius: 10px; padding: 8px;
       border: 1px solid #22345a; color: var(--muted);
     }
@@ -95,81 +97,56 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .preview {
-      display: grid; gap: 8px;
-    }
-    .preview img {
-      max-width: 100%; height: auto; border-radius: 10px; display: none;
-      border: 1px solid var(--border); box-shadow: 0 6px 14px var(--shadow);
-    }
-    input[type="file"] { position: absolute; left: -9999px; opacity: 0; }
+
     .hint { color: var(--muted); font-size: 12px; }
-    .wallet-tag { color: var(--success); font-size: 11px; font-weight: 700; }
-    /* Thumbnail marker on the map */
-    .thumb-marker {
-      width: 48px; height: 48px; border-radius: 50%;
-      border: 2px solid #fff; box-shadow: 0 8px 16px rgba(0,0,0,.45);
-      overflow: hidden; position: relative; background: #0b0c1a;
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--border);
+      background: #0f1329; color: #cbd5e1;
     }
-    .thumb-marker img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumb-badge {
-      position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%;
-      display: grid; place-items: center; color: #fff; font-size: 14px;
-      background: linear-gradient(135deg, var(--success), #3bd3a6); border: 2px solid #fff;
-      box-shadow: 0 4px 10px rgba(0,0,0,.35);
-    }
-    /* Leaflet skin tweaks */
     .leaflet-container { background: #0e1023; }
     .leaflet-control-attribution, .leaflet-control-zoom a { background: #14162b; color: #cbd5e1; border-color: #2a3560; }
     .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111327; color: #e5e7eb; border: 1px solid var(--border); }
-    .leaflet-popup-content a { color: #60a5fa; }
-    @media (min-width: 880px) {
-      main { grid-template-columns: 1.4fr .9fr; }
-      #map { height: 68vh; }
-    }
+    .leaflet-draw-toolbar a { background: #14162b; border-color: #2a3560; }
+    .leaflet-draw-toolbar a:hover { background: #1a1d36; }
   </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <div class="logo"><span class="material-icons">auto_awesome</span></div>
+      <div class="logo"><span class="material-icons">radio_button_checked</span></div>
       <div class="title">
-        <h1>NFT Photo Map</h1>
-        <p>Place and mint your photo where you are</p>
+        <h1>NFT Circle Map</h1>
+        <p>Draw a circle (max 1 km diameter) and mint it</p>
       </div>
     </div>
     <div class="actions">
-      <button id="connectWalletBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
-      <button id="locateBtn" class="secondary"><span class="material-icons">my_location</span>Share Location</button>
-      <button id="cameraBtn" class="accent"><span class="material-icons">add_a_photo</span>Take/Upload Photo</button>
-      <input type="file" id="imageFile" accept="image/*" capture="environment" />
+      <span class="pill"><span class="material-icons" style="font-size:16px;">paid</span> Mint Price: <strong style="margin-left:4px;">1 $POL</strong></span>
+      <button id="connectBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
+      <span id="wallet" class="wallet"></span>
     </div>
   </header>
 
   <main>
-    <div id="map"></div>
+    <div id="map" aria-label="Map"></div>
 
     <div class="panel">
-      <div class="row inline" style="justify-content: space-between;">
-        <div>
-          <div class="hint">Network: Polygon • Minting Price: <strong>1 $POL</strong></div>
-          <div class="hint">Collection: <a href="https://opensea.io/collection/nft-photography-5" target="_blank">NFT PHOTOGRAPHY</a></div>
+      <div class="row">
+        <div class="hint">Instructions</div>
+        <ul class="hint" style="margin:0 0 6px 18px;">
+          <li>Use the circle tool on the map to draw an area.</li>
+          <li>Maximum diameter is 1 km (radius ≤ 500 m). Larger circles will be rejected.</li>
+          <li>Connect your wallet, then press Mint Circle.</li>
+        </ul>
+        <div class="row inline">
+          <span id="circleInfo" class="pill" style="display:none;"></span>
         </div>
-        <div id="walletAddress" class="wallet-tag"></div>
-      </div>
-
-      <div class="preview">
-        <img id="preview" alt="Photo preview" />
-        <div class="hint">Your photo will appear at your current location on the map. Then you can mint it as an NFT.</div>
       </div>
 
       <div class="row inline">
-        <button id="mintBtn" class="primary" disabled>
-          <span class="material-icons">rocket_launch</span>Mint NFT
-        </button>
-        <button id="recenterBtn">
-          <span class="material-icons">center_focus_strong</span>Recenter
-        </button>
+        <button id="mintBtn" class="success" disabled><span class="material-icons">rocket_launch</span>Mint Circle</button>
+        <button id="clearBtn" class="accent"><span class="material-icons">delete_sweep</span>Clear</button>
+        <button id="recenterBtn"><span class="material-icons">center_focus_strong</span>Recenter</button>
       </div>
 
       <div id="status" class="status"></div>
@@ -177,7 +154,7 @@
   </main>
 
   <script>
-    // Polygon Mainnet
+    // Network: Polygon Mainnet
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -186,49 +163,27 @@
       blockExplorerUrls: ['https://polygonscan.com/']
     };
 
-    // Contract
+    // Contract (must support mintWithURI(string) payable)
     const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
     const CONTRACT_ABI = [
       "function mintWithURI(string tokenURI) external payable returns (uint256)",
       "function mintPrice() view returns (uint256)"
     ];
 
-    // Cloudinary
-    const CLOUDINARY_UPLOAD_PRESET = "unsigned_nft";
-    const CLOUDINARY_CLOUD_NAME = "dvndw130d";
-    const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const MAX_RADIUS_M = 500; // 1km diameter
 
-    // Ethers
     let provider, signer, userAddress;
+    let map, drawnItems, drawControl;
+    let selectedCircle = null; // Leaflet circle layer
 
-    // Map / Geo
-    let map, userMarker, userCircle, photoMarker;
-    let currentPosition = null;
-    let previewDataUrl = null;
-    let uploadedImageUrl = null;
-
-    // UI elements
-    const connectWalletBtn = document.getElementById('connectWalletBtn');
-    const locateBtn = document.getElementById('locateBtn');
-    const cameraBtn = document.getElementById('cameraBtn');
-    const fileInput = document.getElementById('imageFile');
-    const previewImg = document.getElementById('preview');
+    // UI
+    const connectBtn = document.getElementById('connectBtn');
+    const walletEl = document.getElementById('wallet');
     const mintBtn = document.getElementById('mintBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const recenterBtn = document.getElementById('recenterBtn');
-    const walletAddressEl = document.getElementById('walletAddress');
     const statusEl = document.getElementById('status');
-
-    // Init map
-    initMap();
-
-    function initMap() {
-      map = L.map('map', { zoomControl: true, zoom: 3, center: [20, 0] });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(map);
-    }
+    const circleInfo = document.getElementById('circleInfo');
 
     function setStatus(msg, type = '') {
       if (!msg) {
@@ -247,23 +202,116 @@
       }
     }
 
+    function toFixed(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
+
+    function updateUIFromCircle() {
+      if (!selectedCircle) {
+        circleInfo.style.display = 'none';
+        mintBtn.disabled = true;
+        return;
+      }
+      const center = selectedCircle.getLatLng();
+      const r = selectedCircle.getRadius(); // meters
+      circleInfo.style.display = 'inline-flex';
+      circleInfo.innerHTML = `<span class="material-icons" style="font-size:16px;">info</span> Lat: ${toFixed(center.lat)}, Lng: ${toFixed(center.lng)} • Radius: ${Math.round(r)} m`;
+      mintBtn.disabled = !(userAddress && r > 0 && r <= MAX_RADIUS_M);
+    }
+
+    function updateMintEnabled() {
+      if (!selectedCircle || !userAddress) {
+        mintBtn.disabled = true;
+        return;
+      }
+      const r = selectedCircle.getRadius();
+      mintBtn.disabled = !(r > 0 && r <= MAX_RADIUS_M);
+    }
+
+    // Map init
+    function initMap() {
+      if (!window.L) {
+        setStatus('Leaflet failed to load (CDN blocked?). Try refreshing.', 'error');
+        return;
+      }
+      map = L.map('map', { center: [20, 0], zoom: 3, zoomControl: true });
+      const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      })
+      .on('load', () => { if (!statusEl.textContent) setStatus('Map ready. Use the circle tool to draw.', 'success'); })
+      .on('tileerror', () => setStatus('Tile load error (rate limit/network). Try again later.', 'error'));
+      tiles.addTo(map);
+
+      drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+
+      drawControl = new L.Control.Draw({
+        draw: {
+          polygon: false,
+          polyline: false,
+          rectangle: false,
+          marker: false,
+          circlemarker: false,
+          circle: {
+            shapeOptions: { color: '#f59e0b', weight: 2, fillOpacity: 0.15 },
+            showArea: false
+          }
+        },
+        edit: {
+          featureGroup: drawnItems,
+          edit: false,
+          remove: true
+        }
+      });
+      map.addControl(drawControl);
+
+      // When a circle is created, enforce radius <= 500m
+      map.on(L.Draw.Event.CREATED, (e) => {
+        if (e.layerType !== 'circle') return;
+        const circle = e.layer;
+        const r = circle.getRadius();
+
+        if (r > MAX_RADIUS_M) {
+          setStatus('Circle too big. Max diameter is 1 km (radius ≤ 500 m). Draw a smaller circle.', 'error');
+          return;
+        }
+
+        // Keep only one circle
+        drawnItems.clearLayers();
+        drawnItems.addLayer(circle);
+        selectedCircle = circle;
+
+        const c = circle.getLatLng();
+        circle.bindPopup(`<div style="min-width:180px;">
+          <div style="font-weight:700;margin-bottom:6px;">Circle Selected</div>
+          <div style="color:#94a3b8;font-size:12px;">Center: ${toFixed(c.lat)}, ${toFixed(c.lng)}</div>
+          <div style="color:#94a3b8;font-size:12px;">Radius: ${Math.round(r)} m</div>
+        </div>`).openPopup();
+
+        setStatus('Circle ready. Connect your wallet to mint.', 'success');
+        updateUIFromCircle();
+      });
+
+      // If user deletes the circle
+      map.on('draw:deleted', () => {
+        selectedCircle = null;
+        setStatus('Circle cleared. Draw again to select a new area.');
+        updateUIFromCircle();
+      });
+
+      setTimeout(() => map.invalidateSize(), 300);
+    }
+
     async function switchToPolygon() {
       if (!window.ethereum) return false;
       try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: POLYGON_PARAMS.chainId }]
-        });
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
         return true;
       } catch (e) {
         if (e.code === 4902) {
           try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [POLYGON_PARAMS]
-            });
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
             return true;
-          } catch (err) {
+          } catch {
             setStatus('Failed to add Polygon to wallet', 'error');
             return false;
           }
@@ -288,213 +336,148 @@
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
 
-        connectWalletBtn.disabled = true;
-        connectWalletBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
-        walletAddressEl.textContent = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
+        walletEl.textContent = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-        setStatus('Wallet connected. Share your location and add a photo.', 'success');
+        setStatus('Wallet connected. Draw your circle then mint.', 'success');
         updateMintEnabled();
-      } catch (e) {
+      } catch {
         setStatus('Wallet connection failed', 'error');
       }
     }
 
-    function shareLocation() {
-      if (!('geolocation' in navigator)) {
-        setStatus('Geolocation not supported in this browser', 'error');
-        return;
-      }
-      setStatus('Getting your location...', 'loading');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude, accuracy } = pos.coords;
-          currentPosition = [latitude, longitude];
-
-          // Marker and accuracy circle
-          if (userMarker) map.removeLayer(userMarker);
-          if (userCircle) map.removeLayer(userCircle);
-
-          userMarker = L.marker(currentPosition).addTo(map).bindPopup('You are here');
-          userCircle = L.circle(currentPosition, { radius: accuracy, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 0.1 }).addTo(map);
-
-          map.setView(currentPosition, 16, { animate: true });
-          setStatus('Location set. Now add a photo.', 'success');
-
-          maybePlacePhotoMarker();
-          updateMintEnabled();
-        },
-        (err) => {
-          setStatus('Failed to get location: ' + err.message, 'error');
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+    // Build minimal SVG visualization (no user photo)
+    function buildCircleSVG(lat, lng, radiusM) {
+      const label = `r=${Math.round(radiusM)}m`;
+      const pos = `${lat}, ${lng}`;
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f46e5"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="#0b0c1a"/>
+          <rect x="20" y="20" width="760" height="380" rx="20" fill="url(#g)" opacity="0.25"/>
+          <g transform="translate(110,60)">
+            <circle cx="170" cy="150" r="120" fill="#22d3ee22" stroke="#60a5fa" stroke-width="4"/>
+            <circle cx="170" cy="150" r="4" fill="#10b981"/>
+          </g>
+          <g font-family="Inter, Arial, sans-serif" fill="#e5e7eb">
+            <text x="420" y="150" font-size="38" font-weight="700">Minted Circle</text>
+            <text x="420" y="195" font-size="22" fill="#cbd5e1">Center: ${pos}</text>
+            <text x="420" y="225" font-size="22" fill="#cbd5e1">${label}</text>
+            <g transform="translate(420,270)">
+              <rect width="220" height="48" rx="10" fill="#10b981" />
+              <text x="16" y="32" font-size="20" font-weight="700" fill="#00110d">NFT Geometry</text>
+            </g>
+          </g>
+        </svg>`;
+      return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
     }
 
-    function updateMintEnabled() {
-      const ready = Boolean(userAddress && currentPosition && previewDataUrl);
-      mintBtn.disabled = !ready;
-    }
+    function buildTokenURI({ lat, lng, radius }) {
+      const name = `Circle @ ${lat.toFixed(5)}, ${lng.toFixed(5)} (r=${Math.round(radius)}m)`;
+      const description = "User-minted circle on the map (max diameter 1 km).";
+      const image = buildCircleSVG(lat.toFixed(5), lng.toFixed(5), radius);
 
-    cameraBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', onFileSelected);
-
-    function onFileSelected() {
-      if (!fileInput.files || !fileInput.files[0]) {
-        previewImg.style.display = 'none';
-        previewDataUrl = null;
-        updateMintEnabled();
-        return;
-      }
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        previewDataUrl = e.target.result;
-        previewImg.src = previewDataUrl;
-        previewImg.style.display = 'block';
-
-        setStatus('Photo added. Ready to mint once location and wallet are set.', 'success');
-        maybePlacePhotoMarker();
-        updateMintEnabled();
+      // Note: GeoJSON doesn't define Circle; we encode as an extension
+      const metadata = {
+        name,
+        description,
+        image, // data:image/svg+xml; for marketplaces
+        attributes: [
+          { trait_type: "Center Latitude", value: Number(lat.toFixed(6)) },
+          { trait_type: "Center Longitude", value: Number(lng.toFixed(6)) },
+          { trait_type: "Radius (m)", value: Math.round(radius) },
+          { trait_type: "Diameter (m)", value: Math.round(radius * 2) }
+        ],
+        geometry: {
+          type: "Circle",
+          coordinates: [Number(lng.toFixed(6)), Number(lat.toFixed(6))],
+          radius_m: Math.round(radius),
+          crs: "EPSG:4326"
+        }
       };
-      reader.readAsDataURL(file);
+
+      const json = JSON.stringify(metadata);
+      return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
     }
 
-    function makeThumbIcon(src, minted = false) {
-      const badge = minted ? `<div class="thumb-badge"><span class="material-icons" style="font-size:14px;">check</span></div>` : '';
-      return L.divIcon({
-        className: 'thumb-icon',
-        html: `<div class="thumb-marker"><img src="${src}"/>${badge}</div>`,
-        iconSize: [48, 48],
-        iconAnchor: [24, 24],
-        popupAnchor: [0, -26]
-      });
-    }
-
-    function maybePlacePhotoMarker() {
-      if (!currentPosition || !previewDataUrl) return;
-
-      if (photoMarker) {
-        photoMarker.setIcon(makeThumbIcon(previewDataUrl, Boolean(uploadedImageUrl)));
-        photoMarker.setLatLng(currentPosition);
-      } else {
-        photoMarker = L.marker(currentPosition, { icon: makeThumbIcon(previewDataUrl, false) }).addTo(map);
-      }
-
-      const metaHtml = `
-        <div style="min-width:180px">
-          <div style="font-weight:700;margin-bottom:6px;">Your Photo</div>
-          <img src="${previewDataUrl}" alt="preview" style="width:100%;border-radius:8px;border:1px solid #253357;"/>
-          ${uploadedImageUrl ? `<div style="margin-top:8px;">
-            <a href="${uploadedImageUrl}" target="_blank">Open image</a>
-          </div>` : ''}
-          <div style="margin-top:8px;color:#94a3b8;font-size:12px;">Lat: ${currentPosition[0].toFixed(5)}, Lng: ${currentPosition[1].toFixed(5)}</div>
-        </div>
-      `;
-      photoMarker.bindPopup(metaHtml).openPopup();
-    }
-
-    async function uploadToCloudinary(file) {
-      setStatus('Uploading photo...', 'loading');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-      const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!data || !data.secure_url) throw new Error('Upload failed');
-      return data.secure_url;
-    }
-
-    async function mintNFT(imageUrl) {
-      if (!provider || !signer) throw new Error('Connect wallet first');
-
-      setStatus('Minting NFT...', 'loading');
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-      // Fixed 1 POL price (override). If your contract supports mintPrice(), consider reading it instead.
-      const mintPrice = ethers.utils.parseUnits('1', 18);
-
-      // NOTE: Contract accepts tokenURI (string). We pass the image URL directly.
-      // If you want location in metadata, consider uploading a JSON metadata object and passing that URL here.
-      const tx = await contract.mintWithURI(imageUrl, { value: mintPrice });
-      await tx.wait();
-    }
-
-    async function onMint() {
+    async function mintCircle() {
       try {
-        if (!fileInput.files || !fileInput.files[0]) {
-          setStatus('Please select a photo first', 'error');
-          return;
-        }
-        if (!currentPosition) {
-          setStatus('Please share your location first', 'error');
-          return;
-        }
-        if (!userAddress) {
-          setStatus('Please connect your wallet first', 'error');
+        if (!userAddress) { setStatus('Connect wallet first', 'error'); return; }
+        if (!selectedCircle) { setStatus('Draw a circle first', 'error'); return; }
+
+        const radius = selectedCircle.getRadius();
+        if (!(radius > 0 && radius <= MAX_RADIUS_M)) {
+          setStatus('Circle invalid. Radius must be ≤ 500 m.', 'error');
           return;
         }
 
-        mintBtn.disabled = true;
+        const center = selectedCircle.getLatLng();
+        const tokenURI = buildTokenURI({ lat: center.lat, lng: center.lng, radius });
 
-        // Upload image
-        const imageUrl = await uploadToCloudinary(fileInput.files[0]);
-        uploadedImageUrl = imageUrl;
+        setStatus('Minting NFT...', 'loading');
 
-        // Mint
-        await mintNFT(imageUrl);
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        // Fixed 1 POL price (override). If contract supports mintPrice(), consider reading it.
+        const mintPrice = ethers.utils.parseUnits('1', 18);
 
-        // Update marker with minted badge and popup link
-        if (photoMarker) {
-          photoMarker.setIcon(makeThumbIcon(previewDataUrl || uploadedImageUrl, true));
-          const mintedHtml = `
-            <div style="min-width:200px;text-align:center;">
-              <div style="font-weight:800;margin-bottom:6px;color:#10b981;">NFT Minted!</div>
-              <img src="${uploadedImageUrl}" alt="minted" style="width:100%;border-radius:8px;border:1px solid #253357;"/>
-              <div style="margin-top:8px;font-size:12px;color:#94a3b8;">Lat: ${currentPosition[0].toFixed(5)}, Lng: ${currentPosition[1].toFixed(5)}</div>
-              <div style="margin-top:10px;">
-                <a href="https://opensea.io/collection/nft-photography-5" target="_blank">View Collection on OpenSea →</a>
-              </div>
+        const tx = await contract.mintWithURI(tokenURI, { value: mintPrice });
+        await tx.wait();
+
+        // Style the circle as minted (green)
+        if (selectedCircle) {
+          selectedCircle.setStyle({ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.12, weight: 3 });
+          const c = selectedCircle.getLatLng();
+          selectedCircle.bindPopup(`<div style="min-width:200px;text-align:center;">
+            <div style="font-weight:800;margin-bottom:6px;color:#10b981;">Circle Minted!</div>
+            <div style="font-size:12px;color:#a7f3d0;">Center: ${toFixed(c.lat)}, ${toFixed(c.lng)}</div>
+            <div style="font-size:12px;color:#a7f3d0;">Radius: ${Math.round(radius)} m</div>
+            <div style="margin-top:10px;">
+              <a href="https://opensea.io/collection/nft-photography-5" target="_blank" rel="noopener noreferrer">View Collection →</a>
             </div>
-          `;
-          photoMarker.setPopupContent(mintedHtml).openPopup();
+          </div>`).openPopup();
         }
 
-        setStatus('Success! Your photo NFT has been minted.', 'success');
-
-        // Re-enable mint in case user wants to mint another
-        mintBtn.disabled = false;
+        setStatus('Success! Your circle NFT has been minted.', 'success');
       } catch (e) {
         console.error(e);
         setStatus('Minting failed: ' + (e?.message || 'Unknown error'), 'error');
-        mintBtn.disabled = false;
       }
     }
 
     function recenter() {
-      if (!currentPosition) {
-        setStatus('No location yet. Tap Share Location first.', 'error');
-        return;
+      if (selectedCircle) {
+        map.setView(selectedCircle.getLatLng(), 16, { animate: true });
+        setStatus('Map centered to your circle', 'success');
+      } else {
+        setStatus('No circle yet. Draw one with the circle tool.', 'error');
       }
-      map.setView(currentPosition, 16, { animate: true });
-      setStatus('Map centered to your location', 'success');
     }
 
-    connectWalletBtn.addEventListener('click', connectWallet);
-    locateBtn.addEventListener('click', shareLocation);
-    recenterBtn.addEventListener('click', recenter);
-    mintBtn.addEventListener('click', onMint);
+    function clearCircle() {
+      drawnItems?.clearLayers();
+      selectedCircle = null;
+      setStatus('Circle cleared. Draw a new one.');
+      updateUIFromCircle();
+    }
 
-    // Auto-connect if wallet already connected and ask for location on load (best effort)
-    window.addEventListener('load', async () => {
-      try {
-        if (window.ethereum?.selectedAddress) await connectWallet();
-      } catch {}
-      // Only prompt geolocation after a small delay to avoid immediate popup
-      setTimeout(() => {
-        // Optionally auto-prompt; comment out if you prefer manual Share Location
-        // shareLocation();
-      }, 600);
+    // Bind UI
+    connectBtn.addEventListener('click', connectWallet);
+    mintBtn.addEventListener('click', mintCircle);
+    clearBtn.addEventListener('click', clearCircle);
+    recenterBtn.addEventListener('click', recenter);
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      if (window.ethereum?.selectedAddress) {
+        connectWallet().catch(() => {});
+      }
     });
   </script>
 </body>
