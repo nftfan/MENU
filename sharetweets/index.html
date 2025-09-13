@@ -352,6 +352,9 @@ let tokensEarned = 0;
 let lastShareTime = 0;
 let countdownInterval = null;
 
+/* Detect mobile device */
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 /* Server Time Offset */
 let serverOffset = 0;
 onValue(ref(db, '.info/serverTimeOffset'), s => serverOffset = s.val() || 0);
@@ -463,7 +466,51 @@ function buildTweet(_groupKey, groupData) {
   return `Welcome to $NFTFAN community you are eligible for 5B free $NFTFAN please follow @nftfanstoken to claim, click the link in @nftfanstoken bio to claim your tokens. Winners are: ${listPart}. I used this link https://www.nftfanstoken.com/sharetweets/`;
 }
 
+async function openTwitterApp(tweet) {
+  // For mobile devices, try to open the Twitter app directly
+  if (isMobile) {
+    const tweetText = encodeURIComponent(tweet);
+    
+    // Different URL schemes for iOS and Android
+    let twitterAppUrl;
+    
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // iOS
+      twitterAppUrl = `twitter://post?message=${tweetText}`;
+    } else {
+      // Android
+      twitterAppUrl = `twitter://post?message=${tweetText}`;
+      // Alternative: twitterAppUrl = `intent://post?message=${tweetText}#Intent;scheme=twitter;package=com.twitter.android;end`;
+    }
+    
+    // Create an invisible iframe to try opening the app without changing the current page
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    // Try to open the Twitter app
+    iframe.src = twitterAppUrl;
+    
+    // Set a timeout to fallback to web intent if app doesn't open
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      // Fallback to web intent
+      safeOpenTweetIntent(tweet);
+    }, 2000);
+    
+    return true;
+  } else {
+    // For desktop, use the standard web intent
+    return false;
+  }
+}
+
 async function safeOpenTweetIntent(tweet) {
+  // Try to open Twitter app first on mobile
+  const openedApp = await openTwitterApp(tweet);
+  if (openedApp) return;
+  
+  // Otherwise use web intent
   const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
   let win = null;
   try { win = window.open(url, '_blank', 'noopener'); } 
