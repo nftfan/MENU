@@ -277,6 +277,14 @@ button:disabled {
   left:-9999px;
   top:-9999px;
 }
+
+/* Hidden links that will be triggered programmatically */
+.app-links {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+}
 </style>
 </head>
 <body>
@@ -309,6 +317,12 @@ button:disabled {
       Next share available in: <span id="countdownTimer" class="countdown">20:00</span>
     </div>
   </div>
+</div>
+
+<!-- Hidden links for app opening -->
+<div class="app-links">
+  <a id="twitterAppLink" href=""></a>
+  <a id="twitterWebLink" href=""></a>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -345,15 +359,19 @@ const tweetsSharedEl = document.getElementById('tweetsShared');
 const tokensEarnedEl = document.getElementById('tokensEarned');
 const cooldownBox = document.getElementById('cooldownBox');
 const countdownTimer = document.getElementById('countdownTimer');
+const twitterAppLink = document.getElementById('twitterAppLink');
+const twitterWebLink = document.getElementById('twitterWebLink');
+
+/* Detect device */
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isAndroid = /Android/.test(navigator.userAgent);
+const isMobile = isIOS || isAndroid;
 
 /* User state */
 let tweetsShared = 0;
 let tokensEarned = 0;
 let lastShareTime = 0;
 let countdownInterval = null;
-
-/* Detect mobile device */
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 /* Server Time Offset */
 let serverOffset = 0;
@@ -466,54 +484,58 @@ function buildTweet(_groupKey, groupData) {
   return `Welcome to $NFTFAN community you are eligible for 5B free $NFTFAN please follow @nftfanstoken to claim, click the link in @nftfanstoken bio to claim your tokens. Winners are: ${listPart}. I used this link https://www.nftfanstoken.com/sharetweets/`;
 }
 
-async function openTwitterApp(tweet) {
-  // For mobile devices, try to open the Twitter app directly
+async function shareToTwitter(tweet) {
+  const encodedTweet = encodeURIComponent(tweet);
+  
+  // For mobile, try to use the app
   if (isMobile) {
-    const tweetText = encodeURIComponent(tweet);
+    let appOpened = false;
     
-    // Different URL schemes for iOS and Android
-    let twitterAppUrl;
-    
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      // iOS
-      twitterAppUrl = `twitter://post?message=${tweetText}`;
-    } else {
-      // Android
-      twitterAppUrl = `twitter://post?message=${tweetText}`;
-      // Alternative: twitterAppUrl = `intent://post?message=${tweetText}#Intent;scheme=twitter;package=com.twitter.android;end`;
+    // Set up app and web links
+    if (isIOS) {
+      // iOS Twitter app URL scheme
+      twitterAppLink.href = `twitter://post?message=${encodedTweet}`;
+    } else if (isAndroid) {
+      // Android intent
+      twitterAppLink.href = `intent://post?message=${encodedTweet}#Intent;scheme=twitter;package=com.twitter.android;end`;
     }
     
-    // Create an invisible iframe to try opening the app without changing the current page
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+    // Set web intent as fallback
+    twitterWebLink.href = `https://twitter.com/intent/tweet?text=${encodedTweet}`;
     
-    // Try to open the Twitter app
-    iframe.src = twitterAppUrl;
+    // Try to open the app first
+    if (twitterAppLink.href) {
+      // Create a timestamp to detect if we've left the page
+      const beforeOpen = Date.now();
+      
+      // Click the link to try opening the app
+      twitterAppLink.click();
+      
+      // Check if the app was opened
+      setTimeout(() => {
+        const timeElapsed = Date.now() - beforeOpen;
+        // If we're still here after 1500ms and the elapsed time is small,
+        // the app probably didn't open, so use the web intent
+        if (timeElapsed < 1500) {
+          twitterWebLink.click();
+          showToast('Opening web composer...');
+        } else {
+          appOpened = true;
+        }
+      }, 1000);
+    } else {
+      // Just use web intent if app link couldn't be created
+      twitterWebLink.click();
+    }
     
-    // Set a timeout to fallback to web intent if app doesn't open
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-      // Fallback to web intent
-      safeOpenTweetIntent(tweet);
-    }, 2000);
-    
-    return true;
-  } else {
-    // For desktop, use the standard web intent
-    return false;
+    // Return after attempting to open app
+    return;
   }
-}
-
-async function safeOpenTweetIntent(tweet) {
-  // Try to open Twitter app first on mobile
-  const openedApp = await openTwitterApp(tweet);
-  if (openedApp) return;
   
-  // Otherwise use web intent
-  const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+  // For desktop, just use web intent
+  const webIntentUrl = `https://twitter.com/intent/tweet?text=${encodedTweet}`;
   let win = null;
-  try { win = window.open(url, '_blank', 'noopener'); } 
+  try { win = window.open(webIntentUrl, '_blank', 'noopener'); } 
   catch(e) { win = null; }
   
   if (!win) {
@@ -584,7 +606,7 @@ async function claimAndShareTweet() {
     
     // Build and share the tweet
     const tweet = buildTweet(availableGroup.key, availableGroup.data);
-    await safeOpenTweetIntent(tweet);
+    await shareToTwitter(tweet);
     
     // Mark as done automatically
     await update(ref(db), { [`groups/${availableGroup.key}/status`]: 'done' });
