@@ -552,6 +552,44 @@
       text-shadow: 0 0 5px var(--primary-glow);
     }
 
+    /* Form inputs */
+    .form-group {
+      display: grid;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="color"] {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      background: rgba(8, 9, 33, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+    
+    .form-group input[type="color"] {
+      padding: 4px 8px;
+      height: 40px;
+      cursor: pointer;
+    }
+
     /* Mobile optimizations */
     @media (max-width: 640px) {
       header {
@@ -653,7 +691,7 @@
       <div class="actions">
         <span class="pill">
           <span class="material-icons">paid</span> 
-          <span>Mint Price: <strong style="margin-left:4px;color:var(--primary);">1 $POL</strong></span>
+          <span>Mint Price: <strong style="margin-left:4px;color:var(--primary);">1 MATIC</strong></span>
         </span>
         <button id="connectBtn" class="primary">
           <span class="material-icons">account_balance_wallet</span>Connect
@@ -676,9 +714,20 @@
           <div class="legend">
             <div class="key"><span class="box" style="background:#191d3b;box-shadow:0 0 3px rgba(0,249,255,0.2);"></span> Not selected</div>
             <div class="key"><span class="box" style="background:#0055ff;box-shadow:0 0 5px #0055ff;"></span> Selected</div>
-            <div class="key"><span class="box" style="background:#ff2cf0;box-shadow:0 0 5px rgba(255,44,240,0.5);"></span> Minted</div>
-            <div class="key"><span class="box" style="background:#12ff9b;box-shadow:0 0 5px rgba(18,255,155,0.5);"></span> You own</div>
+            <div class="key"><span class="box" style="background:#ff2cf0;box-shadow:0 0 5px rgba(255,44,240,0.5);"></span> Minted (by other)</div>
+            <div class="key"><span class="box" style="background:#12ff9b;box-shadow:0 0 5px rgba(18,255,155,0.5);"></span> Minted (by you)</div>
           </div>
+        </div>
+
+        <div class="row" style="grid-template-columns: 1fr 100px; gap: 10px;">
+            <div class="form-group">
+                <label for="empireNameInput">Empire Name</label>
+                <input type="text" id="empireNameInput" placeholder="e.g. The Void Syndicate" maxlength="32" />
+            </div>
+            <div class="form-group">
+                <label for="empireColorInput">Empire Color</label>
+                <input type="color" id="empireColorInput" value="#00f9ff" />
+            </div>
         </div>
 
         <div class="row inline">
@@ -755,14 +804,11 @@
     // Layers for minted NFTs on map
     let mintedLayerGroup; // L.LayerGroup
     const mintedLayersByAreaId = new Map(); // areaId -> L.GeoJSON
-    const areaOwnerByAreaId = new Map(); // areaId -> ownerLower
-
-    // Caches for OSM polygons
-    const polygonCache = new Map(); // areaId -> GeoJSON
-    const polygonFetchPromises = new Map(); // areaId -> Promise<GeoJSON>
+    const areaDataByAreaId = new Map(); // areaId -> { owner, empireName, empireColor }
 
     // Ethers
     let web3Provider, readProvider, signer, userAddress;
+    let empireName = '', empireColor = '#00f9ff';
 
     // Firebase
     let fbApp, fbDb;
@@ -779,6 +825,8 @@
     const ownedCountPill = document.getElementById('ownedCountPill');
     const mintedCountPill = document.getElementById('mintedCountPill');
     const cityLoadingEl = document.getElementById('cityLoading');
+    const empireNameInput = document.getElementById('empireNameInput');
+    const empireColorInput = document.getElementById('empireColorInput');
 
     function showCityLoading(text = 'Loading territory data...') {
       cityLoadingEl.querySelector('.text').textContent = text;
@@ -821,7 +869,6 @@
         return;
       }
       
-      // Cyberpunk-style map
       map = L.map('map', {
         center: [20, 0],
         zoom: 3,
@@ -832,27 +879,20 @@
         maxBoundsViscosity: 1.0
       });
 
-      // Create a custom dark cyberpunk tile layer
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         subdomains: 'abcd',
       }).addTo(map);
 
-      // Create minted layer group
       mintedLayerGroup = L.layerGroup().addTo(map);
-      
-      // Map event listeners
       map.on('click', onMapClick);
-      
-      // Fix map size issues
       setTimeout(() => map.invalidateSize(), 300);
-      
       setStatus('Click on the map to select a territory', 'success');
     }
 
     async function onMapClick(e) {
-      if (isCityLoading) return; // prevent multiple concurrent lookups
+      if (isCityLoading) return;
       
       const { lat, lng } = e.latlng;
       try {
@@ -878,16 +918,9 @@
       }
     }
 
-    // Reverse geocode to polygon (Nominatim)
     async function reverseGeocodeWithPolygon(lat, lng) {
       const z = map.getZoom();
-      let zoomParam = 10;
-      
-      if (z >= 14) zoomParam = 14;
-      else if (z >= 12) zoomParam = 12;
-      else if (z >= 10) zoomParam = 10;
-      else if (z >= 7) zoomParam = 8;
-      else zoomParam = 5;
+      let zoomParam = (z >= 14) ? 14 : (z >= 12) ? 12 : (z >= 10) ? 10 : (z >= 7) ? 8 : 5;
 
       const url = new URL('https://nominatim.openstreetmap.org/reverse');
       url.searchParams.set('format', 'jsonv2');
@@ -898,48 +931,39 @@
       url.searchParams.set('addressdetails', '1');
 
       const res = await fetch(url.toString(), { 
-        headers: { 
-          'Accept-Language': 'en',
-          'User-Agent': 'CyberTerritories/1.0'
-        } 
+        headers: { 'Accept-Language': 'en', 'User-Agent': 'CyberTerritories/1.0' } 
       });
       
       if (!res.ok) throw new Error('Nominatim reverse geocoding failed');
-      
       const data = await res.json();
 
       const geojson = data.geojson || data.geometry;
       if (!geojson || !geojson.type || !geojson.coordinates) return null;
 
-      const osm_id = data.osm_id;
-      const osm_type = data.osm_type;
-      const dispName = data.display_name || 'Unknown area';
-      const cls = data.class || '';
-      const typ = data.type || '';
-      const center = { lat: Number(data.lat), lng: Number(data.lon) };
+      const { osm_id, osm_type, display_name, class: cls, type: typ, lat: data_lat, lon: data_lon } = data;
+      const center = { lat: Number(data_lat), lng: Number(data_lon) };
       const id = makeAreaId(osm_type, osm_id);
       
-      return { id, name: dispName, type: `${cls}:${typ}`, center, geojson };
+      return { id, name: display_name || 'Unknown area', type: `${cls}:${typ}`, center, geojson };
     }
 
     function makeAreaId(osmType, osmId) {
-      const t = (osmType || '').toLowerCase();
-      return `osm:${t}:${osmId}`;
+      return `osm:${(osmType || '').toLowerCase()}:${osmId}`;
     }
 
-    function areaStyle(isMinted, isMine, isSelected) {
-      let fill = '#191d3b'; // default - dark blue
+    function areaStyle(isMinted, isMine, isSelected, ownerData = {}) {
+      let fill = '#191d3b';
       let weight = 1.5;
       let opacity = 0.7;
       let fillOpacity = 0.5;
       
       if (isMinted) {
-        fill = '#ff2cf0'; // pink/magenta
+        fill = ownerData.empireColor || '#ff2cf0'; // Use empire color, fallback to pink
         weight = 2;
       }
       
       if (isMine) {
-        fill = '#12ff9b'; // neon green
+        fill = ownerData.empireColor || '#12ff9b'; // Use empire color, fallback to green
         weight = 2;
       }
       
@@ -951,11 +975,7 @@
       }
       
       return { 
-        color: '#3a3f6d', 
-        weight, 
-        opacity, 
-        fillColor: fill, 
-        fillOpacity,
+        color: '#3a3f6d', weight, opacity, fillColor: fill, fillOpacity,
         dashArray: isSelected ? undefined : '3',
       };
     }
@@ -964,72 +984,53 @@
       const n = String(name || '');
       if (n.length <= 60) return n;
       const firstComma = n.indexOf(',');
-      if (firstComma > 0) return n.slice(0, firstComma) + '…';
-      return n.slice(0, 57) + '…';
+      return (firstComma > 0) ? n.slice(0, firstComma) + '…' : n.slice(0, 57) + '…';
     }
 
     function selectArea(area) {
       selected = area;
-
-      if (selectionLayer) {
-        try { selectionLayer.remove(); } catch {}
-        selectionLayer = null;
-      }
+      if (selectionLayer) selectionLayer.remove();
       
       const isMinted = mintedAreaIds.has(area.id);
       const isMine = myOwnedAreaIds.has(area.id);
+      const ownerData = areaDataByAreaId.get(area.id) || {};
 
       selectionLayer = L.geoJSON(area.geojson, { 
-        style: () => areaStyle(isMinted, isMine, true) 
+        style: () => areaStyle(isMinted, isMine, true, ownerData) 
       }).addTo(map);
 
       const bounds = selectionLayer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [16, 16], maxZoom: 14 });
-      } else {
-        map.setView([area.center.lat, area.center.lng], Math.max(map.getZoom(), 12));
-      }
+      map.fitBounds(bounds.isValid() ? bounds : map.getBounds(), { padding: [16, 16], maxZoom: 14 });
 
-      // Cyberpunk-styled popup
+      const popupColor = isMine ? (ownerData.empireColor || '#12ff9b') : isMinted ? (ownerData.empireColor || '#ff2cf0') : '#00f9ff';
+      const statusText = isMine ? '✓ You own this territory' : isMinted ? `⚠ Minted by ${ownerData.empireName || 'another user'}` : '✦ Available for minting';
+      
       selectionLayer.bindPopup(`
         <div style="min-width:250px;">
-          <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${isMine ? '#12ff9b' : isMinted ? '#ff2cf0' : '#00f9ff'};text-shadow:0 0 5px rgba(0,249,255,0.4);font-size:15px;">${escapeHTML(shortenName(area.name))}</div>
+          <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${popupColor};text-shadow:0 0 5px ${popupColor}80;font-size:15px;">${escapeHTML(shortenName(area.name))}</div>
           <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Center: <span style="color:#eef2ff">${toFixed5(area.center.lat)}, ${toFixed5(area.center.lng)}</span></div>
-          <div style="font-size:13px;color:#eef2ff;margin-top:10px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.2);border-left:3px solid ${isMine ? '#12ff9b' : isMinted ? '#ff2cf0' : '#00f9ff'}">${isMine ? '✓ You own this territory' : isMinted ? '⚠ Already minted by another user' : '✦ Available for minting'}</div>
+          <div style="font-size:13px;color:#eef2ff;margin-top:10px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.2);border-left:3px solid ${popupColor}">${statusText}</div>
           <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(area.id)}</div>
         </div>
       `).openPopup();
 
-      // Update selection pill
       selectionPill.style.display = 'inline-flex';
-      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">${isMine ? 'verified' : isMinted ? 'gavel' : 'place'}</span> ${escapeHTML(shortenName(area.name))} · <span style="color:${isMine ? 'var(--success)' : isMinted ? 'var(--accent)' : 'var(--primary)'};">${isMine ? 'You own' : isMinted ? 'Minted' : 'Available'}</span>`;
+      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">${isMine ? 'verified' : isMinted ? 'gavel' : 'place'}</span> ${escapeHTML(shortenName(area.name))} · <span style="color:${popupColor};">${isMine ? 'You own' : isMinted ? 'Minted' : 'Available'}</span>`;
       
-      // Update mint button state
-      mintBtn.disabled = !userAddress || isMinted;
+      updateMintButtonState();
     }
 
-    // Wallet
     async function switchToPolygon() {
       if (!window.ethereum) return false;
-      
       try {
-        await window.ethereum.request({ 
-          method: 'wallet_switchEthereumChain', 
-          params: [{ chainId: POLYGON_PARAMS.chainId }] 
-        });
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
         return true;
       } catch (e) {
         if (e.code === 4902) {
           try {
-            await window.ethereum.request({ 
-              method: 'wallet_addEthereumChain', 
-              params: [POLYGON_PARAMS] 
-            });
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
             return true;
-          } catch { 
-            setStatus('Failed to add Polygon network', 'error');
-            return false; 
-          }
+          } catch { setStatus('Failed to add Polygon network', 'error'); return false; }
         }
         setStatus('Failed to switch network', 'error');
         return false;
@@ -1037,15 +1038,11 @@
     }
 
     async function connectWallet() {
-      if (!window.ethereum) { 
-        setStatus('Please install MetaMask to continue', 'error');
-        return;
-      }
+      if (!window.ethereum) { setStatus('Please install MetaMask to continue', 'error'); return; }
       
       try {
         setStatus('Connecting wallet...', 'loading');
-        const switched = await switchToPolygon();
-        if (!switched) return;
+        if (!await switchToPolygon()) return;
 
         web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         await web3Provider.send('eth_requestAccounts', []);
@@ -1054,25 +1051,18 @@
 
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
-        walletEl.textContent = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+        walletEl.textContent = shortAddr(userAddress);
 
         readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
-
+        
+        await loadEmpireSettings();
         setStatus('Wallet connected. Loading minted territories...', 'loading');
-        await refreshMinted(true); // also syncs to Firebase
+        await refreshMinted(true);
 
-        // Re-style any existing minted polygons for current ownership
         restyleAllMintedPolygons();
+        updateMintButtonState();
 
-        if (selected) {
-          const isMinted = mintedAreaIds.has(selected.id);
-          mintBtn.disabled = isMinted;
-        } else {
-          mintBtn.disabled = true;
-        }
-
-        // Listen for account changes
-        if (window.ethereum && typeof window.ethereum.on === 'function') {
+        if (window.ethereum?.on) {
           window.ethereum.removeListener?.('accountsChanged', onAccountsChanged);
           window.ethereum.on('accountsChanged', onAccountsChanged);
         }
@@ -1082,15 +1072,14 @@
       }
     }
 
-    function onAccountsChanged(accounts) {
+    async function onAccountsChanged(accounts) {
       userAddress = (accounts && accounts[0]) ? accounts[0] : null;
-      
       if (userAddress) {
         walletEl.textContent = shortAddr(userAddress);
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
-        // Update my ownership set and restyle polygons
-        recomputeMyOwnershipFromOwners();
+        await loadEmpireSettings();
+        recomputeMyOwnershipFromData();
         restyleAllMintedPolygons();
       } else {
         walletEl.textContent = '';
@@ -1099,35 +1088,39 @@
         myOwnedAreaIds.clear();
         restyleAllMintedPolygons();
       }
+      updateMintButtonState();
     }
 
-    // TokenURI helpers
-    function buildAreaTokenURI(area) {
-      const image = buildAreaSVG(area);
+    function buildAreaTokenURI(area, empireName, empireColor) {
+      const image = buildAreaSVG(area, empireName, empireColor);
       const metadata = {
         name: `Territory: ${shortenName(area.name)}`,
-        description: `Digital territory NFT (from OSM) — ${area.type}`,
+        description: `Digital territory NFT from the ${empireName} empire. OSM Type: ${area.type}`,
         image,
         attributes: [
           { trait_type: "Area ID", value: area.id },
           { trait_type: "Area Type", value: area.type },
           { trait_type: "Center Latitude", value: Number(area.center.lat.toFixed(6)) },
-          { trait_type: "Center Longitude", value: Number(area.center.lng.toFixed(6)) }
+          { trait_type: "Center Longitude", value: Number(area.center.lng.toFixed(6)) },
+          { trait_type: "Empire Name", value: empireName },
+          { trait_type: "Empire Color", value: empireColor }
         ],
-        area_id: area.id
+        area_id: area.id,
+        empire_name: empireName,
+        empire_color: empireColor
       };
       const json = JSON.stringify(metadata);
       return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
     }
 
-    function buildAreaSVG(area) {
-      const name = escapeHTML(shortenName(area.name));
-      const type = escapeHTML(area.type || '');
-      const lat = toFixed5(area.center.lat);
-      const lng = toFixed5(area.center.lng);
-      
-      // Cyberpunk-styled SVG
-      const svg = `
+    function buildAreaSVG(area, empireName, empireColor) {
+        const name = escapeHTML(shortenName(area.name));
+        const type = escapeHTML(area.type || '');
+        const lat = toFixed5(area.center.lat);
+        const lng = toFixed5(area.center.lng);
+        const empName = escapeHTML(empireName);
+
+        const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
           <defs>
             <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1135,12 +1128,12 @@
               <stop offset="100%" stop-color="#12122a" />
             </linearGradient>
             <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#00f9ff" />
-              <stop offset="100%" stop-color="#0055ff" />
+              <stop offset="0%" stop-color="${empireColor}" />
+              <stop offset="100%" stop-color="#eef2ff" />
             </linearGradient>
             <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feFlood flood-color="#00f9ff" flood-opacity="0.3" result="color" />
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feFlood flood-color="${empireColor}" flood-opacity="0.4" result="color" />
               <feComposite in="color" in2="blur" operator="in" result="glow" />
               <feMerge>
                 <feMergeNode in="glow" />
@@ -1148,133 +1141,80 @@
               </feMerge>
             </filter>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#3a3f6d" stroke-width="0.5" opacity="0.3" />
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="${empireColor}" stroke-width="0.5" opacity="0.2" />
             </pattern>
           </defs>
           
-          <!-- Background -->
           <rect width="800" height="420" fill="url(#bgGrad)" />
           <rect width="800" height="420" fill="url(#grid)" />
           
-          <!-- Border glow -->
           <rect x="10" y="10" width="780" height="400" rx="15" fill="none" 
-                stroke="url(#titleGrad)" stroke-width="2" filter="url(#glow)" />
+                stroke="${empireColor}" stroke-width="2" filter="url(#glow)" />
           
-          <!-- Content -->
           <g font-family="'Orbitron', sans-serif">
             <text x="40" y="80" font-size="28" font-weight="700" fill="url(#titleGrad)" filter="url(#glow)">
-              CYBER TERRITORY
+              ${empName.toUpperCase()}
             </text>
             <text x="40" y="130" font-size="40" font-weight="900" fill="#eef2ff">${name}</text>
             <text x="40" y="175" font-size="20" fill="#8f9cce">${type}</text>
             <text x="40" y="220" font-size="18" fill="#8f9cce">Location: ${lat}, ${lng}</text>
             
-            <!-- Badge -->
             <g transform="translate(40,270)">
-              <rect width="260" height="60" rx="10" fill="none" stroke="#00f9ff" stroke-width="2" />
-              <rect x="1" y="1" width="258" height="58" rx="9" fill="rgba(0,249,255,0.1)" />
-              <text x="30" y="38" font-size="22" font-weight="700" fill="#00f9ff" filter="url(#glow)">DIGITAL TERRITORY</text>
+              <rect width="280" height="60" rx="10" fill="none" stroke="${empireColor}" stroke-width="2" />
+              <rect x="1" y="1" width="278" height="58" rx="9" fill="${empireColor}1A" />
+              <text x="30" y="38" font-size="22" font-weight="700" fill="${empireColor}" filter="url(#glow)">DIGITAL TERRITORY</text>
             </g>
-            
-            <!-- QR code simulation -->
-            <g transform="translate(670,40)">
-              <rect width="80" height="80" rx="5" stroke="#00f9ff" stroke-width="2" fill="none" />
-              <path d="M670,40h80v80h-80z" fill="url(#grid)" />
-              <rect x="690" y="60" width="40" height="40" rx="5" fill="#00f9ff" opacity="0.5" />
-            </g>
-            
-            <!-- Bottom section -->
-            <g transform="translate(40,360)">
-              <text font-size="14" fill="#8f9cce" font-family="'Rajdhani', sans-serif">
-                ID: ${area.id.substring(0, 20)}...
-              </text>
-            </g>
-            
-            <!-- Decorative elements -->
-            <line x1="40" y1="100" x2="350" y2="100" stroke="#00f9ff" stroke-width="1" opacity="0.5" />
-            <line x1="40" y1="240" x2="500" y2="240" stroke="#00f9ff" stroke-width="1" opacity="0.5" />
           </g>
         </svg>`;
       
       return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
     }
 
-    // Mint flow
     async function mintSelectedArea() {
       try {
-        if (!userAddress) { 
-          setStatus('Please connect your wallet first', 'error');
-          return;
-        }
-        
-        if (!selected) { 
-          setStatus('Select a territory on the map first', 'error');
-          return;
-        }
-        
-        if (mintedAreaIds.has(selected.id)) { 
-          setStatus('This territory is already minted', 'error');
-          return;
-        }
+        if (!userAddress) { setStatus('Please connect your wallet first', 'error'); return; }
+        if (!selected) { setStatus('Select a territory on the map first', 'error'); return; }
+        if (mintedAreaIds.has(selected.id)) { setStatus('This territory is already minted', 'error'); return; }
+        if (!empireName) { setStatus('Please enter an Empire Name before minting', 'error'); return; }
 
         setStatus('Submitting mint transaction...', 'loading');
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-        let price;
-        try { 
-          price = await contract.mintPrice();
-        } catch { 
-          price = ethers.utils.parseUnits('1', 18);
-        }
-
-        const tokenURI = buildAreaTokenURI(selected);
+        const price = await contract.mintPrice().catch(() => ethers.utils.parseUnits('1', 18));
+        const tokenURI = buildAreaTokenURI(selected, empireName, empireColor);
         const tx = await contract.mintWithURI(tokenURI, { value: price });
         
         setStatus('Transaction sent! Waiting for confirmation...', 'loading');
         const receipt = await tx.wait();
 
-        // Try to grab tokenId from the Transfer event
-        let mintedTokenId = null;
-        try {
-          const ev = receipt.events?.find(e => e.event === 'Transfer');
-          mintedTokenId = ev?.args?.tokenId?.toString() || null;
-        } catch {}
+        const ev = receipt.events?.find(e => e.event === 'Transfer');
+        const mintedTokenId = ev?.args?.tokenId?.toString() || null;
 
         mintedAreaIds.add(selected.id);
         myOwnedAreaIds.add(selected.id);
         updateCountsPills();
 
         if (selectionLayer) {
-          selectionLayer.setStyle(() => areaStyle(true, true, true));
+          selectionLayer.setStyle(() => areaStyle(true, true, true, { empireColor }));
           selectionLayer.bindPopup(`
             <div style="min-width:250px;text-align:center;">
-              <div style="font-weight:800;margin:8px 0;color:#12ff9b;font-family:'Orbitron',sans-serif;font-size:16px;text-shadow:0 0 8px rgba(18,255,155,0.6);">TERRITORY MINTED!</div>
+              <div style="font-weight:800;margin:8px 0;color:${empireColor};font-family:'Orbitron',sans-serif;font-size:16px;text-shadow:0 0 8px ${empireColor}90;">TERRITORY MINTED!</div>
               <div style="font-size:14px;margin:15px 0;color:#eef2ff;">${escapeHTML(shortenName(selected.name))}</div>
-              <a href="https://opensea.io" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#00f9ff;color:#07061a;text-decoration:none;padding:8px 15px;border-radius:6px;font-weight:700;text-shadow:none;font-family:'Rajdhani',sans-serif;">View on marketplace →</a>
+              <a href="https://opensea.io/assets/matic/${CONTRACT_ADDRESS}/${mintedTokenId}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:${empireColor};color:#07061a;text-decoration:none;padding:8px 15px;border-radius:6px;font-weight:700;font-family:'Rajdhani',sans-serif;">View on OpenSea →</a>
             </div>
           `).openPopup();
         }
 
-        selectionPill.innerHTML = `
-          <span class="material-icons" style="font-size:16px;color:var(--success);">verified</span> 
-          ${escapeHTML(shortenName(selected.name))} · 
-          <span style="color:var(--success);">You own</span>
-        `;
+        selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;color:${empireColor};">verified</span> ${escapeHTML(shortenName(selected.name))} · <span style="color:${empireColor};">You own</span>`;
         
-        mintBtn.disabled = true;
+        updateMintButtonState();
         setStatus('Success! Your territory has been minted.', 'success');
 
-        // Write minted NFT to Firebase immediately (best-effort)
-        try {
-          const meta = await resolveTokenMetadata(tokenURI);
-          if (meta) {
-            await writeNftToFirebase(mintedTokenId || `temp-${Date.now()}`, userAddress, meta);
-          }
-        } catch (e) {
-          console.warn('Failed to write immediate NFT to Firebase:', e);
+        await saveEmpireSettings();
+        const meta = await resolveTokenMetadata(tokenURI);
+        if (meta) {
+          await writeNftToFirebase(mintedTokenId || `temp-${Date.now()}`, userAddress, meta);
         }
 
-        // Refresh from chain and sync to Firebase (other viewers will get it)
         await refreshMinted(true);
       } catch (e) {
         console.error(e);
@@ -1283,263 +1223,160 @@
       }
     }
 
-    // Refresh minted from chain and sync to Firebase (source of truth is chain)
     async function refreshMinted(showToast = false) {
       try {
-        if (!readProvider) {
-          readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
-        }
+        if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
         
         const contractRead = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
-        setStatus('Fetching minted territories...', 'loading');
+        if(showToast) setStatus('Fetching minted territories...', 'loading');
 
-        const zero = '0x0000000000000000000000000000000000000000';
-        const filter = contractRead.filters.Transfer(zero, null);
+        const filter = contractRead.filters.Transfer('0x0000000000000000000000000000000000000000', null);
         const logs = await contractRead.queryFilter(filter, START_BLOCK, 'latest');
+        const tokenIds = [...new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean))];
 
-        const tokenIds = Array.from(new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean)));
-
-        async function batch(items, size, cb) {
+        const batch = async (items, size, cb) => {
           const out = [];
           for (let i = 0; i < items.length; i += size) {
-            const slice = items.slice(i, i + size);
-            const res = await Promise.all(slice.map(cb));
-            out.push(...res);
-            await new Promise(r => setTimeout(r, 120));
+            out.push(...await Promise.all(items.slice(i, i + size).map(cb)));
+            await new Promise(r => setTimeout(r, 100));
           }
           return out;
-        }
+        };
 
-        // Resolve tokenURI metadata
-        const areaIdByToken = new Map();
         const tokenMetaById = new Map();
-        
         await batch(tokenIds, 20, async (tid) => {
           try {
             const uri = await contractRead.tokenURI(tid);
             const meta = await resolveTokenMetadata(uri);
-            tokenMetaById.set(tid, { uri, meta });
-            const areaId = extractAreaId(meta);
-            if (areaId) areaIdByToken.set(tid, areaId);
+            if(meta) tokenMetaById.set(tid, { uri, meta });
           } catch {}
         });
 
-        // Owners
         const ownerByToken = new Map();
-        
-        await batch(Array.from(areaIdByToken.keys()), 15, async (tid) => {
+        await batch(tokenIds, 20, async (tid) => {
           try {
             const owner = await contractRead.ownerOf(tid);
-            if (owner) ownerByToken.set(tid, owner);
+            if(owner) ownerByToken.set(tid, owner);
           } catch {}
         });
 
-        // Update in-memory sets for pills
-        mintedAreaIds = new Set(Array.from(areaIdByToken.values()));
-        myOwnedAreaIds = new Set();
-        
-        if (userAddress) {
-          for (const [tid, owner] of ownerByToken.entries()) {
-            if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
-              const id = areaIdByToken.get(tid);
-              if (id) myOwnedAreaIds.add(id);
-            }
-          }
-        }
-        
-        updateCountsPills();
-
-        // Sync to Firebase (nfts and byOwner)
         await syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById);
 
-        // After sync, polygons will be rendered via Firebase listeners
         if (showToast) setStatus('Minted territories updated.', 'success');
         else setStatus('', '');
       } catch (e) {
         console.error(e);
-        setStatus('Failed to refresh minted territories. Try again.', 'error');
+        if(showToast) setStatus('Failed to refresh minted territories.', 'error');
       }
     }
 
-    // Metadata helpers
     async function resolveTokenMetadata(uri) {
       if (!uri) return null;
-      
       if (uri.startsWith('data:application/json')) {
-        const base64 = uri.split(',')[1] || '';
-        try { return JSON.parse(atob(base64)); } catch { return null; }
+        try { return JSON.parse(atob(uri.split(',')[1] || '')); } catch { return null; }
       }
-      
-      let url = uri;
-      if (uri.startsWith('ipfs://')) {
-        url = 'https://ipfs.io/ipfs/' + uri.slice('ipfs://'.length);
-      }
-      
-      const res = await fetch(url);
-      try { return await res.json(); } catch { return null; }
+      const url = uri.startsWith('ipfs://') ? 'https://ipfs.io/ipfs/' + uri.slice(7) : uri;
+      try { const res = await fetch(url); return await res.json(); } catch { return null; }
     }
     
-    function extractAreaId(meta) {
-      if (!meta) return null;
-      if (meta.area_id) return String(meta.area_id);
-      if (Array.isArray(meta.attributes)) {
-        for (const a of meta.attributes) {
-          const key = (a.trait_type || a.trait || '').toLowerCase();
-          if (key.includes('area id')) return String(a.value);
-        }
-      }
-      return null;
-    }
+    function extractAreaId(meta) { return meta?.area_id ? String(meta.area_id) : null; }
     
-    function extractCenter(meta) {
-      let lat = null, lng = null;
-      if (Array.isArray(meta?.attributes)) {
-        for (const a of meta.attributes) {
-          const k = (a.trait_type || a.trait || '').toLowerCase();
-          if (k.includes('center latitude')) lat = Number(a.value);
-          if (k.includes('center longitude')) lng = Number(a.value);
-        }
-      }
-      return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
-    }
-
     function updateCountsPills() {
-      const owned = myOwnedAreaIds.size;
-      const minted = mintedAreaIds.size;
-      
-      if (owned > 0) {
-        ownedCountPill.style.display = 'inline-flex';
-        ownedCountPill.innerHTML = `
-          <span class="material-icons" style="font-size:16px;color:var(--success);">verified</span>
-          You own: <strong style="margin-left:4px;color:var(--success);">${owned}</strong>
-        `;
-      } else {
-        ownedCountPill.style.display = 'none';
-      }
+      ownedCountPill.style.display = myOwnedAreaIds.size > 0 ? 'inline-flex' : 'none';
+      ownedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;color:var(--success);">verified</span> You own: <strong style="margin-left:4px;color:var(--success);">${myOwnedAreaIds.size}</strong>`;
       
       mintedCountPill.style.display = 'inline-flex';
-      mintedCountPill.innerHTML = `
-        <span class="material-icons" style="font-size:16px;">public</span>
-        Total minted: <strong style="margin-left:4px;color:var(--primary);">${minted}</strong>
-      `;
+      mintedCountPill.innerHTML = `<span class="material-icons" style="font-size:16px;">public</span> Total minted: <strong style="margin-left:4px;color:var(--primary);">${mintedAreaIds.size}</strong>`;
     }
 
     function clearSelection() {
       selected = null;
-      
-      if (selectionLayer) {
-        try { selectionLayer.remove(); } catch {}
-        selectionLayer = null;
-      }
-      
+      if (selectionLayer) selectionLayer.remove();
       selectionPill.style.display = 'none';
-      mintBtn.disabled = true;
+      updateMintButtonState();
       setStatus('Selection cleared. Click another area to select it.', 'success');
     }
 
-    // Firebase init and realtime listeners (map-only rendering)
     function initFirebase() {
       try {
         fbApp = firebase.initializeApp(firebaseConfig);
         fbDb = firebase.database();
         subscribeMintedOnFirebase();
-      } catch (e) {
-        console.error('Firebase init failed', e);
-      }
+      } catch (e) { console.error('Firebase init failed', e); }
     }
 
     function subscribeMintedOnFirebase() {
       if (!fbDb) return;
-      
-      if (allNftsRef) {
-        allNftsRef.off();
-      }
+      if (allNftsRef) allNftsRef.off();
       
       allNftsRef = fbDb.ref('nfts');
-
-      allNftsRef.on('child_added', (snap) => {
-        const tokenId = snap.key;
-        const data = snap.val() || {};
-        upsertMintedAreaOnMap(tokenId, data);
-      });
-      
-      allNftsRef.on('child_changed', (snap) => {
-              const tokenId = snap.key;
-        const data = snap.val() || {};
-        upsertMintedAreaOnMap(tokenId, data);
-      });
-
-      allNftsRef.on('child_removed', (snap) => {
-        const tokenId = snap.key;
-        removeMintedAreaFromMap(tokenId);
-      });
+      allNftsRef.on('child_added', snap => upsertMintedAreaOnMap(snap.key, snap.val()));
+      allNftsRef.on('child_changed', snap => upsertMintedAreaOnMap(snap.key, snap.val()));
+      allNftsRef.on('child_removed', snap => removeMintedAreaFromMap(snap.key, snap.val()));
     }
 
-    // Add or update a minted area polygon on the map
     function upsertMintedAreaOnMap(tokenId, data) {
-      const areaId = extractAreaId(data);
+      const areaId = extractAreaId(data.meta);
       if (!areaId || !data || !data.meta) return;
 
-      // Parse geojson from meta if possible
-      let geojson = data.meta.geojson;
-      if (!geojson && data.meta.center) {
-        // Create a circle as fallback
-        geojson = {
-          type: "Point",
-          coordinates: [data.meta.center.lng, data.meta.center.lat]
-        };
-      }
+      const ownerLower = (data.owner || '').toLowerCase();
+      const isMine = userAddress && ownerLower === userAddress.toLowerCase();
+      const ownerData = {
+          owner: ownerLower,
+          empireName: data.meta.empire_name,
+          empireColor: data.meta.empire_color
+      };
+
+      areaDataByAreaId.set(areaId, ownerData);
+      mintedAreaIds.add(areaId);
+      if (isMine) myOwnedAreaIds.add(areaId);
+
+      const geojson = data.meta.geojson || { type: "Point", coordinates: [data.meta.center.lng, data.meta.center.lat] };
       if (!geojson) return;
 
-      // Remove previous layer for this area if exists
       const prevLayer = mintedLayersByAreaId.get(areaId);
-      if (prevLayer) {
-        mintedLayerGroup.removeLayer(prevLayer);
-        mintedLayersByAreaId.delete(areaId);
-      }
-
-      const isMine = userAddress && (data.owner || '').toLowerCase() === userAddress.toLowerCase();
-
-      const geoLayer = L.geoJSON(geojson, {
-        style: () => areaStyle(true, isMine, false)
-      });
+      if (prevLayer) mintedLayerGroup.removeLayer(prevLayer);
+      
+      const geoLayer = L.geoJSON(geojson, { style: () => areaStyle(true, isMine, false, ownerData) });
 
       geoLayer.bindPopup(`
         <div style="min-width:220px;">
-          <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${isMine ? '#12ff9b' : '#ff2cf0'};text-shadow:0 0 5px rgba(0,249,255,0.4);font-size:15px;">
-            ${escapeHTML(shortenName(data.meta.name || data.meta.title || 'Minted Area'))}
+          <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${ownerData.empireColor || '#ff2cf0'};font-size:15px;">
+            ${escapeHTML(shortenName(data.meta.name))}
           </div>
-          <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
-          <div style="font-size:13px;color:#eef2ff;margin-top:10px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.2);border-left:3px solid ${isMine ? '#12ff9b' : '#ff2cf0'}">${isMine ? '✓ You own this territory' : 'Minted by another user'}</div>
+          <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Empire: <span style="color:#eef2ff;font-weight:bold;">${escapeHTML(ownerData.empireName)}</span></div>
+          <div style="font-size:12px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
           <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(areaId)}</div>
         </div>
       `);
 
       geoLayer.addTo(mintedLayerGroup);
       mintedLayersByAreaId.set(areaId, geoLayer);
-      areaOwnerByAreaId.set(areaId, (data.owner || '').toLowerCase());
+      updateCountsPills();
     }
 
-    function removeMintedAreaFromMap(tokenId) {
-      // Remove by tokenId if mapping kept, or just clear all and re-add
-      // For simplicity, we'll clear all and re-add (triggered by Firebase on global change)
-      mintedLayerGroup.clearLayers();
-      mintedLayersByAreaId.clear();
-      areaOwnerByAreaId.clear();
+    function removeMintedAreaFromMap(tokenId, data) {
+        const areaId = extractAreaId(data.meta);
+        if(!areaId) return;
+
+        const prevLayer = mintedLayersByAreaId.get(areaId);
+        if (prevLayer) mintedLayerGroup.removeLayer(prevLayer);
+        
+        mintedLayersByAreaId.delete(areaId);
+        areaDataByAreaId.delete(areaId);
+        mintedAreaIds.delete(areaId);
+        myOwnedAreaIds.delete(areaId);
+        updateCountsPills();
     }
 
-    // Sync all on-chain NFT data to Firebase for global viewing
     async function syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById) {
       if (!fbDb) return;
       const updates = {};
       for (const tid of tokenIds) {
-        const meta = tokenMetaById.get(tid);
+        const metaData = tokenMetaById.get(tid);
         const owner = ownerByToken.get(tid) || '';
-        if (meta && meta.meta) {
-          updates[`nfts/${tid}`] = {
-            owner,
-            meta: meta.meta
-          };
+        if (metaData && metaData.meta) {
+          updates[`nfts/${tid}`] = { owner, meta: metaData.meta };
         }
       }
       await fbDb.ref().update(updates);
@@ -1547,16 +1384,13 @@
 
     async function writeNftToFirebase(tokenId, owner, meta) {
       if (!fbDb) return;
-      await fbDb.ref(`nfts/${tokenId}`).set({
-        owner,
-        meta
-      });
+      await fbDb.ref(`nfts/${tokenId}`).set({ owner, meta });
     }
 
-    function recomputeMyOwnershipFromOwners() {
-      myOwnedAreaIds = new Set();
-      for (const [areaId, owner] of areaOwnerByAreaId.entries()) {
-        if (owner && owner === userAddress?.toLowerCase()) {
+    function recomputeMyOwnershipFromData() {
+      myOwnedAreaIds.clear();
+      for (const [areaId, data] of areaDataByAreaId.entries()) {
+        if (data.owner && data.owner === userAddress?.toLowerCase()) {
           myOwnedAreaIds.add(areaId);
         }
       }
@@ -1565,10 +1399,41 @@
 
     function restyleAllMintedPolygons() {
       for (const [areaId, geoLayer] of mintedLayersByAreaId.entries()) {
-        const isMine = userAddress && areaOwnerByAreaId.get(areaId) === userAddress.toLowerCase();
-        geoLayer.setStyle(areaStyle(true, isMine, false));
+        const data = areaDataByAreaId.get(areaId) || {};
+        const isMine = userAddress && data.owner === userAddress.toLowerCase();
+        geoLayer.setStyle(areaStyle(true, isMine, false, data));
       }
       updateCountsPills();
+    }
+
+    async function saveEmpireSettings() {
+        if (!fbDb || !userAddress) return;
+        await fbDb.ref(`empires/${userAddress.toLowerCase()}`).set({
+            name: empireName,
+            color: empireColor
+        });
+    }
+
+    async function loadEmpireSettings() {
+        if (!fbDb || !userAddress) return;
+        const snapshot = await fbDb.ref(`empires/${userAddress.toLowerCase()}`).get();
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            empireNameInput.value = data.name || '';
+            empireColorInput.value = data.color || '#00f9ff';
+            updateEmpireState();
+        }
+    }
+    
+    function updateEmpireState() {
+        empireName = empireNameInput.value.trim();
+        empireColor = empireColorInput.value;
+        updateMintButtonState();
+    }
+    
+    function updateMintButtonState() {
+        const isMinted = selected && mintedAreaIds.has(selected.id);
+        mintBtn.disabled = !userAddress || !selected || isMinted || !empireName;
     }
 
     // Event listeners
@@ -1576,8 +1441,9 @@
     mintBtn.addEventListener('click', mintSelectedArea);
     clearBtn.addEventListener('click', clearSelection);
     refreshBtn.addEventListener('click', () => refreshMinted(true));
+    empireNameInput.addEventListener('input', updateEmpireState);
+    empireColorInput.addEventListener('input', updateEmpireState);
 
-    // App bootstrap
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
       initFirebase();
