@@ -1052,13 +1052,10 @@
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         walletEl.textContent = shortAddr(userAddress);
-
-        readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
         
         await loadEmpireSettings();
-        setStatus('Wallet connected. Loading minted territories...', 'loading');
-        await refreshMinted(true);
-
+        setStatus('Wallet connected.', 'success');
+        
         restyleAllMintedPolygons();
         updateMintButtonState();
 
@@ -1188,14 +1185,16 @@
 
         const ev = receipt.events?.find(e => e.event === 'Transfer');
         const mintedTokenId = ev?.args?.tokenId?.toString() || null;
-
-        mintedAreaIds.add(selected.id);
-        myOwnedAreaIds.add(selected.id);
-        updateCountsPills();
+        
+        // Immediately save the new NFT data to Firebase.
+        const meta = await resolveTokenMetadata(tokenURI);
+        if (meta) {
+          await writeNftToFirebase(mintedTokenId || `temp-${Date.now()}`, userAddress, meta);
+        }
+        await saveEmpireSettings(); // Save user's empire settings
 
         if (selectionLayer) {
-          selectionLayer.setStyle(() => areaStyle(true, true, true, { empireColor }));
-          selectionLayer.bindPopup(`
+            selectionLayer.bindPopup(`
             <div style="min-width:250px;text-align:center;">
               <div style="font-weight:800;margin:8px 0;color:${empireColor};font-family:'Orbitron',sans-serif;font-size:16px;text-shadow:0 0 8px ${empireColor}90;">TERRITORY MINTED!</div>
               <div style="font-size:14px;margin:15px 0;color:#eef2ff;">${escapeHTML(shortenName(selected.name))}</div>
@@ -1203,19 +1202,10 @@
             </div>
           `).openPopup();
         }
-
-        selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;color:${empireColor};">verified</span> ${escapeHTML(shortenName(selected.name))} · <span style="color:${empireColor};">You own</span>`;
         
-        updateMintButtonState();
         setStatus('Success! Your territory has been minted.', 'success');
+        updateMintButtonState();
 
-        await saveEmpireSettings();
-        const meta = await resolveTokenMetadata(tokenURI);
-        if (meta) {
-          await writeNftToFirebase(mintedTokenId || `temp-${Date.now()}`, userAddress, meta);
-        }
-
-        await refreshMinted(true);
       } catch (e) {
         console.error(e);
         const msg = e?.data?.message || e?.message || 'Unknown error';
@@ -1228,7 +1218,7 @@
         if (!readProvider) readProvider = new ethers.providers.JsonRpcProvider(POLYGON_PARAMS.rpcUrls[0]);
         
         const contractRead = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
-        if(showToast) setStatus('Fetching minted territories...', 'loading');
+        if(showToast) setStatus('Fetching minted territories from blockchain...', 'loading');
 
         const filter = contractRead.filters.Transfer('0x0000000000000000000000000000000000000000', null);
         const logs = await contractRead.queryFilter(filter, START_BLOCK, 'latest');
@@ -1262,11 +1252,11 @@
 
         await syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById);
 
-        if (showToast) setStatus('Minted territories updated.', 'success');
+        if (showToast) setStatus('Firebase sync complete.', 'success');
         else setStatus('', '');
       } catch (e) {
-        console.error(e);
-        if(showToast) setStatus('Failed to refresh minted territories.', 'error');
+        console.error("Failed to refresh minted territories from chain:", e);
+        if(showToast) setStatus('Failed to sync from blockchain. Displaying local data.', 'error');
       }
     }
 
@@ -1330,8 +1320,9 @@
       areaDataByAreaId.set(areaId, ownerData);
       mintedAreaIds.add(areaId);
       if (isMine) myOwnedAreaIds.add(areaId);
+       else myOwnedAreaIds.delete(areaId); // Ensure consistency if owner changes
 
-      const geojson = data.meta.geojson || { type: "Point", coordinates: [data.meta.center.lng, data.meta.center.lat] };
+      const geojson = data.meta.geojson || (data.meta.center ? { type: "Point", coordinates: [data.meta.center.lng, data.meta.center.lat] } : null);
       if (!geojson) return;
 
       const prevLayer = mintedLayersByAreaId.get(areaId);
@@ -1353,10 +1344,11 @@
       geoLayer.addTo(mintedLayerGroup);
       mintedLayersByAreaId.set(areaId, geoLayer);
       updateCountsPills();
+      if (selected && selected.id === areaId) selectArea(selected); // Re-select to update style
     }
 
     function removeMintedAreaFromMap(tokenId, data) {
-        const areaId = extractAreaId(data.meta);
+        const areaId = extractAreaId(data?.meta);
         if(!areaId) return;
 
         const prevLayer = mintedLayersByAreaId.get(areaId);
