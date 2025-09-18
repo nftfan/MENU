@@ -1056,6 +1056,7 @@
         await loadEmpireSettings();
         setStatus('Wallet connected.', 'success');
         
+        recomputeMyOwnershipFromData();
         restyleAllMintedPolygons();
         updateMintButtonState();
 
@@ -1076,15 +1077,13 @@
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         await loadEmpireSettings();
-        recomputeMyOwnershipFromData();
-        restyleAllMintedPolygons();
       } else {
         walletEl.textContent = '';
         connectBtn.disabled = false;
         connectBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect';
-        myOwnedAreaIds.clear();
-        restyleAllMintedPolygons();
       }
+      recomputeMyOwnershipFromData();
+      restyleAllMintedPolygons();
       updateMintButtonState();
     }
 
@@ -1104,7 +1103,9 @@
         ],
         area_id: area.id,
         empire_name: empireName,
-        empire_color: empireColor
+        empire_color: empireColor,
+        geojson: area.geojson, // Include geojson for map rendering
+        center: area.center
       };
       const json = JSON.stringify(metadata);
       return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
@@ -1184,12 +1185,12 @@
         const receipt = await tx.wait();
 
         const ev = receipt.events?.find(e => e.event === 'Transfer');
-        const mintedTokenId = ev?.args?.tokenId?.toString() || null;
+        const mintedTokenId = ev?.args?.tokenId?.toString() || `temp-${Date.now()}`;
         
         // Immediately save the new NFT data to Firebase.
         const meta = await resolveTokenMetadata(tokenURI);
         if (meta) {
-          await writeNftToFirebase(mintedTokenId || `temp-${Date.now()}`, userAddress, meta);
+          await writeNftToFirebase(mintedTokenId, userAddress, meta);
         }
         await saveEmpireSettings(); // Save user's empire settings
 
@@ -1225,35 +1226,31 @@
         const tokenIds = [...new Set(logs.map(l => l.args?.tokenId?.toString()).filter(Boolean))];
 
         const batch = async (items, size, cb) => {
-          const out = [];
           for (let i = 0; i < items.length; i += size) {
-            out.push(...await Promise.all(items.slice(i, i + size).map(cb)));
-            await new Promise(r => setTimeout(r, 100));
+            await Promise.all(items.slice(i, i + size).map(cb));
+            await new Promise(r => setTimeout(r, 100)); // Rate limit
           }
-          return out;
         };
 
-        const tokenMetaById = new Map();
+        const tokenData = new Map();
         await batch(tokenIds, 20, async (tid) => {
           try {
             const uri = await contractRead.tokenURI(tid);
             const meta = await resolveTokenMetadata(uri);
-            if(meta) tokenMetaById.set(tid, { uri, meta });
-          } catch {}
+            if(meta) tokenData.set(tid, { meta });
+          } catch (e) { console.warn(`Failed to get URI for ${tid}`, e); }
         });
 
-        const ownerByToken = new Map();
-        await batch(tokenIds, 20, async (tid) => {
+        await batch(Array.from(tokenData.keys()), 20, async (tid) => {
           try {
             const owner = await contractRead.ownerOf(tid);
-            if(owner) ownerByToken.set(tid, owner);
-          } catch {}
+            if(owner) tokenData.get(tid).owner = owner;
+          } catch (e) { console.warn(`Failed to get owner for ${tid}`, e); }
         });
 
-        await syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById);
+        await syncAllToFirebase(tokenData);
 
         if (showToast) setStatus('Firebase sync complete.', 'success');
-        else setStatus('', '');
       } catch (e) {
         console.error("Failed to refresh minted territories from chain:", e);
         if(showToast) setStatus('Failed to sync from blockchain. Displaying local data.', 'error');
@@ -1311,6 +1308,7 @@
 
       const ownerLower = (data.owner || '').toLowerCase();
       const isMine = userAddress && ownerLower === userAddress.toLowerCase();
+      
       const ownerData = {
           owner: ownerLower,
           empireName: data.meta.empire_name,
@@ -1319,8 +1317,12 @@
 
       areaDataByAreaId.set(areaId, ownerData);
       mintedAreaIds.add(areaId);
-      if (isMine) myOwnedAreaIds.add(areaId);
-       else myOwnedAreaIds.delete(areaId); // Ensure consistency if owner changes
+      
+      if (isMine) {
+        myOwnedAreaIds.add(areaId);
+      } else {
+        myOwnedAreaIds.delete(areaId); // Ensure consistency if owner changes
+      }
 
       const geojson = data.meta.geojson || (data.meta.center ? { type: "Point", coordinates: [data.meta.center.lng, data.meta.center.lat] } : null);
       if (!geojson) return;
@@ -1361,17 +1363,17 @@
         updateCountsPills();
     }
 
-    async function syncAllToFirebase(tokenIds, ownerByToken, tokenMetaById) {
+    async function syncAllToFirebase(tokenData) {
       if (!fbDb) return;
       const updates = {};
-      for (const tid of tokenIds) {
-        const metaData = tokenMetaById.get(tid);
-        const owner = ownerByToken.get(tid) || '';
-        if (metaData && metaData.meta) {
-          updates[`nfts/${tid}`] = { owner, meta: metaData.meta };
+      for (const [tid, data] of tokenData.entries()) {
+        if (data.owner && data.meta) {
+          updates[`nfts/${tid}`] = { owner: data.owner, meta: data.meta };
         }
       }
-      await fbDb.ref().update(updates);
+      if (Object.keys(updates).length > 0) {
+        await fbDb.ref().update(updates);
+      }
     }
 
     async function writeNftToFirebase(tokenId, owner, meta) {
@@ -1381,9 +1383,12 @@
 
     function recomputeMyOwnershipFromData() {
       myOwnedAreaIds.clear();
-      for (const [areaId, data] of areaDataByAreaId.entries()) {
-        if (data.owner && data.owner === userAddress?.toLowerCase()) {
-          myOwnedAreaIds.add(areaId);
+      if (userAddress) {
+        const userAddrLower = userAddress.toLowerCase();
+        for (const [areaId, data] of areaDataByAreaId.entries()) {
+          if (data.owner && data.owner === userAddrLower) {
+            myOwnedAreaIds.add(areaId);
+          }
         }
       }
       updateCountsPills();
@@ -1395,7 +1400,6 @@
         const isMine = userAddress && data.owner === userAddress.toLowerCase();
         geoLayer.setStyle(areaStyle(true, isMine, false, data));
       }
-      updateCountsPills();
     }
 
     async function saveEmpireSettings() {
@@ -1413,8 +1417,8 @@
             const data = snapshot.val();
             empireNameInput.value = data.name || '';
             empireColorInput.value = data.color || '#00f9ff';
-            updateEmpireState();
         }
+        updateEmpireState();
     }
     
     function updateEmpireState() {
