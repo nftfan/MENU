@@ -590,6 +590,24 @@
       cursor: pointer;
     }
 
+    /* Resource Emoji Marker */
+    .resource-marker {
+      font-size: 24px;
+      text-align: center;
+      animation: neon-glow 2.5s infinite alternate;
+      text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px var(--primary), 0 0 20px var(--primary);
+    }
+
+    @keyframes neon-glow {
+      from {
+        text-shadow: 0 0 4px #fff, 0 0 8px #fff, 0 0 12px var(--primary-glow), 0 0 16px var(--primary-glow);
+      }
+      to {
+        text-shadow: 0 0 6px #fff, 0 0 12px #fff, 0 0 18px var(--primary-glow), 0 0 24px var(--primary-glow);
+      }
+    }
+
+
     /* Mobile optimizations */
     @media (max-width: 640px) {
       header {
@@ -792,17 +810,20 @@
       appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
       measurementId: "G-8VB3DYRNXR"
     };
+    
+    // Emojis for resources
+    const RESOURCE_EMOJIS = ['💰','💎','🪙','💊','⚡️','🤖','📡','🛰️','💿','💾','🧰','🔧','⚙️','🔩','🧪','⚗️','🧬','🔬','🔭','🔫','💣','🔪','🛡️','🚬','⚰️','🧱','📦','🛢️','🔋','💡','💻','🖥️','Uranium','Plutonium','Gold','Silver','Oil','Gas','Water','Food','Medicine','Data','Code','AI Core','Quantum CPU','Energy Cell','Scrap Metal','Biowaste','Artifact','Keycard'];
 
     // Map / state
     let map;
-    let selectionLayer; // L.GeoJSON for selected area
-    let selected = null; // { id, name, type, center, geojson }
+    let selectionLayer; 
+    let selected = null; 
     let isCityLoading = false;
 
     // Layers for minted NFTs on map
-    let mintedLayerGroup; // L.LayerGroup
-    const mintedLayersByAreaId = new Map(); // areaId -> L.GeoJSON
-    const areaDataByAreaId = new Map(); // areaId -> { owner, empireName, empireColor, geojson }
+    let mintedLayerGroup, resourceLayerGroup;
+    const mintedLayersByAreaId = new Map(); 
+    const areaDataByAreaId = new Map(); 
 
     // Ethers
     let web3Provider, readProvider, signer, userAddress;
@@ -830,9 +851,7 @@
       cityLoadingEl.querySelector('.text').textContent = text;
       cityLoadingEl.style.display = 'inline-flex';
       setTimeout(() => {
-        if (cityLoadingEl.style.display !== 'none') {
-          hideCityLoading();
-        }
+        if (cityLoadingEl.style.display !== 'none') hideCityLoading();
       }, 20000);
     }
     
@@ -884,6 +903,7 @@
       }).addTo(map);
 
       mintedLayerGroup = L.layerGroup().addTo(map);
+      resourceLayerGroup = L.layerGroup().addTo(map);
       map.on('click', onMapClick);
       setTimeout(() => map.invalidateSize(), 300);
       setStatus('Connect your wallet or select a territory on the map.');
@@ -987,6 +1007,7 @@
     function selectArea(area) {
       selected = area;
       if (selectionLayer) selectionLayer.remove();
+      resourceLayerGroup.clearLayers();
       
       const isMinted = areaDataByAreaId.has(area.id);
       const ownerData = areaDataByAreaId.get(area.id) || {};
@@ -995,6 +1016,10 @@
       selectionLayer = L.geoJSON(area.geojson, { 
         style: () => areaStyle(isMinted, isMine, true, ownerData) 
       }).addTo(map);
+
+      if (!isMinted) {
+        spawnResources(area.geojson);
+      }
 
       const bounds = selectionLayer.getBounds();
       if (bounds.isValid()) {
@@ -1084,7 +1109,6 @@
       updateMintButtonState();
     }
     
-    // **FIX**: Removed `geojson` and `center` from the on-chain metadata.
     function buildAreaTokenURI(area, empireName, empireColor) {
       const image = buildAreaSVG(area, empireName, empireColor);
       const metadata = {
@@ -1176,7 +1200,6 @@
         const ev = receipt.events?.find(e => e.event === 'Transfer');
         const mintedTokenId = ev?.args?.tokenId?.toString() || `temp-${Date.now()}`;
         
-        // **FIX**: Save the full data, including geojson, to Firebase.
         const fullNftData = {
           owner: userAddress,
           meta: {
@@ -1218,6 +1241,7 @@
         if (!window.firebase) throw new Error("Firebase script not loaded");
         fbApp = firebase.initializeApp(firebaseConfig);
         fbDb = firebase.database();
+        console.log("Firebase initialized. Setting up listeners...");
         subscribeMintedOnFirebase();
       } catch (e) { 
         console.error('Firebase init failed', e); 
@@ -1230,18 +1254,37 @@
       if (allNftsRef) allNftsRef.off();
       
       allNftsRef = fbDb.ref('nfts');
-      allNftsRef.on('child_added', snap => upsertMintedAreaOnMap(snap.key, snap.val()), err => {
+      console.log("Subscribing to 'nfts' path in Firebase...");
+      
+      allNftsRef.on('child_added', (snap) => {
+        console.log(`%cFirebase child_added: ${snap.key}`, 'color: green', snap.val());
+        upsertMintedAreaOnMap(snap.key, snap.val());
+      }, (err) => {
         console.error("Firebase read failed:", err);
         setStatus("Cannot read territory data. Check DB rules.", "error");
       });
-      allNftsRef.on('child_changed', snap => upsertMintedAreaOnMap(snap.key, snap.val()));
-      allNftsRef.on('child_removed', snap => removeMintedAreaFromMap(snap.key, snap.val()));
+      
+      allNftsRef.on('child_changed', (snap) => {
+        console.log(`%cFirebase child_changed: ${snap.key}`, 'color: orange', snap.val());
+        upsertMintedAreaOnMap(snap.key, snap.val());
+      });
+      
+      allNftsRef.on('child_removed', (snap) => {
+        console.log(`%cFirebase child_removed: ${snap.key}`, 'color: red', snap.val());
+        removeMintedAreaFromMap(snap.key, snap.val());
+      });
     }
 
     function upsertMintedAreaOnMap(tokenId, data) {
-      if (!data || !data.meta) return;
+      if (!data || !data.meta) {
+        console.warn(`[upsert] Invalid data for tokenId ${tokenId}, skipping.`, data);
+        return;
+      }
       const areaId = data.meta.area_id;
-      if (!areaId) return;
+      if (!areaId) {
+        console.warn(`[upsert] Missing area_id for tokenId ${tokenId}, skipping.`, data);
+        return;
+      }
 
       const ownerLower = (data.owner || '').toLowerCase();
       const isMine = userAddress && ownerLower === userAddress.toLowerCase();
@@ -1256,27 +1299,38 @@
       
       areaDataByAreaId.set(areaId, fullAreaData);
       
-      const geojson = fullAreaData.geojson || (data.meta.center ? { type: "Point", coordinates: [data.meta.center.lng, data.meta.center.lat] } : null);
-      if (!geojson) return;
+      const geojson = fullAreaData.geojson;
+      if (!geojson) {
+        console.error(`[upsert] FATAL: Missing geojson for areaId ${areaId} (tokenId ${tokenId}). Cannot draw on map.`, data);
+        return;
+      }
 
       const prevLayer = mintedLayersByAreaId.get(areaId);
-      if (prevLayer) mintedLayerGroup.removeLayer(prevLayer);
+      if (prevLayer) {
+        mintedLayerGroup.removeLayer(prevLayer);
+      }
       
-      const geoLayer = L.geoJSON(geojson, { style: () => areaStyle(true, isMine, false, fullAreaData) });
+      try {
+        const geoLayer = L.geoJSON(geojson, { style: () => areaStyle(true, isMine, false, fullAreaData) });
 
-      geoLayer.bindPopup(`
-        <div style="min-width:220px;">
-          <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${fullAreaData.empireColor || '#ff2cf0'};font-size:15px;">
-            ${escapeHTML(shortenName(fullAreaData.name))}
+        geoLayer.bindPopup(`
+          <div style="min-width:220px;">
+            <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${fullAreaData.empireColor || '#ff2cf0'};font-size:15px;">
+              ${escapeHTML(shortenName(fullAreaData.name))}
+            </div>
+            <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Empire: <span style="color:#eef2ff;font-weight:bold;">${escapeHTML(fullAreaData.empireName)}</span></div>
+            <div style="font-size:12px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
+            <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(areaId)}</div>
           </div>
-          <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Empire: <span style="color:#eef2ff;font-weight:bold;">${escapeHTML(fullAreaData.empireName)}</span></div>
-          <div style="font-size:12px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
-          <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(areaId)}</div>
-        </div>
-      `);
+        `);
 
-      geoLayer.addTo(mintedLayerGroup);
-      mintedLayersByAreaId.set(areaId, geoLayer);
+        geoLayer.addTo(mintedLayerGroup);
+        mintedLayersByAreaId.set(areaId, geoLayer);
+        console.log(`[upsert] Successfully added/updated ${areaId} on map.`);
+      } catch (e) {
+        console.error(`[upsert] Leaflet failed to draw geojson for ${areaId}.`, e, geojson);
+      }
+
       updateCountsPills();
       if (selected && selected.id === areaId) selectArea(selected);
     }
@@ -1296,6 +1350,7 @@
 
     async function writeNftToFirebase(tokenId, fullNftData) {
       if (!fbDb) return;
+      console.log(`Writing to Firebase at nfts/${tokenId}`, fullNftData);
       await fbDb.ref(`nfts/${tokenId}`).set(fullNftData);
     }
     
@@ -1321,6 +1376,7 @@
     function clearSelection() {
       selected = null;
       if (selectionLayer) selectionLayer.remove();
+      resourceLayerGroup.clearLayers();
       selectionPill.style.display = 'none';
       updateMintButtonState();
       setStatus('Selection cleared. Click another area to select it.', 'success');
@@ -1365,11 +1421,70 @@
         mintBtn.disabled = !userAddress || !selected || isMinted || !empireName;
     }
 
+    // --- Resource Spawning Logic ---
+    function spawnResources(geojson) {
+        const bounds = L.geoJSON(geojson).getBounds();
+        const count = Math.floor(Math.random() * 10) + 5; // 5 to 14 resources
+
+        for (let i = 0; i < count; i++) {
+            const point = getRandomPointInPolygon(geojson, bounds);
+            if (point) {
+                const emoji = RESOURCE_EMOJIS[Math.floor(Math.random() * RESOURCE_EMOJIS.length)];
+                const icon = L.divIcon({
+                    className: 'resource-marker',
+                    html: emoji,
+                    iconSize: [24, 24],
+                });
+                L.marker([point[1], point[0]], { icon }).addTo(resourceLayerGroup);
+            }
+        }
+    }
+
+    function getRandomPointInPolygon(geojson, bounds) {
+        const MAX_ATTEMPTS = 50;
+        const minX = bounds.getWest(), minY = bounds.getSouth();
+        const maxX = bounds.getEast(), maxY = bounds.getNorth();
+
+        for (let i = 0; i < MAX_ATTEMPTS; i++) {
+            const lat = minY + (Math.random() * (maxY - minY));
+            const lng = minX + (Math.random() * (maxX - minX));
+            if (isPointInPolygon([lng, lat], geojson)) {
+                return [lng, lat];
+            }
+        }
+        console.warn("Could not find random point in polygon after max attempts.");
+        return null;
+    }
+
+    function isPointInPolygon(point, geojson) {
+        const poly = L.geoJSON(geojson);
+        const layers = poly.getLayers();
+        for (const layer of layers) {
+             // For simple polygons
+            if (layer.getLatLngs && layer.getBounds().contains(L.latLng(point[1], point[0]))) {
+                let isInside = false;
+                const latlngs = layer.getLatLngs()[0];
+                for (let i = 0, j = latlngs.length - 1; i < latlngs.length; j = i++) {
+                    const xi = latlngs[i].lng, yi = latlngs[i].lat;
+                    const xj = latlngs[j].lng, yj = latlngs[j].lat;
+
+                    const intersect = ((yi > point[1]) !== (yj > point[1]))
+                        && (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
+                    if (intersect) isInside = !isInside;
+                }
+                if (isInside) return true;
+            }
+        }
+        return false;
+    }
+
     // Event listeners
     connectBtn.addEventListener('click', connectWallet);
     mintBtn.addEventListener('click', mintSelectedArea);
     clearBtn.addEventListener('click', clearSelection);
-    refreshBtn.addEventListener('click', () => { setStatus("Manual refresh is disabled.", "error"); });
+    refreshBtn.addEventListener('click', () => { 
+      setStatus("Manual refresh is disabled.", "error"); 
+    });
     empireNameInput.addEventListener('input', updateEmpireState);
     empireColorInput.addEventListener('input', updateEmpireState);
 
