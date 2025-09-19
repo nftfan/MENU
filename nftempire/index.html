@@ -67,28 +67,42 @@
                   linear-gradient(180deg, var(--bg-dark), var(--bg));
     }
 
-    /* Cyberpunk animated background grid */
+    /* Cyberpunk animated background grid with scanlines */
     .cyber-grid {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: -1;
-      background-image: 
-        linear-gradient(rgba(0, 249, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 249, 255, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      background-position: center center;
-      perspective: 1000px;
-      transform-style: preserve-3d;
-      animation: gridPulse 20s infinite linear;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        background-image:
+            linear-gradient(rgba(0, 249, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 249, 255, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        animation: gridPulse 15s infinite linear;
+        perspective: 1000px;
+        transform-style: preserve-3d;
+    }
+    .cyber-grid::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, transparent 0%, var(--bg-dark) 100%);
+        animation: scanline 8s infinite linear;
+        opacity: 0.5;
+    }
+
+    @keyframes gridPulse {
+        0%, 100% { background-size: 40px 40px; opacity: 1; }
+        50% { background-size: 42px 42px; opacity: 0.8; }
     }
     
-    @keyframes gridPulse {
-      0% { background-size: 40px 40px; }
-      50% { background-size: 42px 42px; }
-      100% { background-size: 40px 40px; }
+    @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
     }
 
     /* Header */
@@ -376,11 +390,25 @@
     
     .leaflet-popup-tip {
       background: rgba(15, 16, 40, 0.95) !important;
-      border: 1px solid var(--border) !important;
     }
     
     .leaflet-popup-close-button {
       color: var(--primary) !important;
+      text-shadow: 0 0 5px var(--primary-glow);
+    }
+
+    .popup-action-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      background: rgba(0, 249, 255, 0.1);
+      border-color: rgba(0, 249, 255, 0.3);
+      color: var(--primary);
+    }
+    .popup-action-btn:hover {
+        background: rgba(0, 249, 255, 0.2);
+        box-shadow: 0 0 8px var(--primary-glow);
     }
 
     /* Info panel */
@@ -476,6 +504,7 @@
       background: rgba(8, 9, 33, 0.5);
       border: 1px solid rgba(62, 63, 130, 0.3);
       color: var(--muted);
+      transition: all 0.3s ease;
     }
     
     .status.success { 
@@ -617,13 +646,13 @@
     .leaderboard-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9px;
+      font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .leaderboard-table th, .leaderboard-table td {
-      padding: 6px 8px;
+      padding: 8px 10px;
       text-align: left;
       border-bottom: 1px solid rgba(62, 63, 130, 0.3);
     }
@@ -632,6 +661,7 @@
       color: var(--primary);
       font-family: 'Orbitron', sans-serif;
       font-weight: 700;
+      font-size: 12px;
     }
     
     .leaderboard-table td {
@@ -641,9 +671,12 @@
     .leaderboard-table tr:last-child td {
       border-bottom: none;
     }
+    .leaderboard-table tr:hover {
+        background: rgba(0, 249, 255, 0.05);
+    }
 
-    .leaderboard-table .rank { width: 40px; text-align: center; color: var(--accent); }
-    .leaderboard-table .owner { width: 120px; }
+    .leaderboard-table .rank { width: 40px; text-align: center; color: var(--accent); font-weight: 700; font-size: 16px; }
+    .leaderboard-table .owner { width: 150px; font-weight: 600; }
     .leaderboard-table .value { text-align: right; color: var(--success); font-weight: 700; }
 
 
@@ -713,14 +746,12 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      background: var(--bg);
     }
     
     .glitch-text:hover::before {
       animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+      color: var(--primary);
       text-shadow: 0 0 5px var(--primary-glow);
       clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
       transform: translate(-2px, -2px);
@@ -728,6 +759,7 @@
     
     .glitch-text:hover::after {
       animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+      color: var(--accent);
       text-shadow: 0 0 5px var(--accent-glow);
       clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
       transform: translate(2px, 2px);
@@ -753,7 +785,7 @@
         <button id="connectBtn" class="primary">
           <span class="material-icons">account_balance_wallet</span>Connect
         </button>
-        <span id="wallet" class="wallet"></span>
+        <span id="wallet" class="wallet" style="display:none;"></span>
       </div>
     </header>
 
@@ -764,15 +796,15 @@
 
       <div class="panel">
         <div class="panel-header">
-          <h2>Territory Control</h2>
+          <h2 class="glitch-text" data-text="Territory Control">Territory Control</h2>
         </div>
         
         <div class="row">
           <div class="legend">
             <div class="key"><span class="box" style="background:#191d3b;box-shadow:0 0 3px rgba(0,249,255,0.2);"></span> Not selected</div>
             <div class="key"><span class="box" style="background:#0055ff;box-shadow:0 0 5px #0055ff;"></span> Selected</div>
-            <div class="key"><span class="box" style="background:#ff2cf0;box-shadow:0 0 5px rgba(255,44,240,0.5);"></span> Minted (by other)</div>
-            <div class="key"><span class="box" style="background:#12ff9b;box-shadow:0 0 5px rgba(18,255,155,0.5);"></span> Minted (by you)</div>
+            <div class="key"><span class="box" style="background:#ff2cf0;box-shadow:0 0 5px rgba(255,44,240,0.5);"></span> Minted (Other)</div>
+            <div class="key"><span class="box" style="background:#12ff9b;box-shadow:0 0 5px rgba(18,255,155,0.5);"></span> Minted (You)</div>
           </div>
         </div>
 
@@ -810,7 +842,7 @@
       
       <div id="leaderboard" class="panel leaderboard-panel">
         <div class="panel-header">
-          <h2>Richest Owners</h2>
+          <h2 class="glitch-text" data-text="Richest Owners">Richest Owners</h2>
         </div>
         <table class="leaderboard-table">
           <thead>
@@ -877,6 +909,7 @@
     let selectionLayer; 
     let selected = null; 
     let isCityLoading = false;
+    let searchBounds = null; // New state for constrained search
 
     // Layers for minted NFTs on map
     let mintedLayerGroup, resourceLayerGroup;
@@ -905,6 +938,7 @@
     const empireNameInput = document.getElementById('empireNameInput');
     const empireColorInput = document.getElementById('empireColorInput');
     const leaderboardBody = document.getElementById('leaderboard-body');
+    const mapEl = document.getElementById('map');
 
     function showCityLoading(text = 'Loading territory data...') {
       cityLoadingEl.querySelector('.text').textContent = text;
@@ -964,6 +998,7 @@
       mintedLayerGroup = L.layerGroup().addTo(map);
       resourceLayerGroup = L.layerGroup().addTo(map);
       map.on('click', onMapClick);
+      map.on('popupopen', onPopupOpen);
       setTimeout(() => map.invalidateSize(), 300);
       setStatus('Connect your wallet or select a territory on the map.');
     }
@@ -972,6 +1007,12 @@
       if (isCityLoading) return;
       
       const { lat, lng } = e.latlng;
+
+      if (searchBounds && !searchBounds.contains(e.latlng)) {
+          setStatus('Click inside the highlighted exploration area.', 'error');
+          return;
+      }
+
       try {
         isCityLoading = true;
         showCityLoading('Searching for territory...');
@@ -995,7 +1036,6 @@
       }
     }
     
-    // **FIXED**: More granular zoom logic to find smaller areas when zoomed in.
     async function reverseGeocodeWithPolygon(lat, lng) {
       const mapZoom = map.getZoom();
       let nominatimZoom;
@@ -1016,6 +1056,11 @@
       url.searchParams.set('polygon_geojson', '1');
       url.searchParams.set('addressdetails', '1');
 
+      if (searchBounds) {
+          url.searchParams.set('viewbox', searchBounds.toBBoxString().replace(/,/g, ','));
+          url.searchParams.set('bounded', 1);
+      }
+
       const res = await fetch(url.toString(), { 
         headers: { 'Accept-Language': 'en', 'User-Agent': 'CyberTerritories/1.0' } 
       });
@@ -1030,9 +1075,6 @@
       const center = { lat: Number(data_lat), lng: Number(data_lon) };
       const id = makeAreaId(osm_type, osm_id);
       
-      // If the found area is already minted, it might be a large container.
-      // We don't automatically stop, we let the user see it.
-      // This logic is simpler and more effective; the user can always zoom and click again for more detail.
       return { id, name: display_name || 'Unknown area', type: `${cls || 'region'}:${typ || 'unknown'}`, center, geojson };
     }
 
@@ -1077,9 +1119,8 @@
     }
 
     function selectArea(area) {
+      clearSelection();
       selected = area;
-      if (selectionLayer) selectionLayer.remove();
-      resourceLayerGroup.clearLayers();
       
       const isMinted = areaDataByAreaId.has(area.id);
       const ownerData = areaDataByAreaId.get(area.id) || {};
@@ -1102,7 +1143,7 @@
       const popupColor = isMine ? (ownerData.empireColor || '#12ff9b') : isMinted ? (ownerData.empireColor || '#ff2cf0') : '#00f9ff';
       const statusText = isMine ? '✓ You own this territory' : isMinted ? `⚠ Minted by ${ownerData.empireName || 'another user'}` : '✦ Available for minting';
       
-      selectionLayer.bindPopup(`
+      let popupHTML = `
         <div style="min-width:250px;">
           <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${popupColor};text-shadow:0 0 5px ${popupColor}80;font-size:15px;">${escapeHTML(shortenName(area.name))}</div>
           <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Value: <span style="color:var(--success);font-weight:700;">${formatCurrency(demoPrice)}</span></div>
@@ -1110,7 +1151,9 @@
           <div style="font-size:13px;color:#eef2ff;margin-top:10px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.2);border-left:3px solid ${popupColor}">${statusText}</div>
           <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(area.id)}</div>
         </div>
-      `).openPopup();
+      `;
+
+      selectionLayer.bindPopup(popupHTML).openPopup();
 
       selectionPill.style.display = 'inline-flex';
       selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">${isMine ? 'verified' : isMinted ? 'gavel' : 'place'}</span> ${escapeHTML(shortenName(area.name))} · <span style="color:${popupColor};">${isMine ? 'You own' : isMinted ? 'Minted' : 'Available'}</span>`;
@@ -1150,6 +1193,7 @@
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         walletEl.textContent = shortAddr(userAddress);
+        walletEl.style.display = 'inline-block';
         
         await loadEmpireSettings();
         setStatus('Wallet connected.', 'success');
@@ -1171,11 +1215,12 @@
       userAddress = (accounts && accounts[0]) ? accounts[0] : null;
       if (userAddress) {
         walletEl.textContent = shortAddr(userAddress);
+        walletEl.style.display = 'inline-block';
         connectBtn.disabled = true;
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
         await loadEmpireSettings();
       } else {
-        walletEl.textContent = '';
+        walletEl.style.display = 'none';
         connectBtn.disabled = false;
         connectBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span>Connect';
       }
@@ -1368,7 +1413,7 @@
       try {
         const geoLayer = L.geoJSON(geojson, { style: () => areaStyle(true, isMine, false, fullAreaData) });
 
-        geoLayer.bindPopup(`
+        let popupHTML = `
           <div style="min-width:220px;">
             <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${fullAreaData.empireColor || '#ff2cf0'};font-size:15px;">
               ${escapeHTML(shortenName(fullAreaData.name))}
@@ -1377,8 +1422,14 @@
             <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Empire: <span style="color:#eef2ff;font-weight:bold;">${escapeHTML(fullAreaData.empireName)}</span></div>
             <div style="font-size:12px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
             <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(areaId)}</div>
-          </div>
-        `);
+        `;
+        
+        if (!isMine) {
+            popupHTML += `<button class="popup-action-btn" data-area-id="${escapeHTML(areaId)}">Explore & Mint Inside</button>`;
+        }
+        popupHTML += `</div>`;
+
+        geoLayer.bindPopup(popupHTML);
 
         geoLayer.addTo(mintedLayerGroup);
         mintedLayersByAreaId.set(areaId, geoLayer);
@@ -1444,11 +1495,13 @@
 
     function clearSelection() {
       selected = null;
+      searchBounds = null; // Clear search bounds
+      mapEl.style.cursor = '';
       if (selectionLayer) selectionLayer.remove();
       resourceLayerGroup.clearLayers();
       selectionPill.style.display = 'none';
       updateMintButtonState();
-      setStatus('Selection cleared. Click another area to select it.', 'success');
+      setStatus('Selection cleared. Click anywhere to explore territories.', 'success');
     }
 
     function restyleAllMintedPolygons() {
@@ -1508,8 +1561,9 @@
             const minPrice = 1_000_000; // 1 Million
             const maxPrice = 1_000_000_000_000_000; // 1 Quadrillion (1000 Trillion)
 
-            const price = minPrice * Math.pow(maxPrice / minPrice, normalized);
-            return price;
+            // Use an exponential scale for more dramatic price differences
+            const price = minPrice * Math.pow(maxPrice / minPrice, 1 - Math.pow(1 - normalized, 3));
+            return Math.round(price);
         } catch {
             return 1_000_000;
         }
@@ -1520,13 +1574,14 @@
         if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
         if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
         if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+        if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
         return `$${num.toLocaleString()}`;
     }
 
     function renderLeaderboard(sortedOwners) {
         leaderboardBody.innerHTML = '';
         if (sortedOwners.length === 0) {
-            leaderboardBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);">No territories minted yet.</td></tr>';
+            leaderboardBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No territories minted yet.</td></tr>';
             return;
         }
         sortedOwners.forEach((entry, index) => {
@@ -1576,23 +1631,54 @@
 
     function isPointInPolygon(point, geojson) {
         let isInside = false;
-        const poly = L.geoJSON(geojson);
-        const layers = poly.getLayers();
-        for (const layer of layers) {
-            if (layer.getLatLngs && layer.getBounds().contains(L.latLng(point[1], point[0]))) {
-                const latlngs = layer.getLatLngs()[0] || layer.getLatLngs();
-                for (let i = 0, j = latlngs.length - 1; i < latlngs.length; j = i++) {
-                    const xi = latlngs[i].lng, yi = latlngs[i].lat;
-                    const xj = latlngs[j].lng, yj = latlngs[j].lat;
+        try {
+            const poly = L.geoJSON(geojson);
+            const layers = poly.getLayers();
+            for (const layer of layers) {
+                if (layer.getLatLngs && layer.getBounds().contains(L.latLng(point[1], point[0]))) {
+                    const latlngs = layer.getLatLngs()[0] || layer.getLatLngs();
+                    if (!Array.isArray(latlngs) || latlngs.length === 0) continue;
+                    for (let i = 0, j = latlngs.length - 1; i < latlngs.length; j = i++) {
+                        const xi = latlngs[i].lng, yi = latlngs[i].lat;
+                        const xj = latlngs[j].lng, yj = latlngs[j].lat;
 
-                    const intersect = ((yi > point[1]) !== (yj > point[1]))
-                        && (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
-                    if (intersect) isInside = !isInside;
+                        const intersect = ((yi > point[1]) !== (yj > point[1]))
+                            && (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
+                        if (intersect) isInside = !isInside;
+                    }
+                    if (isInside) return true;
                 }
-                if (isInside) return true;
             }
-        }
+        } catch(e) { console.warn("isPointInPolygon failed:", e); }
         return isInside;
+    }
+
+    // --- New "Mint Inside" Logic ---
+    function onPopupOpen(e) {
+        const button = e.popup._contentNode.querySelector('.popup-action-btn');
+        if (button) {
+            button.addEventListener('click', onMintInsideClick);
+        }
+    }
+
+    function onMintInsideClick(e) {
+        const areaId = e.target.dataset.areaId;
+        if (!areaId) return;
+
+        const layer = mintedLayersByAreaId.get(areaId);
+        if (layer) {
+            map.closePopup();
+            clearSelection();
+            searchBounds = layer.getBounds();
+            
+            // Highlight the search area
+            selectionLayer = L.rectangle(searchBounds, { 
+                color: '#00f9ff', weight: 2, opacity: 0.8, fillOpacity: 0.1, dashArray: '5, 5' 
+            }).addTo(map);
+
+            mapEl.style.cursor = 'crosshair';
+            setStatus('Exploration Mode: Click inside the highlighted area to find smaller territories.', 'success');
+        }
     }
 
     // Event listeners
@@ -1600,7 +1686,15 @@
     mintBtn.addEventListener('click', mintSelectedArea);
     clearBtn.addEventListener('click', clearSelection);
     refreshBtn.addEventListener('click', () => { 
-      setStatus("Manual refresh is disabled.", "error"); 
+        setStatus("Refreshing data from database...", 'loading');
+        if(allNftsRef) {
+            allNftsRef.off();
+            mintedLayersByAreaId.forEach(layer => layer.remove());
+            mintedLayersByAreaId.clear();
+            areaDataByAreaId.clear();
+            subscribeMintedOnFirebase();
+        }
+        setStatus("Territory data has been refreshed.", "success");
     });
     empireNameInput.addEventListener('input', updateEmpireState);
     empireColorInput.addEventListener('input', updateEmpireState);
