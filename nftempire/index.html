@@ -678,6 +678,8 @@
     .leaderboard-table .rank { width: 40px; text-align: center; color: var(--accent); font-weight: 700; font-size: 16px; }
     .leaderboard-table .owner { width: 150px; font-weight: 600; }
     .leaderboard-table .value { text-align: right; color: var(--success); font-weight: 700; }
+    .leaderboard-table .area { text-align: right; color: var(--primary); font-weight: 700; }
+    .leaderboard-table .rewards { text-align: right; color: var(--accent); font-weight: 700; }
 
 
     /* Mobile optimizations */
@@ -764,9 +766,56 @@
       clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
       transform: translate(2px, 2px);
     }
+
+    /* Initial Loading Overlay */
+    #initial-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg-dark);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    #initial-loader .loader-content {
+      text-align: center;
+      color: var(--primary);
+    }
+
+    #initial-loader .spinner {
+      width: 50px;
+      height: 50px;
+      border-width: 4px;
+      margin: 0 auto 20px;
+    }
+
+    #initial-loader .loader-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    #initial-loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
+  <!-- Initial Loading Overlay -->
+  <div id="initial-loader">
+    <div class="loader-content">
+      <div class="spinner"></div>
+      <div class="loader-text">Initializing CyberTerritories...</div>
+    </div>
+  </div>
+
   <div id="app-container">
     <div class="cyber-grid"></div>
     <header>
@@ -780,7 +829,7 @@
       <div class="actions">
         <span class="pill">
           <span class="material-icons">paid</span> 
-          <span>Mint Price: <strong style="margin-left:4px;color:var(--primary);">1 MATIC</strong></span>
+          <span>Mint Price: <strong style="margin-left:4px;color:var(--primary);">0.01 - 100 POL (by area)</strong></span>
         </span>
         <button id="connectBtn" class="primary">
           <span class="material-icons">account_balance_wallet</span>Connect
@@ -850,6 +899,8 @@
               <th class="rank">#</th>
               <th class="owner">Owner</th>
               <th class="value">Total Value</th>
+              <th class="area">Total Area (km²)</th>
+              <th class="rewards">NFTFAN Rewards</th>
             </tr>
           </thead>
           <tbody id="leaderboard-body">
@@ -873,7 +924,7 @@
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
-      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+      nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
       rpcUrls: ['https://polygon-rpc.com/'],
       blockExplorerUrls: ['https://polygonscan.com/']
     };
@@ -910,6 +961,8 @@
     let selected = null; 
     let isCityLoading = false;
     let searchBounds = null; // New state for constrained search
+    let currentMintPrice = 0;
+    let selectedAreaKm2 = 0;
 
     // Layers for minted NFTs on map
     let mintedLayerGroup, resourceLayerGroup;
@@ -925,6 +978,7 @@
     let allNftsRef = null;
 
     // UI
+    const initialLoader = document.getElementById('initial-loader');
     const connectBtn = document.getElementById('connectBtn');
     const walletEl = document.getElementById('wallet');
     const mintBtn = document.getElementById('mintBtn');
@@ -972,6 +1026,29 @@
     function toFixed5(n) { return (Math.round(n * 100000) / 100000).toFixed(5); }
     function escapeHTML(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
     function shortAddr(a) { return a ? `${a.slice(0,6)}...${a.slice(-4)}` : ''; }
+
+    function radians(deg) { return deg * Math.PI / 180; }
+
+    function calculateAreaInKm2(geojson) {
+      if (!geojson || !geojson.coordinates) return 0;
+      const coordinates = geojson.type === 'Polygon' ? [geojson.coordinates] : geojson.coordinates;
+      let area = 0;
+      const R = 6378.137;
+      for (const polygon of coordinates) {
+        const ring = polygon[0];
+        for (let i = 0; i < ring.length - 1; i++) {
+          const p1 = ring[i];
+          const p2 = ring[i + 1];
+          const lon1 = radians(p1[0]);
+          const lat1 = radians(p1[1]);
+          const lon2 = radians(p2[0]);
+          const lat2 = radians(p2[1]);
+          area += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+        }
+      }
+      area = Math.abs(area) * (R * R) / 2;
+      return area;
+    }
 
     function initMap() {
       if (!window.L) { 
@@ -1126,6 +1203,9 @@
       const ownerData = areaDataByAreaId.get(area.id) || {};
       const isMine = userAddress && ownerData.owner === userAddress.toLowerCase();
       const demoPrice = calculateDemoPrice(area.geojson);
+      selectedAreaKm2 = calculateAreaInKm2(area.geojson);
+      currentMintPrice = selectedAreaKm2 * 0.00001;
+
 
       selectionLayer = L.geoJSON(area.geojson, { 
         style: () => areaStyle(isMinted, isMine, true, ownerData) 
@@ -1142,13 +1222,21 @@
 
       const popupColor = isMine ? (ownerData.empireColor || '#12ff9b') : isMinted ? (ownerData.empireColor || '#ff2cf0') : '#00f9ff';
       const statusText = isMine ? '✓ You own this territory' : isMinted ? `⚠ Minted by ${ownerData.empireName || 'another user'}` : '✦ Available for minting';
+      const rewards = selectedAreaKm2 * 1000000;
       
       let popupHTML = `
         <div style="min-width:250px;">
           <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${popupColor};text-shadow:0 0 5px ${popupColor}80;font-size:15px;">${escapeHTML(shortenName(area.name))}</div>
           <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Value: <span style="color:var(--success);font-weight:700;">${formatCurrency(demoPrice)}</span></div>
+          <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Area: <span style="color:var(--primary);font-weight:700;">${selectedAreaKm2.toFixed(2)} km²</span></div>
+          <div style="font-size:13px;color:#8f9cce;margin:4px 0;">NFTFAN Rewards: <span style="color:var(--accent);font-weight:700;">${rewards.toLocaleString()} $NFTFAN</span></div>
           <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Center: <span style="color:#eef2ff">${toFixed5(area.center.lat)}, ${toFixed5(area.center.lng)}</span></div>
           <div style="font-size:13px;color:#eef2ff;margin-top:10px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.2);border-left:3px solid ${popupColor}">${statusText}</div>
+      `;
+      if (!isMinted && !isMine) {
+        popupHTML += `<div style="font-size:13px;color:#8f9cce;margin:4px 0;">Mint Cost: <span style="color:var(--success);font-weight:700;">${currentMintPrice.toFixed(2)} POL</span></div>`;
+      }
+      popupHTML += `
           <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(area.id)}</div>
         </div>
       `;
@@ -1156,9 +1244,13 @@
       selectionLayer.bindPopup(popupHTML).openPopup();
 
       selectionPill.style.display = 'inline-flex';
-      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">${isMine ? 'verified' : isMinted ? 'gavel' : 'place'}</span> ${escapeHTML(shortenName(area.name))} · <span style="color:${popupColor};">${isMine ? 'You own' : isMinted ? 'Minted' : 'Available'}</span>`;
+      selectionPill.innerHTML = `<span class="material-icons" style="font-size:16px;">${isMine ? 'verified' : isMinted ? 'gavel' : 'place'}</span> ${escapeHTML(shortenName(area.name))} · ${selectedAreaKm2.toFixed(2)} km² · <span style="color:${popupColor};">${isMine ? 'You own' : isMinted ? 'Minted' : 'Available'}</span>`;
       
       updateMintButtonState();
+      if (!isMinted) {
+        mintBtn.innerHTML = `<span class="material-icons">rocket_launch</span>Mint for ${currentMintPrice.toFixed(2)} POL`;
+        setStatus(`Territory selected. Mint price: ${currentMintPrice.toFixed(2)} POL. Rewards: ${rewards.toLocaleString()} $NFTFAN tokens.`, 'success');
+      }
     }
 
     async function switchToPolygon() {
@@ -1230,6 +1322,7 @@
     
     function buildAreaTokenURI(area, empireName, empireColor) {
       const image = buildAreaSVG(area, empireName, empireColor);
+      const areaKm2 = calculateAreaInKm2(area.geojson);
       const metadata = {
         name: `Territory: ${shortenName(area.name)}`,
         description: `Digital territory NFT from the ${empireName} empire. OSM Type: ${area.type}`,
@@ -1237,6 +1330,7 @@
         attributes: [
           { trait_type: "Area ID", value: area.id },
           { trait_type: "Area Type", value: area.type },
+          { trait_type: "Area (km²)", value: areaKm2.toFixed(2) },
           { trait_type: "Center Latitude", value: Number(area.center.lat.toFixed(6)) },
           { trait_type: "Center Longitude", value: Number(area.center.lng.toFixed(6)) },
           { trait_type: "Empire Name", value: empireName },
@@ -1309,9 +1403,9 @@
 
         setStatus('Submitting mint transaction...', 'loading');
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        const price = await contract.mintPrice().catch(() => ethers.utils.parseUnits('1', 18));
         const tokenURI = buildAreaTokenURI(selected, empireName, empireColor);
-        const tx = await contract.mintWithURI(tokenURI, { value: price });
+        const priceWei = ethers.utils.parseEther(currentMintPrice.toString());
+        const tx = await contract.mintWithURI(tokenURI, { value: priceWei });
         
         setStatus('Transaction sent! Waiting for confirmation...', 'loading');
         const receipt = await tx.wait();
@@ -1325,6 +1419,7 @@
             name: `Territory: ${shortenName(selected.name)}`,
             description: `Digital territory NFT from the ${empireName} empire. OSM Type: ${selected.type}`,
             area_id: selected.id,
+            area_km2: selectedAreaKm2,
             empire_name: empireName,
             empire_color: empireColor,
             geojson: selected.geojson,
@@ -1333,6 +1428,7 @@
           }
         };
 
+        // Note: The 'child_added' listener will handle the map update
         await writeNftToFirebase(mintedTokenId, fullNftData);
         await saveEmpireSettings();
 
@@ -1365,22 +1461,32 @@
       } catch (e) { 
         console.error('Firebase init failed', e); 
         setStatus("Could not connect to the database.", "error");
+        initialLoader.classList.add('hidden');
       }
     }
 
     function subscribeMintedOnFirebase() {
       if (!fbDb) return;
-      if (allNftsRef) allNftsRef.off();
-      
       allNftsRef = fbDb.ref('nfts');
-      
-      allNftsRef.on('child_added', (snap) => upsertMintedAreaOnMap(snap.key, snap.val()), (err) => {
-        console.error("Firebase read failed:", err);
+
+      // First, load all existing data once to hide the loader.
+      allNftsRef.once('value', (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            upsertMintedAreaOnMap(childSnapshot.key, childSnapshot.val());
+        });
+
+        // Hide loader after initial data is processed
+        initialLoader.classList.add('hidden');
+        
+        // Now, attach real-time listeners for updates.
+        allNftsRef.on('child_added', (snap) => upsertMintedAreaOnMap(snap.key, snap.val()));
+        allNftsRef.on('child_changed', (snap) => upsertMintedAreaOnMap(snap.key, snap.val()));
+        allNftsRef.on('child_removed', (snap) => removeMintedAreaFromMap(snap.key, snap.val()));
+      }, (err) => {
+        console.error("Firebase initial read failed:", err);
         setStatus("Cannot read territory data. Check DB rules.", "error");
+        initialLoader.classList.add('hidden');
       });
-      
-      allNftsRef.on('child_changed', (snap) => upsertMintedAreaOnMap(snap.key, snap.val()));
-      allNftsRef.on('child_removed', (snap) => removeMintedAreaFromMap(snap.key, snap.val()));
     }
 
     function upsertMintedAreaOnMap(tokenId, data) {
@@ -1390,6 +1496,7 @@
 
       const ownerLower = (data.owner || '').toLowerCase();
       const isMine = userAddress && ownerLower === userAddress.toLowerCase();
+      const areaKm2 = data.meta.area_km2 || calculateAreaInKm2(data.meta.geojson);
       
       const fullAreaData = {
           owner: ownerLower,
@@ -1397,7 +1504,8 @@
           empireColor: data.meta.empire_color,
           geojson: data.meta.geojson,
           name: data.meta.name,
-          demoPrice: data.meta.demoPrice || calculateDemoPrice(data.meta.geojson)
+          demoPrice: data.meta.demoPrice || calculateDemoPrice(data.meta.geojson),
+          areaKm2: areaKm2
       };
       
       areaDataByAreaId.set(areaId, fullAreaData);
@@ -1413,12 +1521,15 @@
       try {
         const geoLayer = L.geoJSON(geojson, { style: () => areaStyle(true, isMine, false, fullAreaData) });
 
+        const rewards = areaKm2 * 1000000;
         let popupHTML = `
           <div style="min-width:220px;">
             <div style="font-weight:800;margin-bottom:8px;font-family:'Orbitron',sans-serif;color:${fullAreaData.empireColor || '#ff2cf0'};font-size:15px;">
               ${escapeHTML(shortenName(fullAreaData.name))}
             </div>
             <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Value: <span style="color:var(--success);font-weight:700;">${formatCurrency(fullAreaData.demoPrice)}</span></div>
+            <div style="font-size:13px;color:#8f9cce;margin:4px 0;">Area: <span style="color:var(--primary);font-weight:700;">${areaKm2.toFixed(2)} km²</span></div>
+            <div style="font-size:13px;color:#8f9cce;margin:4px 0;">NFTFAN Rewards: <span style="color:var(--accent);font-weight:700;">${rewards.toLocaleString()} $NFTFAN</span></div>
             <div style="font-size:13px;color:#8f9cce;margin:8px 0;">Empire: <span style="color:#eef2ff;font-weight:bold;">${escapeHTML(fullAreaData.empireName)}</span></div>
             <div style="font-size:12px;color:#8f9cce;margin:8px 0;">Minted by: <span style="color:#eef2ff">${shortAddr(data.owner)}</span></div>
             <div style="font-size:11px;color:#5a5f8a;margin-top:10px;">ID: ${escapeHTML(areaId)}</div>
@@ -1462,6 +1573,8 @@
     function updateCountsAndLeaderboard() {
         let myOwnedCount = 0;
         const ownerValues = {};
+        const ownerAreas = {};
+        const ownerRewards = {};
 
         if (userAddress) {
             const userAddrLower = userAddress.toLowerCase();
@@ -1481,13 +1594,15 @@
 
         // Calculate leaderboard
         for(const data of areaDataByAreaId.values()){
-            if(data.owner && data.demoPrice){
-                ownerValues[data.owner] = (ownerValues[data.owner] || 0) + data.demoPrice;
+            if(data.owner){
+                ownerValues[data.owner] = (ownerValues[data.owner] || 0) + (data.demoPrice || 0);
+                ownerAreas[data.owner] = (ownerAreas[data.owner] || 0) + (data.areaKm2 || 0);
+                ownerRewards[data.owner] = (ownerRewards[data.owner] || 0) + (data.areaKm2 || 0) * 1000000;
             }
         }
 
         const sortedOwners = Object.entries(ownerValues)
-            .map(([owner, value]) => ({ owner, value }))
+            .map(([owner, value]) => ({ owner, value, area: ownerAreas[owner], rewards: ownerRewards[owner] }))
             .sort((a, b) => b.value - a.value);
 
         renderLeaderboard(sortedOwners.slice(0, 10)); // Show top 10
@@ -1496,10 +1611,13 @@
     function clearSelection() {
       selected = null;
       searchBounds = null; // Clear search bounds
+      selectedAreaKm2 = 0;
+      currentMintPrice = 0;
       mapEl.style.cursor = '';
       if (selectionLayer) selectionLayer.remove();
       resourceLayerGroup.clearLayers();
       selectionPill.style.display = 'none';
+      mintBtn.innerHTML = `<span class="material-icons">rocket_launch</span>Mint Territory`;
       updateMintButtonState();
       setStatus('Selection cleared. Click anywhere to explore territories.', 'success');
     }
@@ -1581,7 +1699,7 @@
     function renderLeaderboard(sortedOwners) {
         leaderboardBody.innerHTML = '';
         if (sortedOwners.length === 0) {
-            leaderboardBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No territories minted yet.</td></tr>';
+            leaderboardBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No territories minted yet.</td></tr>';
             return;
         }
         sortedOwners.forEach((entry, index) => {
@@ -1590,6 +1708,8 @@
                 <td class="rank">${index + 1}</td>
                 <td class="owner">${shortAddr(entry.owner)}</td>
                 <td class="value">${formatCurrency(entry.value)}</td>
+                <td class="area">${entry.area.toFixed(2)}</td>
+                <td class="rewards">${entry.rewards.toLocaleString()} $NFTFAN</td>
             `;
             leaderboardBody.appendChild(row);
         });
@@ -1686,15 +1806,7 @@
     mintBtn.addEventListener('click', mintSelectedArea);
     clearBtn.addEventListener('click', clearSelection);
     refreshBtn.addEventListener('click', () => { 
-        setStatus("Refreshing data from database...", 'loading');
-        if(allNftsRef) {
-            allNftsRef.off();
-            mintedLayersByAreaId.forEach(layer => layer.remove());
-            mintedLayersByAreaId.clear();
-            areaDataByAreaId.clear();
-            subscribeMintedOnFirebase();
-        }
-        setStatus("Territory data has been refreshed.", "success");
+        setStatus("Refreshing data is now automatic. Manual refresh disabled.", "error"); 
     });
     empireNameInput.addEventListener('input', updateEmpireState);
     empireColorInput.addEventListener('input', updateEmpireState);
