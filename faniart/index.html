@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1346,25 +1347,29 @@ async function loadShopNFTs() {
         try {
           const meta = await fetchOpenSeaMeta(uri);
           console.log(`Metadata for URI ${uri}:`, meta);
-          return meta;
+          return { meta, id: ids[i], uri: uris[i], price: prices[i], forSale: isForSale[i], available: shopAmounts[i], maxSupply: maxSupplies ? maxSupplies[i] : "" };
         } catch (e) {
           console.error(`Failed to fetch metadata for URI ${uri}:`, e);
-          return null;
+          return { meta: null, id: ids[i], uri: uris[i], price: prices[i], forSale: isForSale[i], available: shopAmounts[i], maxSupply: maxSupplies ? maxSupplies[i] : "" };
         }
       })
     );
+    // Sort by name (descending numeric order)
+    metaArr.sort((a, b) => {
+      const nameA = a.meta?.name || `NFTFAN #${a.id}`;
+      const nameB = b.meta?.name || `NFTFAN #${b.id}`;
+      const numA = getNFTNumber(nameA);
+      const numB = getNFTNumber(nameB);
+      return numB - numA; // Descending order
+    });
     let html = "";
     let visibleCount = 0;
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i],
-        meta = metaArr[i],
-        name = meta?.name || `NFTFAN #${id}`,
-        img = meta?.image || uris[i] || "https://via.placeholder.com/92x92?text=NFT",
-        desc = meta?.description || "",
-        price = web3.utils.fromWei(prices[i], "ether"),
-        forSale = isForSale[i],
-        available = shopAmounts[i],
-        maxSupply = maxSupplies ? maxSupplies[i] : "";
+    for (let i = 0; i < metaArr.length; i++) {
+      const { id, meta, uri, price, forSale, available, maxSupply } = metaArr[i];
+      const name = meta?.name || `NFTFAN #${id}`;
+      const img = meta?.image || uri || "https://via.placeholder.com/92x92?text=NFT";
+      const desc = meta?.description || "";
+      const priceEth = web3.utils.fromWei(price, "ether");
       let statusBadge = "";
       if (forSale && available > 0) {
         statusBadge = `<span class="nft-status-label nft-status-listed">Listed</span>`;
@@ -1386,10 +1391,10 @@ async function loadShopNFTs() {
           </div>
         </div>
         <div class="nft-actions">
-          <div class="price-tab">${price} POL</div>
+          <div class="price-tab">${priceEth} POL</div>
           ${
             forSale && available != "0"
-              ? `<button class="buy-btn" onclick="buyNFT(${id}, '${prices[i]}', ${available})" ${
+              ? `<button class="buy-btn" onclick="buyNFT(${id}, '${price}', ${available})" ${
                   !userAccount ? "disabled" : ""
                 }><span class="material-icons">shopping_cart</span>Buy</button>`
               : `<div class="sold-out"><span class="material-icons">block</span>Sold Out</div>`
@@ -1416,7 +1421,7 @@ async function loadShopNFTs() {
   }
 }
 
- async function loadUserNFTs() {
+async function loadUserNFTs() {
   const myGrid = document.getElementById("myGrid");
   const loading = document.getElementById("my-loading");
   const countEl = document.getElementById("mynfts-count");
@@ -1494,6 +1499,14 @@ async function loadShopNFTs() {
       updateStatus("No NFTs or listings found", "info");
       return;
     }
+    // Sort by name (descending numeric order)
+    metaArr.sort((a, b) => {
+      const nameA = a.metaJson?.name || `NFTFAN #${a.id}`;
+      const nameB = b.metaJson?.name || `NFTFAN #${b.id}`;
+      const numA = getNFTNumber(nameA);
+      const numB = getNFTNumber(nameB);
+      return numB - numA; // Descending order
+    });
     let html = "";
     for (let i = 0; i < metaArr.length; i++) {
       const item = metaArr[i];
@@ -2022,6 +2035,16 @@ function openQuantityModal({ title = "Quantity", max = null, defaultValue = 1 } 
     modal.addEventListener("click", onBackdrop);
     document.addEventListener("keydown", onEsc);
   });
+}
+
+function getNFTNumber(name) {
+  // Match patterns like "NFTFAN #123" or any string ending with a number
+  const match = name.match(/#(\d+)$/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  // Return -Infinity for names without numbers to push them to the end
+  return -Infinity;
 }
 
 </script>
