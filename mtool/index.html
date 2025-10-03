@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', Arial, sans-serif;
@@ -29,6 +30,11 @@
   --gradient-accent: linear-gradient(135deg,#5f83ff,#4d4ffb 40%,#9a40ff 70%,#ff35a6);
   --gradient-bg: radial-gradient(circle at 10% 15%,#1a2230 0%,#0d1219 45%,#07090d 85%);
   --success: #3ddf91;
+  --neon-cyan: #00ffffc0;
+  --neon-purple: #b700ffc0;
+  --neon-pink: #ff00a5c0;
+  --neon-glow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.3);
+  --glow-text: 0 0 5px #00ffff80, 0 0 20px #00ffff40;
 }
 
 * { box-sizing: border-box; }
@@ -83,75 +89,137 @@ body::before {
 
 .header {
   margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba(183, 0, 255, 0.6));
+  animation: pulse-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { filter: drop-shadow(0 0 10px rgba(183, 0, 255, 0.4)); }
+  50% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.7)); }
+  100% { filter: drop-shadow(0 0 10px rgba(255, 0, 165, 0.5)); }
 }
 
 h1 {
   font-size: 2.25rem;
   font-weight: 900;
   background: var(--gradient-accent);
-  -webkit-background-clip:text;
-  color:transparent;
-  filter:drop-shadow(0 6px 12px #00000050);
-  margin:0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 12px #00000050);
+  margin: 0;
+  text-shadow: var(--glow-text);
 }
 
 .panel {
-  position:relative;
-  background:var(--panel);
-  border:1px solid var(--glass-border);
-  border-radius:var(--radius-lg);
-  padding:1.5rem;
-  box-shadow:var(--shadow-1);
-  backdrop-filter:saturate(140%) blur(var(--blur-panel));
-  -webkit-backdrop-filter:saturate(140%) blur(var(--blur-panel));
-  margin:1rem 0;
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-1);
+  backdrop-filter: saturate(140%) blur(var(--blur-panel));
+  -webkit-backdrop-filter: saturate(140%) blur(var(--blur-panel));
+  margin: 1rem 0;
   text-align: left;
+  overflow: hidden;
 }
 
 .panel::before {
-  content:"";
-  position:absolute;
-  inset:0;
-  background: linear-gradient(120deg,#ffffff10 0%,transparent 25%,transparent 75%,#ffffff08 100%);
-  pointer-events:none;
-  mix-blend-mode:overlay;
-  opacity:.55;
-  border-radius:inherit;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #ffffff10 0%, transparent 25%, transparent 75%, #ffffff08 100%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: .55;
+  border-radius: inherit;
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, var(--neon-purple), var(--neon-cyan), var(--neon-pink));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  z-index: -1;
 }
 
 .message {
-  font-size:14px;
-  margin:0 0 1.5rem;
-  color:var(--text-dim);
-  line-height:1.5;
+  font-size: 14px;
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  line-height: 1.5;
   text-align: center;
 }
 
 button {
-  font-family:inherit;
-  font-weight:600;
-  font-size:14px;
-  letter-spacing:.5px;
-  line-height:1;
-  border:none;
-  border-radius:var(--radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .5px;
+  line-height: 1;
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 1.5rem;
-  height:50px;
-  cursor:pointer;
-  transition:transform .25s var(--ease-out-expo), box-shadow .25s var(--ease-out-expo), background .25s ease;
-  width:100%;
+  height: 50px;
+  cursor: pointer;
+  transition: transform .25s var(--ease-out-expo), box-shadow .25s var(--ease-out-expo), background .25s ease;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 button.primary {
-  background:linear-gradient(135deg,#3552ff,#5d82ff 55%,#7b2dfd);
-  color:#fff;
-  box-shadow:0 4px 14px -5px rgba(var(--accent-rgb)/.8), 0 2px 4px -2px rgba(0,0,0,.6);
+  background: linear-gradient(135deg, #3552ff, #5d82ff 55%, #7b2dfd);
+  color: #fff;
+  box-shadow: 0 4px 14px -5px rgba(var(--accent-rgb)/.8), 0 2px 4px -2px rgba(0,0,0,.6), 0 0 10px rgba(123, 45, 253, 0.5);
+}
+
+button.primary::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  z-index: -1;
+  background: linear-gradient(45deg, var(--neon-purple), var(--neon-cyan), var(--neon-pink), var(--neon-purple));
+  background-size: 400%;
+  border-radius: var(--radius-md);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+button.primary:hover::before {
+  opacity: 1;
+  animation: animate-border 8s linear infinite;
+}
+
+@keyframes animate-border {
+  0% { background-position: 0 0; }
+  50% { background-position: 300% 0; }
+  100% { background-position: 0 0; }
 }
 
 button.primary:hover:not(:disabled) {
-  background:linear-gradient(135deg,#4660ff,#6a8bff 55%,#8a40ff);
-  transform:translateY(-3px);
-  box-shadow:0 8px 26px -6px rgba(var(--accent-rgb)/.85), 0 3px 10px -4px rgba(0,0,0,.8);
+  background: linear-gradient(135deg, #4660ff, #6a8bff 55%, #8a40ff);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 26px -6px rgba(var(--accent-rgb)/.85), 0 3px 10px -4px rgba(0,0,0,.8), 0 0 15px rgba(123, 45, 253, 0.8);
 }
 
 button.secondary {
@@ -166,106 +234,314 @@ button.secondary:hover:not(:disabled) {
   transform: translateY(-2px);
 }
 
+button.danger {
+  background: rgba(255,76,76,0.1);
+  color: #ff4c4c;
+}
+
+button.danger:hover:not(:disabled) {
+  background: rgba(255,76,76,0.2);
+  transform: translateY(-2px);
+}
+
 button:active:not(:disabled) {
-  transform:translateY(0);
-  transition-duration:.1s;
+  transform: translateY(0);
+  transition-duration: .1s;
 }
 
 button:disabled {
-  opacity:.5;
-  cursor:not-allowed;
-  filter:saturate(.3);
-  transform:none !important;
+  opacity: .5;
+  cursor: not-allowed;
+  filter: saturate(.3);
+  transform: none !important;
   box-shadow: none !important;
 }
 
 .loading {
-  display:inline-block;
-  width:18px;
-  height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-radius:50%;
-  border-top-color:#fff;
-  animation:spin 1s ease-in-out infinite;
-  margin-right:8px;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-#tweet-output-panel {
-    display: none;
+.stat-block {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.token-unit {
+  font-size: 1rem;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+.chart-container {
+  width: 100%;
+  height: 200px;
+  margin: 1.5rem 0;
+}
+
+#tweet-output-panel, #dashboard-panel, #cooldown-panel {
+  display: none;
+}
+
+#login-panel {
+  text-align: center;
 }
 
 #tweet-text {
-    width: 100%;
-    min-height: 120px;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    font-family: inherit;
-    resize: vertical;
+  width: 100%;
+  min-height: 120px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .button-group {
-    display: flex;
-    gap: 0.75rem;
-    flex-direction: column;
+  display: flex;
+  gap: 0.75rem;
+  flex-direction: column;
 }
 @media (min-width: 400px) {
-    .button-group { flex-direction: row; }
+  .button-group { flex-direction: row; }
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+input[type="text"] {
+  width: 100%;
+  height: 50px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 1rem;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3);
+}
+
+.input-wrapper label {
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  background: var(--panel);
+  padding: 0 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.cooldown-wrapper {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.cooldown-timer {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+  font-family: monospace;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+}
+
+.small-button {
+  padding: 0 1rem;
+  height: 36px;
+  font-size: 12px;
+}
+
+.current-datetime {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-top: 1rem;
+  font-family: monospace;
 }
 
 .toast {
-  position:fixed;
-  z-index:100;
-  bottom:1.5rem;
-  max-width:min(360px,90vw);
-  background:#121c27f2;
-  backdrop-filter:blur(22px) saturate(160%);
-  -webkit-backdrop-filter:blur(22px) saturate(160%);
-  border:1px solid #ffffff20;
-  box-shadow:0 12px 40px -12px rgba(0,0,0,.6), 0 0 0 1px #ffffff08;
+  position: fixed;
+  z-index: 100;
+  bottom: 1.5rem;
+  max-width: min(360px, 90vw);
+  background: #121c27f2;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid #ffffff20;
+  box-shadow: 0 12px 40px -12px rgba(0,0,0,.6), 0 0 0 1px #ffffff08;
   padding: 1rem;
-  border-radius:var(--radius-lg);
-  font-size:13px;
-  line-height:1.4;
-  opacity:0;
-  transform:translateY(14px) scale(.96);
-  pointer-events:none;
-  transition:opacity .5s var(--ease-out-expo), transform .55s var(--ease-out-expo);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(14px) scale(.96);
+  pointer-events: none;
+  transition: opacity .5s var(--ease-out-expo), transform .55s var(--ease-out-expo);
 }
+
 .toast.show {
-  opacity:1;
-  transform:translateY(0) scale(1);
-  pointer-events:auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.neon-highlight {
+  position: relative;
+}
+
+.neon-highlight::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  box-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.username {
+  font-weight: bold;
+  color: var(--text);
+}
+
+.date-time {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
 }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>Mention Tool</h1>
+    <img src="https://res.cloudinary.com/de9axcrog/image/upload/v1759514963/ODP45iQ_wlsden.png" alt="NFT FANS TOKENS Logo" class="logo">
+    <h1>$NFTFAN Farming Tool</h1>
   </div>
   
-  <div class="panel" id="action-panel" style="animation-delay: 0.4s;">
-    <p class="message">Click the button to fetch two groups of users from the database and generate a mention tweet.</p>
-    <button id="generateBtn" type="button" class="primary">Fetch Groups & Generate Tweet</button>
+  <!-- Login Panel -->
+  <div class="panel" id="login-panel">
+    <p class="message">Enter your X username to login</p>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="@nftfan">
+      </div>
+    </div>
+    <button id="loginBtn" type="button" class="primary">Login</button>
+  </div>
+  
+  <!-- Dashboard Panel -->
+  <div class="panel" id="dashboard-panel">
+    <div class="user-info">
+      <span class="username" id="displayUsername">@nftfan</span>
+    </div>
+    <div class="date-time" id="current-datetime">2025-10-03 18:20:32 UTC</div>
+    
+    <div class="grid">
+      <div class="stat-block">
+        <div class="stat-value" id="token-count">5.0 <span class="token-unit">T</span></div>
+        <div class="stat-label">$NFTFAN Tokens in Trillion</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" id="shares-count">0</div>
+        <div class="stat-label">Tweets Shared</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <canvas id="tokensChart"></canvas>
+    </div>
+    
+    <div class="button-group">
+      <button id="generateBtn" type="button" class="primary">Generate Tweet</button>
+      <button id="claimBtn" type="button" class="primary" disabled>Claim Tokens</button>
+    </div>
+    
+    <div class="actions">
+      <button id="logoutBtn" type="button" class="secondary small-button">Logout</button>
+    </div>
   </div>
 
   <!-- Cooldown panel for timer -->
-  <div id="cooldown-panel">
-    <div class="cooldown-message">Please wait before generating another tweet.</div>
-    <div class="cooldown-timer" id="cooldown-timer">20:00</div>
+  <div class="panel" id="cooldown-panel">
+    <div class="cooldown-wrapper">
+      <p class="message">Please wait before generating another tweet.</p>
+      <div class="cooldown-timer" id="cooldown-timer">20:00</div>
+    </div>
   </div>
 
-  <div class="panel" id="tweet-output-panel" style="animation-delay: 0.5s;">
+  <!-- Tweet Output Panel -->
+  <div class="panel" id="tweet-output-panel">
     <p class="message">Your tweet is ready. Post it on X or copy the text.</p>
     <textarea id="tweet-text" readonly></textarea>
     <div class="button-group">
@@ -296,118 +572,426 @@ initializeApp(firebaseConfig);
 const db = getDatabase();
 
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const loginPanel = document.getElementById('login-panel');
+    const dashboardPanel = document.getElementById('dashboard-panel');
     const generateBtn = document.getElementById('generateBtn');
+    const claimBtn = document.getElementById('claimBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
     const copyBtn = document.getElementById('copyBtn');
     const postBtn = document.getElementById('postBtn');
+    const loginBtn = document.getElementById('login-panel').querySelector('button');
+    const usernameInput = document.getElementById('username');
+    const displayUsername = document.getElementById('displayUsername');
+    const tokenCountEl = document.getElementById('token-count');
+    const sharesCountEl = document.getElementById('shares-count');
+    const dateTimeEl = document.getElementById('current-datetime');
     const toastEl = document.getElementById('toast');
     const outputPanel = document.getElementById('tweet-output-panel');
     const tweetTextArea = document.getElementById('tweet-text');
-    const actionPanel = document.getElementById('action-panel');
     const cooldownPanel = document.getElementById('cooldown-panel');
     const cooldownTimer = document.getElementById('cooldown-timer');
 
+    // Constants
+    const TOKENS_PER_TWEET = 5; // 5 trillion per tweet
     const cooldownMinutes = 20;
-    const userHandle = 'usmanunimib'; // Using your provided login
-
+    let currentUser = null;
+    let tokensChart = null;
+    
+    // Update date and time
+    function updateDateTime() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+        
+        const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+        dateTimeEl.textContent = formatted;
+    }
+    
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+    
+    // Toast notification
     function showToast(msg, t = 3000) {
         toastEl.textContent = msg;
         toastEl.classList.add('show');
         setTimeout(() => toastEl.classList.remove('show'), t);
     }
-
+    
+    // Initialize chart
+    function initChart(userData) {
+        const ctx = document.getElementById('tokensChart').getContext('2d');
+        
+        // Generate some sample data if no history exists
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+        
+        // Use actual data if available, otherwise generate sample data
+        if (userData.history && userData.history.length > 0) {
+            userData.history.slice(-7).forEach(entry => {
+                labels.push(entry.date);
+                tokenData.push(entry.tokens);
+                sharesData.push(entry.shares);
+            });
+        } else {
+            // Sample data for demonstration
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+                tokenData.push(i === 0 ? userData.tokens : 0);
+                sharesData.push(i === 0 ? userData.shares : 0);
+            }
+        }
+        
+        tokensChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Tokens (T)',
+                        data: tokenData,
+                        borderColor: 'rgba(0, 255, 255, 0.8)',
+                        backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(0, 255, 255, 1)',
+                        pointBorderColor: '#000',
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Tweets',
+                        data: sharesData,
+                        borderColor: 'rgba(183, 0, 255, 0.8)',
+                        backgroundColor: 'rgba(183, 0, 255, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(183, 0, 255, 1)',
+                        pointBorderColor: '#000',
+                        pointRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update chart with new data
+    function updateChart(userData) {
+        if (!tokensChart) {
+            initChart(userData);
+            return;
+        }
+        
+        // Generate data from user history
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+        
+        if (userData.history && userData.history.length > 0) {
+            userData.history.slice(-7).forEach(entry => {
+                labels.push(entry.date);
+                tokenData.push(entry.tokens);
+                sharesData.push(entry.shares);
+            });
+        } else {
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+                tokenData.push(i === 0 ? userData.tokens : 0);
+                sharesData.push(i === 0 ? userData.shares : 0);
+            }
+        }
+        
+        tokensChart.data.labels = labels;
+        tokensChart.data.datasets[0].data = tokenData;
+        tokensChart.data.datasets[1].data = sharesData;
+        tokensChart.update();
+    }
+    
+    // Local Storage Functions
+    function saveUserData(userData) {
+        localStorage.setItem('nftfan_user', JSON.stringify(userData));
+    }
+    
+    function getUserData() {
+        const data = localStorage.getItem('nftfan_user');
+        if (data) {
+            return JSON.parse(data);
+        }
+        return null;
+    }
+    
+    function updateUserTokens(tokens, shares) {
+        const userData = getUserData();
+        if (!userData) return;
+        
+        // Add today's date to history
+        const today = new Date();
+        const dateStr = `${today.getMonth()+1}/${today.getDate()}`;
+        
+        // Initialize history if it doesn't exist
+        if (!userData.history) {
+            userData.history = [];
+        }
+        
+        // Check if we already have an entry for today
+        const todayEntry = userData.history.find(entry => entry.date === dateStr);
+        if (todayEntry) {
+            todayEntry.tokens = tokens;
+            todayEntry.shares = shares;
+        } else {
+            userData.history.push({
+                date: dateStr,
+                tokens: tokens,
+                shares: shares
+            });
+        }
+        
+        // Limit history to last 30 days
+        if (userData.history.length > 30) {
+            userData.history = userData.history.slice(-30);
+        }
+        
+        userData.tokens = tokens;
+        userData.shares = shares;
+        
+        saveUserData(userData);
+        updateTokenDisplay(userData);
+        updateChart(userData);
+    }
+    
+    function updateTokenDisplay(userData) {
+        tokenCountEl.innerHTML = `${userData.tokens.toFixed(1)} <span class="token-unit">T</span>`;
+        sharesCountEl.textContent = userData.shares;
+    }
+    
+    // Firebase Functions
     async function getLastClaimTime() {
-        const lastClaimRef = ref(db, `users/${userHandle}/last_claimed`);
-        const snapshot = await get(lastClaimRef);
-        if (!snapshot.exists()) return null;
-        return snapshot.val();
+        if (!currentUser) return null;
+        
+        try {
+            const lastClaimRef = ref(db, `users/${currentUser}/last_claimed`);
+            const snapshot = await get(lastClaimRef);
+            if (!snapshot.exists()) return null;
+            return snapshot.val();
+        } catch (error) {
+            console.error("Error getting last claim time:", error);
+            return null;
+        }
     }
 
     async function setLastClaimTime(ts) {
-        await update(ref(db), { [`/users/${userHandle}/last_claimed`]: ts });
+        if (!currentUser) return;
+        
+        try {
+            await update(ref(db), { [`/users/${currentUser}/last_claimed`]: ts });
+        } catch (error) {
+            console.error("Error setting last claim time:", error);
+        }
     }
 
     async function fetchAndClaimTwoGroups() {
-        const allGroupsRef = ref(db, 'groups');
-        const snapshot = await get(allGroupsRef);
-        if (!snapshot.exists()) {
-            return [];
-        }
-        const groupsObj = snapshot.val();
-        const pendingGroups = [];
-        for (const key in groupsObj) {
-            if (groupsObj[key].status === 'pending') {
-                pendingGroups.push({ key, data: groupsObj[key] });
+        if (!currentUser) return [];
+        
+        try {
+            const allGroupsRef = ref(db, 'groups');
+            const snapshot = await get(allGroupsRef);
+            if (!snapshot.exists()) {
+                return [];
             }
-        }
-        pendingGroups.sort((a, b) => {
-            const numA = parseInt(a.key.replace('group_', ''));
-            const numB = parseInt(b.key.replace('group_', ''));
-            return numA - numB;
-        });
-        if (pendingGroups.length < 2) {
+            
+            const groupsObj = snapshot.val();
+            const pendingGroups = [];
+            for (const key in groupsObj) {
+                if (groupsObj[key].status === 'pending') {
+                    pendingGroups.push({ key, data: groupsObj[key] });
+                }
+            }
+            
+            pendingGroups.sort((a, b) => {
+                const numA = parseInt(a.key.replace('group_', ''));
+                const numB = parseInt(b.key.replace('group_', ''));
+                return numA - numB;
+            });
+            
+            if (pendingGroups.length < 2) {
+                return [];
+            }
+            
+            const groupsToClaim = pendingGroups.slice(0, 2);
+            const updates = {};
+            for (const group of groupsToClaim) {
+                updates[`/groups/${group.key}/status`] = 'claimed';
+                updates[`/groups/${group.key}/claimed_by`] = currentUser;
+                updates[`/groups/${group.key}/claimed_at`] = new Date().toISOString();
+            }
+            
+            await update(ref(db), updates);
+            return groupsToClaim;
+        } catch (error) {
+            console.error("Error fetching and claiming groups:", error);
             return [];
         }
-        const groupsToClaim = pendingGroups.slice(0, 2);
-        const updates = {};
-        for (const group of groupsToClaim) {
-            updates[`/groups/${group.key}/status`] = 'claimed';
-            updates[`/groups/${group.key}/claimed_by`] = userHandle;
-            updates[`/groups/${group.key}/claimed_at`] = new Date().toISOString();
-        }
-        await update(ref(db), updates);
-        return groupsToClaim;
     }
-
-    // Countdown timer logic
+    
+    // Cooldown timer
     function startCooldownTimer(secondsLeft) {
-        // Show cooldown panel, hide action panel
-        actionPanel.style.display = 'none';
+        // Show cooldown panel, hide dashboard
+        dashboardPanel.style.display = 'none';
         cooldownPanel.style.display = 'block';
+        outputPanel.style.display = 'none';
 
         function pad(n) { return n.toString().padStart(2, '0'); }
 
-        let interval = setInterval(() => {
+        const interval = setInterval(() => {
             const min = Math.floor(secondsLeft / 60);
             const sec = secondsLeft % 60;
             cooldownTimer.textContent = `${pad(min)}:${pad(sec)}`;
+            
             if (secondsLeft <= 0) {
                 clearInterval(interval);
                 cooldownPanel.style.display = 'none';
-                actionPanel.style.display = '';
+                dashboardPanel.style.display = 'block';
             }
             secondsLeft--;
         }, 1000);
     }
-
-    // On page load, check for cooldown and start timer if needed
-    (async function checkInitialCooldown() {
+    
+    // Check initial cooldown on login
+    async function checkInitialCooldown() {
+        if (!currentUser) return;
+        
         const lastClaimed = await getLastClaimTime();
         if (lastClaimed) {
             const now = Date.now();
             const diffMs = now - new Date(lastClaimed).getTime();
             const diffSec = Math.floor(diffMs / 1000);
             const totalCooldownSec = cooldownMinutes * 60;
+            
             if (diffSec < totalCooldownSec) {
                 startCooldownTimer(totalCooldownSec - diffSec);
             }
         }
-    })();
-
+    }
+    
+    // Login functionality
+    loginBtn.addEventListener('click', () => {
+        let username = usernameInput.value.trim();
+        
+        // Remove @ if provided
+        if (username.startsWith('@')) {
+            username = username.substring(1);
+        }
+        
+        if (!username) {
+            showToast('Please enter a valid username');
+            return;
+        }
+        
+        // Set current user
+        currentUser = username;
+        
+        // Check if user exists in local storage
+        let userData = getUserData();
+        
+        if (!userData) {
+            // First time login, initialize user data
+            userData = {
+                username: username,
+                tokens: 0,
+                shares: 0,
+                history: []
+            };
+            saveUserData(userData);
+        }
+        
+        // Update display
+        displayUsername.textContent = '@' + username;
+        updateTokenDisplay(userData);
+        
+        // Show dashboard
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+        
+        // Initialize chart
+        initChart(userData);
+        
+        // Check cooldown
+        checkInitialCooldown();
+        
+        showToast(`Welcome, @${username}!`);
+    });
+    
+    // Generate Tweet button
     generateBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+        
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="loading"></span> Checking Cooldown...';
 
         try {
+            // Check cooldown
             const lastClaimed = await getLastClaimTime();
             const now = Date.now();
+            
             if (lastClaimed) {
                 const diffMs = now - new Date(lastClaimed).getTime();
                 const diffMin = diffMs / 60000;
+                
                 if (diffMin < cooldownMinutes) {
                     const waitSec = Math.ceil((cooldownMinutes * 60) - diffMs / 1000);
                     startCooldownTimer(waitSec);
                     generateBtn.disabled = false;
-                    generateBtn.textContent = 'Fetch Groups & Generate Tweet';
+                    generateBtn.textContent = 'Generate Tweet';
                     return;
                 }
             }
@@ -418,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (claimedGroups.length < 2) {
                 showToast('Not enough available groups found. Please try again later.');
                 generateBtn.disabled = false;
-                generateBtn.textContent = 'Fetch Groups & Generate Tweet';
+                generateBtn.textContent = 'Generate Tweet';
                 return;
             }
             
@@ -432,24 +1016,36 @@ document.addEventListener('DOMContentLoaded', () => {
             const tweet = `Hello, ${mentionList} I have mentioned you to claim 5B free $NFTFAN token by @nftfanstoken at this link: https://www.nftfanstoken.com/nftzz/ I used this url to invite you: https://www.nftfanstoken.com/mtool`;
 
             tweetTextArea.value = tweet;
-            outputPanel.style.display = 'block';
-
+            
+            // Update user tokens
+            const userData = getUserData();
+            const newTokens = userData.tokens + TOKENS_PER_TWEET;
+            const newShares = userData.shares + 1;
+            updateUserTokens(newTokens, newShares);
+            
             // Set cooldown timestamp
             await setLastClaimTime(new Date().toISOString());
             
-            showToast('Groups fetched and tweet generated!');
-            generateBtn.parentElement.style.display = 'none';
+            // Show tweet panel
+            dashboardPanel.style.display = 'none';
+            outputPanel.style.display = 'block';
             
-            outputPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+            showToast('Tweet generated! You earned 5T $NFTFAN tokens!');
+            
         } catch (error) {
-            console.error('Error fetching or processing groups:', error);
+            console.error('Error generating tweet:', error);
             showToast('An error occurred. Please try again.');
             generateBtn.disabled = false;
-            generateBtn.textContent = 'Fetch Groups & Generate Tweet';
+            generateBtn.textContent = 'Generate Tweet';
         }
     });
 
+    // Claim button
+    claimBtn.addEventListener('click', () => {
+        showToast('Claims are not open yet. Please check back later.');
+    });
+    
+    // Post button
     postBtn.addEventListener('click', () => {
         const tweet = tweetTextArea.value;
         if (!tweet) return;
@@ -458,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(webIntentUrl, '_blank', 'noopener');
     });
 
+    // Copy button
     copyBtn.addEventListener('click', () => {
         const tweet = tweetTextArea.value;
         if (!tweet) return;
@@ -473,6 +1070,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
             });
     });
+    
+    // Logout button
+    logoutBtn.addEventListener('click', () => {
+        currentUser = null;
+        dashboardPanel.style.display = 'none';
+        outputPanel.style.display = 'none';
+        cooldownPanel.style.display = 'none';
+        loginPanel.style.display = 'block';
+        usernameInput.value = '';
+        
+        if (tokensChart) {
+            tokensChart.destroy();
+            tokensChart = null;
+        }
+        
+        showToast('You have been logged out.');
+    });
+    
+    // Check if user is already logged in
+    const savedUser = getUserData();
+    if (savedUser && savedUser.username) {
+        currentUser = savedUser.username;
+        displayUsername.textContent = '@' + savedUser.username;
+        updateTokenDisplay(savedUser);
+        
+        // Show dashboard
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+        
+        // Initialize chart
+        initChart(savedUser);
+        
+        // Check cooldown
+        checkInitialCooldown();
+    }
 });
 </script>
 </body>
