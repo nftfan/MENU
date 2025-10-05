@@ -1,105 +1,562 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>NFTFans X Share (30min, Score, Leaderboard)</title>
-  <meta name="viewport" content="width=340, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <style>
-    body { background:#181d26; color:#dce1ea; font-family:sans-serif; }
-    .container { width:340px; margin:32px auto 0 auto; background:#232b42; border-radius:8px; padding:18px 14px; }
-    h1 { color:#8b6ee6; font-size:18px; text-align:center; }
-    .tweet-preview { background:#1e2536; color:#fff; font-family:monospace; border-radius:6px; padding:12px 10px; margin:12px 0 14px 0; font-size:13px; white-space:pre-wrap; }
-    .share-btn { background:#5273e0; color:#fff; border:none; border-radius:5px; font-weight:600; font-size:14px; padding:8px 0; width:100%; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
-    .share-btn[disabled] { background:#353e5c; color:#bbb; cursor:not-allowed; }
-    .card { background:#181d26; border-radius:7px; padding:14px 11px; margin:13px 0; box-shadow:0 1px 2px rgba(80,70,220,0.06);}
-    label { font-weight:600; font-size:12px;}
-    input[type="text"] { width:100%; padding:8px 9px; border-radius:5px; border:1px solid #28304a; background:#232b42; color:#fff; font-size:12px; margin-bottom:8px; }
-    .cooldown-msg,.success-msg,.error-msg { text-align:center; font-size:12px; margin:10px 0 0 0; }
-    .cooldown-msg { color:#f0b86e; }
-    .success-msg { color:#42b883; }
-    .error-msg { color:#ff6b81; }
-    .topbar { display:flex; justify-content:space-between; align-items:center; background:#1e2536; border-radius:7px; padding:8px 10px; margin-bottom:10px;}
-    .score-main {font-size:13px; color:#ffd700; font-weight:600; }
-    .score-token {font-size:12px; color:#42b883; font-weight:600;}
-    .tabs { display:flex; gap:8px; margin-top:12px; margin-bottom:14px;}
-    .tab-btn { flex:1; text-align:center; background:#232b42; color:#8b6ee6; border:none; border-radius:6px; padding:7px 0; font-size:13px; font-weight:600; cursor:pointer;}
-    .tab-btn.active { background:#5273e0; color:#fff;}
-    .leaderboard-list { margin:0 0 10px 0; border-radius:6px; background:#232b42; padding:5px;}
-    .lb-item { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid #28304a; font-size:13px;}
-    .lb-item:last-child { border-bottom:none; }
-    .lb-rank { color:#f0b86e; font-weight:700; width:30px; }
-    .lb-user { color:#8b6ee6; font-weight:600; flex:1; }
-    .lb-score { color:#42b883; font-weight:600; width:60px; text-align:right; }
-  </style>
+<meta charset="UTF-8">
+<title>$NFTFAN Mention Tool</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#06070a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', Arial, sans-serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --accent: #6a8dff;
+  --accent-rgb: 106 141 255;
+  --text: #f2f6fb;
+  --text-dim: #b6c2d6;
+  --text-faint: #6f7d92;
+  --surface: #11151d;
+  --panel: #171d27cc;
+  --border: #2d3947;
+  --glass-border: #ffffff12;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-1: 0 4px 12px -4px rgba(0,0,0,.5), 0 12px 28px -8px rgba(0,0,0,.6);
+  --blur-panel: 22px;
+  --gradient-accent: linear-gradient(135deg,#5f83ff,#4d4ffb 40%,#9a40ff 70%,#ff35a6);
+  --gradient-bg: radial-gradient(circle at 10% 15%,#1a2230 0%,#0d1219 45%,#07090d 85%);
+  --success: #3ddf91;
+  --neon-cyan: #00ffffc0;
+  --neon-purple: #b700ffc0;
+  --neon-pink: #ff00a5c0;
+  --neon-glow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.3);
+  --glow-text: 0 0 5px #00ffff80, 0 0 20px #00ffff40;
+}
+
+* { box-sizing: border-box; }
+html,body { height:100%; margin:0; }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  background: var(--gradient-bg);
+  color: var(--text);
+  accent-color: var(--accent);
+  overflow-x:hidden;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding: 2rem 1rem;
+  font-size: 14px;
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 85% 10%, #5d82ff28 0%, transparent 40%),
+    radial-gradient(circle at 10% 90%, #ff3db922 0%, transparent 45%);
+  mix-blend-mode:color-dodge;
+  z-index:0;
+  animation: bg-glow 15s infinite alternate;
+}
+
+@keyframes bg-glow {
+  from { opacity: 0.5; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+.container {
+  width:100%;
+  max-width:520px;
+  position:relative;
+  z-index:1;
+  text-align:center;
+  animation: slide-up-fade 1s var(--ease-out-expo) .2s both;
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba(183, 0, 255, 0.6));
+  animation: pulse-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { filter: drop-shadow(0 0 10px rgba(183, 0, 255, 0.4)); }
+  50% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.7)); }
+  100% { filter: drop-shadow(0 0 10px rgba(255, 0, 165, 0.5)); }
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 900;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 12px #00000050);
+  margin: 0;
+  text-shadow: var(--glow-text);
+}
+
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-1);
+  backdrop-filter: saturate(140%) blur(var(--blur-panel));
+  -webkit-backdrop-filter: saturate(140%) blur(var(--blur-panel));
+  margin: 1rem 0;
+  text-align: left;
+  overflow: hidden;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #ffffff10 0%, transparent 25%, transparent 75%, #ffffff08 100%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: .55;
+  border-radius: inherit;
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, var(--neon-purple), var(--neon-cyan), var(--neon-pink));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.message {
+  font-size: 14px;
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  text-align: center;
+}
+
+button {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .5px;
+  line-height: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0 1.5rem;
+  height: 50px;
+  cursor: pointer;
+  transition: transform .25s var(--ease-out-expo), box-shadow .25s var(--ease-out-expo), background .25s ease;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+button.primary {
+  background: linear-gradient(135deg, #3552ff, #5d82ff 55%, #7b2dfd);
+  color: #fff;
+  box-shadow: 0 4px 14px -5px rgba(var(--accent-rgb)/.8), 0 2px 4px -2px rgba(0,0,0,.6), 0 0 10px rgba(123, 45, 253, 0.5);
+}
+
+button.primary::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  z-index: -1;
+  background: linear-gradient(45deg, var(--neon-purple), var(--neon-cyan), var(--neon-pink), var(--neon-purple));
+  background-size: 400%;
+  border-radius: var(--radius-md);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+button.primary:hover::before {
+  opacity: 1;
+  animation: animate-border 8s linear infinite;
+}
+
+@keyframes animate-border {
+  0% { background-position: 0 0; }
+  50% { background-position: 300% 0; }
+  100% { background-position: 0 0; }
+}
+
+button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4660ff, #6a8bff 55%, #8a40ff);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 26px -6px rgba(var(--accent-rgb)/.85), 0 3px 10px -4px rgba(0,0,0,.8), 0 0 15px rgba(123, 45, 253, 0.8);
+}
+
+button.secondary {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-dim);
+  box-shadow: 0 2px 8px -4px rgba(0,0,0,.4);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+button.danger {
+  background: rgba(255,76,76,0.1);
+  color: #ff4c4c;
+}
+
+button.danger:hover:not(:disabled) {
+  background: rgba(255,76,76,0.2);
+  transform: translateY(-2px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  transition-duration: .1s;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  filter: saturate(.3);
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.loading {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.stat-block {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.token-unit {
+  font-size: 1rem;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+.chart-container {
+  width: 100%;
+  height: 200px;
+  margin: 1.5rem 0;
+}
+
+#tweet-output-panel, #dashboard-panel, #cooldown-panel {
+  display: none;
+}
+
+#login-panel {
+  text-align: center;
+}
+
+#tweet-text {
+  width: 100%;
+  min-height: 120px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-direction: column;
+}
+@media (min-width: 400px) {
+  .button-group { flex-direction: row; }
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+input[type="text"] {
+  width: 100%;
+  height: 50px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 1rem;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3);
+}
+
+.input-wrapper label {
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  background: var(--panel);
+  padding: 0 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.cooldown-wrapper {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.cooldown-timer {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+  font-family: monospace;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+}
+
+.small-button {
+  padding: 0 1rem;
+  height: 36px;
+  font-size: 12px;
+}
+
+.current-datetime {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-top: 1rem;
+  font-family: monospace;
+}
+
+.toast {
+  position: fixed;
+  z-index: 100;
+  bottom: 1.5rem;
+  max-width: min(360px, 90vw);
+  background: #121c27f2;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid #ffffff20;
+  box-shadow: 0 12px 40px -12px rgba(0,0,0,.6), 0 0 0 1px #ffffff08;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(14px) scale(.96);
+  pointer-events: none;
+  transition: opacity .5s var(--ease-out-expo), transform .55s var(--ease-out-expo);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.neon-highlight {
+  position: relative;
+}
+
+.neon-highlight::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  box-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.username {
+  font-weight: bold;
+  color: var(--text);
+}
+
+.date-time {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+</style>
 </head>
 <body>
 <div class="container">
-  <h1>NFTFans X Share (30min)</h1>
-
-  <div id="loginCard" class="card">
-    <form id="loginForm">
-      <label for="usernameInput">Enter your X username</label>
-      <input type="text" id="usernameInput" placeholder="@yourusername" autocomplete="username" required>
-      <button type="submit" class="share-btn" style="margin-bottom:4px;"><span class="material-icons">login</span>Login</button>
-      <div class="error-msg" id="loginError" style="display:none;"></div>
-    </form>
+  <div class="header">
+    <img src="https://res.cloudinary.com/de9axcrog/image/upload/v1759514963/ODP45iQ_wlsden.png" alt="NFT FANS TOKENS Logo" class="logo">
+    <h1>$NFTFAN Farming Tool</h1>
+  </div>
+  
+  <!-- Login Panel -->
+  <div class="panel" id="login-panel">
+    <p class="message">Enter your X username to login</p>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="@nftfan">
+      </div>
+    </div>
+    <button id="loginBtn" type="button" class="primary">Login</button>
+  </div>
+  
+  <!-- Dashboard Panel -->
+  <div class="panel" id="dashboard-panel">
+    <div class="user-info">
+      <span class="username" id="displayUsername">@nftfan</span>
+    </div>
+    <div class="date-time" id="current-datetime">2025-10-03 18:20:32 UTC</div>
+    
+    <div class="grid">
+      <div class="stat-block">
+        <div class="stat-value" id="token-count">5.0 <span class="token-unit">T</span></div>
+        <div class="stat-label">$NFTFAN Tokens in Trillion</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" id="shares-count">0</div>
+        <div class="stat-label">Tweets Shared</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <canvas id="tokensChart"></canvas>
+    </div>
+    
+    <div class="button-group">
+      <button id="generateBtn" type="button" class="primary">Generate Tweet</button>
+      <button id="claimBtn" type="button" class="primary" disabled>Claim Tokens</button>
+    </div>
+    
+    <div class="actions">
+      <button id="logoutBtn" type="button" class="secondary small-button">Logout</button>
+    </div>
   </div>
 
-  <div id="mainArea" style="display:none;">
-    <div class="topbar">
-      <span class="score-main" id="tweetScore"></span>
-      <span class="score-token" id="tokenScore"></span>
+  <!-- Cooldown panel for timer -->
+  <div class="panel" id="cooldown-panel">
+    <div class="cooldown-wrapper">
+      <p class="message">Please wait before generating another tweet.</p>
+      <div class="cooldown-timer" id="cooldown-timer">20:00</div>
     </div>
+  </div>
 
-    <div class="tabs">
-      <button class="tab-btn active" id="tabShare">Share</button>
-      <button class="tab-btn" id="tabLeaderboard">Leaderboard</button>
-    </div>
-
-    <div id="tabShareContent">
-      <div class="card">
-        <div style="font-size:13px;font-weight:600;color:#f0b86e;">Share this tweet (usernames auto-inserted):</div>
-        <div class="tweet-preview" id="tweetPreview">Loading...</div>
-        <button class="share-btn" id="shareBtn"><span class="material-icons">share</span>Share on X</button>
-        <div class="cooldown-msg" id="cooldownMsg" style="display:none;"></div>
-        <div class="success-msg" id="successMsg" style="display:none;"></div>
-        <div class="error-msg" id="errorMsg" style="display:none;"></div>
-      </div>
-      <button class="share-btn" id="logoutBtn" style="background:#232b42; color:#f0b86e; border:1px solid #28304a;">
-        <span class="material-icons">logout</span>Logout
-      </button>
-    </div>
-
-    <div id="tabLeaderboardContent" style="display:none;">
-      <div class="card" style="margin-bottom:10px;">
-        <div style="font-size:14px;color:#8b6ee6;font-weight:700;text-align:center;margin-bottom:7px;">
-          <span class="material-icons" style="vertical-align:middle;">leaderboard</span> Leaderboard
-        </div>
-        <div id="leaderboardList" class="leaderboard-list"></div>
-      </div>
+  <!-- Tweet Output Panel -->
+  <div class="panel" id="tweet-output-panel">
+    <p class="message">Your tweet is ready. Post it on X or copy the text.</p>
+    <textarea id="tweet-text" readonly></textarea>
+    <div class="button-group">
+      <button id="postBtn" type="button" class="primary">Post on X</button>
+      <button id="copyBtn" type="button" class="secondary">Copy Text</button>
     </div>
   </div>
 </div>
 
-<script type="module">
-/*
-  Migrated to Firebase Modular v10
-  - Uses NEW project config (newnft-47bd7)
-  - Replaces old compat API calls
-*/
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getDatabase,
-  ref,
-  get,
-  update,
-  set,
-  query,
-  orderByChild,
-  equalTo
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
@@ -112,218 +569,544 @@ const firebaseConfig = {
   measurementId: "G-8VB3DYRNXR"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+initializeApp(firebaseConfig);
+const db = getDatabase();
 
-/* ---------------- State & Constants ---------------- */
-let currentUser = null;
-let assignedGroupId = null;
-let assignedUsernames = [];
-const TOKENS_PER_SHARE = 10;
-const COOLDOWN_MINUTES = 30;
-const tweetTemplate =
-`NFTFans Token @nftfanstoken: Shoutout to {usernames} ! Earn free $NFTFAN tokens. Claim 1B free $NFTFAN TOKENS without any gas fee. Claim here: https://www.nftfanstoken.com/nftfree`;
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const loginPanel = document.getElementById('login-panel');
+    const dashboardPanel = document.getElementById('dashboard-panel');
+    const generateBtn = document.getElementById('generateBtn');
+    const claimBtn = document.getElementById('claimBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const postBtn = document.getElementById('postBtn');
+    const loginBtn = document.getElementById('login-panel').querySelector('button');
+    const usernameInput = document.getElementById('username');
+    const displayUsername = document.getElementById('displayUsername');
+    const tokenCountEl = document.getElementById('token-count');
+    const sharesCountEl = document.getElementById('shares-count');
+    const dateTimeEl = document.getElementById('current-datetime');
+    const toastEl = document.getElementById('toast');
+    const outputPanel = document.getElementById('tweet-output-panel');
+    const tweetTextArea = document.getElementById('tweet-text');
+    const cooldownPanel = document.getElementById('cooldown-panel');
+    const cooldownTimer = document.getElementById('cooldown-timer');
 
-/* ---------------- DOM Helpers ---------------- */
-const $ = id => document.getElementById(id);
-const show = el => { el.style.display = ""; };
-const hide = el => { el.style.display = "none"; };
-const setText = (el, t) => { el.textContent = t; };
-
-function resetMsgs() {
-  hide($('cooldownMsg'));
-  hide($('successMsg'));
-  hide($('errorMsg'));
-}
-
-function getLastShareKey() {
-  if (!currentUser) return null;
-  return `nftfans-auto-share30-lastshare-${currentUser.replace('@','')}`;
-}
-function getScoreKey() {
-  if (!currentUser) return null;
-  return `nftfans-auto-share30-score-${currentUser.replace('@','')}`;
-}
-
-function updateScoresDisplay() {
-  const shares = Number(localStorage.getItem(getScoreKey()) || "0");
-  setText($('tweetScore'), `Tweets Shared: ${shares}`);
-  setText($('tokenScore'), `Tokens: ${shares * TOKENS_PER_SHARE}T`);
-}
-
-function checkCooldown() {
-  const lastShare = Number(localStorage.getItem(getLastShareKey()) || 0);
-  const now = Date.now();
-  if (lastShare && (now - lastShare < COOLDOWN_MINUTES * 60 * 1000)) {
-    const mins = Math.ceil((COOLDOWN_MINUTES * 60 * 1000 - (now - lastShare)) / 60000);
-    setText($('cooldownMsg'), `You can share again in ${mins} minute${mins>1?'s':''}.`);
-    show($('cooldownMsg'));
-    $('shareBtn').disabled = true;
-    return true;
-  }
-  $('shareBtn').disabled = false;
-  hide($('cooldownMsg'));
-  return false;
-}
-
-/* ---------------- Groups / Usernames ---------------- */
-async function fetchGroupUsernames() {
-  const pendingQuery = query(ref(db,'groups'), orderByChild('status'), equalTo('pending'));
-  const snap = await get(pendingQuery);
-  const groups = snap.val() || {};
-  for (const groupId of Object.keys(groups)) {
-    const group = groups[groupId];
-    if (!group.assignedTo) {
-      // Assign atomically (race is minimal; for stronger guarantee use a transaction or security rules)
-      await update(ref(db, 'groups/' + groupId), { assignedTo: currentUser });
-      return {
-        groupId,
-        usernames: (group.usernames || []).map(u => decodeURIComponent(u))
-      };
+    // Constants
+    const TOKENS_PER_TWEET = 5; // 5 trillion per tweet
+    const cooldownMinutes = 20;
+    let currentUser = null;
+    let tokensChart = null;
+    
+    // Update date and time
+    function updateDateTime() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+        
+        const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+        dateTimeEl.textContent = formatted;
     }
-  }
-  return null;
-}
-
-async function markGroupDone(groupId) {
-  await update(ref(db, 'groups/' + groupId), { status: "done" });
-}
-
-async function renderTweetWithGroup() {
-  $('tweetPreview').textContent = "Loading...";
-  resetMsgs();
-  assignedGroupId = null;
-  assignedUsernames = [];
-  if (checkCooldown()) return;
-
-  try {
-    const groupData = await fetchGroupUsernames();
-    if (!groupData || !groupData.usernames || groupData.usernames.length < 3) {
-      setText($('tweetPreview'), "No usernames available right now. Please try again later.");
-      $('shareBtn').disabled = true;
-      return;
+    
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+    
+    // Toast notification
+    function showToast(msg, t = 3000) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), t);
     }
-    assignedGroupId = groupData.groupId;
-    assignedUsernames = groupData.usernames;
-    const tweet = tweetTemplate.replace("{usernames}", assignedUsernames.join(' '));
-    setText($('tweetPreview'), tweet);
-    $('shareBtn').disabled = false;
-  } catch (e) {
-    console.error(e);
-    setText($('tweetPreview'), "Error loading usernames.");
-    $('shareBtn').disabled = true;
-  }
-}
+    
+    // Initialize chart
+    function initChart(userData) {
+        const ctx = document.getElementById('tokensChart').getContext('2d');
+        
+        // Generate some sample data if no history exists
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+        
+        // Use actual data if available, otherwise generate sample data
+        if (userData.history && userData.history.length > 0) {
+            userData.history.slice(-7).forEach(entry => {
+                labels.push(entry.date);
+                tokenData.push(entry.tokens);
+                sharesData.push(entry.shares);
+            });
+        } else {
+            // Sample data for demonstration
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+                tokenData.push(i === 0 ? userData.tokens : 0);
+                sharesData.push(i === 0 ? userData.shares : 0);
+            }
+        }
+        
+        tokensChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Tokens (T)',
+                        data: tokenData,
+                        borderColor: 'rgba(0, 255, 255, 0.8)',
+                        backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(0, 255, 255, 1)',
+                        pointBorderColor: '#000',
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Tweets',
+                        data: sharesData,
+                        borderColor: 'rgba(183, 0, 255, 0.8)',
+                        backgroundColor: 'rgba(183, 0, 255, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(183, 0, 255, 1)',
+                        pointBorderColor: '#000',
+                        pointRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgb(182, 194, 214)',
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update chart with new data
+    function updateChart(userData) {
+        if (!tokensChart) {
+            initChart(userData);
+            return;
+        }
+        
+        // Generate data from user history
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+        
+        if (userData.history && userData.history.length > 0) {
+            userData.history.slice(-7).forEach(entry => {
+                labels.push(entry.date);
+                tokenData.push(entry.tokens);
+                sharesData.push(entry.shares);
+            });
+        } else {
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+                tokenData.push(i === 0 ? userData.tokens : 0);
+                sharesData.push(i === 0 ? userData.shares : 0);
+            }
+        }
+        
+        tokensChart.data.labels = labels;
+        tokensChart.data.datasets[0].data = tokenData;
+        tokensChart.data.datasets[1].data = sharesData;
+        tokensChart.update();
+    }
+    
+    // Local Storage Functions
+    function saveUserData(userData) {
+        localStorage.setItem('nftfan_user', JSON.stringify(userData));
+    }
+    
+    function getUserData() {
+        const data = localStorage.getItem('nftfan_user');
+        if (data) {
+            return JSON.parse(data);
+        }
+        return null;
+    }
+    
+    function updateUserTokens(tokens, shares) {
+        const userData = getUserData();
+        if (!userData) return;
+        
+        // Add today's date to history
+        const today = new Date();
+        const dateStr = `${today.getMonth()+1}/${today.getDate()}`;
+        
+        // Initialize history if it doesn't exist
+        if (!userData.history) {
+            userData.history = [];
+        }
+        
+        // Check if we already have an entry for today
+        const todayEntry = userData.history.find(entry => entry.date === dateStr);
+        if (todayEntry) {
+            todayEntry.tokens = tokens;
+            todayEntry.shares = shares;
+        } else {
+            userData.history.push({
+                date: dateStr,
+                tokens: tokens,
+                shares: shares
+            });
+        }
+        
+        // Limit history to last 30 days
+        if (userData.history.length > 30) {
+            userData.history = userData.history.slice(-30);
+        }
+        
+        userData.tokens = tokens;
+        userData.shares = shares;
+        
+        saveUserData(userData);
+        updateTokenDisplay(userData);
+        updateChart(userData);
+    }
+    
+    function updateTokenDisplay(userData) {
+        tokenCountEl.innerHTML = `${userData.tokens.toFixed(1)} <span class="token-unit">T</span>`;
+        sharesCountEl.textContent = userData.shares;
+    }
+    
+    // Firebase Functions
+    async function getLastClaimTime() {
+        if (!currentUser) return null;
+        
+        try {
+            const lastClaimRef = ref(db, `users/${currentUser}/last_claimed`);
+            const snapshot = await get(lastClaimRef);
+            if (!snapshot.exists()) return null;
+            return snapshot.val();
+        } catch (error) {
+            console.error("Error getting last claim time:", error);
+            return null;
+        }
+    }
 
-/* ---------------- Share Action ---------------- */
-async function handleShare() {
-  if (!assignedGroupId || assignedUsernames.length < 3) return;
-  if (checkCooldown()) return;
-  resetMsgs();
+    async function setLastClaimTime(ts) {
+        if (!currentUser) return;
+        
+        try {
+            await update(ref(db), { [`/users/${currentUser}/last_claimed`]: ts });
+        } catch (error) {
+            console.error("Error setting last claim time:", error);
+        }
+    }
 
-  const tweet = tweetTemplate.replace("{usernames}", assignedUsernames.join(' '));
-  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`, "_blank");
+    async function fetchAndClaimTwoGroups() {
+        if (!currentUser) return [];
+        
+        try {
+            const allGroupsRef = ref(db, 'groups');
+            const snapshot = await get(allGroupsRef);
+            if (!snapshot.exists()) {
+                return [];
+            }
+            
+            const groupsObj = snapshot.val();
+            const pendingGroups = [];
+            for (const key in groupsObj) {
+                if (groupsObj[key].status === 'pending') {
+                    pendingGroups.push({ key, data: groupsObj[key] });
+                }
+            }
+            
+            pendingGroups.sort((a, b) => {
+                const numA = parseInt(a.key.replace('group_', ''));
+                const numB = parseInt(b.key.replace('group_', ''));
+                return numA - numB;
+            });
+            
+            if (pendingGroups.length < 2) {
+                return [];
+            }
+            
+            const groupsToClaim = pendingGroups.slice(0, 2);
+            const updates = {};
+            for (const group of groupsToClaim) {
+                updates[`/groups/${group.key}/status`] = 'claimed';
+                updates[`/groups/${group.key}/claimed_by`] = currentUser;
+                updates[`/groups/${group.key}/claimed_at`] = new Date().toISOString();
+            }
+            
+            await update(ref(db), updates);
+            return groupsToClaim;
+        } catch (error) {
+            console.error("Error fetching and claiming groups:", error);
+            return [];
+        }
+    }
+    
+    // Cooldown timer
+    function startCooldownTimer(secondsLeft) {
+        // Show cooldown panel, hide dashboard
+        dashboardPanel.style.display = 'none';
+        cooldownPanel.style.display = 'block';
+        outputPanel.style.display = 'none';
 
-  try {
-    await markGroupDone(assignedGroupId);
+        function pad(n) { return n.toString().padStart(2, '0'); }
 
-    localStorage.setItem(getLastShareKey(), Date.now() + "");
-    let newCount = Number(localStorage.getItem(getScoreKey()) || "0") + 1;
-    localStorage.setItem(getScoreKey(), newCount);
-    updateScoresDisplay();
+        const interval = setInterval(() => {
+            const min = Math.floor(secondsLeft / 60);
+            const sec = secondsLeft % 60;
+            cooldownTimer.textContent = `${pad(min)}:${pad(sec)}`;
+            
+            if (secondsLeft <= 0) {
+                clearInterval(interval);
+                cooldownPanel.style.display = 'none';
+                dashboardPanel.style.display = 'block';
+            }
+            secondsLeft--;
+        }, 1000);
+    }
+    
+    // Check initial cooldown on login
+    async function checkInitialCooldown() {
+        if (!currentUser) return;
+        
+        const lastClaimed = await getLastClaimTime();
+        if (lastClaimed) {
+            const now = Date.now();
+            const diffMs = now - new Date(lastClaimed).getTime();
+            const diffSec = Math.floor(diffMs / 1000);
+            const totalCooldownSec = cooldownMinutes * 60;
+            
+            if (diffSec < totalCooldownSec) {
+                startCooldownTimer(totalCooldownSec - diffSec);
+            }
+        }
+    }
+    
+    // Login functionality
+    loginBtn.addEventListener('click', () => {
+        let username = usernameInput.value.trim();
+        
+        // Remove @ if provided
+        if (username.startsWith('@')) {
+            username = username.substring(1);
+        }
+        
+        if (!username) {
+            showToast('Please enter a valid username');
+            return;
+        }
+        
+        // Set current user
+        currentUser = username;
+        
+        // Check if user exists in local storage
+        let userData = getUserData();
+        
+        if (!userData) {
+            // First time login, initialize user data
+            userData = {
+                username: username,
+                tokens: 0,
+                shares: 0,
+                history: []
+            };
+            saveUserData(userData);
+        }
+        
+        // Update display
+        displayUsername.textContent = '@' + username;
+        updateTokenDisplay(userData);
+        
+        // Show dashboard
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+        
+        // Initialize chart
+        initChart(userData);
+        
+        // Check cooldown
+        checkInitialCooldown();
+        
+        showToast(`Welcome, @${username}!`);
+    });
+    
+    // Generate Tweet button
+    generateBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+        
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="loading"></span> Checking Cooldown...';
 
-    // Update leaderboard node
-    await set(ref(db, 'tweetLeaderboard/' + encodeURIComponent(currentUser)), {
-      username: currentUser,
-      shares: newCount,
-      tokens: newCount * TOKENS_PER_SHARE
+        try {
+            // Check cooldown
+            const lastClaimed = await getLastClaimTime();
+            const now = Date.now();
+            
+            if (lastClaimed) {
+                const diffMs = now - new Date(lastClaimed).getTime();
+                const diffMin = diffMs / 60000;
+                
+                if (diffMin < cooldownMinutes) {
+                    const waitSec = Math.ceil((cooldownMinutes * 60) - diffMs / 1000);
+                    startCooldownTimer(waitSec);
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Tweet';
+                    return;
+                }
+            }
+
+            generateBtn.innerHTML = '<span class="loading"></span> Fetching Groups...';
+            const claimedGroups = await fetchAndClaimTwoGroups();
+
+            if (claimedGroups.length < 2) {
+                showToast('Not enough available groups found. Please try again later.');
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Tweet';
+                return;
+            }
+            
+            const allUsernames = claimedGroups.reduce((acc, group) => {
+                return acc.concat(group.data.usernames);
+            }, []);
+
+            const formattedUsernames = allUsernames.map(u => u.startsWith('@') ? u : `@${u}`);
+            const mentionList = formattedUsernames.join(' ');
+            
+            const tweet = `Hello, ${mentionList} I have mentioned you to claim 5B free $NFTFAN token by @nftfanstoken at this link: https://www.nftfanstoken.com/nftzz/ I used this url to invite you: https://www.nftfanstoken.com/mtool`;
+
+            tweetTextArea.value = tweet;
+            
+            // Update user tokens
+            const userData = getUserData();
+            const newTokens = userData.tokens + TOKENS_PER_TWEET;
+            const newShares = userData.shares + 1;
+            updateUserTokens(newTokens, newShares);
+            
+            // Set cooldown timestamp
+            await setLastClaimTime(new Date().toISOString());
+            
+            // Show tweet panel
+            dashboardPanel.style.display = 'none';
+            outputPanel.style.display = 'block';
+            
+            showToast('Tweet generated! You earned 5T $NFTFAN tokens!');
+            
+        } catch (error) {
+            console.error('Error generating tweet:', error);
+            showToast('An error occurred. Please try again.');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Tweet';
+        }
     });
 
-    setText($('successMsg'), `Shared! ${TOKENS_PER_SHARE}T $NFTFAN tokens earned. Come back in ${COOLDOWN_MINUTES} minutes.`);
-    show($('successMsg'));
-    $('shareBtn').disabled = true;
-
-    // Preload next group (after slight delay)
-    setTimeout(renderTweetWithGroup, 1000);
-  } catch (e) {
-    console.error(e);
-    setText($('errorMsg'), "Failed to update group status.");
-    show($('errorMsg'));
-  }
-}
-
-/* ---------------- Leaderboard ---------------- */
-async function renderLeaderboard() {
-  const lbDiv = $('leaderboardList');
-  lbDiv.innerHTML = "Loading...";
-  try {
-    const snap = await get(ref(db,'tweetLeaderboard'));
-    const all = snap.val() || {};
-    let arr = Object.values(all);
-    arr.sort((a,b) => (b.shares || 0) - (a.shares || 0));
-    let html = '';
-    arr.slice(0,100).forEach((item, idx) => {
-      html += `<div class="lb-item">
-        <span class="lb-rank">#${idx+1}</span>
-        <span class="lb-user">${item.username}</span>
-        <span class="lb-score">${item.tokens || 0}T</span>
-      </div>`;
+    // Claim button
+    claimBtn.addEventListener('click', () => {
+        showToast('Claims are not open yet. Please check back later.');
     });
-    lbDiv.innerHTML = html || "<div style='text-align:center;color:#f0b86e;'>No shares yet.</div>";
-  } catch (e) {
-    console.error(e);
-    lbDiv.innerHTML = "<div style='color:#ff6b81;'>Failed to load leaderboard.</div>";
-  }
-}
+    
+    // Post button
+    postBtn.addEventListener('click', () => {
+        const tweet = tweetTextArea.value;
+        if (!tweet) return;
+        const encodedTweet = encodeURIComponent(tweet);
+        const webIntentUrl = `https://twitter.com/intent/tweet?text=${encodedTweet}`;
+        window.open(webIntentUrl, '_blank', 'noopener');
+    });
 
-/* ---------------- Auth / UI ---------------- */
-function logoutUser() {
-  currentUser = null;
-  hide($('mainArea'));
-  show($('loginCard'));
-  assignedGroupId = null;
-  assignedUsernames = [];
-  resetMsgs();
-}
+    // Copy button
+    copyBtn.addEventListener('click', () => {
+        const tweet = tweetTextArea.value;
+        if (!tweet) return;
 
-$('loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  resetMsgs();
-  const username = $('usernameInput').value.trim();
-  if (!/^@[A-Za-z0-9_]{2,32}$/.test(username)) {
-    $('loginError').textContent = "Invalid X username.";
-    $('loginError').style.display = 'block';
-    return;
-  }
-  $('loginError').style.display = 'none';
-  currentUser = username;
-  hide($('loginCard'));
-  show($('mainArea'));
-  updateScoresDisplay();
-  await renderTweetWithGroup();
+        navigator.clipboard.writeText(tweet)
+            .then(() => {
+                showToast('Tweet copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                showToast('Could not copy tweet. Please copy it manually.');
+                tweetTextArea.select();
+                document.execCommand('copy');
+            });
+    });
+    
+    // Logout button
+    logoutBtn.addEventListener('click', () => {
+        currentUser = null;
+        dashboardPanel.style.display = 'none';
+        outputPanel.style.display = 'none';
+        cooldownPanel.style.display = 'none';
+        loginPanel.style.display = 'block';
+        usernameInput.value = '';
+        
+        if (tokensChart) {
+            tokensChart.destroy();
+            tokensChart = null;
+        }
+        
+        showToast('You have been logged out.');
+    });
+    
+    // Check if user is already logged in
+    const savedUser = getUserData();
+    if (savedUser && savedUser.username) {
+        currentUser = savedUser.username;
+        displayUsername.textContent = '@' + savedUser.username;
+        updateTokenDisplay(savedUser);
+        
+        // Show dashboard
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+        
+        // Initialize chart
+        initChart(savedUser);
+        
+        // Check cooldown
+        checkInitialCooldown();
+    }
 });
-
-$('shareBtn').addEventListener('click', handleShare);
-$('logoutBtn').addEventListener('click', logoutUser);
-
-$('tabShare').addEventListener('click', () => {
-  $('tabShare').classList.add('active');
-  $('tabLeaderboard').classList.remove('active');
-  show($('tabShareContent'));
-  hide($('tabLeaderboardContent'));
-});
-$('tabLeaderboard').addEventListener('click', () => {
-  $('tabLeaderboard').classList.add('active');
-  $('tabShare').classList.remove('active');
-  hide($('tabShareContent'));
-  show($('tabLeaderboardContent'));
-  renderLeaderboard();
-});
-
-/* ---------------- Init ---------------- */
-hide($('mainArea'));
-show($('loginCard'));
-
 </script>
 </body>
 </html>
