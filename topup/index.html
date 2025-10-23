@@ -60,7 +60,7 @@
       display: block;
       filter: grayscale(0.3) brightness(0.93);
     }
-    .typing-effect, .subtitle-typing, .list-typing, .note-typing {
+    .typing-effect, .subtitle-typing, .list-typing, .note-typing, .about-typing, .follow-typing {
       display: inline-block;
       min-height: 1em;
       font-size: 9px;
@@ -176,11 +176,45 @@
       text-align: left;
       font-weight: var(--font-thin);
     }
+    .about-section {
+      width: 100%;
+      margin-top: 18px;
+      padding: 12px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      font-size: 9px;
+      font-weight: var(--font-thin);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .about-title {
+      color: var(--accent);
+      font-size: 9px;
+      font-weight: var(--font-thin);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .about-typing {
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .follow-link {
+      color: var(--accent);
+      font-size: 9px;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: var(--font-thin);
+      margin-top: 7px;
+    }
     .blinker {
       display: inline-block;
-      width: 7px;
+      width: 3px;
       height: 13px;
-      background: #232323;
+      background: #000;
       vertical-align: middle;
       margin-left: 1px;
       border-radius: 2px;
@@ -194,12 +228,12 @@
     @media (max-width: 400px) {
       .card { padding: 12px 6px 10px; }
       h1 { font-size: 8px; }
-      .how-list, .airdrop-address-row { font-size: 8px; }
+      .how-list, .airdrop-address-row, .about-section, .about-title, .about-typing, .follow-link { font-size: 8px; }
       .note { font-size: 7px; }
       .copy-btn { font-size: 8px; }
       .copied-tooltip { font-size: 7px; }
-      .typing-effect, .subtitle-typing, .list-typing, .note-typing { font-size: 8px; }
-      .blinker { height: 10px; width: 5px;}
+      .typing-effect, .subtitle-typing, .list-typing, .note-typing, .about-typing, .follow-typing { font-size: 8px; }
+      .blinker { height: 10px; width: 2px;}
     }
   </style>
 </head>
@@ -232,6 +266,18 @@
           <span class="copied-tooltip" role="status">Copied!</span>
         </button>
       </div>
+      <!-- About Section -->
+      <div class="about-section">
+        <div class="about-title">
+          <span id="aboutTitle"></span>
+        </div>
+        <div>
+          <span id="aboutTyping" class="about-typing"></span>
+        </div>
+        <div class="follow-link">
+          <span id="followTyping" class="follow-typing"></span>
+        </div>
+      </div>
     </div>
   </div>
   <script>
@@ -244,6 +290,11 @@
       "You will get 1000 trillion $NFTFAN for 1 $POL."
     ];
     const noteText = "Note: Only send $POL (Polygon) from your own wallet. Do not send funds from an exchange.";
+
+    // About section
+    const aboutTitleText = "What is NFT FANS TOKEN";
+    const aboutText = "The **NFTFan Token ($NFTFAN)** is a decentralized digital asset built on the **Polygon (Matic)** blockchain that combines **NFTs and advertising** to create a new, community-driven ad distribution model. It empowers users to earn rewards by **sending NFT ads**, **gaining subfans**, and **holding tokens** within a transparent, gamified ecosystem. Distributors earn tokens for spreading NFT-based ads and engaging new users, while holders benefit from ad views and network growth. The project’s goal is to redefine online advertising by shifting value from centralized platforms to real users who create and share value through participation.";
+    const followText = "FOLLOW US ON X https://x.com/nftfanstoken";
 
     // Typing effect for multiple elements in sequence
     function typeText(elem, text, delay, cb, highlightClass) {
@@ -260,11 +311,14 @@
       type();
     }
 
-    // Example: highlight "$POL" and "$NFTFAN"
+    // Highlight "$POL", "$NFTFAN", "1000 trillion", bold, and link
     function highlightText(str, highlightClass) {
-      return str.replace(/\$POL|\$NFTFAN|1000 trillion/g, function(match) {
+      str = str.replace(/\$POL|\$NFTFAN|1000 trillion/g, function(match) {
         return `<span class="${highlightClass}">${match}</span>`;
       });
+      str = str.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      str = str.replace(/(https:\/\/x\.com\/nftfanstoken)/g, '<a href="https://x.com/nftfanstoken" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>');
+      return str;
     }
 
     // Sequential typing
@@ -274,7 +328,14 @@
           typeText(document.getElementById("list1"), listTexts[0], 18, () => {
             typeText(document.getElementById("list2"), listTexts[1], 18, () => {
               typeText(document.getElementById("list3"), listTexts[2], 18, () => {
-                typeText(document.getElementById("typingNote"), noteText, 13);
+                typeText(document.getElementById("typingNote"), noteText, 13, () => {
+                  // About section typing
+                  typeText(document.getElementById("aboutTitle"), aboutTitleText, 45, () => {
+                    typeText(document.getElementById("aboutTyping"), aboutText, 10, () => {
+                      typeText(document.getElementById("followTyping"), followText, 15, null, "em");
+                    }, "em");
+                  });
+                });
               }, "em");
             }, "em");
           }, "em");
