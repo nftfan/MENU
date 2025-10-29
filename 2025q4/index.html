@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFT FANS TOKEN CLAIMS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+    :root {
+      --bg-main: #f7f9fb;
+      --bg-card: #fff;
+      --border: #e3e8ef;
+      --accent: #2563eb;
+      --type-evm: #77e6c7;
+      --type-sol: #ffe285;
+      --type-btc: #ffb4b4;
+      --error: #ea3d3d;
+      --claimed: #33c977;
+      --banner-grad: linear-gradient(90deg, #60a5fa, #33c977 90%);
+      --shadow: 0 2px 12px #0002;
+      --font: 'Inter', Arial, sans-serif;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: var(--font);
+      background: var(--bg-main);
+      color: #24292f;
+      min-height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    .main-wrap {
+      max-width: 100vw;
+      margin: 0 auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100vw;
+      min-height: 100vh;
+      background: var(--bg-main);
+    }
+    .top-image {
+      width: 100vw;
+      max-width: 500px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      object-fit: cover;
+      box-shadow: var(--shadow);
+      border-radius: 0;
+    }
+    .top-banner {
+      width: 100vw;
+      background: var(--banner-grad);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      border-radius: 0 0 8px 8px;
+      text-align: center;
+      padding: 8px 0 7px 0;
+      box-shadow: var(--shadow);
+      font-family: var(--font);
+    }
+    .view-info {
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--bg-card);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      margin-top: 12px;
+      padding: 7px 4vw 7px 4vw;
+      text-align: center;
+      box-shadow: var(--shadow);
+      max-width: 96vw;
+      width: 96vw;
+      font-family: var(--font);
+      font-weight: 400;
+      line-height: 1.36;
+      border: 1px solid var(--border);
+    }
+    .title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      margin-top: 9px;
+      text-align: center;
+      text-shadow: 0 1px 6px #60a5fa33;
+      font-family: var(--font);
+    }
+    form {
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 15px;
+      align-items: center;
+      font-family: var(--font);
+      font-weight: 400;
+    }
+    input, select, button {
+      font-size: 16px; /* Use >=16px to prevent mobile zoom */
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: #24292f;
+      padding: 10px 13px;
+      transition: border 0.2s;
+      outline: none;
+      width: 87vw;
+      max-width: 400px;
+      box-sizing: border-box;
+      margin: 0;
+      font-family: var(--font);
+      font-weight: 400;
+      letter-spacing: 0.1px;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+    .claim-btn {
+      font-weight: 600;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      margin-top: 6px;
+      border: none;
+      padding: 12px 0;
+      width: 87vw;
+      max-width: 400px;
+      box-shadow: var(--shadow);
+      letter-spacing: 0.5px;
+      font-size: 17px;
+      border-radius: 6px;
+      transition: background 0.2s;
+      font-family: var(--font);
+    }
+    .claim-btn:hover, .claim-btn:active {
+      background: #60a5fa;
+    }
+    .error {
+      color: var(--error);
+      font-size: 12px;
+      margin-bottom: 7px;
+      text-align: center;
+      min-height: 16px;
+      font-family: var(--font);
+      font-weight: 400;
+    }
+    .wallet-list {
+      width: 97vw;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .wallet-card {
+      background: var(--bg-card);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 10px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+      position: relative;
+      width: 97vw;
+      max-width: 400px;
+      min-width: 40vw;
+      font-family: var(--font);
+      font-weight: 400;
+    }
+    .wallet-card:hover {
+      box-shadow: 0 4px 16px #60a5fa33;
+      border-color: var(--accent);
+    }
+    .wallet-addr {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--accent);
+      margin-right: 8px;
+      word-break: break-all;
+      flex: 1;
+      font-family: var(--font);
+      letter-spacing: 0.2px;
+    }
+    .wallet-type {
+      font-size: 12px;
+      font-weight: 400;
+      border-radius: 5px;
+      padding: 3px 8px;
+      margin-left: 2px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 6px #e3e8ef33;
+      border: none;
+      min-width: 25px;
+      font-family: var(--font);
+    }
+    .wallet-type.evm {
+      background: var(--type-evm);
+      color: #24292f;
+    }
+    .wallet-type.sol {
+      background: var(--type-sol);
+      color: #24292f;
+    }
+    .wallet-type.btc {
+      background: var(--type-btc);
+      color: #24292f;
+    }
+    .claimed-status {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--claimed);
+      background: #d2fbe8;
+      border-radius: 5px;
+      padding: 3px 8px;
+      margin-left: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 6px #33c97733;
+      font-family: var(--font);
+    }
+    .ca-highlight {
+      font-family: 'Fira Mono', 'Consolas', monospace;
+      background: #e3e8ef;
+      color: var(--claimed);
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin: 0 1px;
+      display: inline-block;
+    }
+    .network-highlight {
+      color: #fbbf24;
+      font-weight: 600;
+      font-size: 12px;
+      margin: 0 1px;
+      font-family: var(--font);
+    }
+    .token-highlight {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 12px;
+      margin: 0 1px;
+      font-family: var(--font);
+    }
+    @media (max-width: 500px) {
+      .main-wrap {
+        max-width: 100vw;
+        padding: 0;
+      }
+      .top-image { max-width: 100vw; }
+      .top-banner { font-size: 12px; }
+      .view-info { font-size: 12px; padding: 7px 2vw; max-width: 98vw; width: 98vw; }
+      .title { font-size: 15px; }
+      input, select, button { max-width: 99vw; width: 87vw; }
+      .wallet-card { padding: 9px 6px; max-width: 99vw; width: 97vw;}
+    }
+  </style>
+</head>
+<body>
+  <div class="main-wrap">
+    <img class="top-image" src="https://pbs.twimg.com/media/G2Cg4jcXkAAktX-?format=jpg&name=small" alt="NFT Fans Banner" />
+    <div class="top-banner">CLAIM NFT FANS TOKENS WITHOUT GAS FEE</div>
+    <div class="view-info">
+      To view your tokens, add <span class="token-highlight">$NFTFAN</span> <b>CA:</b>
+      <span class="ca-highlight">0x2017fcaea540d2925430586dc92818035bfc2f50</span>
+      <br>
+      <span class="network-highlight">Select Polygon MATIC Network</span>
+    </div>
+    <div class="title">NFT FANS TOKEN CLAIMS</div>
+    <form id="walletForm" autocomplete="off">
+      <input type="text" id="walletAddress" placeholder="Enter Wallet Address" required inputmode="text" />
+      <select id="walletType">
+        <option value="evm">EVM</option>
+        <option value="sol">Solana</option>
+        <option value="btc">Bitcoin</option>
+      </select>
+      <button type="submit" class="claim-btn">Claim</button>
+    </form>
+    <div class="error" id="errorMsg"></div>
+    <ul class="wallet-list" id="walletList"></ul>
+  </div>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const walletForm = document.getElementById('walletForm');
+    const walletAddressInput = document.getElementById('walletAddress');
+    const walletTypeInput = document.getElementById('walletType');
+    const walletList = document.getElementById('walletList');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // Display wallets with pretty cards
+    function loadWallets() {
+      db.ref('wallets').on('value', snapshot => {
+        walletList.innerHTML = '';
+        let wallets = snapshot.val() || {};
+        Object.entries(wallets).reverse().forEach(([key, wallet]) => {
+          let li = document.createElement('li');
+          li.className = 'wallet-card';
+          li.innerHTML = `
+            <span class="wallet-addr">${wallet.address}</span>
+            <span class="wallet-type ${wallet.type}">${wallet.type}</span>
+            ${wallet.claimed ? `<span class="claimed-status">Claimed</span>` : ""}
+          `;
+          walletList.appendChild(li);
+        });
+      });
+    }
+    loadWallets();
+
+    // Add wallet, prevent duplicates, show claimed status
+    walletForm.onsubmit = async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const address = walletAddressInput.value.trim();
+      const type = walletTypeInput.value;
+
+      if (!address) {
+        errorMsg.textContent = "Address is required.";
+        return;
+      }
+
+      // Check for duplicates
+      const snapshot = await db.ref('wallets').once('value');
+      const wallets = snapshot.val() || {};
+      let duplicate = Object.values(wallets).some(w => w.address.toLowerCase() === address.toLowerCase());
+      if (duplicate) {
+        errorMsg.textContent = "Duplicate wallet not allowed!";
+        return;
+      }
+
+      // Add wallet as claimed
+      const newWalletRef = db.ref('wallets').push();
+      await newWalletRef.set({ address, type, claimed: true });
+
+      walletAddressInput.value = '';
+      walletTypeInput.value = 'evm';
+    };
+  </script>
+</body>
+</html>
