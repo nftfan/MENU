@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mobile Chat · Same Theme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Roboto', 'Arial', ui-sans-serif, system-ui, -apple-system;
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      letter-spacing: 0.02em;
+      overflow-x: hidden;
+    }
+    .top-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 0;
+      padding: 10px 8px calc(env(safe-area-inset-bottom) + 10px);
+      box-sizing: border-box;
+    }
+    .card {
+      width: 100%;
+      max-width: 390px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      margin: 0 auto;
+      font-weight: var(--font-thin);
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    h1, .subtitle { margin: 0; text-align: center; }
+    h1 {
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      min-height: 14px;
+    }
+    .typing-effect {
+      display: inline-block;
+      min-height: 1em;
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      letter-spacing: 0.02em;
+      font-family: inherit;
+      vertical-align: middle;
+      white-space: pre-wrap;
+    }
+    .blinker {
+      display: inline-block;
+      width: 3px;
+      height: 13px;
+      background: var(--accent);
+      vertical-align: middle;
+      margin-left: 1px;
+      border-radius: 2px;
+      animation: blinkbox 1s steps(1) infinite;
+      margin-bottom: -2px;
+    }
+    @keyframes blinkbox { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+    /* Inputs / buttons */
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 10px 12px;
+    }
+    .text-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      font-weight: var(--font-thin);
+    }
+    .btn {
+      background: var(--card-bg);
+      color: var(--accent);
+      font-size: 10px;
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, border 0.18s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: var(--font-thin);
+      justify-content: center;
+      min-height: 34px;
+    }
+    .btn:active {
+      background: var(--bg);
+      color: var(--accent);
+      border: 1px solid #3a3241;
+      transform: translateY(1px);
+    }
+
+    /* Login view */
+    .login-view { display: flex; flex-direction: column; gap: 10px; }
+    .error { color: #ff9aa2; }
+
+    /* User directory (table with thin lines) */
+    .user-list { margin: 8px 0 12px; }
+    .table-scroll {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      background: var(--copy-bg);
+      scrollbar-width: thin;
+      scrollbar-color: var(--copy-border) transparent;
+    }
+    .table-scroll::-webkit-scrollbar { width: 6px; }
+    .table-scroll::-webkit-scrollbar-track { background: transparent; }
+    .table-scroll::-webkit-scrollbar-thumb {
+      background-color: var(--copy-border);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background-color: #4a4151; }
+
+    table.user-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+    }
+    .user-table th, .user-table td {
+      border: 1px solid #3a3241; /* thin lines */
+      padding: 8px 10px;
+      text-align: left;
+      color: var(--text);
+      font-weight: var(--font-thin);
+    }
+    .user-table thead th {
+      position: sticky;
+      top: 0;
+      background: #251f2a;
+      z-index: 1;
+      color: var(--accent);
+    }
+    .user-table tbody tr {
+      cursor: pointer;
+      background: #26222c;
+    }
+    .user-table tbody tr:hover {
+      background: #2b2631;
+    }
+    .user-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--copy-border);
+      background: var(--card-bg);
+      color: var(--accent);
+    }
+    .count-pill {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--copy-border);
+      background: #251f2a;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Preview panel (messages of clicked user) */
+    .preview-wrap {
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card-bg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-title {
+      color: var(--accent);
+      font-size: 10.5px;
+      margin: 0;
+    }
+    .preview-body {
+      max-height: 260px;
+      overflow-y: auto;
+      background: var(--bg);
+      padding: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--copy-border) transparent;
+    }
+    .preview-body::-webkit-scrollbar { width: 6px; }
+    .preview-body::-webkit-scrollbar-thumb {
+      background-color: var(--copy-border);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .preview-body::-webkit-scrollbar-thumb:hover { background-color: #4a4151; }
+    .preview-footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 6px 8px 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Chat view (kept hidden until login) */
+    .chat-view { display: none; flex-direction: column; min-height: 70vh; max-height: 82vh; }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .room-badge {
+      color: var(--accent);
+      border: 1px solid var(--copy-border);
+      background: var(--copy-bg);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
+    .chat-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 0;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: var(--copy-border) transparent;
+    }
+    .chat-body::-webkit-scrollbar { width: 6px; }
+    .chat-body::-webkit-scrollbar-thumb {
+      background-color: var(--copy-border);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .chat-body::-webkit-scrollbar-thumb:hover { background-color: #4a4151; }
+
+    .composer {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    .composer .input-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+    }
+    .composer .chat-input {
+      flex: 1;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 18px 14px;
+      height: 64px;
+      line-height: 1.3;
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+    }
+    .composer .send-btn { padding: 8px 12px; border-radius: 9px; }
+
+    /* Message bubble */
+    .row { display: flex; width: 100%; justify-content: flex-start; }
+    .msg {
+      max-width: 92%;
+      padding: 8px 9px;
+      border: 1px solid var(--copy-border);
+      background: #26222c;
+      border-radius: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      word-wrap: break-word;
+      word-break: break-word;
+      display: inline-block;
+      box-shadow: 0 2px 10px #0002;
+    }
+    .msg .meta { color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+    .msg .meta b { color: var(--text); font-weight: 700; }
+    .system {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      margin: 4px 0 8px;
+      width: 100%;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 420px) {
+      .card { padding: 12px 8px; }
+      h1, .subtitle, .typing-effect, .text-input, .btn, .room-badge, .system,
+      .msg, .msg .meta, #olderLoader, .user-table, .preview-title { font-size: 10px !important; }
+      .blinker { height: 10px; width: 2px; }
+      .msg { max-width: 96%; }
+      .table-scroll { max-height: 180px; }
+      .preview-body { max-height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-wrap">
+    <!-- LOGIN CARD -->
+    <div class="card" id="loginCard" role="dialog" aria-labelledby="loginTitle">
+      <div class="title-row">
+        <h1 id="loginTitle">
+          <span id="typingLoginTitle" class="typing-effect"></span><span class="blinker"></span>
+        </h1>
+      </div>
+      <div class="subtitle" id="loginSubtitle">Tap a username to see their messages or enter one like @yourhandle</div>
+
+      <!-- User directory table (with message counts) -->
+      <div id="usersTableWrap" class="user-list" aria-live="polite" aria-busy="true">
+        <div id="usersLoading" class="subtitle">Loading users…</div>
+        <div class="table-scroll hidden" id="usersTableScroll">
+          <table class="user-table" role="table" aria-label="Existing users">
+            <thead>
+              <tr>
+                <th scope="col">Username</th>
+                <th scope="col">Messages</th>
+                <th scope="col">Last Active</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Preview panel: shows only clicked user's messages -->
+      <div id="previewWrap" class="preview-wrap hidden" aria-live="polite">
+        <div class="preview-header">
+          <p id="previewTitle" class="preview-title">Messages</p>
+          <div style="display:flex; gap:6px;">
+            <button id="useForLoginBtn" class="btn" type="button" aria-label="Use this username for login">
+              Use for Login
+            </button>
+            <button id="closePreviewBtn" class="btn" type="button" aria-label="Close preview">
+              Close
+            </button>
+          </div>
+        </div>
+        <div id="previewBody" class="preview-body"></div>
+        <div id="previewFooter" class="preview-footer">Scroll to load older…</div>
+      </div>
+
+      <div class="login-view" aria-live="polite">
+        <label class="input-wrap" for="usernameInput" aria-label="X username input">
+          <input id="usernameInput" class="text-input" type="text" placeholder="@yourhandle" inputmode="text" autocomplete="username" />
+        </label>
+
+        <!-- Create PIN (new users) -->
+        <div id="pinCreateWrap" class="hidden">
+          <label class="input-wrap" for="pinCreate" aria-label="Create 6-digit PIN">
+            <input id="pinCreate" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Set 6-digit PIN" />
+          </label>
+          <label class="input-wrap" for="pinConfirm" aria-label="Confirm 6-digit PIN">
+            <input id="pinConfirm" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Confirm PIN" />
+          </label>
+        </div>
+
+        <!-- Enter PIN (existing users) -->
+        <div id="pinEnterWrap" class="hidden">
+          <label class="input-wrap" for="pinEnter" aria-label="Enter 6-digit PIN">
+            <input id="pinEnter" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Enter 6-digit PIN" />
+          </label>
+        </div>
+
+        <button id="continueBtn" class="btn" type="button" aria-label="Continue">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
+          </svg>
+          <span id="continueLabel">Continue</span>
+        </button>
+        <div id="loginError" class="subtitle error"></div>
+      </div>
+    </div>
+
+    <!-- CHAT CARD (kept hidden until login) -->
+    <div class="card chat-view" id="chatCard" aria-live="polite" aria-label="Chat interface">
+      <div class="chat-header">
+        <div class="title-row" style="margin-bottom:0;">
+          <h1><span>Chat</span></h1>
+        </div>
+        <span class="room-badge" id="roomBadge">Signed in as <b id="badgeUser">@user</b></span>
+        <button id="logoutBtn" class="btn" type="button" aria-label="Logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 3h7a2 2 0 0 1 2 2v4h-2V5H7v14h7v-4h2v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm10.414 7.586L20 13.172l-4 4-1.414-1.414L16.344 13H11v-2h5.344l-1.758-2.758L16 6l4 4-1.586 1.586Z" fill="#e4ae64"/>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>
+
+      <div id="chatBody" class="chat-body" role="log">
+        <div class="composer">
+          <div class="input-row">
+            <input id="chatInput" class="chat-input" type="text" placeholder="Type a message" aria-label="Message input" />
+            <button id="sendBtn" class="btn send-btn" type="button" aria-label="Send message">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
+              </svg>
+              <span>Send</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="messages">
+          <div class="system">Newest messages appear here; scroll down to see older messages.</div>
+        </div>
+
+        <div id="olderLoader" class="hidden">Loading older messages…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+
+  <script>
+    // Typing effect (theme-consistent)
+    function typeText(elem, text, delay = 45, done) {
+      let i = 0;
+      function step() {
+        elem.textContent = text.slice(0, i);
+        if (i < text.length) { i++; setTimeout(step, delay); }
+        else if (done) done();
+      }
+      step();
+    }
+    const qs = (s) => document.querySelector(s);
+    const esc = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    // Elements
+    const loginCard = qs('#loginCard');
+    const chatCard = qs('#chatCard');
+    const typingLoginTitle = qs('#typingLoginTitle');
+    const loginSubtitle = qs('#loginSubtitle');
+    const loginError = qs('#loginError');
+    const usernameInput = qs('#usernameInput');
+    const continueBtn = qs('#continueBtn');
+    const continueLabel = qs('#continueLabel');
+
+    const pinCreateWrap = qs('#pinCreateWrap');
+    const pinConfirm = qs('#pinConfirm');
+    const pinCreate = qs('#pinCreate');
+
+    const pinEnterWrap = qs('#pinEnterWrap');
+    const pinEnter = qs('#pinEnter');
+
+    // Users table UI
+    const usersTableWrap = qs('#usersTableWrap');
+    const usersLoading = qs('#usersLoading');
+    const usersTableScroll = qs('#usersTableScroll');
+    const usersTableBody = qs('#usersTableBody');
+
+    // Preview UI
+    const previewWrap = qs('#previewWrap');
+    const previewTitle = qs('#previewTitle');
+    const previewBody = qs('#previewBody');
+    const previewFooter = qs('#previewFooter');
+    const closePreviewBtn = qs('#closePreviewBtn');
+    const useForLoginBtn = qs('#useForLoginBtn');
+
+    // Chat UI
+    const badgeUser = qs('#badgeUser');
+    const chatBody = qs('#chatBody');
+    const messagesEl = qs('#messages');
+    const olderLoader = qs('#olderLoader');
+    const chatInput = qs('#chatInput');
+    const sendBtn = qs('#sendBtn');
+    const logoutBtn = qs('#logoutBtn');
+
+    // Init heading
+    document.addEventListener('DOMContentLoaded', () => {
+      typeText(typingLoginTitle, 'Please enter your X username to login', 45);
+    });
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Utils / state
+    const PAGE_SIZE = 25;
+
+    let currentUser = null;
+    let loginStep = 'username'; // 'username' -> 'create' or 'enter'
+
+    let seenKeys = new Set();
+    let newestTsTop = null;   // newest rendered (top)
+    let oldestTsBottom = null; // oldest rendered (bottom)
+    let loadingOlder = false;
+    let reachedEnd = false;   // reached very old beginning
+    let newMsgListener = null;
+
+    // Preview state
+    let previewUser = null;
+    let previewLoading = false;
+    let previewReachedEnd = false;
+    let previewLastKey = null; // last push key loaded (oldest in current list)
+    let previewSeenKeys = new Set();
+
+    // Directory helpers
+    function normalizeUsername(raw) {
+      if (!raw) return '';
+      let u = raw.trim();
+      if (!u) return '';
+      if (!u.startsWith('@')) u = '@' + u;
+      if (!/^@[\w.]{1,30}$/.test(u)) return ''; // letters, numbers, underscore, dot
+      return u;
+    }
+    function userKey(username) { return encodeURIComponent(username); }
+    async function sha256Hex(str) {
+      const buf = new TextEncoder().encode(str);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    function setError(msg) { loginError.textContent = msg || ''; }
+    function fmtTime(ts) {
+      if (!ts) return '—';
+      try {
+        const d = new Date(ts);
+        return d.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      } catch { return '—'; }
+    }
+
+    // PIN UI
+    function showCreatePinUI(username) {
+      pinEnterWrap.classList.add('hidden');
+      pinCreateWrap.classList.remove('hidden');
+      continueLabel.textContent = 'Create Account';
+      loginSubtitle.textContent = 'Create a 6-digit PIN for ' + username;
+      setError('');
+      pinCreate.value = ''; pinConfirm.value = '';
+      pinCreate.focus();
+      loginStep = 'create';
+    }
+    function showEnterPinUI() {
+      pinCreateWrap.classList.add('hidden');
+      pinEnterWrap.classList.remove('hidden');
+      continueLabel.textContent = 'Login';
+      loginSubtitle.textContent = 'Welcome back, enter your 6-digit PIN';
+      setError('');
+      pinEnter.value = '';
+      pinEnter.focus();
+      loginStep = 'enter';
+    }
+    function resetPinUI() {
+      pinCreateWrap.classList.add('hidden');
+      pinEnterWrap.classList.add('hidden');
+      continueLabel.textContent = 'Continue';
+      loginSubtitle.textContent = 'Tap a username to see their messages or enter one like @yourhandle';
+      loginStep = 'username';
+    }
+
+    // Continue button (login/create)
+    async function handleContinue() {
+      const u = normalizeUsername(usernameInput.value);
+      if (!u) { setError('Please enter a valid X username like @yourhandle.'); return; }
+
+      try {
+        if (loginStep === 'username') {
+          setError('');
+          const snap = await db.ref('users/' + userKey(u)).once('value');
+          if (!snap.exists()) {
+            showCreatePinUI(u);
+          } else {
+            showEnterPinUI();
+          }
+          return;
+        }
+
+        if (loginStep === 'create') {
+          const p1 = pinCreate.value.trim();
+          const p2 = pinConfirm.value.trim();
+          if (!/^\d{6}$/.test(p1)) { setError('PIN must be exactly 6 digits.'); return; }
+          if (p1 !== p2) { setError('PINs do not match.'); return; }
+          const pinHash = await sha256Hex(p1);
+          const now = Date.now();
+          await db.ref('users/' + userKey(u)).set({
+            username: u,
+            pinHash,
+            createdAt: now,
+            lastLoginAt: now,
+            messageCount: 0
+          });
+          currentUser = u;
+          proceedToChat(currentUser);
+          return;
+        }
+
+        if (loginStep === 'enter') {
+          const p = pinEnter.value.trim();
+          if (!/^\d{6}$/.test(p)) { setError('Enter your 6-digit PIN.'); return; }
+          const pinHash = await sha256Hex(p);
+          const snap = await db.ref('users/' + userKey(u)).once('value');
+          if (!snap.exists()) { setError('User not found.'); resetPinUI(); return; }
+          const val = snap.val();
+          if (val.pinHash !== pinHash) { setError('Incorrect PIN.'); return; }
+          await db.ref('users/' + userKey(u) + '/lastLoginAt').set(Date.now());
+          currentUser = u;
+          proceedToChat(currentUser);
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+        setError('Something went wrong. Please try again.');
+      }
+    }
+
+    continueBtn.addEventListener('click', handleContinue);
+    usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinEnter.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinCreate.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinConfirm.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+
+    // Directory: load users and show message counts
+    const usernameToCountCell = new Map();
+
+    async function computeCountsFromMessages() {
+      // Note: For large datasets, consider denormalized counts. This scans all messages once.
+      const counts = {};
+      try {
+        const snap = await db.ref('messages').once('value');
+        snap.forEach(child => {
+          const v = child.val() || {};
+          const u = v.username || '';
+          if (!u) return;
+          counts[u] = (counts[u] || 0) + 1;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+      return counts;
+    }
+
+    function renderUsersTable(users, countsMap) {
+      usersTableBody.innerHTML = '';
+      usernameToCountCell.clear();
+      const frag = document.createDocumentFragment();
+
+      // Sort: by message count desc, then last active desc
+      users.sort((a, b) => {
+        const ca = countsMap[a.username] || a.messageCount || 0;
+        const cb = countsMap[b.username] || b.messageCount || 0;
+        if (cb !== ca) return cb - ca;
+        const la = a.lastLoginAt || a.createdAt || 0;
+        const lb = b.lastLoginAt || b.createdAt || 0;
+        return lb - la;
+      });
+
+      for (const u of users) {
+        const tr = document.createElement('tr');
+        tr.dataset.username = u.username;
+
+        tr.addEventListener('click', () => {
+          openPreviewForUser(u.username);
+        });
+        tr.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPreviewForUser(u.username);
+          }
+        });
+        tr.tabIndex = 0;
+
+        const tdUser = document.createElement('td');
+        tdUser.innerHTML = `<span class="user-pill">${esc(u.username || '@unknown')}</span>`;
+
+        const tdCount = document.createElement('td');
+        tdCount.className = 'td-count';
+        const countVal = countsMap[u.username] ?? u.messageCount ?? 0;
+        tdCount.innerHTML = `<span class="count-pill">${countVal}</span>`;
+        usernameToCountCell.set(u.username, tdCount);
+
+        const tdLast = document.createElement('td');
+        tdLast.textContent = fmtTime(u.lastLoginAt || u.createdAt);
+
+        tr.appendChild(tdUser);
+        tr.appendChild(tdCount);
+        tr.appendChild(tdLast);
+        frag.appendChild(tr);
+      }
+      usersTableBody.appendChild(frag);
+    }
+
+    async function loadUserDirectory() {
+      try {
+        usersTableWrap.setAttribute('aria-busy', 'true');
+        usersLoading.classList.remove('hidden');
+        usersTableScroll.classList.add('hidden');
+        usersTableBody.innerHTML = '';
+
+        const [usersSnap, countsMap] = await Promise.all([
+          db.ref('users').once('value'),
+          computeCountsFromMessages()
+        ]);
+
+        const users = [];
+        usersSnap.forEach(child => {
+          const v = child.val() || {};
+          users.push({
+            username: v.username || '',
+            createdAt: v.createdAt || 0,
+            lastLoginAt: v.lastLoginAt || 0,
+            messageCount: v.messageCount || 0
+          });
+        });
+
+        if (users.length === 0) {
+          usersLoading.textContent = 'No users yet. Create one below.';
+        } else {
+          usersLoading.classList.add('hidden');
+          usersTableScroll.classList.remove('hidden');
+          renderUsersTable(users, countsMap);
+        }
+
+        // Live update counts for new messages
+        db.ref('messages').off('child_added', handleLiveCount);
+        db.ref('messages').on('child_added', handleLiveCount);
+      } catch (e) {
+        console.error(e);
+        usersLoading.textContent = 'Failed to load users.';
+      } finally {
+        usersTableWrap.setAttribute('aria-busy', 'false');
+      }
+    }
+
+    function handleLiveCount(snap) {
+      const v = snap.val() || {};
+      const u = v.username || '';
+      if (!u) return;
+      const cell = usernameToCountCell.get(u);
+      if (cell) {
+        // increment displayed count
+        const span = cell.querySelector('.count-pill');
+        const cur = parseInt(span.textContent || '0', 10) || 0;
+        span.textContent = String(cur + 1);
+      }
+    }
+
+    // Preview: messages for clicked user (only that user's messages)
+    function clearPreview() {
+      previewBody.innerHTML = '';
+      previewSeenKeys.clear();
+      previewLastKey = null;
+      previewReachedEnd = false;
+    }
+
+    function makeMessageNode({ username, text, ts }) {
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const msg = document.createElement('div');
+      msg.className = 'msg';
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const timeStr = ts ? new Date(ts).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      meta.innerHTML = `<b>${esc(username || '@unknown')}</b> · ${esc(timeStr)}`;
+
+      const body = document.createElement('div');
+      body.className = 'text';
+      body.textContent = text || '';
+
+      msg.appendChild(meta);
+      msg.appendChild(body);
+      row.appendChild(msg);
+      return row;
+    }
+
+    async function loadPreviewPage() {
+      if (!previewUser || previewLoading || previewReachedEnd) return;
+      previewLoading = true;
+      previewFooter.textContent = 'Loading…';
+
+      try {
+        let q = db.ref('messages').orderByChild('username').equalTo(previewUser);
+        // Paginate by push key using endAt(value, key)
+        if (previewLastKey) {
+          q = q.endAt(previewUser, previewLastKey);
+        }
+        q = q.limitToLast(PAGE_SIZE);
+
+        const snap = await q.once('value');
+
+        // Build array of items (ascending by key), then reverse to show newest first
+        const items = [];
+        snap.forEach(child => {
+          // avoid duplicates when paginating
+          if (previewSeenKeys.has(child.key)) return;
+          const v = child.val() || {};
+          items.push({
+            key: child.key,
+            username: v.username,
+            text: v.text,
+            ts: v.ts || 0
+          });
+        });
+
+        if (items.length === 0) {
+          previewReachedEnd = true;
+          previewFooter.textContent = 'No more messages.';
+          return;
+        }
+
+        // Sort by ts DESC for display (newest first)
+        items.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+        const frag = document.createDocumentFragment();
+        for (const m of items) {
+          previewSeenKeys.add(m.key);
+          frag.appendChild(makeMessageNode(m));
+        }
+        // Append to body (newest at top visually)
+        // We'll insert at the top to keep newest-first ordering in the container
+        // Strategy: create a container list in DESC order and prepend block-by-block to keep newest at top.
+        // Simpler: since this is initial and further pages load older, we append now.
+        if (previewBody.children.length === 0) {
+          // First page: add items in DESC order
+          previewBody.appendChild(frag);
+        } else {
+          // Older page: should appear after existing nodes (at bottom)
+          previewBody.appendChild(frag);
+        }
+
+        // Oldest loaded item's key for next pagination
+        // Since items are DESC by ts, the last element is oldest among this batch
+        previewLastKey = items[items.length - 1].key;
+
+        previewFooter.textContent = 'Scroll to load older…';
+      } catch (e) {
+        console.error(e);
+        previewFooter.textContent = 'Failed to load. Pull to retry.';
+      } finally {
+        previewLoading = false;
+      }
+    }
+
+    function openPreviewForUser(username) {
+      const u = normalizeUsername(username);
+      if (!u) return;
+
+      // Set and show preview
+      previewUser = u;
+      previewTitle.textContent = `Messages by ${u} (newest first)`;
+      usernameInput.value = u; // prefill for convenience
+      clearPreview();
+      previewWrap.classList.remove('hidden');
+      // Load first page
+      loadPreviewPage().then(() => {
+        // Scroll to top to keep newest visible
+        previewBody.scrollTop = 0;
+      });
+    }
+
+    function closePreview() {
+      previewUser = null;
+      clearPreview();
+      previewWrap.classList.add('hidden');
+    }
+
+    // Preview scrolling: load older when near bottom
+    function setupPreviewScroll() {
+      previewBody.addEventListener('scroll', () => {
+        const nearBottom = (previewBody.scrollHeight - previewBody.scrollTop - previewBody.clientHeight) < 60;
+        if (nearBottom) loadPreviewPage();
+      }, { passive: true });
+    }
+
+    closePreviewBtn.addEventListener('click', closePreview);
+    useForLoginBtn.addEventListener('click', () => {
+      if (!previewUser) return;
+      usernameInput.value = previewUser;
+      // Don't auto-switch PIN UI; user can press Continue
+      // Optionally focus continue:
+      continueBtn.focus();
+    });
+
+    // DO NOT auto-login: keep chat hidden on main screen
+    // (Auto-login removed intentionally)
+
+    function proceedToChat(username) {
+      localStorage.setItem('xUsername', username);
+      localStorage.setItem('session', '1');
+      badgeUser.textContent = username;
+
+      loginCard.classList.add('hidden');
+      chatCard.style.display = 'flex';
+
+      bootChat();
+      chatInput.focus();
+      setTimeout(() => chatBody.scrollTop = 0, 150);
+    }
+
+    // Chat helpers
+    function addSystem(text, { prepend = false } = {}) {
+      const div = document.createElement('div');
+      div.className = 'system';
+      div.textContent = text;
+      if (prepend) {
+        messagesEl.insertBefore(div, messagesEl.firstChild);
+      } else {
+        messagesEl.appendChild(div);
+      }
+    }
+
+    function prependMessageDom(node) {
+      const prevHeight = chatBody.scrollHeight;
+      const nearTop = chatBody.scrollTop <= 40;
+      messagesEl.insertBefore(node, messagesEl.firstChild);
+      const newHeight = chatBody.scrollHeight;
+
+      if (!nearTop) {
+        chatBody.scrollTop += (newHeight - prevHeight);
+      } else {
+        chatBody.scrollTop = 0;
+      }
+    }
+
+    function appendMessageDom(node) {
+      messagesEl.appendChild(node);
+    }
+
+    function renderMessage({ key, username, text, ts }, { position = 'prepend' } = {}) {
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      const node = makeMessageNode({ username, text, ts });
+      if (position === 'prepend') {
+        prependMessageDom(node);
+      } else {
+        appendMessageDom(node);
+      }
+    }
+
+    async function bootChat() {
+      messagesEl.innerHTML = '';
+      addSystem('Newest messages appear here; scroll down to see older messages.', { prepend: true });
+      await loadInitial();
+      attachNewMessagesListener();
+      setupInfiniteScroll();
+    }
+
+    function fetchMessagesOnce({ endAtTs = null, startAtTs = null, limit = PAGE_SIZE } = {}) {
+      let ref = db.ref('messages').orderByChild('ts');
+      if (endAtTs != null) ref = ref.endAt(endAtTs);
+      if (startAtTs != null) ref = ref.startAt(startAtTs);
+      ref = ref.limitToLast(limit);
+      return ref.once('value');
+    }
+
+    async function loadInitial() {
+      olderLoader.classList.add('hidden');
+      try {
+        const snap = await fetchMessagesOnce({ limit: PAGE_SIZE });
+        const items = [];
+        snap.forEach(child => {
+          const v = child.val();
+          items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
+        });
+        // Sort DESC so newest first (closest to composer)
+        items.sort((a,b) => (b.ts||0) - (a.ts||0));
+        items.forEach((m) => {
+          renderMessage(m, { position: 'append' }); // append in DESC order; newest ends up at the top of list
+        });
+
+        if (items.length) {
+          newestTsTop = items[0].ts || 0;
+          oldestTsBottom = items[items.length - 1].ts || 0;
+        } else {
+          newestTsTop = null; oldestTsBottom = null; reachedEnd = true;
+        }
+        chatBody.scrollTop = 0;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function attachNewMessagesListener() {
+      if (newMsgListener) {
+        db.ref('messages').off('child_added', newMsgListener);
+      }
+      let query = db.ref('messages').orderByChild('ts');
+      const startTs = (newestTsTop || 0) + 1;
+      query = query.startAt(startTs);
+      newMsgListener = (snap) => {
+        const v = snap.val();
+        const msg = { key: snap.key, username: v.username, text: v.text, ts: v.ts || 0 };
+        renderMessage(msg, { position: 'prepend' }); // newest under the composer
+        if (!newestTsTop || msg.ts > newestTsTop) newestTsTop = msg.ts;
+        if (!oldestTsBottom) oldestTsBottom = msg.ts;
+      };
+      query.on('child_added', newMsgListener);
+    }
+
+    async function loadOlder() {
+      if (loadingOlder || reachedEnd) return;
+      if (oldestTsBottom == null) { reachedEnd = true; return; }
+      loadingOlder = true;
+      olderLoader.classList.remove('hidden');
+
+      try {
+        const endAt = oldestTsBottom - 1;
+        const snap = await fetchMessagesOnce({ endAtTs: endAt, limit: PAGE_SIZE });
+        const items = [];
+        snap.forEach(child => {
+          const v = child.val();
+          items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
+        });
+        items.sort((a,b) => (b.ts||0) - (a.ts||0));
+        items.forEach(m => renderMessage(m, { position: 'append' }));
+
+        if (items.length) {
+          const last = items[items.length - 1];
+          oldestTsBottom = last.ts || oldestTsBottom;
+        } else {
+          reachedEnd = true;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        olderLoader.classList.add('hidden');
+        loadingOlder = false;
+      }
+    }
+
+    function setupInfiniteScroll() {
+      chatBody.addEventListener('scroll', () => {
+        const nearBottom = (chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight) < 60;
+        if (nearBottom) {
+          loadOlder();
+        }
+      }, { passive: true });
+    }
+
+    // Send a message
+    async function sendCurrentMessage() {
+      const raw = chatInput.value;
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      if (!currentUser) return;
+
+      chatInput.value = '';
+      chatInput.focus();
+
+      try {
+        const newRef = db.ref('messages').push();
+        await newRef.set({
+          username: currentUser,
+          text: trimmed.slice(0, 1000),
+          ts: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Increment per-user messageCount denormalized counter
+        const countRef = db.ref('users/' + userKey(currentUser) + '/messageCount');
+        await countRef.transaction(cur => (cur || 0) + 1);
+
+        // keep newest visible
+        chatBody.scrollTop = 0;
+      } catch (e) {
+        console.error(e);
+        addSystem('Failed to send. Please retry.');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendCurrentMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendCurrentMessage();
+      }
+    });
+
+    // Keep view comfortable when keyboard opens on mobile
+    chatInput.addEventListener('focus', () => {
+      setTimeout(() => chatBody.scrollTop = 0, 150);
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('xUsername');
+      localStorage.removeItem('session');
+      currentUser = null;
+
+      // Detach listeners and reset chat state
+      db.ref('messages').off();
+      seenKeys.clear();
+      newestTsTop = null; oldestTsBottom = null; loadingOlder = false; reachedEnd = false;
+      newMsgListener = null;
+
+      // Reset chat UI
+      messagesEl.innerHTML = '<div class="system">Newest messages appear here; scroll down to see older messages.</div>';
+      olderLoader.classList.add('hidden');
+
+      // Show login again
+      chatCard.style.display = 'none';
+      loginCard.classList.remove('hidden');
+
+      // Reset login UI
+      typingLoginTitle.textContent = '';
+      setTimeout(() => typeText(typingLoginTitle, 'Please enter your X username to login'), 50);
+      usernameInput.value = '';
+      resetPinUI();
+      setError('');
+      usernameInput.focus();
+
+      // Reload user directory so list stays fresh
+      loadUserDirectory();
+      closePreview();
+    });
+
+    // Initial load: keep chat hidden, show user list and enable preview
+    loadUserDirectory();
+    setupPreviewScroll();
+  </script>
+</body>
+</html>
