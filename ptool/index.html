@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$NFTFAN Mention Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18151a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Roboto', 'Arial', ui-sans-serif, system-ui, -apple-system;
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      letter-spacing: 0.02em;
+      overflow-x: hidden;
+    }
+    .container {
+      width: 100%;
+      max-width: 350px;
+      margin: 0 auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .header {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      display: block;
+      filter: grayscale(0.3) brightness(0.93);
+      box-shadow: 0 2px 10px #0002;
+    }
+    h1 {
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      margin: 0 0 6px 0;
+      color: var(--accent);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-family: inherit;
+    }
+    .panel {
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 18px 14px 16px;
+      margin: 0 auto 12px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      font-weight: var(--font-thin);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel.hidden { display: none; }
+    .message {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      text-align: center;
+      font-weight: var(--font-thin);
+    }
+    .input-group {
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    input[type="text"] {
+      width: 100%;
+      height: 32px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 0 9px;
+      color: var(--accent);
+      font-size: 11px;
+      font-family: inherit;
+      margin-top: 3px;
+      font-weight: 400;
+    }
+    input[type="text"]::placeholder {
+      color: #b99a69;
+      opacity: 0.6;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(228,174,100, 0.2);
+      background: var(--card-bg);
+      color: var(--accent);
+    }
+    .input-wrapper label {
+      position: absolute;
+      top: -9px;
+      left: 9px;
+      background: var(--card-bg);
+      padding: 0 5px;
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: var(--font-thin);
+      pointer-events: none;
+    }
+    button {
+      font-family: inherit;
+      font-weight: var(--font-thin);
+      font-size: 11px;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+      margin: 8px 0;
+      width: 100%;
+      background: var(--card-bg);
+      color: var(--accent);
+      border: 1px solid var(--copy-border);
+      transition: background 0.18s, color 0.18s, border 0.18s, transform 0.1s;
+      box-shadow: 0 2px 6px #0002;
+      position: relative;
+    }
+    button.primary {
+      background: var(--accent);
+      color: var(--card-bg);
+      font-weight: 600;
+      border: 1px solid var(--accent);
+      box-shadow: 0 2px 8px #e4ae6423;
+    }
+    button.primary:active {
+      background: var(--bg);
+      color: var(--accent);
+      border: 1px solid var(--copy-border);
+      animation: vibrate 0.18s linear 2;
+    }
+    button.secondary {
+      background: var(--copy-bg);
+      color: var(--accent);
+      font-weight: var(--font-thin);
+    }
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      filter: saturate(.3);
+      box-shadow: none !important;
+    }
+    @keyframes vibrate {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-1px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(1px); }
+      100% { transform: translateX(0); }
+    }
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(228,174,100,.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      vertical-align: -2px;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .username {
+      font-weight: var(--font-thin);
+      color: var(--accent);
+      font-size: 11px;
+    }
+    .date-time {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      margin-top: -2px;
+      font-family: monospace;
+    }
+    .stat-block {
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 10px 0;
+      margin-bottom: 6px;
+      text-align: center;
+      width: 48%;
+      display: inline-block;
+      vertical-align: top;
+    }
+    .stat-value {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: var(--font-thin);
+    }
+    .token-unit {
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      opacity: 0.9;
+    }
+    .grid {
+      display: flex;
+      gap: 7px;
+      margin: 10px 0;
+      width: 100%;
+    }
+    .chart-container {
+      width: 100%;
+      height: 90px;
+      margin: 10px 0 8px 0;
+    }
+    #tweet-output-panel, #dashboard-panel, #cooldown-panel { display: none; }
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 11px;
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 9px;
+    }
+    .small-button {
+      padding: 0 10px;
+      height: 26px;
+      font-size: 10px;
+    }
+    .cooldown-wrapper {
+      text-align: center;
+      color: var(--muted);
+    }
+    .cooldown-timer {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 5px;
+      font-family: monospace;
+      color: var(--accent);
+      text-shadow: 0 0 5px #e4ae6444;
+      letter-spacing: 0.04em;
+    }
+    #tweet-text {
+      width: 100%;
+      min-height: 70px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 7px;
+      color: var(--accent);
+      font-size: 11px;
+      line-height: 1.6;
+      margin-bottom: 7px;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .toast {
+      position: fixed;
+      z-index: 100;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: min(300px, 90vw);
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      box-shadow: var(--shadow);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 11px;
+      line-height: 1.4;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .43s cubic-bezier(.23,1,.32,1), transform .55s cubic-bezier(.23,1,.32,1);
+      color: var(--accent);
+      font-weight: var(--font-thin);
+    }
+    .toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) scale(1.05);
+    }
+    .instructions-list {
+      margin: 0;
+      padding-left: 16px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .instructions-list li {
+      margin: 2px 0;
+    }
+    .note {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 10px;
+    }
+    @media (max-width: 400px) {
+      .container { max-width: 98vw; }
+      .panel { padding: 12px 6px 10px; }
+      h1, .stat-value, .message, .stat-label, .button-group, .toast, .date-time, .username, .cooldown-timer, input[type="text"], #tweet-text { font-size: 10px !important; }
+      .stat-block { padding: 7px 0; }
+      .token-unit { font-size: 10px !important;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://i.imgur.com/ODP45iQ.png" alt="NFTFAN Logo" class="logo" />
+      <h1>$NFTFAN Mention Tool</h1>
+    </div>
+
+    <!-- Instructions Panel -->
+    <div class="panel" id="instructions-panel">
+      <div class="message" style="text-align:left;margin-bottom:8px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">How it works</div>
+      <ol class="instructions-list">
+        <li>Enter your X (Twitter) username and tap Login. No password is required.</li>
+        <li>Tap Generate Tweet. We’ll fetch two groups, build your mentions, and credit you 5T $NFTFAN.</li>
+        <li>Tap Copy Text to copy your tweet.</li>
+        <li>Tap Go to NFTFAN X Community. Paste the tweet and post it inside the community.</li>
+        <li>Wait for the 20-minute cooldown to end, then repeat to earn more tokens.</li>
+      </ol>
+      <div class="note">
+        Tips: If groups are unavailable, try again later. If copy fails, allow clipboard permissions. Claims are not open yet.
+      </div>
+    </div>
+
+    <!-- Login Panel -->
+    <div class="panel" id="login-panel">
+      <p class="message">Enter your X username to login</p>
+      <div class="input-group">
+        <div class="input-wrapper">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="@nftfan">
+        </div>
+      </div>
+      <button id="loginBtn" type="button" class="primary">Login</button>
+    </div>
+
+    <!-- Dashboard Panel -->
+    <div class="panel" id="dashboard-panel">
+      <div class="user-info">
+        <span class="username" id="displayUsername">@nftfan</span>
+      </div>
+      <div class="date-time" id="current-datetime">2025-10-03 18:20:32 UTC</div>
+
+      <div class="grid">
+        <div class="stat-block">
+          <div class="stat-value" id="token-count">0.0 <span class="token-unit">T</span></div>
+          <div class="stat-label">$NFTFAN Tokens in Trillion</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-value" id="shares-count">0</div>
+          <div class="stat-label">Tweets Shared</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="tokensChart"></canvas>
+      </div>
+
+      <div class="button-group">
+        <button id="generateBtn" type="button" class="primary">Generate Tweet</button>
+        <button id="claimBtn" type="button" class="primary" disabled>Claim Tokens</button>
+      </div>
+
+      <div class="actions">
+        <button id="logoutBtn" type="button" class="secondary small-button">Logout</button>
+      </div>
+    </div>
+
+    <!-- Cooldown Panel -->
+    <div class="panel" id="cooldown-panel">
+      <div class="cooldown-wrapper">
+        <p class="message">Please wait before generating another tweet.</p>
+        <div class="cooldown-timer" id="cooldown-timer">20:00</div>
+      </div>
+    </div>
+
+    <!-- Tweet Output Panel -->
+    <div class="panel" id="tweet-output-panel">
+      <p class="message">Your tweet is ready. Post it in the NFTFAN X Community or copy the text.</p>
+      <textarea id="tweet-text" readonly></textarea>
+      <div class="button-group">
+        <button id="postBtn" type="button" class="primary">Go to NFTFAN X Community</button>
+        <button id="copyBtn" type="button" class="secondary">Copy Text</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+
+    initializeApp(firebaseConfig);
+    const db = getDatabase();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const loginPanel = document.getElementById('login-panel');
+      const dashboardPanel = document.getElementById('dashboard-panel');
+      const generateBtn = document.getElementById('generateBtn');
+      const claimBtn = document.getElementById('claimBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const postBtn = document.getElementById('postBtn');
+      const loginBtn = document.getElementById('login-panel').querySelector('button');
+      const usernameInput = document.getElementById('username');
+      const displayUsername = document.getElementById('displayUsername');
+      const tokenCountEl = document.getElementById('token-count');
+      const sharesCountEl = document.getElementById('shares-count');
+      const dateTimeEl = document.getElementById('current-datetime');
+      const toastEl = document.getElementById('toast');
+      const outputPanel = document.getElementById('tweet-output-panel');
+      const tweetTextArea = document.getElementById('tweet-text');
+      const cooldownPanel = document.getElementById('cooldown-panel');
+      const cooldownTimer = document.getElementById('cooldown-timer');
+
+      // Constants
+      const TOKENS_PER_TWEET = 5; // 5 trillion per tweet
+      const cooldownMinutes = 20;
+      let currentUser = null;
+      let tokensChart = null;
+
+      // Update date and time
+      function updateDateTime() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+        const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+        dateTimeEl.textContent = formatted;
+      }
+      setInterval(updateDateTime, 1000);
+      updateDateTime();
+
+      // Toast notification
+      function showToast(msg, t = 3000) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), t);
+      }
+
+      // Initialize chart
+      function initChart(userData) {
+        const ctx = document.getElementById('tokensChart').getContext('2d');
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+
+        if (userData.history && userData.history.length > 0) {
+          userData.history.slice(-7).forEach(entry => {
+            labels.push(entry.date);
+            tokenData.push(entry.tokens);
+            sharesData.push(entry.shares);
+          });
+        } else {
+          const today = new Date();
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+            tokenData.push(i === 0 ? userData.tokens : 0);
+            sharesData.push(i === 0 ? userData.shares : 0);
+          }
+        }
+
+        tokensChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Tokens (T)',
+                data: tokenData,
+                borderColor: 'rgba(228,174,100, 0.8)',
+                backgroundColor: 'rgba(228,174,100, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(228,174,100, 1)',
+                pointBorderColor: '#000',
+                pointRadius: 4,
+              },
+              {
+                label: 'Tweets',
+                data: sharesData,
+                borderColor: 'rgba(183, 0, 255, 0.7)',
+                backgroundColor: 'rgba(183, 0, 255, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(183, 0, 255, 1)',
+                pointBorderColor: '#000',
+                pointRadius: 4,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#726b7b',
+                  font: { family: 'Inter' }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#726b7b' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#726b7b' }
+              }
+            }
+          }
+        });
+      }
+
+      // Update chart with new data
+      function updateChart(userData) {
+        if (!tokensChart) {
+          initChart(userData);
+          return;
+        }
+        const labels = [];
+        const tokenData = [];
+        const sharesData = [];
+
+        if (userData.history && userData.history.length > 0) {
+          userData.history.slice(-7).forEach(entry => {
+            labels.push(entry.date);
+            tokenData.push(entry.tokens);
+            sharesData.push(entry.shares);
+          });
+        } else {
+          const today = new Date();
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            labels.push(`${date.getMonth()+1}/${date.getDate()}`);
+            tokenData.push(i === 0 ? userData.tokens : 0);
+            sharesData.push(i === 0 ? userData.shares : 0);
+          }
+        }
+
+        tokensChart.data.labels = labels;
+        tokensChart.data.datasets[0].data = tokenData;
+        tokensChart.data.datasets[1].data = sharesData;
+        tokensChart.update();
+      }
+
+      // Local Storage Functions
+      function saveUserData(userData) {
+        localStorage.setItem('nftfan_user', JSON.stringify(userData));
+      }
+
+      function getUserData() {
+        const data = localStorage.getItem('nftfan_user');
+        if (data) return JSON.parse(data);
+        return null;
+      }
+
+      function updateUserTokens(tokens, shares) {
+        const userData = getUserData();
+        if (!userData) return;
+
+        const today = new Date();
+        const dateStr = `${today.getMonth()+1}/${today.getDate()}`;
+
+        if (!userData.history) userData.history = [];
+
+        const todayEntry = userData.history.find(entry => entry.date === dateStr);
+        if (todayEntry) {
+          todayEntry.tokens = tokens;
+          todayEntry.shares = shares;
+        } else {
+          userData.history.push({ date: dateStr, tokens, shares });
+        }
+
+        if (userData.history.length > 30) {
+          userData.history = userData.history.slice(-30);
+        }
+
+        userData.tokens = tokens;
+        userData.shares = shares;
+
+        saveUserData(userData);
+        updateTokenDisplay(userData);
+        updateChart(userData);
+      }
+
+      function updateTokenDisplay(userData) {
+        tokenCountEl.innerHTML = `${userData.tokens.toFixed(1)} <span class="token-unit">T</span>`;
+        sharesCountEl.textContent = userData.shares;
+      }
+
+      // Firebase Functions
+      async function getLastClaimTime() {
+        if (!currentUser) return null;
+        try {
+          const lastClaimRef = ref(db, `users/${currentUser}/last_claimed`);
+          const snapshot = await get(lastClaimRef);
+          if (!snapshot.exists()) return null;
+          return snapshot.val();
+        } catch (error) {
+          console.error("Error getting last claim time:", error);
+          return null;
+        }
+      }
+
+      async function setLastClaimTime(ts) {
+        if (!currentUser) return;
+        try {
+          await update(ref(db), { [`/users/${currentUser}/last_claimed`]: ts });
+        } catch (error) {
+          console.error("Error setting last claim time:", error);
+        }
+      }
+
+      async function fetchAndClaimTwoGroups() {
+        if (!currentUser) return [];
+        try {
+          const allGroupsRef = ref(db, 'groups');
+          const snapshot = await get(allGroupsRef);
+          if (!snapshot.exists()) return [];
+
+          const groupsObj = snapshot.val();
+          const pendingGroups = [];
+          for (const key in groupsObj) {
+            if (groupsObj[key].status === 'pending') {
+              pendingGroups.push({ key, data: groupsObj[key] });
+            }
+          }
+
+          pendingGroups.sort((a, b) => {
+            const numA = parseInt(a.key.replace('group_', ''));
+            const numB = parseInt(b.key.replace('group_', ''));
+            return numA - numB;
+          });
+
+          if (pendingGroups.length < 2) {
+            return [];
+          }
+
+          const groupsToClaim = pendingGroups.slice(0, 2);
+          const updates = {};
+          for (const group of groupsToClaim) {
+            updates[`/groups/${group.key}/status`] = 'claimed';
+            updates[`/groups/${group.key}/claimed_by`] = currentUser;
+            updates[`/groups/${group.key}/claimed_at`] = new Date().toISOString();
+          }
+
+          await update(ref(db), updates);
+          return groupsToClaim;
+        } catch (error) {
+          console.error("Error fetching and claiming groups:", error);
+          return [];
+        }
+      }
+
+      // Cooldown timer
+      function startCooldownTimer(secondsLeft) {
+        dashboardPanel.style.display = 'none';
+        cooldownPanel.style.display = 'block';
+        outputPanel.style.display = 'none';
+
+        function pad(n) { return n.toString().padStart(2, '0'); }
+
+        const interval = setInterval(() => {
+          const min = Math.floor(secondsLeft / 60);
+          const sec = secondsLeft % 60;
+          cooldownTimer.textContent = `${pad(min)}:${pad(sec)}`;
+          if (secondsLeft <= 0) {
+            clearInterval(interval);
+            cooldownPanel.style.display = 'none';
+            dashboardPanel.style.display = 'block';
+          }
+          secondsLeft--;
+        }, 1000);
+      }
+
+      // Check initial cooldown on login
+      async function checkInitialCooldown() {
+        if (!currentUser) return;
+        const lastClaimed = await getLastClaimTime();
+        if (lastClaimed) {
+          const now = Date.now();
+          const diffMs = now - new Date(lastClaimed).getTime();
+          const diffSec = Math.floor(diffMs / 1000);
+          const totalCooldownSec = cooldownMinutes * 60;
+          if (diffSec < totalCooldownSec) {
+            startCooldownTimer(totalCooldownSec - diffSec);
+          }
+        }
+      }
+
+      // Login functionality
+      loginBtn.addEventListener('click', () => {
+        let username = usernameInput.value.trim();
+        if (username.startsWith('@')) username = username.substring(1);
+        if (!username) {
+          showToast('Please enter a valid username');
+          return;
+        }
+        currentUser = username;
+
+        let userData = getUserData();
+        if (!userData) {
+          userData = { username, tokens: 0, shares: 0, history: [] };
+          saveUserData(userData);
+        }
+
+        displayUsername.textContent = '@' + username;
+        updateTokenDisplay(userData);
+
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+
+        initChart(userData);
+        checkInitialCooldown();
+
+        showToast(`Welcome, @${username}!`);
+      });
+
+      // Generate Tweet button
+      generateBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="loading"></span> Checking Cooldown...';
+
+        try {
+          const lastClaimed = await getLastClaimTime();
+          const now = Date.now();
+
+          if (lastClaimed) {
+            const diffMs = now - new Date(lastClaimed).getTime();
+            const diffMin = diffMs / 60000;
+            if (diffMin < cooldownMinutes) {
+              const waitSec = Math.ceil((cooldownMinutes * 60) - diffMs / 1000);
+              startCooldownTimer(waitSec);
+              generateBtn.disabled = false;
+              generateBtn.textContent = 'Generate Tweet';
+              return;
+            }
+          }
+
+          generateBtn.innerHTML = '<span class="loading"></span> Fetching Groups...';
+          const claimedGroups = await fetchAndClaimTwoGroups();
+
+          if (claimedGroups.length < 2) {
+            showToast('Not enough available groups found. Please try again later.');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Tweet';
+            return;
+          }
+
+          const allUsernames = claimedGroups.reduce((acc, group) => acc.concat(group.data.usernames), []);
+          const formattedUsernames = allUsernames.map(u => u.startsWith('@') ? u : `@${u}`);
+          const mentionList = formattedUsernames.join(' ');
+
+          const tweet = `Hello, ${mentionList} I have mentioned you to claim 5B free $NFTFAN token by @nftfanstoken at this link: https://www.nftfanstoken.com/nftzz/ I used this url to invite you: https://www.nftfanstoken.com/mtool`;
+          tweetTextArea.value = tweet;
+
+          const userData = getUserData();
+          const newTokens = userData.tokens + TOKENS_PER_TWEET;
+          const newShares = userData.shares + 1;
+          updateUserTokens(newTokens, newShares);
+
+          await setLastClaimTime(new Date().toISOString());
+
+          dashboardPanel.style.display = 'none';
+          outputPanel.style.display = 'block';
+
+          showToast('Tweet generated! You earned 5T $NFTFAN tokens!');
+        } catch (error) {
+          console.error('Error generating tweet:', error);
+          showToast('An error occurred. Please try again.');
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate Tweet';
+        }
+      });
+
+      // Claim button
+      claimBtn.addEventListener('click', () => {
+        showToast('Claims are not open yet. Please check back later.');
+      });
+
+      // Post button -> Open X Community (user pastes the tweet there)
+      postBtn.addEventListener('click', () => {
+        const tweet = tweetTextArea.value;
+        if (!tweet) return;
+        showToast('Redirecting to the NFTFAN X Community. Paste your tweet and post it there.');
+        window.open('https://x.com/i/communities/1648665563332263936', '_blank', 'noopener,noreferrer');
+      });
+
+      // Copy button
+      copyBtn.addEventListener('click', () => {
+        const tweet = tweetTextArea.value;
+        if (!tweet) return;
+        navigator.clipboard.writeText(tweet)
+          .then(() => showToast('Tweet copied to clipboard!'))
+          .catch(err => {
+            console.error('Failed to copy text: ', err);
+            showToast('Could not copy tweet. Please copy it manually.');
+            tweetTextArea.select();
+            document.execCommand('copy');
+          });
+      });
+
+      // Logout button
+      logoutBtn.addEventListener('click', () => {
+        currentUser = null;
+        dashboardPanel.style.display = 'none';
+        outputPanel.style.display = 'none';
+        cooldownPanel.style.display = 'none';
+        loginPanel.style.display = 'block';
+        usernameInput.value = '';
+
+        if (tokensChart) {
+          tokensChart.destroy();
+          tokensChart = null;
+        }
+
+        showToast('You have been logged out.');
+      });
+
+      // Auto-login if user data exists
+      const savedUser = getUserData();
+      if (savedUser && savedUser.username) {
+        currentUser = savedUser.username;
+        displayUsername.textContent = '@' + savedUser.username;
+        updateTokenDisplay(savedUser);
+
+        loginPanel.style.display = 'none';
+        dashboardPanel.style.display = 'block';
+
+        initChart(savedUser);
+        checkInitialCooldown();
+      }
+    });
+  </script>
+</body>
+</html>
