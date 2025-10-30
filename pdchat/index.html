@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mobile Chat · Same Theme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Roboto', 'Arial', ui-sans-serif, system-ui, -apple-system;
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      letter-spacing: 0.02em;
+      overflow-x: hidden;
+    }
+    .top-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 0;
+      padding: 10px 8px calc(env(safe-area-inset-bottom) + 10px);
+      box-sizing: border-box;
+    }
+    .card {
+      width: 100%;
+      max-width: 390px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      margin: 0 auto;
+      font-weight: var(--font-thin);
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    h1, .subtitle { margin: 0; text-align: center; }
+    h1 {
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      min-height: 14px;
+    }
+    .typing-effect {
+      display: inline-block;
+      min-height: 1em;
+      font-size: 11px;
+      font-weight: var(--font-thin);
+      letter-spacing: 0.02em;
+      font-family: inherit;
+      vertical-align: middle;
+      white-space: pre-wrap;
+    }
+    .blinker {
+      display: inline-block;
+      width: 3px;
+      height: 13px;
+      background: var(--accent);
+      vertical-align: middle;
+      margin-left: 1px;
+      border-radius: 2px;
+      animation: blinkbox 1s steps(1) infinite;
+      margin-bottom: -2px;
+    }
+    @keyframes blinkbox { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+    /* Inputs / buttons */
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 10px 12px;
+    }
+    .text-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      font-weight: var(--font-thin);
+    }
+    .btn {
+      background: var(--card-bg);
+      color: var(--accent);
+      font-size: 10px;
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, border 0.18s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: var(--font-thin);
+      justify-content: center;
+      min-height: 34px;
+    }
+    .btn:active {
+      background: var(--bg);
+      color: var(--accent);
+      border: 1px solid #3a3241;
+      transform: translateY(1px);
+    }
+
+    /* Login view */
+    .login-view { display: flex; flex-direction: column; gap: 10px; }
+    .error { color: #ff9aa2; }
+
+    /* Chat view */
+    .chat-view { display: none; flex-direction: column; min-height: 70vh; max-height: 82vh; }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .room-badge {
+      color: var(--accent);
+      border: 1px solid var(--copy-border);
+      background: var(--copy-bg);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
+    .chat-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 10px 8px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      position: relative;
+    }
+    .row { display: flex; width: 100%; justify-content: flex-start; } /* All messages on left */
+    .msg {
+      max-width: 92%;
+      padding: 8px 9px;
+      border: 1px solid var(--copy-border);
+      background: #26222c;
+      border-radius: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      word-wrap: break-word;
+      word-break: break-word;
+      display: inline-block;
+      box-shadow: 0 2px 10px #0002;
+    }
+    .msg .meta { color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+    .msg .meta b { color: var(--text); font-weight: 700; }
+    .system {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      margin: 4px 0 8px;
+    }
+    .loading-older { text-align: center; color: var(--muted); font-size: 10px; padding: 4px 0; }
+
+    .input-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      margin-top: 8px;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      padding-bottom: calc(env(safe-area-inset-bottom));
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+    }
+    .send-btn { padding: 8px 12px; border-radius: 9px; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 420px) {
+      .card { padding: 12px 8px; }
+      h1, .subtitle, .typing-effect, .text-input, .chat-input, .btn, .room-badge, .system,
+      .msg, .msg .meta, .loading-older { font-size: 10px !important; }
+      .blinker { height: 10px; width: 2px; }
+      .msg { max-width: 96%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-wrap">
+    <!-- LOGIN CARD -->
+    <div class="card" id="loginCard" role="dialog" aria-labelledby="loginTitle">
+      <div class="title-row">
+        <h1 id="loginTitle">
+          <span id="typingLoginTitle" class="typing-effect"></span><span class="blinker"></span>
+        </h1>
+      </div>
+      <div class="subtitle" id="loginSubtitle">Example: @yourhandle</div>
+
+      <div class="login-view" aria-live="polite">
+        <label class="input-wrap" for="usernameInput" aria-label="X username input">
+          <input id="usernameInput" class="text-input" type="text" placeholder="@yourhandle" inputmode="text" autocomplete="username" />
+        </label>
+
+        <!-- Step 2: CREATE PIN (new users) -->
+        <div id="pinCreateWrap" class="hidden">
+          <label class="input-wrap" for="pinCreate" aria-label="Create 6-digit PIN">
+            <input id="pinCreate" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Set 6-digit PIN" />
+          </label>
+          <label class="input-wrap" for="pinConfirm" aria-label="Confirm 6-digit PIN">
+            <input id="pinConfirm" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Confirm PIN" />
+          </label>
+        </div>
+
+        <!-- Step 2: ENTER PIN (existing users) -->
+        <div id="pinEnterWrap" class="hidden">
+          <label class="input-wrap" for="pinEnter" aria-label="Enter 6-digit PIN">
+            <input id="pinEnter" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Enter 6-digit PIN" />
+          </label>
+        </div>
+
+        <button id="continueBtn" class="btn" type="button" aria-label="Continue">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
+          </svg>
+          <span id="continueLabel">Continue</span>
+        </button>
+        <div id="loginError" class="subtitle error"></div>
+      </div>
+    </div>
+
+    <!-- CHAT CARD -->
+    <div class="card chat-view" id="chatCard" aria-live="polite" aria-label="Chat interface">
+      <div class="chat-header">
+        <div class="title-row" style="margin-bottom:0;">
+          <h1><span>Chat</span></h1>
+        </div>
+        <span class="room-badge" id="roomBadge">Signed in as <b id="badgeUser">@user</b></span>
+        <button id="logoutBtn" class="btn" type="button" aria-label="Logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 3h7a2 2 0 0 1 2 2v4h-2V5H7v14h7v-4h2v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm10.414 7.586L20 13.172l-4 4-1.414-1.414L16.344 13H11v-2h5.344l-1.758-2.758L16 6l4 4-1.586 1.586Z" fill="#e4ae64"/>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>
+
+      <div id="chatBody" class="chat-body" role="log">
+        <div class="system">Welcome! Scroll up to load earlier messages.</div>
+        <div id="olderLoader" class="loading-older hidden">Loading earlier messages…</div>
+      </div>
+
+      <div class="input-row">
+        <input id="chatInput" class="chat-input" type="text" placeholder="Type a message" aria-label="Message input" />
+        <button id="sendBtn" class="btn send-btn" type="button" aria-label="Send message">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
+          </svg>
+          <span>Send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+
+  <script>
+    // Typing effect (same theme)
+    function typeText(elem, text, delay = 45, done) {
+      let i = 0;
+      function step() {
+        elem.textContent = text.slice(0, i);
+        if (i < text.length) { i++; setTimeout(step, delay); }
+        else if (done) done();
+      }
+      step();
+    }
+    const qs = (s) => document.querySelector(s);
+    const esc = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    // Elements
+    const loginCard = qs('#loginCard');
+    const chatCard = qs('#chatCard');
+    const typingLoginTitle = qs('#typingLoginTitle');
+    const loginSubtitle = qs('#loginSubtitle');
+    const loginError = qs('#loginError');
+    const usernameInput = qs('#usernameInput');
+    const continueBtn = qs('#continueBtn');
+    const continueLabel = qs('#continueLabel');
+
+    const pinCreateWrap = qs('#pinCreateWrap');
+    const pinConfirm = qs('#pinConfirm');
+    const pinCreate = qs('#pinCreate');
+
+    const pinEnterWrap = qs('#pinEnterWrap');
+    const pinEnter = qs('#pinEnter');
+
+    const badgeUser = qs('#badgeUser');
+    const chatBody = qs('#chatBody');
+    const chatInput = qs('#chatInput');
+    const sendBtn = qs('#sendBtn');
+    const logoutBtn = qs('#logoutBtn');
+
+    // Init heading
+    document.addEventListener('DOMContentLoaded', () => {
+      typeText(typingLoginTitle, 'Please enter your X username to login', 45);
+    });
+
+    // Firebase config (provided)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Utils / state
+    const PAGE_SIZE = 25;
+    let currentUser = null;
+    let loginStep = 'username'; // 'username' -> 'create' or 'enter'
+
+    let seenKeys = new Set();
+    let oldestTs = null;
+    let newestTs = null;
+    let loadingOlder = false;
+    let reachedBeginning = false;
+    let newMsgListener = null;
+
+    function getOlderLoader() { return qs('#olderLoader'); }
+
+    function normalizeUsername(raw) {
+      if (!raw) return '';
+      let u = raw.trim();
+      if (!u) return '';
+      if (!u.startsWith('@')) u = '@' + u;
+      if (!/^@[\w.]{1,30}$/.test(u)) return ''; // letters, numbers, underscore, dot
+      return u;
+    }
+    function userKey(username) { return encodeURIComponent(username); }
+    async function sha256Hex(str) {
+      const buf = new TextEncoder().encode(str);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    function setError(msg) { loginError.textContent = msg || ''; }
+
+    function showCreatePinUI(username) {
+      pinEnterWrap.classList.add('hidden');
+      pinCreateWrap.classList.remove('hidden');
+      continueLabel.textContent = 'Create Account';
+      loginSubtitle.textContent = 'Create a 6-digit PIN for ' + username;
+      setError('');
+      pinCreate.value = ''; pinConfirm.value = '';
+      pinCreate.focus();
+      loginStep = 'create';
+    }
+    function showEnterPinUI() {
+      pinCreateWrap.classList.add('hidden');
+      pinEnterWrap.classList.remove('hidden');
+      continueLabel.textContent = 'Login';
+      loginSubtitle.textContent = 'Welcome back, enter your 6-digit PIN';
+      setError('');
+      pinEnter.value = '';
+      pinEnter.focus();
+      loginStep = 'enter';
+    }
+    function resetPinUI() {
+      pinCreateWrap.classList.add('hidden');
+      pinEnterWrap.classList.add('hidden');
+      continueLabel.textContent = 'Continue';
+      loginSubtitle.textContent = 'Example: @yourhandle';
+      loginStep = 'username';
+    }
+
+    // Do NOT check while typing; only on explicit Continue
+    async function handleContinue() {
+      const u = normalizeUsername(usernameInput.value);
+      if (!u) { setError('Please enter a valid X username like @yourhandle.'); return; }
+
+      try {
+        if (loginStep === 'username') {
+          setError('');
+          const snap = await db.ref('users/' + userKey(u)).once('value');
+          if (!snap.exists()) {
+            showCreatePinUI(u);
+          } else {
+            showEnterPinUI();
+          }
+          return;
+        }
+
+        if (loginStep === 'create') {
+          const p1 = pinCreate.value.trim();
+          const p2 = pinConfirm.value.trim();
+          if (!/^\d{6}$/.test(p1)) { setError('PIN must be exactly 6 digits.'); return; }
+          if (p1 !== p2) { setError('PINs do not match.'); return; }
+          const pinHash = await sha256Hex(p1);
+          const now = Date.now();
+          await db.ref('users/' + userKey(u)).set({
+            username: u,
+            pinHash,
+            createdAt: now,
+            lastLoginAt: now
+          });
+          currentUser = u;
+          proceedToChat(currentUser);
+          return;
+        }
+
+        if (loginStep === 'enter') {
+          const p = pinEnter.value.trim();
+          if (!/^\d{6}$/.test(p)) { setError('Enter your 6-digit PIN.'); return; }
+          const pinHash = await sha256Hex(p);
+          const snap = await db.ref('users/' + userKey(u)).once('value');
+          if (!snap.exists()) { setError('User not found.'); resetPinUI(); return; }
+          const val = snap.val();
+          if (val.pinHash !== pinHash) { setError('Incorrect PIN.'); return; }
+          await db.ref('users/' + userKey(u) + '/lastLoginAt').set(Date.now());
+          currentUser = u;
+          proceedToChat(currentUser);
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+        setError('Something went wrong. Please try again.');
+      }
+    }
+
+    continueBtn.addEventListener('click', handleContinue);
+    usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinEnter.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinCreate.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+    pinConfirm.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleContinue(); });
+
+    // Auto-login (optional)
+    (function tryAutoLogin(){
+      const savedUser = localStorage.getItem('xUsername');
+      const session = localStorage.getItem('session') === '1';
+      if (savedUser && session) {
+        currentUser = savedUser;
+        proceedToChat(currentUser);
+      }
+    })();
+
+    function proceedToChat(username) {
+      localStorage.setItem('xUsername', username);
+      localStorage.setItem('session', '1');
+      badgeUser.textContent = username;
+
+      loginCard.classList.add('hidden');
+      chatCard.style.display = 'flex';
+
+      bootChat();
+      chatInput.focus();
+      setTimeout(() => chatBody.scrollTop = chatBody.scrollHeight, 150);
+    }
+
+    // Chat helpers
+    function addSystem(text) {
+      const div = document.createElement('div');
+      div.className = 'system';
+      div.textContent = text;
+      chatBody.appendChild(div);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function renderMessage({ key, username, text, ts }, { append = true } = {}) {
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const msg = document.createElement('div');
+      msg.className = 'msg';
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const timeStr = ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      meta.innerHTML = `<b>${esc(username || '@unknown')}</b> · ${esc(timeStr)}`;
+
+      const body = document.createElement('div');
+      body.className = 'text';
+      body.textContent = text || '';
+
+      msg.appendChild(meta);
+      msg.appendChild(body);
+      row.appendChild(msg);
+
+      if (append) {
+        chatBody.appendChild(row);
+      } else {
+        // Insert after any leading system message if present
+        const firstChild = chatBody.firstChild;
+        chatBody.insertBefore(row, firstChild && firstChild.classList && firstChild.classList.contains('system') ? firstChild.nextSibling : firstChild);
+      }
+    }
+
+    async function bootChat() {
+      addSystem('You are now logged in. Start chatting!');
+      await loadInitial();
+      attachNewMessagesListener();
+      setupInfiniteScroll();
+    }
+
+    function fetchMessagesOnce({ endAtTs = null, startAtTs = null, limit = PAGE_SIZE } = {}) {
+      let ref = db.ref('messages').orderByChild('ts');
+      if (endAtTs != null) ref = ref.endAt(endAtTs);
+      if (startAtTs != null) ref = ref.startAt(startAtTs);
+      ref = ref.limitToLast(limit);
+      return ref.once('value');
+    }
+
+    async function loadInitial() {
+      getOlderLoader().classList.remove('hidden');
+      try {
+        const snap = await fetchMessagesOnce({ limit: PAGE_SIZE });
+        const items = [];
+        snap.forEach(child => {
+          const v = child.val();
+          items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
+        });
+        items.sort((a,b) => (a.ts||0) - (b.ts||0));
+        items.forEach(m => renderMessage(m, { append: true }));
+
+        if (items.length) {
+          oldestTs = items[0].ts || 0;
+          newestTs = items[items.length - 1].ts || 0;
+        } else {
+          oldestTs = null; newestTs = null; reachedBeginning = true;
+        }
+        chatBody.scrollTop = chatBody.scrollHeight;
+      } finally {
+        getOlderLoader().classList.add('hidden');
+      }
+    }
+
+    function attachNewMessagesListener() {
+      if (newMsgListener) {
+        db.ref('messages').off('child_added', newMsgListener);
+      }
+      let query = db.ref('messages').orderByChild('ts');
+      const startTs = (newestTs || 0) + 1;
+      query = query.startAt(startTs);
+      newMsgListener = (snap) => {
+        const v = snap.val();
+        const msg = { key: snap.key, username: v.username, text: v.text, ts: v.ts || 0 };
+        renderMessage(msg, { append: true });
+        if (!newestTs || msg.ts > newestTs) newestTs = msg.ts;
+        const nearBottom = (chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight) < 60;
+        if (nearBottom) chatBody.scrollTop = chatBody.scrollHeight;
+      };
+      query.on('child_added', newMsgListener);
+    }
+
+    async function loadOlder() {
+      if (loadingOlder || reachedBeginning) return;
+      if (oldestTs == null) { reachedBeginning = true; return; }
+      loadingOlder = true;
+      getOlderLoader().classList.remove('hidden');
+
+      const prevScrollTop = chatBody.scrollTop;
+      const prevScrollHeight = chatBody.scrollHeight;
+      try {
+        const endAt = oldestTs - 1;
+        const snap = await fetchMessagesOnce({ endAtTs: endAt, limit: PAGE_SIZE });
+        const items = [];
+        snap.forEach(child => {
+          const v = child.val();
+          items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
+        });
+        items.sort((a,b) => (a.ts||0) - (b.ts||0));
+        items.forEach(m => renderMessage(m, { append: false }));
+        if (items.length) {
+          oldestTs = items[0].ts || oldestTs;
+        } else {
+          reachedBeginning = true;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        const newScrollHeight = chatBody.scrollHeight;
+        chatBody.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+        getOlderLoader().classList.add('hidden');
+        loadingOlder = false;
+      }
+    }
+
+    function setupInfiniteScroll() {
+      chatBody.addEventListener('scroll', () => {
+        if (chatBody.scrollTop < 40) {
+          loadOlder();
+        }
+      }, { passive: true });
+    }
+
+    // Send a message
+    async function sendCurrentMessage() {
+      const raw = chatInput.value;
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      if (!currentUser) return;
+
+      chatInput.value = '';
+      chatInput.focus();
+
+      try {
+        await db.ref('messages').push({
+          username: currentUser,
+          text: trimmed.slice(0, 1000),
+          ts: firebase.database.ServerValue.TIMESTAMP
+        });
+      } catch (e) {
+        console.error(e);
+        addSystem('Failed to send. Please retry.');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendCurrentMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendCurrentMessage();
+      }
+    });
+
+    // Improve mobile typing experience
+    chatInput.addEventListener('focus', () => {
+      setTimeout(() => chatBody.scrollTop = chatBody.scrollHeight, 150);
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('xUsername');
+      localStorage.removeItem('session');
+      currentUser = null;
+
+      // Detach listeners and reset chat state
+      db.ref('messages').off();
+      seenKeys.clear();
+      oldestTs = null; newestTs = null; loadingOlder = false; reachedBeginning = false;
+      newMsgListener = null;
+
+      // Reset chat UI
+      chatBody.innerHTML = '<div class="system">Welcome! Scroll up to load earlier messages.</div><div id="olderLoader" class="loading-older hidden">Loading earlier messages…</div>';
+
+      // Show login again
+      chatCard.style.display = 'none';
+      loginCard.classList.remove('hidden');
+
+      // Reset login UI
+      typingLoginTitle.textContent = '';
+      setTimeout(() => typeText(typingLoginTitle, 'Please enter your X username to login'), 50);
+      usernameInput.value = '';
+      resetPinUI();
+      setError('');
+      usernameInput.focus();
+    });
+  </script>
+</body>
+</html>
