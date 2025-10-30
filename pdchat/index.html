@@ -165,20 +165,87 @@
       text-overflow: ellipsis;
       max-width: 60%;
     }
+
+    /* Scroll container: sticky input row at the top, newest messages directly under it */
     .chat-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 8px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
       box-shadow: var(--shadow);
-      padding: 10px 8px;
+      padding: 0;
       overflow-y: auto;
       scroll-behavior: smooth;
       position: relative;
+
+      /* Sleek scrollbar for Firefox */
+      scrollbar-width: thin;
+      scrollbar-color: var(--copy-border) transparent;
     }
+    /* Sleek scrollbar for WebKit (Chrome, Edge, Safari) */
+    .chat-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat-body::-webkit-scrollbar-thumb {
+      background-color: var(--copy-border);
+      border-radius: 8px;
+      border: 2px solid transparent; /* creates inset effect */
+      background-clip: padding-box;
+    }
+    .chat-body::-webkit-scrollbar-thumb:hover {
+      background-color: #4a4151;
+    }
+
+    .composer {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    .composer .input-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+    }
+    /* Doubled-height chat input box */
+    .composer .chat-input {
+      flex: 1;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 9px;
+      padding: 18px 14px;     /* increased padding */
+      height: 64px;           /* explicit taller height */
+      line-height: 1.3;
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+    }
+    .composer .send-btn { padding: 8px 12px; border-radius: 9px; }
+
+    /* Messages area: newest on top (closest to composer), older further down */
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 8px 12px;
+    }
+    #olderLoader {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 8px 0 10px;
+    }
+
     .row { display: flex; width: 100%; justify-content: flex-start; } /* All messages on left */
     .msg {
       max-width: 92%;
@@ -200,37 +267,15 @@
       color: var(--muted);
       font-size: 10px;
       margin: 4px 0 8px;
+      width: 100%;
     }
-    .loading-older { text-align: center; color: var(--muted); font-size: 10px; padding: 4px 0; }
 
-    .input-row {
-      display: flex;
-      align-items: stretch;
-      gap: 6px;
-      margin-top: 8px;
-      background: var(--card-bg);
-      border-top: 1px solid var(--border);
-      padding-top: 8px;
-      padding-bottom: calc(env(safe-area-inset-bottom));
-    }
-    .chat-input {
-      flex: 1;
-      background: var(--copy-bg);
-      border: 1px solid var(--copy-border);
-      border-radius: 9px;
-      padding: 10px 12px;
-      color: var(--text);
-      font-size: 11px;
-      font-family: inherit;
-      outline: none;
-    }
-    .send-btn { padding: 8px 12px; border-radius: 9px; }
     .hidden { display: none !important; }
 
     @media (max-width: 420px) {
       .card { padding: 12px 8px; }
-      h1, .subtitle, .typing-effect, .text-input, .chat-input, .btn, .room-badge, .system,
-      .msg, .msg .meta, .loading-older { font-size: 10px !important; }
+      h1, .subtitle, .typing-effect, .text-input, .btn, .room-badge, .system,
+      .msg, .msg .meta, #olderLoader { font-size: 10px !important; }
       .blinker { height: 10px; width: 2px; }
       .msg { max-width: 96%; }
     }
@@ -252,7 +297,7 @@
           <input id="usernameInput" class="text-input" type="text" placeholder="@yourhandle" inputmode="text" autocomplete="username" />
         </label>
 
-        <!-- Step 2: CREATE PIN (new users) -->
+        <!-- Create PIN (new users) -->
         <div id="pinCreateWrap" class="hidden">
           <label class="input-wrap" for="pinCreate" aria-label="Create 6-digit PIN">
             <input id="pinCreate" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Set 6-digit PIN" />
@@ -262,7 +307,7 @@
           </label>
         </div>
 
-        <!-- Step 2: ENTER PIN (existing users) -->
+        <!-- Enter PIN (existing users) -->
         <div id="pinEnterWrap" class="hidden">
           <label class="input-wrap" for="pinEnter" aria-label="Enter 6-digit PIN">
             <input id="pinEnter" class="text-input" type="password" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="Enter 6-digit PIN" />
@@ -294,19 +339,25 @@
         </button>
       </div>
 
+      <!-- Scroll container with sticky composer at top, newest messages right below -->
       <div id="chatBody" class="chat-body" role="log">
-        <div class="system">Welcome! Scroll up to load earlier messages.</div>
-        <div id="olderLoader" class="loading-older hidden">Loading earlier messages…</div>
-      </div>
+        <div class="composer">
+          <div class="input-row">
+            <input id="chatInput" class="chat-input" type="text" placeholder="Type a message" aria-label="Message input" />
+            <button id="sendBtn" class="btn send-btn" type="button" aria-label="Send message">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
+              </svg>
+              <span>Send</span>
+            </button>
+          </div>
+        </div>
 
-      <div class="input-row">
-        <input id="chatInput" class="chat-input" type="text" placeholder="Type a message" aria-label="Message input" />
-        <button id="sendBtn" class="btn send-btn" type="button" aria-label="Send message">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7Z" fill="#e4ae64"/>
-          </svg>
-          <span>Send</span>
-        </button>
+        <div id="messages">
+          <div class="system">Newest messages appear here; scroll down to see older messages.</div>
+        </div>
+
+        <div id="olderLoader" class="hidden">Loading older messages…</div>
       </div>
     </div>
   </div>
@@ -317,7 +368,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
 
   <script>
-    // Typing effect (same theme)
+    // Typing effect (theme-consistent)
     function typeText(elem, text, delay = 45, done) {
       let i = 0;
       function step() {
@@ -349,6 +400,8 @@
 
     const badgeUser = qs('#badgeUser');
     const chatBody = qs('#chatBody');
+    const messagesEl = qs('#messages');
+    const olderLoader = qs('#olderLoader');
     const chatInput = qs('#chatInput');
     const sendBtn = qs('#sendBtn');
     const logoutBtn = qs('#logoutBtn');
@@ -378,13 +431,11 @@
     let loginStep = 'username'; // 'username' -> 'create' or 'enter'
 
     let seenKeys = new Set();
-    let oldestTs = null;
-    let newestTs = null;
+    let newestTsTop = null;   // newest rendered (top)
+    let oldestTsBottom = null; // oldest rendered (bottom)
     let loadingOlder = false;
-    let reachedBeginning = false;
+    let reachedEnd = false;   // reached very old beginning
     let newMsgListener = null;
-
-    function getOlderLoader() { return qs('#olderLoader'); }
 
     function normalizeUsername(raw) {
       if (!raw) return '';
@@ -430,7 +481,7 @@
       loginStep = 'username';
     }
 
-    // Do NOT check while typing; only on explicit Continue
+    // Only check username existence when user taps Continue
     async function handleContinue() {
       const u = normalizeUsername(usernameInput.value);
       if (!u) { setError('Please enter a valid X username like @yourhandle.'); return; }
@@ -510,22 +561,23 @@
 
       bootChat();
       chatInput.focus();
-      setTimeout(() => chatBody.scrollTop = chatBody.scrollHeight, 150);
+      // Keep newest visible under the composer
+      setTimeout(() => chatBody.scrollTop = 0, 150);
     }
 
     // Chat helpers
-    function addSystem(text) {
+    function addSystem(text, { prepend = false } = {}) {
       const div = document.createElement('div');
       div.className = 'system';
       div.textContent = text;
-      chatBody.appendChild(div);
-      chatBody.scrollTop = chatBody.scrollHeight;
+      if (prepend) {
+        messagesEl.insertBefore(div, messagesEl.firstChild);
+      } else {
+        messagesEl.appendChild(div);
+      }
     }
 
-    function renderMessage({ key, username, text, ts }, { append = true } = {}) {
-      if (seenKeys.has(key)) return;
-      seenKeys.add(key);
-
+    function makeMessageNode({ username, text, ts }) {
       const row = document.createElement('div');
       row.className = 'row';
 
@@ -544,18 +596,41 @@
       msg.appendChild(meta);
       msg.appendChild(body);
       row.appendChild(msg);
+      return row;
+    }
 
-      if (append) {
-        chatBody.appendChild(row);
+    function prependMessageDom(node) {
+      const prevHeight = chatBody.scrollHeight;
+      const nearTop = chatBody.scrollTop <= 40;
+      messagesEl.insertBefore(node, messagesEl.firstChild);
+      const newHeight = chatBody.scrollHeight;
+
+      if (!nearTop) {
+        chatBody.scrollTop += (newHeight - prevHeight);
       } else {
-        // Insert after any leading system message if present
-        const firstChild = chatBody.firstChild;
-        chatBody.insertBefore(row, firstChild && firstChild.classList && firstChild.classList.contains('system') ? firstChild.nextSibling : firstChild);
+        chatBody.scrollTop = 0;
+      }
+    }
+
+    function appendMessageDom(node) {
+      messagesEl.appendChild(node);
+    }
+
+    function renderMessage({ key, username, text, ts }, { position = 'prepend' } = {}) {
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      const node = makeMessageNode({ username, text, ts });
+      if (position === 'prepend') {
+        prependMessageDom(node);
+      } else {
+        appendMessageDom(node);
       }
     }
 
     async function bootChat() {
-      addSystem('You are now logged in. Start chatting!');
+      messagesEl.innerHTML = '';
+      addSystem('Newest messages appear here; scroll down to see older messages.', { prepend: true });
       await loadInitial();
       attachNewMessagesListener();
       setupInfiniteScroll();
@@ -570,7 +645,7 @@
     }
 
     async function loadInitial() {
-      getOlderLoader().classList.remove('hidden');
+      olderLoader.classList.add('hidden');
       try {
         const snap = await fetchMessagesOnce({ limit: PAGE_SIZE });
         const items = [];
@@ -578,18 +653,21 @@
           const v = child.val();
           items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
         });
-        items.sort((a,b) => (a.ts||0) - (b.ts||0));
-        items.forEach(m => renderMessage(m, { append: true }));
+        // Sort DESC so newest first (closest to composer)
+        items.sort((a,b) => (b.ts||0) - (a.ts||0));
+        items.forEach((m) => {
+          renderMessage(m, { position: 'append' }); // append in DESC order; newest ends up at the top of list
+        });
 
         if (items.length) {
-          oldestTs = items[0].ts || 0;
-          newestTs = items[items.length - 1].ts || 0;
+          newestTsTop = items[0].ts || 0;
+          oldestTsBottom = items[items.length - 1].ts || 0;
         } else {
-          oldestTs = null; newestTs = null; reachedBeginning = true;
+          newestTsTop = null; oldestTsBottom = null; reachedEnd = true;
         }
-        chatBody.scrollTop = chatBody.scrollHeight;
-      } finally {
-        getOlderLoader().classList.add('hidden');
+        chatBody.scrollTop = 0;
+      } catch (e) {
+        console.error(e);
       }
     }
 
@@ -598,55 +676,55 @@
         db.ref('messages').off('child_added', newMsgListener);
       }
       let query = db.ref('messages').orderByChild('ts');
-      const startTs = (newestTs || 0) + 1;
+      const startTs = (newestTsTop || 0) + 1;
       query = query.startAt(startTs);
       newMsgListener = (snap) => {
         const v = snap.val();
         const msg = { key: snap.key, username: v.username, text: v.text, ts: v.ts || 0 };
-        renderMessage(msg, { append: true });
-        if (!newestTs || msg.ts > newestTs) newestTs = msg.ts;
-        const nearBottom = (chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight) < 60;
-        if (nearBottom) chatBody.scrollTop = chatBody.scrollHeight;
+        renderMessage(msg, { position: 'prepend' }); // newest under the composer
+        if (!newestTsTop || msg.ts > newestTsTop) newestTsTop = msg.ts;
+        if (!oldestTsBottom) oldestTsBottom = msg.ts;
       };
       query.on('child_added', newMsgListener);
     }
 
     async function loadOlder() {
-      if (loadingOlder || reachedBeginning) return;
-      if (oldestTs == null) { reachedBeginning = true; return; }
+      if (loadingOlder || reachedEnd) return;
+      if (oldestTsBottom == null) { reachedEnd = true; return; }
       loadingOlder = true;
-      getOlderLoader().classList.remove('hidden');
+      olderLoader.classList.remove('hidden');
 
-      const prevScrollTop = chatBody.scrollTop;
-      const prevScrollHeight = chatBody.scrollHeight;
       try {
-        const endAt = oldestTs - 1;
+        const endAt = oldestTsBottom - 1;
         const snap = await fetchMessagesOnce({ endAtTs: endAt, limit: PAGE_SIZE });
         const items = [];
         snap.forEach(child => {
           const v = child.val();
           items.push({ key: child.key, username: v.username, text: v.text, ts: v.ts || 0 });
         });
-        items.sort((a,b) => (a.ts||0) - (b.ts||0));
-        items.forEach(m => renderMessage(m, { append: false }));
+        // DESC order so the relatively newer of this chunk is higher than the older ones
+        items.sort((a,b) => (b.ts||0) - (a.ts||0));
+        items.forEach(m => renderMessage(m, { position: 'append' }));
+
         if (items.length) {
-          oldestTs = items[0].ts || oldestTs;
+          const last = items[items.length - 1];
+          oldestTsBottom = last.ts || oldestTsBottom;
         } else {
-          reachedBeginning = true;
+          reachedEnd = true;
         }
       } catch (e) {
         console.error(e);
       } finally {
-        const newScrollHeight = chatBody.scrollHeight;
-        chatBody.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
-        getOlderLoader().classList.add('hidden');
+        olderLoader.classList.add('hidden');
         loadingOlder = false;
       }
     }
 
     function setupInfiniteScroll() {
       chatBody.addEventListener('scroll', () => {
-        if (chatBody.scrollTop < 40) {
+        // when near bottom, load older
+        const nearBottom = (chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight) < 60;
+        if (nearBottom) {
           loadOlder();
         }
       }, { passive: true });
@@ -668,6 +746,8 @@
           text: trimmed.slice(0, 1000),
           ts: firebase.database.ServerValue.TIMESTAMP
         });
+        // keep newest visible
+        chatBody.scrollTop = 0;
       } catch (e) {
         console.error(e);
         addSystem('Failed to send. Please retry.');
@@ -682,9 +762,9 @@
       }
     });
 
-    // Improve mobile typing experience
+    // Keep view comfortable when keyboard opens on mobile
     chatInput.addEventListener('focus', () => {
-      setTimeout(() => chatBody.scrollTop = chatBody.scrollHeight, 150);
+      setTimeout(() => chatBody.scrollTop = 0, 150);
     });
 
     // Logout
@@ -696,11 +776,12 @@
       // Detach listeners and reset chat state
       db.ref('messages').off();
       seenKeys.clear();
-      oldestTs = null; newestTs = null; loadingOlder = false; reachedBeginning = false;
+      newestTsTop = null; oldestTsBottom = null; loadingOlder = false; reachedEnd = false;
       newMsgListener = null;
 
       // Reset chat UI
-      chatBody.innerHTML = '<div class="system">Welcome! Scroll up to load earlier messages.</div><div id="olderLoader" class="loading-older hidden">Loading earlier messages…</div>';
+      messagesEl.innerHTML = '<div class="system">Newest messages appear here; scroll down to see older messages.</div>';
+      olderLoader.classList.add('hidden');
 
       // Show login again
       chatCard.style.display = 'none';
