@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$NFTFAN Submitted Wallets & Airdrop</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    html { font-size: 10px; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7faff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      color: #23243b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1.4rem;
+      box-shadow: 0 0.4rem 2.4rem 0 rgba(36,36,62,.10);
+      max-width: 39rem;
+      width: 97vw;
+      margin: 2.4rem 0;
+      padding: 2.2rem 1rem 1.8rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #00bfae;
+      letter-spacing: .12rem;
+      text-align: center;
+    }
+    #pendingAmount {
+      width: 100%;
+      margin-top: 2.4rem;
+      margin-bottom: 2.8rem;
+      background: #f3f7fa;
+      border-radius: .8rem;
+      font-size: 1.5rem;
+      padding: 1.5rem 1rem;
+      min-height: 4rem;
+      text-align: center;
+      font-weight: 700;
+      color: #27ae60;
+      border: 1px solid #e2e5ee;
+      box-sizing: border-box;
+    }
+    #copyBtn, #connectButton, #airdropBtn {
+      background: linear-gradient(90deg,#00bfae 80%,#a259e6 100%);
+      color: #fff;
+      font-weight: 700;
+      border: none;
+      border-radius: 0.8rem;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 0.1rem 0.8rem #00bfae18;
+      margin-bottom: 1rem;
+      margin-top: 0.1rem;
+      transition: background .13s, transform .13s;
+      display: flex; align-items: center; gap: 0.6rem;
+      width: 100%;
+      max-width: 32rem;
+      justify-content: center;
+    }
+    #copyBtn:active, #connectButton:active, #airdropBtn:active { transform: scale(0.97);}
+    #copyBtn.copied {background: #27ae60;}
+    .wallet-info {
+      margin: 1rem 0 1.4rem 0;
+      font-size: 1rem;
+      color: #00e6e6;
+      text-align: center;
+      word-break: break-all;
+      width: 100%;
+    }
+    #notification {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffc107;
+      color: #121212;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0.6rem;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 0.4rem 1.5rem rgba(0, 0, 0, 0.3);
+      font-size: 1.1rem;
+      max-width: 90vw;
+      min-width: 10rem;
+      text-align: center;
+    }
+    #notification.show {
+      display: block;
+      animation: fadeInOut 2.2s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @media (max-width:410px) {
+      .card {
+        padding: 1.1rem 0.3rem;
+        max-width: 98vw;
+      }
+      h2 {font-size: 1.5rem;}
+      #pendingAmount {font-size: 1.2rem; padding: 1rem 0.5rem;}
+      #copyBtn, #connectButton, #airdropBtn {font-size: 1rem; padding: 0.6rem 0.5rem;}
+    }
+    @media (max-width:340px) {
+      html { font-size: 9px;}
+      .card {max-width: 98vw;}
+      #pendingAmount {font-size: 1rem; padding: 0.7rem 0.3rem;}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <!-- Firebase 9.x (modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, onValue, query, orderByChild, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // --- Firebase config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
+      authDomain: "trackingclients.firebaseapp.com",
+      projectId: "trackingclients",
+      storageBucket: "trackingclients.appspot.com",
+      messagingSenderId: "27490943622",
+      appId: "1:27490943622:web:d6c87547aa5df440508707",
+      databaseURL: "https://trackingclients-default-rtdb.firebaseio.com/"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allWalletsFromDB = [];
+    let keyMapping = {}; // {wallet_addr_lowercase: firebase_key}
+
+    function renderPendingAmount() {
+      const pendingWallets = allWalletsFromDB.filter(w => w.status !== "sent");
+      const pendingAmountEl = document.getElementById('pendingAmount');
+      if(pendingWallets.length === 0) {
+        pendingAmountEl.textContent = "0 wallets pending";
+      } else {
+        pendingAmountEl.textContent = `${pendingWallets.length} wallet${pendingWallets.length > 1 ? 's' : ''} pending`;
+      }
+      document.getElementById('copyBtn').disabled = pendingWallets.length === 0;
+    }
+
+    // Listen live to wallets in DB
+    function listenWallets() {
+      // Order by time so latest is last in array
+      const usersRef = query(ref(db, 'nftfan_airdrop_chat'), orderByChild('time'));
+      onValue(usersRef, (snapshot) => {
+        let arr = [];
+        let mapping = {};
+        snapshot.forEach(child => {
+          let v = child.val();
+          if (v.wallet && v.xHandle) {
+            arr.push({
+              wallet: v.wallet,
+              xHandle: v.xHandle,
+              avatar: v.avatar || `https://unavatar.io/twitter/${v.xHandle.replace(/^@/, '')}`,
+              status: v.status || 'pending'
+            });
+            mapping[v.wallet.toLowerCase()] = child.key;
+          }
+        });
+        allWalletsFromDB = arr;
+        keyMapping = mapping;
+        renderPendingAmount();
+      });
+    }
+
+    // Copy pending wallets to clipboard
+    document.getElementById('copyBtn').addEventListener('click', function() {
+      const pendingWallets = allWalletsFromDB.filter(w => w.status !== "sent").map(w => w.wallet);
+      if(pendingWallets.length === 0) return;
+      const text = pendingWallets.join('\n');
+      if(navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(()=>{
+          this.classList.add('copied');
+          this.textContent = "Copied!";
+          setTimeout(()=>{
+            this.classList.remove('copied');
+            this.innerHTML = '<span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Pending Wallets';
+          }, 1300);
+        });
+      } else {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.classList.add('copied');
+        this.textContent = "Copied!";
+        setTimeout(()=>{
+          this.classList.remove('copied');
+          this.innerHTML = '<span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Pending Wallets';
+        }, 1300);
+      }
+    });
+
+    // ---- WALLET/AIRDROP ----
+    let web3, contract, userAccount, sending = false;
+    const contractAddress = "0xdb82ac0c24Cd9D6C831e6Bd310e0c8BFa5670363"; // Distributor contract address
+
+    // Polygon Mainnet (ID: 137, symbol: MATIC)
+    const polygonParams = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: {
+        name: 'MATIC',
+        symbol: 'MATIC',
+        decimals: 18
+      },
+      rpcUrls: ['https://polygon-rpc.com'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    async function switchToPolygon() {
+      if (window.ethereum) {
+        try {
+          // Try to switch to Polygon network
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: polygonParams.chainId }]
+          });
+        } catch (switchError) {
+          // If not present, try to add Polygon network
+          if (switchError.code === 4902 || switchError.message?.includes("not found")) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [polygonParams]
+              });
+            } catch (addError) {
+              throw new Error("User rejected adding Polygon network or not supported.");
+            }
+          } else {
+            throw switchError;
+          }
+        }
+      } else {
+        throw new Error("MetaMask not found.");
+      }
+    }
+
+    document.getElementById('connectButton').onclick = async function() {
+      showNotification("Switching to Polygon...", "pending");
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          await switchToPolygon();
+          showNotification("Connecting wallet...", "pending");
+          web3 = new Web3(window.ethereum);
+          await window.ethereum.enable();
+          const accounts = await web3.eth.getAccounts();
+          userAccount = accounts[0];
+          document.getElementById('walletAddress').innerText = `CONNECTED: ${userAccount}`;
+          document.getElementById('connectButton').style.display = 'none';
+          document.getElementById('airdropBtn').style.display = '';
+          showNotification("Wallet connected on Polygon!", "sent");
+          setupContract();
+        } catch (err) {
+          if (err.message && err.message.includes('MetaMask not found')) {
+            showNotification("Please install MetaMask!", "pending");
+          } else {
+            showNotification("Switch or connect failed.", "pending");
+          }
+        }
+      } else {
+        showNotification("Please install MetaMask!", "pending");
+      }
+    };
+
+    function setupContract() {
+      const abi = [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_tokenAddress",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "recipient",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "TokensDistributed",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address[]",
+                    "name": "recipients",
+                    "type": "address[]"
+                }
+            ],
+            "name": "distributeTokens",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "withdrawTokens",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+      ];
+      contract = new web3.eth.Contract(abi, contractAddress);
+    }
+
+    document.getElementById('airdropBtn').onclick = async function() {
+      if (sending) return;
+      sending = true;
+      showNotification("Sending airdrop. Please confirm in your wallet...", "pending");
+      // Only send to pending wallets
+      const batchSize = 50;
+      const pendingWallets = allWalletsFromDB.filter(w => w.status !== "sent").map(w => w.wallet);
+      if (pendingWallets.length === 0) {
+        showNotification("All wallets already sent.", "sent");
+        sending = false;
+        return;
+      }
+      const batch = pendingWallets.slice(0, batchSize);
+      try {
+        await contract.methods.distributeTokens(batch).send({
+          from: userAccount,
+          gas: 2000000 // may need to be adjusted
+        });
+        // Mark these as sent in database
+        const updates = {};
+        batch.forEach(wallet => {
+          const key = keyMapping[wallet.toLowerCase()];
+          if (key) updates[`nftfan_airdrop_chat/${key}/status`] = "sent";
+        });
+        if (Object.keys(updates).length > 0) {
+          await update(ref(db), updates);
+        }
+        showNotification("Airdrop sent to batch!", "sent");
+      } catch (e) {
+        showNotification("Airdrop failed or cancelled.", "pending");
+      }
+      sending = false;
+    };
+
+    function showNotification(message, status) {
+      var notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = 'show';
+      if (status === "sent") {
+        notification.style.background = "#27ae60";
+        notification.style.color = "#fff";
+      } else if (status === "pending") {
+        notification.style.background = "#ffe066";
+        notification.style.color = "#23243b";
+      } else {
+        notification.style.background = "#ffc107";
+        notification.style.color = "#121212";
+      }
+      setTimeout(function () {
+        notification.className = '';
+      }, 1800);
+    }
+
+    window.addEventListener('DOMContentLoaded', listenWallets);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <h2>Submitted Wallets & Airdrop</h2>
+    <div id="pendingAmount"></div>
+    <button id="copyBtn"><span class="material-icons" style="font-size:1.3rem;">content_copy</span> Copy All Pending Wallets</button>
+    <button id="connectButton"><span class="material-icons">link</span> Connect Wallet</button>
+    <div id="walletAddress" class="wallet-info"></div>
+    <button id="airdropBtn" style="display:none;"><span class="material-icons">send</span> Send Airdrop</button>
+    <div id="notification" class="notification"></div>
+  </div>
+</body>
+</html>
