@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFT FANS Airdrop Submission</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --success: #8aff8a;
+      --danger: #ff8a8a;
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Roboto', 'Arial', ui-sans-serif, system-ui, -apple-system;
+      font-size: 9px;
+      letter-spacing: 0.02em;
+      overflow-x: hidden;
+    }
+    body {
+      background: linear-gradient(135deg, #19151a 0%, #232029 100%);
+    }
+    .top-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      width: 100%;
+      max-width: 340px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 24px 12px;
+      margin: 60px auto 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 900;
+      margin-bottom: 18px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-align: center;
+      text-shadow: 0 2px 10px #0002;
+    }
+    label {
+      font-size: 10px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      display: block;
+      text-align: left;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 13px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--copy-bg);
+      color: var(--accent);
+      font-size: 10px;
+      font-family: inherit;
+      box-sizing: border-box;
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color 0.3s;
+      box-shadow: 0 2px 7px 0 #0002;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px #e4ae6444;
+    }
+    button {
+      background: linear-gradient(90deg, var(--accent) 0%, #d4a154 100%);
+      color: var(--card-bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 0;
+      font-size: 11px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      font-weight: 700;
+      box-shadow: 0 2px 14px #e4ae6411;
+      letter-spacing: 0.08em;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .message {
+      font-size: 10px;
+      margin: 10px 0;
+      padding: 9px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      background: rgba(255, 138, 138, 0.11);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      display: none;
+      text-align: center;
+    }
+    .success {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--success);
+      margin-top: 16px;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+      text-shadow: 0 2px 8px #8aff8a22;
+      text-align: center;
+      display: none;
+    }
+    .random-user {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--copy-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--copy-border);
+      padding: 9px 7px;
+      margin-bottom: 16px;
+      word-break: break-all;
+      text-align: center;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, push, query, orderByChild, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let walletSet = new Set();
+
+    function listenExisting() {
+      const usersRef = query(ref(db, 'nftfan_airdrop_chat'), orderByChild('time'));
+      onValue(usersRef, (snapshot) => {
+        let wallets = new Set();
+        snapshot.forEach(child => {
+          let v = child.val();
+          if (v.wallet) {
+            wallets.add(v.wallet.trim().toLowerCase());
+          }
+        });
+        walletSet = wallets;
+      });
+    }
+
+    function generateRandomUsername() {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let uname = '';
+      for (let i = 0; i < 8; i++) {
+        uname += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return '@user' + uname;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      listenExisting();
+
+      const walletInput = document.getElementById('wallet');
+      const sendBtn = document.getElementById('sendBtn');
+      const msgDiv = document.getElementById('msg');
+      const successDiv = document.getElementById('success');
+      const randomUserDiv = document.getElementById('randomUser');
+
+      const randomUsername = generateRandomUsername();
+      randomUserDiv.textContent = "Your assigned username: " + randomUsername;
+
+      sendBtn.addEventListener('click', async () => {
+        msgDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+        const wallet = walletInput.value.trim();
+
+        if (!wallet) {
+          msgDiv.textContent = "Please enter your wallet address.";
+          msgDiv.style.display = 'block';
+          return;
+        }
+        if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+          msgDiv.textContent = "Invalid wallet address. Must be an Ethereum/Polygon address.";
+          msgDiv.style.display = 'block';
+          return;
+        }
+        const walletLC = wallet.toLowerCase();
+        if (walletSet.has(walletLC)) {
+          msgDiv.textContent = "This wallet is already registered.";
+          msgDiv.style.display = 'block';
+          return;
+        }
+        try {
+          await push(ref(db, 'nftfan_airdrop_chat'), {
+            wallet: wallet,
+            xHandle: randomUsername,
+            avatar: "",
+            time: Date.now(),
+            status: "pending"
+          });
+          successDiv.textContent = "🎉 Tokens sent! Your wallet is registered.";
+          successDiv.style.display = 'block';
+          walletInput.value = '';
+        } catch (err) {
+          msgDiv.textContent = "Submission failed. Please try again.";
+          msgDiv.style.display = 'block';
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="top-wrap">
+    <div class="card">
+      <div class="title">NFT FANS Airdrop</div>
+      <div id="randomUser" class="random-user"></div>
+      <label for="wallet">Polygon Wallet Address</label>
+      <input type="text" id="wallet" name="wallet" placeholder="0x..." maxlength="42" autocomplete="off" required>
+      <button id="sendBtn">Send Me Tokens</button>
+      <div id="msg" class="message"></div>
+      <div id="success" class="success"></div>
+    </div>
+  </div>
+</body>
+</html>
