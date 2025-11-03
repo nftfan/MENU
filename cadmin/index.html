@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>$NFTFAN - Submissions Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+      --green: #74c690;
+      --red: #f06d6d;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-weight: var(--font-thin);
+      font-size: 11px; /* keep max font size */
+      line-height: 1.4;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 820px;
+      margin: 16px auto;
+      padding: 0 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: var(--muted);
+    }
+
+    .counts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: transparent;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .url {
+      word-break: break-all;
+    }
+    .url a {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .url a:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      font-weight: 700;
+    }
+    .badge.verifying { color: var(--muted); }
+    .badge.accepted  { color: var(--green); }
+    .badge.rejected  { color: var(--red); }
+
+    .actions {
+      display: inline-flex;
+      gap: 6px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .12s ease, opacity .12s ease, border-color .12s ease;
+    }
+    button:hover:not(:disabled) { transform: translateY(-0.5px); border-color: var(--accent); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .accept { border-color: var(--green); color: var(--green); }
+    .reject { border-color: var(--red); color: var(--red); }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--copy-border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <h1>Submissions Manager</h1>
+
+      <div class="toolbar">
+        <div id="statusMsg"></div>
+        <div class="counts" id="counts"></div>
+      </div>
+
+      <div class="list" id="submissionsList">
+        <div class="empty">Loading submissions…</div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      update
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // Same Firebase project config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const listEl = document.getElementById('submissionsList');
+    const countsEl = document.getElementById('counts');
+    const statusMsgEl = document.getElementById('statusMsg');
+
+    function setStatus(msg) { statusMsgEl.textContent = msg || ""; }
+
+    function statusClass(s) {
+      const t = String(s || "").toLowerCase();
+      if (t === "accepted") return "accepted";
+      if (t === "rejected") return "rejected";
+      return "verifying";
+    }
+
+    function computeCounts(items) {
+      let total = items.length;
+      let verifying = 0, accepted = 0, rejected = 0;
+      for (const it of items) {
+        const s = String(it.status || "").toLowerCase();
+        if (s === "accepted") accepted++;
+        else if (s === "rejected") rejected++;
+        else verifying++;
+      }
+      return { total, verifying, accepted, rejected };
+    }
+
+    function renderCounts({ total, verifying, accepted, rejected }) {
+      countsEl.innerHTML = "";
+      const mk = (label, value) => {
+        const el = document.createElement("div");
+        el.className = "status-chip";
+        el.textContent = `${label}: ${value}`;
+        return el;
+      };
+      countsEl.appendChild(mk("Total", total));
+      countsEl.appendChild(mk("Verifying", verifying));
+      const acc = mk("Accepted", accepted); acc.style.color = "var(--green)"; countsEl.appendChild(acc);
+      const rej = mk("Rejected", rejected); rej.style.color = "var(--red)"; countsEl.appendChild(rej);
+    }
+
+    async function changeStatus(id, newStatus, buttons) {
+      try {
+        setStatus(`Updating ${id} → ${newStatus}…`);
+        if (buttons) buttons.forEach(b => b.disabled = true);
+        await update(ref(db, `submissions/${id}`), {
+          status: newStatus,
+          decided_at: new Date().toISOString()
+        });
+        setStatus(""); // live listener will refresh UI
+      } catch (e) {
+        console.error("Failed to update status:", e);
+        setStatus("Failed to update. Please try again.");
+      } finally {
+        if (buttons) buttons.forEach(b => b.disabled = false);
+      }
+    }
+
+    function renderItem(id, data) {
+      const { url = "", status = "Verifying", submitted_at = "" } = data || {};
+
+      const li = document.createElement("div");
+      li.className = "item";
+
+      // URL cell
+      const urlBox = document.createElement("div");
+      urlBox.className = "url";
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = url || "(no url)";
+      urlBox.appendChild(a);
+
+      // Status badge
+      const badge = document.createElement("div");
+      const span = document.createElement("span");
+      span.className = `badge ${statusClass(status)}`;
+      span.textContent = status || "Verifying";
+      badge.appendChild(span);
+
+      // Actions
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const btnAccept = document.createElement("button");
+      btnAccept.className = "accept";
+      btnAccept.textContent = "Mark Accepted";
+      btnAccept.addEventListener("click", () => changeStatus(id, "Accepted", [btnAccept, btnReject]));
+
+      const btnReject = document.createElement("button");
+      btnReject.className = "reject";
+      btnReject.textContent = "Mark Rejected";
+      btnReject.addEventListener("click", () => changeStatus(id, "Rejected", [btnAccept, btnReject]));
+
+      actions.appendChild(btnAccept);
+      actions.appendChild(btnReject);
+
+      li.appendChild(urlBox);
+      li.appendChild(badge);
+      li.appendChild(actions);
+
+      // Disable buttons if already final state (optional)
+      if (String(status).toLowerCase() === "accepted") {
+        btnAccept.disabled = true;
+      } else if (String(status).toLowerCase() === "rejected") {
+        btnReject.disabled = true;
+      }
+
+      return li;
+    }
+
+    function renderList(valObj) {
+      const items = Object.entries(valObj || {}).map(([id, v]) => ({ id, ...(v || {}) }));
+      // Sort: Verifying first, then newest first by submitted_at
+      items.sort((a, b) => {
+        const rank = s => (String(s || "").toLowerCase() === "verifying" ? 0 : 1);
+        const ra = rank(a.status), rb = rank(b.status);
+        if (ra !== rb) return ra - rb;
+        const ta = Date.parse(a.submitted_at || 0);
+        const tb = Date.parse(b.submitted_at || 0);
+        return tb - ta;
+      });
+
+      // Counts
+      renderCounts(computeCounts(items));
+
+      // Render
+      listEl.innerHTML = "";
+      if (items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No submissions yet.";
+        listEl.appendChild(empty);
+        return;
+      }
+      for (const it of items) {
+        listEl.appendChild(renderItem(it.id, it));
+      }
+    }
+
+    // Live listener
+    onValue(ref(db, "submissions"), (snap) => {
+      renderList(snap.val());
+    }, (err) => {
+      console.error(err);
+      setStatus("Failed to load submissions.");
+    });
+  </script>
+</body>
+</html>
