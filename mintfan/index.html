@@ -6,264 +6,124 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-  <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Firebase (compat SDK) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
   <style>
-    :root {
-      --primary: #00f9ff;
-      --primary-glow: rgba(0, 249, 255, 0.5);
-      --primary-dark: #00b2ff;
-      --accent: #ff2cf0;
-      --accent-glow: rgba(255, 44, 240, 0.5);
-      --success: #12ff9b;
-      --success-glow: rgba(18, 255, 155, 0.4);
-      --error: #ff3860;
-      --error-glow: rgba(255, 56, 96, 0.4);
-      --bg: #0c0b1d;
-      --bg-dark: #07061a;
-      --card: #12122a;
-      --text: #eef2ff;
-      --muted: #8f9cce;
-      --border: #3e3f82;
-      --border-glow: rgba(0, 249, 255, 0.2);
-      --radius: 12px;
-      --shadow: rgba(0, 0, 0, 0.4);
-      --neon-shadow: 0 0 10px var(--primary-glow);
-      --accent-shadow: 0 0 10px var(--accent-glow);
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; font-family: 'Rajdhani', sans-serif; background: var(--bg-dark); color: var(--text); overflow-x: hidden; }
-    #app-container { display: flex; flex-direction: column; min-height: 100vh; background: radial-gradient(800px at 15% 15%, rgba(0, 249, 255, 0.08), transparent 70%), radial-gradient(600px at 85% 20%, rgba(255, 44, 240, 0.08), transparent 70%), linear-gradient(180deg, var(--bg-dark), var(--bg)); }
-    .cyber-grid { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; background-image: linear-gradient(rgba(0, 249, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 249, 255, 0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 20s infinite linear; }
-    @keyframes gridPulse { 0% { background-size: 40px 40px; } 50% { background-size: 42px 42px; } 100% { background-size: 40px 40px; } }
-
-    header { display: flex; align-items: center; justify-content: space-between; padding: 16px; z-index: 10; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .logo { width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: grid; place-items: center; box-shadow: 0 0 15px rgba(0, 249, 255, 0.4); position: relative; overflow: hidden; }
-    .logo::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: conic-gradient(transparent, var(--primary), transparent 30%); animation: rotate 4s linear infinite; }
-    .logo::after { content: ''; position: absolute; inset: 3px; border-radius: 6px; background: var(--bg-dark); }
-    .logo .material-icons { font-size: 22px; color: var(--primary); z-index: 2; text-shadow: 0 0 8px var(--primary-glow); }
-    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .title h1 { margin: 0; font-size: 24px; font-weight: 700; font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(90deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 5px rgba(0, 249, 255, 0.3); }
-    .title p { margin: 0; font-size: 14px; color: var(--muted); }
-
-    .actions { display: flex; gap: 10px; align-items: center; }
-    button { appearance: none; border: 1px solid transparent; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 600; font-family: 'Rajdhani', sans-serif; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(32, 33, 77, 0.6); border-color: var(--border); transition: all 0.2s ease; position: relative; overflow: hidden; backdrop-filter: blur(10px); text-transform: uppercase; letter-spacing: 0.5px; }
-    button::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent); transition: 0.5s; }
-    button:hover::after { left: 100%; }
-    button .material-icons { font-size: 18px; }
-    button.primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); text-shadow: 0 0 5px var(--primary); }
-    button.success { background: linear-gradient(135deg, var(--success), #00ddb9); border-color: var(--success); box-shadow: 0 0 10px var(--success-glow); color: #07172c; font-weight: 700; text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-    button:not(:disabled):active { transform: translateY(1px) scale(0.98); }
-
-    .wallet { color: var(--primary); font-size: 14px; font-weight: 700; text-shadow: 0 0 5px var(--primary-glow); background: rgba(0, 249, 255, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(0, 249, 255, 0.3); }
-    .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: rgba(15, 16, 40, 0.7); color: var(--muted); backdrop-filter: blur(5px); }
-    .pill .material-icons { font-size: 16px; color: var(--primary); }
-
-    main { display: flex; flex-direction: column; align-items: center; padding: 20px 16px; flex: 1; gap: 24px; }
-    .hero-image { width: 100%; max-width: 600px; border-radius: var(--radius); overflow: hidden; box-shadow: 0 0 30px var(--primary-glow), 0 0 20px var(--accent-glow); border: 2px solid transparent; background: linear-gradient(135deg, var(--primary), var(--accent)); padding: 3px; }
-    .hero-image img { width: 100%; height: auto; display: block; border-radius: calc(var(--radius) - 3px); }
-
-    .mint-section { text-align: center; max-width: 500px; width: 100%; }
-    .mint-price { font-size: 18px; margin-bottom: 16px; color: var(--primary); text-shadow: 0 0 8px var(--primary-glow); }
-
-    .status { min-height: 46px; display: grid; place-items: center; text-align: center; font-size: 14px; border-radius: 8px; padding: 12px; background: rgba(8, 9, 33, 0.5); border: 1px solid rgba(62, 63, 130, 0.3); color: var(--muted); }
-    .status.success { background: rgba(18, 255, 155, 0.07); color: var(--success); border-color: rgba(18, 255, 155, 0.25); box-shadow: 0 0 10px rgba(18, 255, 155, 0.1); }
-    .status.error { background: rgba(255, 56, 96, 0.07); color: var(--error); border-color: rgba(255, 56, 96, 0.25); box-shadow: 0 0 10px rgba(255, 56, 96, 0.1); }
-    .status.loading { display: inline-flex; align-items: center; gap: 10px; }
-    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary); animation: spin 1s linear infinite; box-shadow: 0 0 10px var(--primary-glow); }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .minters-panel { background: rgba(18, 18, 42, 0.75); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; backdrop-filter: blur(10px); box-shadow: 0 0 25px var(--shadow); width: 100%; max-width: 600px; }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid rgba(62, 63, 130, 0.3); margin-bottom: 12px; }
-    .panel-header h2 { margin: 0; font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px var(--primary-glow); }
-    .minters-list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
-    .minters-list li { padding: 8px 0; border-bottom: 1px dashed rgba(62, 63, 130, 0.2); color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; }
-    .minters-list li:last-child { border-bottom: none; }
-    .minters-list .addr { font-family: monospace; color: var(--success); }
-    .minters-list .time { font-size: 12px; color: #5a5f8a; }
-
-    @media (max-width: 640px) {
-      header { flex-direction: column; gap: 12px; }
-      .actions { width: 100%; justify-content: space-between; }
-      .hero-image { max-width: 100%; }
-      .mint-section { padding: 0 12px; }
-    }
-
-    @keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 1px); } 40% { transform: translate(-2px, -1px); } 60% { transform: translate(2px, 1px); } 80% { transform: translate(2px, -1px); } 100% { transform: translate(0); } }
-    .glitch-text:hover::before, .glitch-text:hover::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .glitch-text:hover::before { animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite; text-shadow: 0 0 5px var(--primary-glow); clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); transform: translate(-2px, -2px); }
-    .glitch-text:hover::after { animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite; text-shadow: 0 0 5px var(--accent-glow); clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%); transform: translate(2px, 2px); }
+    :root{--primary:#00f9ff;--primary-glow:rgba(0,249,255,.5);--accent:#ff2cf0;--accent-glow:rgba(255,44,240,.5);--success:#12ff9b;--error:#ff3860;--bg-dark:#07061a;--card:#12122a;--text:#eef2ff;--muted:#8f9cce;--border:#3e3f82;--radius:12px}
+    *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:'Rajdhani',sans-serif;background:var(--bg-dark);color:var(--text);overflow-x:hidden}
+    #app{display:flex;flex-direction:column;min-height:100vh;background:radial-gradient(800px at 15% 15%,rgba(0,249,255,.08),transparent 70%),radial-gradient(600px at 85% 20%,rgba(255,44,240,.08),transparent 70%),linear-gradient(180deg,var(--bg-dark),#0c0b1d)}
+    .grid{position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(0,249,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,249,255,.03) 1px,transparent 1px);background-size:40px 40px;animation:p 20s infinite linear}
+    @keyframes p{0%,100%{background-size:40px 40px}50%{background-size:42px 42px}}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px;z-index:10}
+    .logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--accent));display:grid;place-items:center;box-shadow:0 0 15px var(--primary-glow);position:relative;overflow:hidden}
+    .logo::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(transparent,var(--primary),transparent 30%);animation:r 4s linear infinite}
+    .logo::after{content:'';position:absolute;inset:3px;border-radius:6px;background:var(--bg-dark)}
+    .logo .material-icons{font-size:22px;color:var(--primary);z-index:2;text-shadow:0 0 8px var(--primary-glow)}
+    @keyframes r{to{transform:rotate(360deg)}}
+    .title h1{margin:0;font-size:24px;font-weight:700;font-family:'Orbitron',sans-serif;text-transform:uppercase;letter-spacing:1px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 5px rgba(0,249,255,.3)}
+    .title p{margin:0;font-size:14px;color:var(--muted)}
+    .actions{display:flex;gap:10px;align-items:center}
+    button{appearance:none;border:1px solid transparent;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:600;font-family:'Rajdhani',sans-serif;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:rgba(32,33,77,.6);border-color:var(--border);transition:.2s;position:relative;overflow:hidden;backdrop-filter:blur(10px);text-transform:uppercase;letter-spacing:.5px}
+    button::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:.5s}
+    button:hover::after{left:100%}
+    button.primary{background:linear-gradient(135deg,#00b2ff,var(--primary));border-color:var(--primary);box-shadow:0 0 10px var(--primary-glow);text-shadow:0 0 5px var(--primary)}
+    button.success{background:linear-gradient(135deg,var(--success),#00ddb9);border-color:var(--success);box-shadow:0 0 10px rgba(18,255,155,.4);color:#07172c;font-weight:700}
+    button:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+    .wallet{color:var(--primary);font-weight:700;background:rgba(0,249,255,.1);padding:4px 10px;border-radius:8px;border:1px solid rgba(0,249,255,.3)}
+    .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(15,16,40,.7);color:var(--muted);backdrop-filter:blur(5px)}
+    main{display:flex;flex-direction:column;align-items:center;padding:20px 16px;gap:24px;flex:1}
+    .hero{max-width:600px;width:100%;border-radius:var(--radius);overflow:hidden;box-shadow:0 0 30px var(--primary-glow),0 0 20px var(--accent-glow);border:2px solid transparent;background:linear-gradient(135deg,var(--primary),var(--accent));padding:3px}
+    .hero img{width:100%;border-radius:calc(var(--radius)-3px)}
+    .mint-section{text-align:center;max-width:500px;width:100%}
+    .mint-price{font-size:18px;margin-bottom:16px;color:var(--primary);text-shadow:0 0 8px var(--primary-glow)}
+    .status{min-height:46px;display:grid;place-items:center;font-size:14px;border-radius:8px;padding:12px;background:rgba(8,9,33,.5);border:1px solid rgba(62,63,130,.3);color:var(--muted)}
+    .status.success{background:rgba(18,255,155,.07);color:var(--success);border-color:rgba(18,255,155,.25);box-shadow:0 0 10px rgba(18,255,155,.1)}
+    .status.error{background:rgba(255,56,96,.07);color:var(--error);border-color:rgba(255,56,96,.25);box-shadow:0 0 10px rgba(255,56,96,.1)}
+    .status.loading{display:inline-flex;align-items:center;gap:10px}
+    .spinner{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-left-color:var(--primary);animation:s 1s linear infinite;box-shadow:0 0 10px var(--primary-glow)}
+    @keyframes s{to{transform:rotate(360deg)}}
+    .panel{background:rgba(18,18,42,.75);border:1px solid var(--border);border-radius:var(--radius);padding:16px;backdrop-filter:blur(10px);box-shadow:0 0 25px rgba(0,0,0,.4);max-width:600px;width:100%}
+    .panel h2{margin:0;font-family:'Orbitron',sans-serif;font-size:18px;color:var(--primary);text-transform:uppercase;letter-spacing:1px;text-shadow:0 0 5px var(--primary-glow)}
+    .minters{list-style:none;margin:0;padding:0;max-height:300px;overflow-y:auto}
+    .minters li{padding:8px 0;border-bottom:1px dashed rgba(62,63,130,.2);display:flex;justify-content:space-between;color:var(--muted);font-size:14px}
+    .minters .addr{font-family:monospace;color:var(--success)}
+    .minters .time{font-size:12px;color:#5a5f8a}
+    @media(max-width:640px){header{flex-direction:column;gap:12px}.actions{width:100%;justify-content:space-between}.hero{max-width:100%}}
   </style>
 </head>
 <body>
-  <div id="app-container">
-    <div class="cyber-grid"></div>
-
-    <header>
-      <div class="brand">
-        <div class="logo"><span class="material-icons">language</span></div>
-        <div class="title">
-          <h1 class="glitch-text" data-text="CyberTerritories">Cyber Fan</h1>
-          <p>Mint your digital avatar in the metaverse</p>
-        </div>
+<div id="app"><div class="grid"></div>
+  <header>
+    <div class="brand">
+      <div class="logo"><span class="material-icons">language</span></div>
+      <div class="title">
+        <h1>CyberTerritories</h1>
+        <p>Mint your digital land in the metaverse</p>
       </div>
-      <div class="actions">
-        <span class="pill">
-          <span class="material-icons">paid</span>
-          <span>Mint Price: <strong style="margin-left:4px;color:var(--primary);">0.001 $POL</strong></span>
-        </span>
-        <button id="connectBtn" class="primary">
-          <span class="material-icons">account_balance_wallet</span>Connect
-        </button>
-        <span id="wallet" class="wallet"></span>
-      </div>
-    </header>
+    </div>
+    <div class="actions">
+      <span class="pill"><span class="material-icons">paid</span> Mint Price: <strong style="margin-left:4px;color:var(--primary);">0.001 $POL</strong></span>
+      <button id="connectBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
+      <span id="wallet" class="wallet"></span>
+    </div>
+  </header>
 
-    <main>
-      <div class="hero-image">
-        <img src="https://pbs.twimg.com/media/G4rqEbIWgAAn8V7?format=jpg&name=medium" alt="CyberTerritories Digital Land">
-      </div>
+  <main>
+    <div class="hero"><img src="https://pbs.twimg.com/media/G4rqEbIWgAAn8V7?format=jpg&name=medium" alt="CyberTerritory"></div>
 
-      <div class="mint-section">
-        <div class="mint-price">Mint your unique digital territory for only <strong>0.001 $POL</strong></div>
-        <button id="mintBtn" class="success" disabled>
-          <span class="material-icons">rocket_launch</span>Mint Now
-        </button>
-        <div id="status" class="status">Connect your wallet to mint</div>
-      </div>
+    <div class="mint-section">
+      <div class="mint-price">Mint your unique digital territory for <strong>0.001 $POL</strong></div>
+      <button id="mintBtn" class="success" disabled><span class="material-icons">rocket_launch</span>Mint Now</button>
+      <div id="status" class="status">Connect your wallet to mint</div>
+    </div>
 
-      <div class="minters-panel">
-        <div class="panel-header">
-          <h2>Recent Minters</h2>
-        </div>
-        <ul id="mintersList" class="minters-list">
-          <!-- Filled by JS -->
-        </ul>
-      </div>
-    </main>
-  </div>
+    <div class="panel">
+      <h2>Recent Minters</h2>
+      <ul id="mintersList" class="minters"></ul>
+    </div>
+  </main>
+</div>
 
-  <script>
-    // Polygon Mainnet
-    const POLYGON_PARAMS = { chainId: '0x89', chainName: 'Polygon Mainnet', nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 }, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] };
-    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
-    const CONTRACT_ABI = [ "function mintWithURI(string tokenURI) external payable returns (uint256)", "function mintPrice() view returns (uint256)", "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)" ];
-    const MINT_PRICE = ethers.utils.parseUnits("0.001", 18); // 0.001 POL
+<script>
+  // ---------- CONFIG ----------
+  const POLYGON = { chainId:'0x89', chainName:'Polygon Mainnet', nativeCurrency:{name:'POL',symbol:'POL',decimals:18}, rpcUrls:['https://polygon-rpc.com/'], blockExplorerUrls:['https://polygonscan.com/'] };
+  const CONTRACT = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+  const ABI = ["function mintWithURI(string tokenURI) external payable returns (uint256)","function mintPrice() view returns (uint256)","event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)"];
+  const MINT_PRICE = ethers.utils.parseUnits("0.001", 18); // 0.001 POL
+  const firebaseConfig = {apiKey:"AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",authDomain:"newnft-47bd7.firebaseapp.com",databaseURL:"https://newnft-47bd7-default-rtdb.firebaseio.com",projectId:"newnft-47bd7",storageBucket:"newnft-47bd7.firebasestorage.app",messagingSenderId:"172043823738",appId:"1:172043823738:web:daf1fcfb7862d7d8f029c3",measurementId:"G-8VB3DYRNXR"};
 
-    // Firebase config
-    const firebaseConfig = { apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY", authDomain: "newnft-47bd7.firebaseapp.com", databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com", projectId: "newnft-47bd7", storageBucket: "newnft-47bd7.firebasestorage.app", messagingSenderId: "172043823738", appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3", measurementId: "G-8VB3DYRNXR" };
+  // ---------- UI ----------
+  const connectBtn = document.getElementById('connectBtn');
+  const walletEl   = document.getElementById('wallet');
+  const mintBtn    = document.getElementById('mintBtn');
+  const statusEl   = document.getElementById('status');
+  const mintersUl  = document.getElementById('mintersList');
 
-    // UI Elements
-    const connectBtn = document.getElementById('connectBtn');
-    const walletEl = document.getElementById('wallet');
-    const mintBtn = document.getElementById('mintBtn');
-    const statusEl = document.getElementById('status');
-    const mintersList = document.getElementById('mintersList');
+  let provider, signer, user, contract, fbDb, mintsRef;
 
-    // State
-    let web3Provider, signer, userAddress;
-    let fbApp, fbDb, mintsRef;
+  // ---------- HELPERS ----------
+  const short = a => a?`${a.slice(0,6)}...${a.slice(-4)}`:'';
+  const fmt = n => ethers.utils.formatUnits(n,18);
+  const setStatus = (msg,type='')=>{statusEl.className='status';if(type)statusEl.classList.add(type);statusEl.innerHTML=type==='loading'?`<span class="spinner"></span>${msg}`:msg;};
+  const addMinter = d=>{if(!d||!d.owner)return;const li=document.createElement('li');li.innerHTML=`<span class="addr">${short(d.owner)}</span><span class="time">${new Date(d.ts).toLocaleTimeString()}</span>`;mintersUl.prepend(li);if(mintersUl.children.length>50)mintersUl.removeChild(mintersUl.lastChild);};
 
-    function shortAddr(a) { return a ? `${a.slice(0,6)}...${a.slice(-4)}` : ''; }
-    function setStatus(msg, type = '') {
-      statusEl.className = 'status';
-      if (type === 'success') statusEl.classList.add('success');
-      if (type === 'error') statusEl.classList.add('error');
-      if (type === 'loading') {
-        statusEl.classList.add('loading');
-        statusEl.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
-      } else {
-        statusEl.textContent = msg;
-      }
-    }
+  // ---------- WALLET ----------
+  async function switchChain(){if(!window.ethereum)return false;try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:POLYGON.chainId}]});return true}catch(e){if(e.code===4902)try{await window.ethereum.request({method:'wallet_addEthereumChain',params:[POLYGON]});return true}catch{}setStatus('Failed to add/switch to Polygon','error');return false;}}
+  async function connect(){if(!window.ethereum){setStatus('Install MetaMask','error');return}setStatus('Connecting…','loading');if(!await switchChain())return;provider=new ethers.providers.Web3Provider(window.ethereum);await provider.send('eth_requestAccounts',[]);signer=provider.getSigner();user=await signer.getAddress();connectBtn.disabled=true;connectBtn.innerHTML='<span class="material-icons">check_circle</span>Connected';walletEl.textContent=short(user);contract=new ethers.Contract(CONTRACT,ABI,signer);await checkBalance();setStatus('Ready to mint','success');}
+  async function checkBalance(){const bal=await provider.getBalance(user);const price=await contract.mintPrice().catch(()=>MINT_PRICE);const gasEst=await contract.estimateGas.mintWithURI('data:application/json;base64,eyJuYW1lIjoiQ3liZXJUZXJyaXRvcnkgIzEiLCJpbWFnZSI6Imh0dHBzOi8vcGJzLnR3aW1nLmNvbS9tZWRpYS9HNHJxRWJJV2dBQW44VjcqZm9ybWF0PWpwZyZuYW1lPW1lZGl1bSJ9').catch(()=>ethers.BigNumber.from(300000));const gasCost=gasEst.mul(await provider.getGasPrice());const needed=price.add(gasCost);mintBtn.disabled=bal.lt(needed);if(bal.lt(needed))setStatus(`Insufficient funds – need ${fmt(needed)} POL (you have ${fmt(bal)})`, 'error');else setStatus(`Ready – will use ≈${fmt(gasCost)} POL gas + 0.001 POL`,'success');}
 
-    async function switchToPolygon() {
-      if (!window.ethereum) return false;
-      try {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
-        return true;
-      } catch (e) {
-        if (e.code === 4902) {
-          try { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] }); return true; }
-          catch { setStatus('Failed to add Polygon network', 'error'); return false; }
-        }
-        setStatus('Failed to switch network', 'error'); return false;
-      }
-    }
+  // ---------- MINT ----------
+  async function mint(){if(mintBtn.disabled)return;try{setStatus('Estimating gas…','loading');const uri='data:application/json;base64,'+btoa(JSON.stringify({name:"CyberTerritory #1",description:"First mint",image:"https://pbs.twimg.com/media/G4rqEbIWgAAn8V7?format=jpg&name=medium"}));const price=await contract.mintPrice().catch(()=>MINT_PRICE);const gasLimit=await contract.estimateGas.mintWithURI(uri).catch(()=>ethers.BigNumber.from(300000));const tx=await contract.mintWithURI(uri,{value:price,gasLimit});setStatus('Tx sent – waiting…','loading');const rc=await tx.wait();const ev=rc.events.find(e=>e.event==='Transfer');const id=ev?.args?.tokenId?.toString();await writeMint(id);setStatus(`Minted! Token #${id}`,'success');mintBtn.disabled=true;}catch(e){console.error(e);const msg=e?.data?.message||e?.reason||e?.message||'Tx failed';setStatus(`Mint failed: ${msg}`,'error');}}
 
-    async function connectWallet() {
-      if (!window.ethereum) { setStatus('Please install MetaMask', 'error'); return; }
-      try {
-        setStatus('Connecting wallet...', 'loading');
-        if (!await switchToPolygon()) return;
-        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-        await web3Provider.send('eth_requestAccounts', []);
-        signer = web3Provider.getSigner();
-        userAddress = await signer.getAddress();
-        connectBtn.disabled = true;
-        connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
-        walletEl.textContent = shortAddr(userAddress);
-        mintBtn.disabled = false;
-        setStatus('Wallet connected. Ready to mint!', 'success');
-      } catch (e) {
-        console.error(e); setStatus('Connection failed', 'error');
-      }
-    }
+  // ---------- FIREBASE ----------
+  function initFB(){try{const app=firebase.initializeApp(firebaseConfig);fbDb=firebase.database();mintsRef=fbDb.ref('mints');mintsRef.on('child_added',s=>addMinter(s.val()));}catch(e){setStatus('DB error','error');}}
+  async function writeMint(id){if(!fbDb||!user)return;await fbDb.ref(`mints/${id}`).set({owner:user,ts:Date.now()});}
 
-    async function mint() {
-      if (!userAddress) { setStatus('Connect wallet first', 'error'); return; }
-      try {
-        setStatus('Preparing transaction...', 'loading');
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        const price = await contract.mintPrice().catch(() => MINT_PRICE);
-        const tokenURI = "data:application/json;base64," + btoa(JSON.stringify({ name: "CyberTerritory #1", description: "First mint in simplified CyberTerritories", image: "https://pbs.twimg.com/media/G4rqEbIWgAAn8V7?format=jpg&name=medium" }));
-        const tx = await contract.mintWithURI(tokenURI, { value: price });
-        setStatus('Transaction sent. Waiting...', 'loading');
-        const receipt = await tx.wait();
-        const ev = receipt.events?.find(e => e.event === 'Transfer');
-        const tokenId = ev?.args?.tokenId?.toString();
-        await writeMintToFirebase(tokenId);
-        setStatus(`Minted! Token #${tokenId}`, 'success');
-        mintBtn.disabled = true;
-      } catch (e) {
-        console.error(e);
-        const msg = e?.data?.message || e?.reason || e?.message || 'Transaction failed';
-        setStatus(`Mint failed: ${msg}`, 'error');
-      }
-    }
-
-    function initFirebase() {
-      try {
-        fbApp = firebase.initializeApp(firebaseConfig);
-        fbDb = firebase.database();
-        mintsRef = fbDb.ref('mints');
-        mintsRef.on('child_added', (snap) => addMinterToList(snap.val()));
-      } catch (e) { console.error(e); setStatus("DB connection failed", "error"); }
-    }
-
-    async function writeMintToFirebase(tokenId) {
-      if (!fbDb || !userAddress) return;
-      await fbDb.ref(`mints/${tokenId}`).set({ owner: userAddress, timestamp: Date.now() });
-    }
-
-    function addMinterToList(data) {
-      if (!data || !data.owner) return;
-      const li = document.createElement('li');
-      const time = new Date(data.timestamp).toLocaleTimeString();
-      li.innerHTML = `<span class="addr">${shortAddr(data.owner)}</span><span class="time">${time}</span>`;
-      mintersList.prepend(li);
-      if (mintersList.children.length > 50) mintersList.removeChild(mintersList.lastChild);
-    }
-
-    // Event Listeners
-    connectBtn.addEventListener('click', connectWallet);
-    mintBtn.addEventListener('click', mint);
-    window.addEventListener('DOMContentLoaded', initFirebase);
-  </script>
+  // ---------- EVENTS ----------
+  connectBtn.onclick=connect;
+  mintBtn.onclick=mint;
+  window.addEventListener('DOMContentLoaded',()=>{initFB();});
+</script>
 </body>
 </html>
