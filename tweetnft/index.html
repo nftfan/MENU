@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>$NFTFAN - Simple Tweet Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+      --green: #74c690;
+      --red: #f06d6d;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-weight: var(--font-thin);
+      font-size: 11px; /* max font size across the page */
+      line-height: 1.4;
+      display: block; /* start content from the top */
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 620px;
+      margin: 16px auto;
+      padding: 0 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2 {
+      margin: 0 0 10px;
+      font-size: 11px; /* keep titles within max 11px */
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: var(--text);
+    }
+
+    .status {
+      color: var(--muted);
+      min-height: 16px;
+      margin-bottom: 8px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .12s ease, opacity .12s ease, background .12s ease, border-color .12s ease;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-0.5px);
+      border-color: var(--accent);
+    }
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+    .primary {
+      background: var(--accent);
+      color: #1a1410;
+      border-color: var(--accent);
+    }
+    .secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .tweet-block {
+      margin-top: 10px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #1d1a21;
+      color: var(--text);
+      font-size: 9px; /* 9px font for tweet text */
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .note {
+      margin-top: 8px;
+      color: var(--muted);
+    }
+
+    .hidden { display: none; }
+
+    /* Proof submission section */
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    label {
+      color: var(--text);
+      font-size: 11px;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #1d1a21;
+      color: var(--text);
+      font-size: 11px;
+      outline: none;
+    }
+    input[type="url"]:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    .proof-status {
+      color: var(--muted);
+      min-height: 16px;
+      margin-top: 6px;
+    }
+
+    .subs {
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .subs-title {
+      color: var(--text);
+      font-weight: 700;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    .subs-list {
+      display: grid;
+      gap: 6px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .sub-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--copy-bg);
+      border: 1px solid var(--copy-border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .sub-link {
+      color: var(--text);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .badge {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: transparent;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .badge.accepted {
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .badge.rejected {
+      border-color: var(--red);
+      color: var(--red);
+    }
+    .badge.verifying {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <h1>Tweet to promote $NFTFAN and earn free $NFTFAN</h1>
+
+      <div id="status" class="status"></div>
+
+      <div class="row">
+        <button id="generateBtn" type="button" class="primary">Generate Tweet</button>
+        <button id="copyBtn" type="button" class="secondary hidden">Copy Tweet</button>
+      </div>
+
+      <div id="tweetBlock" class="tweet-block hidden">
+        <textarea id="tweetText" readonly></textarea>
+        <div class="note">Post this tweet on X to earn 10 Billion $NFTFAN TOKENS</div>
+      </div>
+
+      <!-- Proof submission section -->
+      <div class="field" style="margin-top:14px;">
+        <h2>Submit proof</h2>
+        <div class="hint">Please submit url of your tweet.</div>
+        <input id="proofUrl" type="url" placeholder="https://x.com/yourhandle/status/1234567890" />
+        <div class="row">
+          <button id="submitProofBtn" type="button" class="primary">Submit</button>
+          <div id="proofStatus" class="proof-status"></div>
+        </div>
+
+        <div class="subs">
+          <div class="subs-title">Submitted URLs (live)</div>
+          <ul id="submissionsList" class="subs-list"></ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      update,
+      onValue,
+      push,
+      set
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // Same Firebase project
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const statusEl = document.getElementById('status');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const tweetBlock = document.getElementById('tweetBlock');
+    const tweetText = document.getElementById('tweetText');
+
+    const proofUrlInput = document.getElementById('proofUrl');
+    const submitProofBtn = document.getElementById('submitProofBtn');
+    const proofStatusEl = document.getElementById('proofStatus');
+    const submissionsListEl = document.getElementById('submissionsList');
+
+    function setStatus(msg) { statusEl.textContent = msg || ""; }
+
+    // Claim up to two pending groups from /groups
+    async function fetchAndClaimTwoGroups(claimer = "simple_typer") {
+      try {
+        const groupsRef = ref(db, "groups");
+        const snapshot = await get(groupsRef);
+        if (!snapshot.exists()) return [];
+
+        const groupsObj = snapshot.val();
+        const pending = [];
+        for (const key in groupsObj) {
+          const g = groupsObj[key];
+          if (g && g.status === "pending") {
+            pending.push({ key, data: g });
+          }
+        }
+
+        // Sort by numeric suffix if keys like "group_1"
+        pending.sort((a, b) => {
+          const na = parseInt(String(a.key).replace(/\D+/g, "")) || 0;
+          const nb = parseInt(String(b.key).replace(/\D+/g, "")) || 0;
+          return na - nb;
+        });
+
+        const toClaim = pending.slice(0, 2);
+        if (toClaim.length === 0) return [];
+
+        const updates = {};
+        const nowISO = new Date().toISOString();
+        for (const g of toClaim) {
+          updates[`/groups/${g.key}/status`] = "claimed";
+          updates[`/groups/${g.key}/claimed_by`] = claimer;
+          updates[`/groups/${g.key}/claimed_at`] = nowISO;
+        }
+        await update(ref(db), updates);
+
+        return toClaim;
+      } catch (e) {
+        console.error("fetchAndClaimTwoGroups error:", e);
+        return [];
+      }
+    }
+
+    function formatUsernames(groups) {
+      const all = [];
+      for (const g of groups) {
+        const arr = Array.isArray(g.data.usernames) ? g.data.usernames : [];
+        for (const u of arr) {
+          if (!u) continue;
+          const handle = u.startsWith("@") ? u : `@${u}`;
+          all.push(handle);
+        }
+      }
+      return all.join(" ");
+    }
+
+    // Typing animation into textarea
+    function typeText(element, fullText, speedMs = 12) {
+      return new Promise(resolve => {
+        element.value = "";
+        let i = 0;
+        const timer = setInterval(() => {
+          element.value += fullText[i];
+          element.scrollTop = element.scrollHeight;
+          i++;
+          if (i >= fullText.length) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, speedMs);
+      });
+    }
+
+    generateBtn.addEventListener("click", async () => {
+      setStatus("Fetching usernames...");
+      generateBtn.disabled = true;
+      copyBtn.classList.add("hidden");
+      tweetBlock.classList.remove("hidden");
+      tweetText.value = "";
+
+      const claimed = await fetchAndClaimTwoGroups("simple_typer");
+      if (claimed.length === 0) {
+        setStatus("Not enough available groups right now. Please try again later.");
+        generateBtn.disabled = false;
+        return;
+      }
+
+      const mentionList = formatUsernames(claimed);
+      const fallback = "user 1 user 2 user 3";
+      const tweet =
+        `Hi ${mentionList || fallback} you are eligible for 5 Billion free $NFTFAN tokens from @nftfanstoken submit your wallet here: https://www.nftfanstoken.com/smt/`;
+
+      setStatus("Generating tweet...");
+      await typeText(tweetText, tweet, 12);
+      setStatus(""); // clear when done
+      copyBtn.classList.remove("hidden");
+      generateBtn.disabled = false;
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      if (!tweetText.value) return;
+      try {
+        await navigator.clipboard.writeText(tweetText.value);
+        const original = copyBtn.textContent;
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = original || "Copy Tweet"), 1200);
+      } catch {
+        tweetText.select();
+        document.execCommand("copy");
+        const original = copyBtn.textContent;
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = original || "Copy Tweet"), 1200);
+      }
+    });
+
+    // --- Proof submission logic ---
+    function isLikelyUrl(str) {
+      try {
+        const u = new URL(str);
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch { return false; }
+    }
+
+    submitProofBtn.addEventListener("click", async () => {
+      const url = (proofUrlInput.value || "").trim();
+      if (!isLikelyUrl(url)) {
+        proofStatusEl.textContent = "Please enter a valid URL.";
+        return;
+      }
+      submitProofBtn.disabled = true;
+      proofStatusEl.textContent = "Verifying";
+
+      try {
+        const listRef = ref(db, "submissions");
+        const newRef = push(listRef);
+        const payload = {
+          url,
+          status: "Verifying",
+          submitted_at: new Date().toISOString()
+        };
+        await set(newRef, payload);
+
+        // Keep status visible as "Verifying" after submit
+        proofStatusEl.textContent = "Verifying";
+        proofUrlInput.value = "";
+      } catch (e) {
+        console.error("Submit proof error:", e);
+        proofStatusEl.textContent = "Failed to submit. Please try again.";
+      } finally {
+        submitProofBtn.disabled = false;
+      }
+    });
+
+    function renderSubmissions(valObj) {
+      const items = Object.entries(valObj || {}).map(([id, v]) => ({ id, ...(v || {}) }));
+      // Sort newest first by submitted_at
+      items.sort((a, b) => {
+        const ta = Date.parse(a.submitted_at || 0);
+        const tb = Date.parse(b.submitted_at || 0);
+        return tb - ta;
+      });
+
+      // Build list
+      if (items.length === 0) {
+        submissionsListEl.innerHTML = '<li class="sub-item"><span class="sub-link" style="color: var(--muted);">No submissions yet.</span></li>';
+        return;
+      }
+
+      const html = items.map(item => {
+        const url = item.url || "";
+        const rawStatus = (item.status || "Verifying");
+        const st = String(rawStatus).toLowerCase();
+        const cls = st === "accepted" ? "accepted" : st === "rejected" ? "rejected" : "verifying";
+        const safe = url.replace(/"/g, "&quot;");
+        return `
+          <li class="sub-item">
+            <a class="sub-link" href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>
+            <span class="badge ${cls}">${rawStatus}</span>
+          </li>
+        `;
+      }).join("");
+      submissionsListEl.innerHTML = html;
+    }
+
+    // Live updates of all submitted URLs
+    const subsRef = ref(db, "submissions");
+    onValue(subsRef, (snap) => {
+      renderSubmissions(snap.val());
+    });
+  </script>
+</body>
+</html>
