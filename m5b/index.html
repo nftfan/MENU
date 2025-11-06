@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFTFAN CARDS — Mint</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #00f9ff; --primary-glow: rgba(0,249,255,0.5);
+      --accent: #ff2cf0; --accent-glow: rgba(255,44,240,0.5);
+      --success: #12ff9b; --error: #ff3860;
+      --bg: #0c0b1d; --bg-dark: #07061a; --card: #12122a;
+      --text: #eef2ff; --muted: #8f9cce; --border: #3e3f82;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: 'Rajdhani',sans-serif; background: var(--bg-dark); color: var(--text); }
+    .bg {
+      position: fixed; inset: 0; z-index:-1;
+      background: radial-gradient(800px at 15% 15%, rgba(0,249,255,0.08), transparent 70%),
+                  radial-gradient(600px at 85% 20%, rgba(255,44,240,0.08), transparent 70%),
+                  linear-gradient(180deg,var(--bg-dark),var(--bg));
+    }
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo { width:40px; height:40px; border-radius:8px; background:linear-gradient(135deg,var(--primary),var(--accent));
+      display:grid; place-items:center; box-shadow:0 0 15px rgba(0,249,255,0.4); overflow:hidden; position:relative; color:#07172c; }
+    .title h1 { margin:0; font-family:'Orbitron',sans-serif; font-size:22px; text-transform:uppercase;
+      background:linear-gradient(90deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .pill { padding:6px 12px; border-radius:8px; background:rgba(15,16,40,0.7); border:1px solid var(--border);
+      display:inline-flex; align-items:center; gap:8px; font-size:13px; }
+    .wallet { color:var(--primary); background:rgba(0,249,255,0.1); padding:4px 10px; border-radius:8px;
+      border:1px solid rgba(0,249,255,0.3); font-weight:700; }
+    button { appearance:none; border:1px solid var(--border); border-radius:10px; padding:10px 16px;
+      font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+      background:rgba(32,33,77,0.6); color:var(--text); transition:all .2s; }
+    button.primary { background:linear-gradient(135deg,#00b2ff,var(--primary)); color:#07172c; box-shadow:0 0 12px var(--primary-glow); }
+    button.success { background:linear-gradient(135deg,var(--success),#00ddb9); color:#07172c; }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    main { padding:20px; display:grid; place-items:center; }
+    .card {
+      width: min(920px, 95vw);
+      background:rgba(18,18,42,0.75); border:1px solid var(--border); border-radius:16px; overflow:hidden;
+      display:grid; grid-template-columns: 1fr 1fr; gap:0; backdrop-filter: blur(10px);
+    }
+    @media (max-width: 860px) { .card { grid-template-columns: 1fr; } }
+    .preview {
+      position:relative; background: #0a0a18; display:grid; place-items:center; padding:12px;
+      border-right:1px solid var(--border);
+    }
+    .preview img { width:100%; height:auto; border-radius:12px; border:1px solid rgba(255,255,255,0.08); box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+    .content { padding:20px 20px 24px; display:flex; flex-direction:column; gap:16px; }
+    .heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .price { font-family:'Orbitron',sans-serif; color:var(--primary); display:flex; align-items:center; gap:8px; }
+    .muted { color:var(--muted); }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .status { font-size:13px; padding:6px 10px; border:1px dashed var(--border); border-radius:8px; background:rgba(255,255,255,0.03); }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:12px; color:var(--muted); background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      border-radius:8px; padding:10px; max-height:140px; overflow:auto; }
+    .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <header>
+    <div class="brand">
+      <div class="logo"><span class="material-icons">auto_awesome</span></div>
+      <div class="title">
+        <h1>NFTFAN CARDS</h1>
+        <div class="muted">Mint this card on Polygon</div>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill"><span class="material-icons">paid</span> Price: <strong style="color:var(--primary)">1 POL</strong></span>
+      <button id="connectBtn" class="primary"><span class="material-icons">account_balance_wallet</span>Connect</button>
+      <span id="wallet" class="wallet" style="display:none;"></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="preview">
+        <img id="nftImage" alt="NFTFAN Card Preview"
+             src="https://pbs.twimg.com/media/G47ekNZWkAABY6v?format=jpg&name=medium" />
+      </div>
+      <div class="content">
+        <div class="heading">
+          <div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:28px; letter-spacing:1px;">NFTFAN CARDS</div>
+            <div class="muted">A single-click mint for fans</div>
+          </div>
+          <div class="price"><span class="material-icons">local_fire_department</span> 1 POL</div>
+        </div>
+
+        <div class="row">
+          <span class="status"><span class="material-icons" style="font-size:16px;">check_circle</span> Polygon Mainnet</span>
+          <span class="status"><span class="material-icons" style="font-size:16px;">collections</span> ERC-721</span>
+        </div>
+
+        <div class="muted">
+          This dapp mints a new token that points to the image shown. Each mint creates a unique token ID with identical metadata (name and image).
+        </div>
+
+        <div class="actions">
+          <button id="mintBtn" class="success"><span class="material-icons">rocket_launch</span>Mint for 1 POL</button>
+          <a id="txLink" class="pill" href="#" target="_blank" rel="noopener" style="display:none;">
+            <span class="material-icons">open_in_new</span><span id="txText">View Transaction</span>
+          </a>
+        </div>
+
+        <div class="log" id="log">Ready.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Network: Polygon Mainnet
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    // Contract: must support mintWithURI(string) payable returns (uint256)
+    // Using the address and ABI style from your original app.
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+    ];
+
+    // NFT metadata constants
+    const NFT_TITLE = "NFTFAN CARDS";
+    const NFT_IMAGE_URL = "https://pbs.twimg.com/media/G47ekNZWkAABY6v?format=jpg&name=medium";
+    const NFT_DESCRIPTION = "Fan-made collectible card, minted on Polygon for 1 POL.";
+
+    // State
+    let provider, signer, userAddress;
+
+    // UI elements
+    const connectBtn = document.getElementById('connectBtn');
+    const walletEl = document.getElementById('wallet');
+    const mintBtn = document.getElementById('mintBtn');
+    const logEl = document.getElementById('log');
+    const txLink = document.getElementById('txLink');
+    const txText = document.getElementById('txText');
+
+    function shortAddr(a) { return a ? `${a.slice(0,6)}...${a.slice(-4)}` : ''; }
+    function log(msg) { logEl.textContent = msg; }
+
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
+        return true;
+      } catch (e) {
+        if (e.code === 4902) {
+          await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+          return true;
+        }
+        return false;
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) { alert('Install MetaMask to continue'); return; }
+      log('Connecting wallet...');
+      const ok = await switchToPolygon();
+      if (!ok) { alert('Please switch to Polygon Mainnet'); return; }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      connectBtn.disabled = true;
+      connectBtn.innerHTML = '<span class="material-icons">check_circle</span>Connected';
+      walletEl.textContent = shortAddr(userAddress);
+      walletEl.style.display = 'inline';
+      log('Wallet connected: ' + userAddress);
+    }
+
+    function buildTokenURI() {
+      const meta = {
+        name: NFT_TITLE,
+        description: NFT_DESCRIPTION,
+        image: NFT_IMAGE_URL
+      };
+      const json = JSON.stringify(meta);
+      const b64 = btoa(unescape(encodeURIComponent(json)));
+      return "data:application/json;base64," + b64;
+    }
+
+    async function mint() {
+      if (!signer) { alert('Connect wallet first'); return; }
+      txLink.style.display = 'none';
+      mintBtn.disabled = true; mintBtn.textContent = 'Minting...';
+      log('Preparing mint transaction...');
+      try {
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        const price = ethers.utils.parseEther("1"); // 1 POL
+        const tokenURI = buildTokenURI();
+        const tx = await contract.mintWithURI(tokenURI, { value: price });
+        log('Transaction sent: ' + tx.hash);
+        txLink.href = `https://polygonscan.com/tx/${tx.hash}`;
+        txText.textContent = 'View Pending Tx';
+        txLink.style.display = 'inline-flex';
+        const receipt = await tx.wait();
+        log('Mint confirmed in block ' + receipt.blockNumber);
+        const ev = receipt.events?.find(e => e.event === 'Transfer');
+        const tokenId = ev?.args?.tokenId ? ev.args.tokenId.toString() : '(unknown)';
+        txText.textContent = 'View on Polygonscan';
+        alert(`Success! Minted NFTFAN CARD. Token ID: ${tokenId}`);
+      } catch (e) {
+        console.error(e);
+        const reason = e?.error?.message || e?.data?.message || e?.reason || e?.message || 'Transaction failed';
+        alert('Mint failed: ' + reason);
+        log('Error: ' + reason);
+      } finally {
+        mintBtn.disabled = false; mintBtn.innerHTML = '<span class="material-icons">rocket_launch</span>Mint for 1 POL';
+      }
+    }
+
+    connectBtn.onclick = connectWallet;
+    mintBtn.onclick = mint;
+
+    // Optional: update UI if chain/account changes
+    if (window.ethereum) {
+      window.ethereum.on?.('accountsChanged', () => window.location.reload());
+      window.ethereum.on?.('chainChanged', () => window.location.reload());
+    }
+  </script>
+</body>
+</html>
