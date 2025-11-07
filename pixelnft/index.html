@@ -705,4 +705,253 @@
     }
     
     function dataURLtoBlob(dataurl) {
-        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], {type:mime});
+    }
+
+    function getPNGDataURL(scale) {
+      if (!pixels.length) return null;
+      const H = pixels.length;
+      const W = pixels[0].length;
+      const s = clamp(scale,1,300);
+      const off = document.createElement("canvas");
+      off.width = W * s;
+      off.height = H * s;
+      const ox = off.getContext("2d");
+      ox.imageSmoothingEnabled = false;
+      const r = s / 2;
+      for (let y=0;y<H;y++) {
+        for (let x=0;x<W;x++) {
+          const c = pixels[y][x];
+          if (!c) continue;
+          ox.fillStyle = c;
+          ox.beginPath();
+          ox.arc(x*s + r, y*s + r, r, 0, Math.PI*2);
+          ox.fill();
+        }
+      }
+      return off.toDataURL("image/png");
+    }
+
+    function downloadPNG() {
+      const scale = parseInt(els.exportScale.value||16,10);
+      const dataURL = getPNGDataURL(scale);
+      if (!dataURL) return;
+      const W = pixels[0].length;
+      const H = pixels.length;
+      const a = document.createElement("a");
+      a.download = `pixel-art_${W}x${H}_${scale}x_${lastSeed}.png`;
+      a.href = dataURL;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      logLine("Downloaded PNG.");
+    }
+
+    /* ===== Wallet Functions ===== */
+    function shortAddr(a) { return a ? `${a.slice(0,6)}...${a.slice(-4)}` : ''; }
+
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_PARAMS.chainId }]
+        });
+        return true;
+      } catch (e) {
+        if (e.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [POLYGON_PARAMS]
+          });
+          return true;
+        }
+        return false;
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("Install MetaMask to continue.");
+        return;
+      }
+      logLine("Connecting wallet...");
+      const ok = await switchToPolygon();
+      if (!ok) {
+        alert("Switch to Polygon Mainnet.");
+        logLine("Network switch failed.");
+        return;
+      }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      els.connectBtn.disabled = true;
+      els.connectBtn.textContent = "Connected";
+      els.walletTag.style.display = "inline-block";
+      els.walletTag.textContent = shortAddr(userAddress);
+      els.netTag.textContent = "Polygon Mainnet";
+      logLine("Wallet connected: " + userAddress);
+    }
+    
+    async function uploadToIPFS(imageDataURL) {
+      try {
+        // 1. Upload Image
+        logLine("Uploading image to IPFS...");
+        const imageBlob = dataURLtoBlob(imageDataURL);
+        const imageUploadResponse = await fetch("https://api.nft.storage/upload", {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + NFT_STORAGE_TOKEN },
+            body: imageBlob
+        });
+        if (!imageUploadResponse.ok) throw new Error("Image upload failed: " + await imageUploadResponse.text());
+        const imageUploadResult = await imageUploadResponse.json();
+        if (!imageUploadResult.ok) throw new Error("Image upload failed: " + (imageUploadResult.error?.message || "Invalid response"));
+        
+        const imageCID = imageUploadResult.value.cid;
+        const imageURI = `ipfs://${imageCID}`;
+        logLine("Image uploaded. CID: " + imageCID);
+
+        // 2. Build and Upload Metadata
+        logLine("Uploading metadata to IPFS...");
+        const attrs = [
+            { trait_type: "Width", value: parseInt(els.gridW.value,10) },
+            { trait_type: "Height", value: parseInt(els.gridH.value,10) },
+            { trait_type: "Seed", value: lastSeed },
+            { trait_type: "Palette Mode", value: els.paletteSelect.value },
+            { trait_type: "Colors Used", value: parseInt(els.colorCount.value,10) },
+            { trait_type: "Vertical Symmetry", value: els.symV.checked ? "Yes" : "No" },
+            { trait_type: "Horizontal Symmetry", value: els.symH.checked ? "Yes" : "No" },
+            { trait_type: "Outline", value: els.outline.checked ? "Yes" : "No" },
+            { trait_type: "Cluster Jitter", value: els.jitter.checked ? "Yes" : "No" }
+        ];
+
+        const metadata = {
+            name: "OnChain Pixel Art #" + lastSeed,
+            description: "Procedurally generated pixel art minted on Polygon. Seed ensures reproducibility.",
+            image: imageURI,
+            attributes: attrs
+        };
+        
+        const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
+        const metadataUploadResponse = await fetch("https://api.nft.storage/upload", {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + NFT_STORAGE_TOKEN },
+            body: metadataBlob
+        });
+        if (!metadataUploadResponse.ok) throw new Error("Metadata upload failed: " + await metadataUploadResponse.text());
+        const metadataUploadResult = await metadataUploadResponse.json();
+        if (!metadataUploadResult.ok) throw new Error("Metadata upload failed: " + (metadataUploadResult.error?.message || "Invalid response"));
+        
+        const metadataCID = metadataUploadResult.value.cid;
+        logLine("Metadata uploaded. CID: " + metadataCID);
+        
+        return metadataCID;
+
+      } catch (e) {
+          console.error(e);
+          logLine("IPFS upload error: " + e.message);
+          throw e;
+      }
+    }
+
+
+    async function mint() {
+      if (!signer) {
+        await connectWallet();
+        if (!signer) return;
+      }
+      
+      els.mintBtn.disabled = true;
+      els.mintBtn.textContent = "Minting...";
+
+      try {
+        regenerate();
+        const scale = parseInt(els.exportScale.value||16,10);
+        const pngDataURL = getPNGDataURL(scale);
+        if (!pngDataURL) {
+          throw new Error("Nothing to mint. Generate first.");
+        }
+
+        const metadataCID = await uploadToIPFS(pngDataURL);
+        const tokenURI = "ipfs://" + metadataCID;
+        
+        logLine("Preparing mint transaction...");
+        
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        const price = ethers.utils.parseEther("1");
+        const tx = await contract.mintWithURI(tokenURI, { value: price });
+        
+        logLine("Tx sent: " + tx.hash);
+        const receipt = await tx.wait();
+        logLine("Confirmed. Block " + receipt.blockNumber);
+        
+        const ev = receipt.events?.find(e => e.event === 'Transfer');
+        const tokenId = ev?.args?.tokenId ? ev.args.tokenId.toString() : "?";
+        alert("Mint success! Token ID: " + tokenId);
+      
+      } catch (e) {
+        console.error(e);
+        const reason = e?.error?.message || e?.data?.message || e?.reason || e?.message || "Mint failed";
+        logLine("Error: " + reason);
+        alert(reason);
+      } finally {
+        els.mintBtn.disabled = false;
+        els.mintBtn.textContent = "Mint (1 POL)";
+      }
+    }
+
+    /* ===== Events ===== */
+    els.mintBtn.addEventListener("click", mint);
+    els.connectBtn.addEventListener("click", connectWallet);
+    els.btnClear.addEventListener("click", () => {
+      pixels = [];
+      ensureCanvasSize();
+      clearCanvas();
+      logLine("Cleared canvas.");
+    });
+    els.btnDownload.addEventListener("click", downloadPNG);
+    els.rndSeed.addEventListener("click", () => {
+      els.seed.value = "";
+      regenerate();
+    });
+
+    [
+      "previewScale","gridW","gridH","colorCount","emptyChance",
+      "symV","symH","jitter","outline","seed"
+    ].forEach(id => els[id].addEventListener("change", regenerate));
+
+    els.paletteSelect.addEventListener("change", () => {
+      const v = els.paletteSelect.value;
+      els.customPaletteWrap.style.display = v === "Custom" ? "" : "none";
+      regenerate();
+    });
+    els.customPalette.addEventListener("input", regenerate);
+
+    window.addEventListener("keydown", e => {
+      if (e.key.toLowerCase() === "r") {
+        regenerate();
+      }
+    });
+
+    if (window.ethereum) {
+      window.ethereum.on?.('accountsChanged', () => window.location.reload());
+      window.ethereum.on?.('chainChanged', () => window.location.reload());
+    }
+
+    window.addEventListener("resize", () => renderPreview(), { passive: true });
+
+    /* ===== Init ===== */
+    (function init() {
+      ensureCanvasSize();
+      regenerate();
+      logLine("Ready.");
+    })();
+  </script>
+</body>
+</html>
