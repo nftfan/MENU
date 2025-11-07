@@ -461,8 +461,8 @@
       "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
     ];
     
-    /* ===== NFT.STORAGE ===== */
-    const NFT_STORAGE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDFFODE2NjIzMjJDY0RFMEMzQzI5N0YyN0YxNjg3ZDA4RDEyMDQ2NTYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY0MDI3NTI5MjM5NSwibmFtZSI6InBpeGVsLWFydCJ9.28b605a6.9100413c12934c4caa8ef1dcd591c3b7";
+    /* ===== Lighthouse.storage ===== */
+    const LIGHTHOUSE_API_KEY = "77e3d8a1.f432a2cac0784531ad66cc2ea3cea538";
 
     /* ===== Pixel Art Generator ===== */
     const PALETTES = {
@@ -802,23 +802,26 @@
     async function uploadToIPFS(imageDataURL) {
       try {
         // 1. Upload Image
-        logLine("Uploading image to IPFS...");
+        logLine("Uploading image to Lighthouse...");
         const imageBlob = dataURLtoBlob(imageDataURL);
-        const imageUploadResponse = await fetch("https://api.nft.storage/upload", {
+        const imageFormData = new FormData();
+        imageFormData.append('file', imageBlob, 'pixel-art.png');
+        
+        const imageUploadResponse = await fetch("https://node.lighthouse.storage/api/v0/add", {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + NFT_STORAGE_TOKEN },
-            body: imageBlob
+            headers: { Authorization: `Bearer ${LIGHTHOUSE_API_KEY}` },
+            body: imageFormData
         });
         if (!imageUploadResponse.ok) throw new Error("Image upload failed: " + await imageUploadResponse.text());
         const imageUploadResult = await imageUploadResponse.json();
-        if (!imageUploadResult.ok) throw new Error("Image upload failed: " + (imageUploadResult.error?.message || "Invalid response"));
+        if (!imageUploadResult.Hash) throw new Error("Image upload failed: Invalid response");
         
-        const imageCID = imageUploadResult.value.cid;
+        const imageCID = imageUploadResult.Hash;
         const imageURI = `ipfs://${imageCID}`;
         logLine("Image uploaded. CID: " + imageCID);
 
         // 2. Build and Upload Metadata
-        logLine("Uploading metadata to IPFS...");
+        logLine("Uploading metadata to Lighthouse...");
         const attrs = [
             { trait_type: "Width", value: parseInt(els.gridW.value,10) },
             { trait_type: "Height", value: parseInt(els.gridH.value,10) },
@@ -839,16 +842,19 @@
         };
         
         const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
-        const metadataUploadResponse = await fetch("https://api.nft.storage/upload", {
+        const metadataFormData = new FormData();
+        metadataFormData.append('file', metadataBlob, 'metadata.json');
+
+        const metadataUploadResponse = await fetch("https://node.lighthouse.storage/api/v0/add", {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + NFT_STORAGE_TOKEN },
-            body: metadataBlob
+            headers: { Authorization: `Bearer ${LIGHTHOUSE_API_KEY}` },
+            body: metadataFormData
         });
         if (!metadataUploadResponse.ok) throw new Error("Metadata upload failed: " + await metadataUploadResponse.text());
         const metadataUploadResult = await metadataUploadResponse.json();
-        if (!metadataUploadResult.ok) throw new Error("Metadata upload failed: " + (metadataUploadResult.error?.message || "Invalid response"));
+        if (!metadataUploadResult.Hash) throw new Error("Metadata upload failed: Invalid response");
         
-        const metadataCID = metadataUploadResult.value.cid;
+        const metadataCID = metadataUploadResult.Hash;
         logLine("Metadata uploaded. CID: " + metadataCID);
         
         return metadataCID;
