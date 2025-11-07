@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>$NFTFAN — Token Sale & Balance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Default (desktop/tablet) */
+    --bg:#0f0f13;
+    --card-bg:#15151b;
+    --text:#e7e7ea;
+    --muted:#9a9aa3;
+    --accent:#8fb1ff;
+    --border:#23232b;
+    --radius:12px;
+    --shadow:0 2px 12px rgba(0,0,0,0.25);
+    --copy-bg:#16161c;
+    --copy-border:#2a2a33;
+    --font-thin:300;
+  }
+  /* Mobile colors per request */
+  @media (max-width:640px){
+    :root{
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+    }
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ height:100%; max-width:100%; overflow-x:hidden; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-size:10px; /* MAX 10px globally */
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    display:flex; align-items:flex-start; justify-content:center; padding:14px;
+  }
+
+  .app{ width:100%; max-width:760px; display:grid; gap:10px; }
+
+  /* Holders banner (20px bold on top) */
+  .holders{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:10px 12px;
+    font-size:20px;           /* explicit 20px as requested */
+    font-weight:800;          /* bold */
+    text-align:center;
+    line-height:1.2;
+    min-width:0;
+  }
+
+  /* Stack all sections vertically on all screens */
+  .grid{ display:grid; gap:10px; grid-template-columns: 1fr; }
+
+  .card{
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;
+    min-width:0; /* prevent overflow */
+  }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0; width:100%; }
+  .between{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; min-width:0; width:100%; }
+  .muted{ color:var(--muted); }
+  .thin{ font-weight:var(--font-thin); }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  .addr{ font-size:8px; } /* 8px for wallet strings as requested */
+  .title{ margin:0 0 8px; font-weight:600; letter-spacing:.2px }
+  .badge{
+    display:inline-block; padding:3px 6px; border-radius:999px; border:1px solid var(--border);
+    color:var(--text); background:transparent;
+  }
+
+  .copyline{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    background:var(--copy-bg); border:1px solid var(--copy-border); border-radius:10px; padding:8px 10px;
+    min-width:0; width:100%;
+  }
+  .copyline .value{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1 1 auto;
+    word-break:break-word;
+  }
+
+  .btn{
+    appearance:none; border:none; border-radius:10px; cursor:pointer;
+    background:transparent; color:var(--text);
+    border:1px solid var(--border); padding:8px 10px; white-space:nowrap;
+  }
+  .btn:hover{ border-color: var(--accent) }
+  .btn.primary{ background:var(--accent); color:#1b1208; border-color:transparent; }
+
+  .stat{
+    flex:1 1 200px; /* allow wrap and shrink */
+    background:var(--copy-bg); border:1px solid var(--copy-border);
+    border-radius:10px; padding:10px 12px; min-width:0;
+  }
+  .stat .label{ color:var(--muted) }
+  .stat .value{
+    font-weight:700;
+    white-space:normal;              /* allow wrapping */
+    overflow-wrap:anywhere;          /* wrap long numbers/words */
+    word-break:break-word;
+    line-height:1.3;
+  }
+
+  .input{
+    width:100%; padding:9px 10px; border-radius:10px; outline:none;
+    background:var(--copy-bg); color:var(--text);
+    border:1px solid var(--copy-border); min-width:0;
+  }
+  .input:focus{ border-color: var(--accent) }
+
+  a{ color:var(--accent); text-decoration:none }
+  a:hover{ text-decoration:underline }
+
+  .out{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .error{ color:#ff6b6b; white-space:normal; }
+
+  footer{ color:var(--muted); text-align:center; padding:4px }
+</style>
+</head>
+<body>
+  <main class="app">
+    <!-- Total Holders Banner (manual, no fetch) -->
+    <section class="holders" aria-live="polite">
+      Total holders: 229,031
+    </section>
+
+    <!-- Header / Sale CTA -->
+    <section class="card">
+      <div class="between">
+        <div class="row">
+          <span class="badge">$NFTFAN</span>
+          <span class="muted thin">Polygon Mainnet (POL)</span>
+        </div>
+        <div class="muted thin">Rate: 1 POL → <span id="rateDisplay">—</span> $NFTFAN</div>
+      </div>
+
+      <h3 class="title">Token Sale Contract</h3>
+      <div class="copyline" title="Sale Contract Address">
+        <div id="saleAddress" class="value mono addr">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</div>
+        <a class="btn" id="saleOnScan" target="_blank" rel="noopener">Polygonscan</a>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <div class="stat">
+          <div class="label">Tokens left in contract</div>
+          <div class="value" id="tokensLeft">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">How to buy</div>
+          <div class="value">
+            Send 1 POL to the sale contract to receive 1,000,000,000,000,000 $NFTFAN (1000 Trillion).
+          </div>
+        </div>
+      </div>
+
+      <div class="between" style="margin-top:8px;">
+        <div class="muted thin">Always verify the address. Transfers are automatic on Polygon.</div>
+        <button class="btn" id="refreshSale">Refresh</button>
+      </div>
+    </section>
+
+    <!-- Balance Checker -->
+    <section class="card">
+      <h3 class="title">Check Your $NFTFAN Balance</h3>
+      <input id="address" class="input mono addr" type="text" placeholder="Enter your wallet address (0x…)" />
+      <div class="row" style="margin-top:8px;">
+        <button id="checkBtn" class="btn primary">Check Balance</button>
+        <button id="clearBtn" class="btn">Clear</button>
+        <a id="tokenOnScan" class="btn" target="_blank" rel="noopener">Token on Polygonscan</a>
+      </div>
+      <div id="output" class="out" style="margin-top:8px;">
+        <span class="muted">Result will appear here.</span>
+      </div>
+    </section>
+
+    <footer class="thin">This interface uses the Etherscan v2 API for Polygon. Double‑check addresses before sending funds.</footer>
+  </main>
+
+<script>
+(function(){
+  const apiKey  = "Z7UUSFGES3UDZ8RMWVAWF9HA59IAJA83XJ";
+  const chainid = 137; // Polygon mainnet
+  const base    = "https://api.etherscan.io/v2/api";
+
+  const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50"; // $NFTFAN token
+  const SALE_CA  = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8"; // sale contract
+  const RATE_PER_POL = 1_000_000_000_000_000n; // 1000 Trillion
+
+  const el = {
+    saleAddr:     document.getElementById("saleAddress"),
+    saleOnScan:   document.getElementById("saleOnScan"),
+    tokenOnScan:  document.getElementById("tokenOnScan"),
+    tokensLeft:   document.getElementById("tokensLeft"),
+    rateDisplay:  document.getElementById("rateDisplay"),
+    refreshSale:  document.getElementById("refreshSale"),
+    out:          document.getElementById("output"),
+    input:        document.getElementById("address"),
+    checkBtn:     document.getElementById("checkBtn"),
+    clearBtn:     document.getElementById("clearBtn"),
+  };
+
+  function commas(n){ return (String(n||"0")).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  async function fetchJson(url){
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+  function toHuman(raw, decimals){
+    try{
+      const d = Number(decimals || 18);
+      const big = BigInt(raw || "0");
+      if(d <= 0) return big.toString();
+      const factor = 10n ** BigInt(d);
+      return (big / factor).toString();
+    }catch{ return "0"; }
+  }
+
+  async function getTokenInfo(){
+    const url = `${base}?chainid=${chainid}&module=token&action=tokeninfo&contractaddress=${TOKEN_CA}&apikey=${apiKey}`;
+    const res = await fetchJson(url);
+    if(res.status === "1" && res.result){
+      const r = Array.isArray(res.result) ? res.result[0] : res.result;
+      return {
+        decimals: Number(r.decimals || r.tokenDecimal || 18),
+        symbol: (r.symbol || r.tokenSymbol || "NFTFAN"),
+      };
+    }
+    return { decimals: 18, symbol: "NFTFAN" };
+  }
+
+  async function getTokenBalance(holder){
+    const url = `${base}?chainid=${chainid}&module=account&action=tokenbalance&contractaddress=${TOKEN_CA}&address=${holder}&tag=latest&apikey=${apiKey}`;
+    const res = await fetchJson(url);
+    if(res.status !== "1") throw new Error(res.result || res.message || "Unable to fetch balance");
+    return res.result;
+  }
+
+  async function loadSalePanel(){
+    el.tokensLeft.textContent = "Loading…";
+    try{
+      const info = await getTokenInfo();
+      const raw  = await getTokenBalance(SALE_CA);
+      const human = toHuman(raw, info.decimals);
+      el.tokensLeft.textContent = `${commas(human)} ${info.symbol}`;
+    }catch(e){
+      console.error(e);
+      el.tokensLeft.innerHTML = `<span class="error">Failed to load</span>`;
+    }
+  }
+
+  async function checkUserBalance(addr){
+    el.out.className = "out";
+    el.out.textContent = "Querying…";
+    try{
+      const info = await getTokenInfo();
+      const raw  = await getTokenBalance(addr);
+      const human = toHuman(raw, info.decimals);
+      el.out.textContent = `${commas(human)} ${info.symbol}`;
+    }catch(e){
+      el.out.innerHTML = `<span class="error">❌ ${e.message || e}</span>`;
+    }
+  }
+
+  // Initialize static UI
+  el.saleAddr.textContent = SALE_CA; // keep address visible
+  el.rateDisplay.textContent = commas(RATE_PER_POL.toString());
+  el.saleOnScan.href  = `https://polygonscan.com/address/${SALE_CA}`;
+  el.tokenOnScan.href = `https://polygonscan.com/token/${TOKEN_CA}`;
+
+  el.refreshSale.onclick = loadSalePanel;
+
+  el.checkBtn.onclick = async () => {
+    const addr = el.input.value.trim();
+    if(!addr){
+      el.out.innerHTML = `<span class="error">Please enter a wallet address.</span>`;
+      return;
+    }
+    await checkUserBalance(addr);
+  };
+  el.clearBtn.onclick = () => {
+    el.input.value = "";
+    el.out.innerHTML = `<span class="muted">Result will appear here.</span>`;
+    el.out.className = "out";
+  };
+
+  // Kick off
+  loadSalePanel();
+})();
+</script>
+</body>
+</html>
