@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Fan Names Minter — NFTFAN Community Fans</title>
+  <title>Fan Names Minter</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -65,7 +65,6 @@
       color: var(--text);
     }
     .title-main { font-size: 10px; font-weight: 600; }
-    .title-sub { font-size: 9px; color: var(--muted); }
     .actions {
       display: flex;
       align-items: center;
@@ -224,7 +223,6 @@
       border: 1px solid var(--border);
       background: #090910;
     }
-    /* Image grid styles */
     #imageGridContainer {
       max-height: 220px;
       overflow-y: auto;
@@ -307,9 +305,69 @@
     .image-card-index {
       opacity: 0.6;
     }
-    .small-note {
+    #fan-talk-section {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #messages-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .message-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .message-item:last-child {
+      border-bottom: none;
+    }
+    .message-avatar img {
+      width: 32px;
+      height: 32px;
+      border-radius: 3px;
+    }
+    .message-content {
+      flex: 1;
+    }
+    .message-sender {
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .message-text {
+      font-size: 9px;
+      color: var(--muted);
+    }
+    .message-timestamp {
       font-size: 8px;
       color: var(--muted);
+      opacity: 0.7;
+    }
+    #fan-talk-input {
+      display: flex;
+      gap: 6px;
+    }
+    #message-input {
+      flex: 1;
+      background: #090910;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 9px;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    #post-message-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -317,23 +375,16 @@
   <div id="initial-loader">
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
       <div class="spinner"></div>
-      <div>Loading NFT FAN COMMUNITY FANS…</div>
+      <div>Loading...</div>
     </div>
   </div>
   <div id="app-container">
     <header>
       <div class="brand">
         <div class="logo"><span class="material-icons">alternate_email</span></div>
-        <div>
-          <div class="title-main">NFT FAN Community Fans</div>
-          <div class="title-sub">Mint predefined “Fan” roles on Polygon</div>
-        </div>
+        <div class="title-main">Community Fans</div>
       </div>
       <div class="actions">
-        <span class="pill">
-          <span class="material-icons">paid</span>
-          <span>Price: 1 POL</span>
-        </span>
         <button id="connectBtn">
           <span class="material-icons">account_balance_wallet</span>
           <span>Connect</span>
@@ -342,30 +393,15 @@
       </div>
     </header>
     <main>
-      <!-- LEFT: Mint control -->
       <section class="panel">
         <div class="panel-header">
-          <div class="panel-header-title">Mint a community fan</div>
+          <div class="panel-header-title">Mint a fan</div>
         </div>
         <div class="row">
-          <div class="tag">
-            <span class="material-icons">info</span>
-            <span>
-              Cards are backed by procedurally generated beautiful pixel arts.
-              Pick a card, choose a color, then mint your NFT FAN COMMUNITY FAN.
-            </span>
-          </div>
-        </div>
-        <div class="row">
-          <div class="panel-header-title" style="border-bottom:none;padding-bottom:0;">Available cards</div>
           <div id="imageGridContainer">
             <div id="image-grid" class="image-grid">
-              <!-- cards injected by JS -->
             </div>
           </div>
-          <span id="noImagesNote" class="small-note" style="display:none;">
-            No pixel arts generated yet.
-          </span>
         </div>
         <div class="row inline">
           <span id="selectionPill" class="tag" style="display:none;"></span>
@@ -375,7 +411,7 @@
         <div class="row inline">
           <button id="mintBtn" disabled>
             <span class="material-icons">rocket_launch</span>
-            <span>Mint selected</span>
+            <span>Mint</span>
           </button>
           <button id="clearBtn">
             <span class="material-icons">delete_sweep</span>
@@ -392,10 +428,9 @@
           </div>
         </div>
         <div id="status" class="status">
-          Connect wallet, pick a card, choose a color, then mint.
+          Connect wallet and pick a card.
         </div>
       </section>
-      <!-- RIGHT: Leaderboard & list -->
       <section class="panel">
         <div class="panel-header">
           <div class="panel-header-title">Top collectors</div>
@@ -412,13 +447,13 @@
           <tbody id="leaderboard-body"></tbody>
         </table>
         <div class="panel-header" style="margin-top:4px;">
-          <div class="panel-header-title">Minted community fans</div>
+          <div class="panel-header-title">Minted fans</div>
         </div>
         <div style="max-height:260px;overflow-y:auto;">
           <table>
             <thead>
               <tr>
-                <th>Fan (X link)</th>
+                <th>Fan</th>
                 <th>Owner</th>
                 <th class="right">Price (POL)</th>
               </tr>
@@ -428,14 +463,27 @@
         </div>
       </section>
     </main>
+    <section id="fan-talk-section" class="panel">
+      <div class="panel-header">
+        <div class="panel-header-title">Fan Talk</div>
+      </div>
+      <div id="messages-list"></div>
+      <div id="fan-talk-input" style="display:none;">
+        <input id="message-input" type="text" placeholder="Post a message..." maxlength="280" />
+        <button id="post-message-btn">
+          <span class="material-icons">send</span>
+          <span>Post</span>
+        </button>
+      </div>
+      <div id="fan-talk-status" class="status" style="display:none;"></div>
+    </section>
   </div>
   <div id="cityLoading">
     <span class="spinner"></span>
     <span class="material-icons">alternate_email</span>
-    <span class="text">Loading fan data…</span>
+    <span class="text">Loading data…</span>
   </div>
   <script>
-    // Polygon
     const POLYGON_PARAMS = {
       chainId: '0x89',
       chainName: 'Polygon Mainnet',
@@ -443,7 +491,6 @@
       rpcUrls: ['https://polygon-rpc.com/'],
       blockExplorerUrls: ['https://polygonscan.com/']
     };
-    // Contract
     const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
     const CONTRACT_ABI = [
       "function mintWithURI(string tokenURI) external payable returns (uint256)",
@@ -453,7 +500,6 @@
       "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
     ];
     const FIXED_MINT_PRICE_POL = 1;
-    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
       authDomain: "newnft-47bd7.firebaseapp.com",
@@ -464,15 +510,14 @@
       appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
       measurementId: "G-8VB3DYRNXR"
     };
-    // State
     let web3Provider, signer, userAddress;
     let nameColor = '#eebd6e';
-    let selectedKey = ''; // internal key, e.g. "PixelFan1"
-    let selectedIndex = null; // index in generatedCards
-    let fbApp, fbDb, allNftsRef = null;
-    const nameDataByKey = new Map(); // key: lowercased key -> data
-    let generatedCards = []; // [{index, key, label, url}, ...]
-    // UI refs
+    let selectedKey = '';
+    let selectedIndex = null;
+    let fbApp, fbDb, allNftsRef = null, fanTalkRef = null;
+    const nameDataByKey = new Map();
+    let generatedCards = [];
+    let messages = [];
     const initialLoader = document.getElementById('initial-loader');
     const connectBtn = document.getElementById('connectBtn');
     const walletEl = document.getElementById('wallet');
@@ -489,8 +534,12 @@
     const leaderboardBody = document.getElementById('leaderboard-body');
     const usernamesBody = document.getElementById('usernames-body');
     const imageGrid = document.getElementById('image-grid');
-    const noImagesNote = document.getElementById('noImagesNote');
     const imageGridContainer = document.getElementById('imageGridContainer');
+    const messagesList = document.getElementById('messages-list');
+    const fanTalkInput = document.getElementById('fan-talk-input');
+    const messageInput = document.getElementById('message-input');
+    const postMessageBtn = document.getElementById('post-message-btn');
+    const fanTalkStatus = document.getElementById('fan-talk-status');
     function setStatus(msg, type = '') {
       statusEl.className = 'status';
       if (type === 'success') statusEl.classList.add('success');
@@ -502,36 +551,33 @@
         statusEl.textContent = msg;
       }
     }
-    function showCityLoading(text = 'Loading fan data…') {
+    function setFanTalkStatus(msg, type = '') {
+      fanTalkStatus.style.display = 'flex';
+      fanTalkStatus.className = 'status';
+      if (type === 'success') fanTalkStatus.classList.add('success');
+      if (type === 'error') fanTalkStatus.classList.add('error');
+      fanTalkStatus.textContent = msg;
+      setTimeout(() => fanTalkStatus.style.display = 'none', 5000);
+    }
+    function showCityLoading(text = 'Loading data…') {
       cityLoadingText.textContent = text;
       cityLoadingEl.style.display = 'flex';
-      setTimeout(() => {
-        if (cityLoadingEl.style.display !== 'none') {
-          cityLoadingEl.style.display = 'none';
-        }
-      }, 20000);
+      setTimeout(() => cityLoadingEl.style.display = 'none', 20000);
     }
     function hideCityLoading() {
       cityLoadingEl.style.display = 'none';
     }
     function escapeHTML(s) {
-      return String(s || '')
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#039;');
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
     function shortAddr(a) {
       return a ? `${a.slice(0,6)}...${a.slice(-4)}` : '';
     }
-    // Convert "PixelFan1" -> "Pixel Fan #1"
     function displayFanName(key) {
       if (!key.startsWith('PixelFan')) return key;
       const num = key.slice(8);
       return `Art #${num}`;
     }
-    // For now, X link goes to NFTFAN community main account
     function fanToXLink(key) {
       const display = displayFanName(key);
       return {
@@ -542,18 +588,12 @@
     async function switchToPolygon() {
       if (!window.ethereum) return false;
       try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: POLYGON_PARAMS.chainId }]
-        });
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_PARAMS.chainId }] });
         return true;
       } catch (e) {
         if (e.code === 4902) {
           try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [POLYGON_PARAMS]
-            });
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
             return true;
           } catch {
             setStatus('Failed to add Polygon network.', 'error');
@@ -580,9 +620,10 @@
         connectBtn.innerHTML = '<span class="material-icons">check_circle</span><span>Connected</span>';
         walletEl.textContent = shortAddr(userAddress);
         walletEl.style.display = 'inline-block';
-        setStatus('Wallet connected. Choose a card to mint.', 'success');
+        setStatus('Wallet connected.', 'success');
         updateMintButtonState();
         updateCountsAndLeaderboard();
+        updateFanTalkEligibility();
         if (window.ethereum?.on) {
           window.ethereum.removeListener?.('accountsChanged', onAccountsChanged);
           window.ethereum.on('accountsChanged', onAccountsChanged);
@@ -606,6 +647,7 @@
       }
       updateMintButtonState();
       updateCountsAndLeaderboard();
+      updateFanTalkEligibility();
     }
     function isKeyMinted(key) {
       if (!key) return false;
@@ -615,7 +657,6 @@
     function selectByIndex(idx) {
       selectedIndex = idx;
       selectedKey = generatedCards[idx]?.key || '';
-      // Update visual selection
       document.querySelectorAll('.image-card').forEach((card, i) => {
         card.classList.toggle('selected', i === idx);
       });
@@ -623,15 +664,12 @@
         const taken = isKeyMinted(selectedKey);
         const label = displayFanName(selectedKey);
         selectionPill.style.display = 'inline-flex';
-        selectionPill.innerHTML =
-          `<span class="material-icons">alternate_email</span>` +
-          `<span>${escapeHTML(label)}</span>` +
-          `<span style="color:${taken ? '#ff4b4b' : '#eebd6e'};">${taken ? 'Taken' : 'Available'}</span>`;
+        selectionPill.innerHTML = `<span class="material-icons">alternate_email</span><span>${escapeHTML(label)}</span><span style="color:${taken ? '#ff4b4b' : '#eebd6e'};">${taken ? 'Taken' : 'Available'}</span>`;
       } else {
         selectionPill.style.display = 'none';
       }
       updateMintButtonState();
-      renderImageGrid(); // refresh minted/taken overlay
+      renderImageGrid();
     }
     function updateNameColorState() {
       nameColor = nameColorInput.value || '#eebd6e';
@@ -643,37 +681,27 @@
       const taken = hasKey && isKeyMinted(selectedKey);
       mintBtn.disabled = !hasWallet || !hasKey || taken;
       if (!hasWallet) {
-        setStatus('Connect wallet, then choose a card from the grid.', '');
+        setStatus('Connect wallet.', '');
       } else if (!hasKey) {
-        setStatus('Choose a card from the grid.', '');
+        setStatus('Choose a card.', '');
       } else if (taken) {
-        setStatus('This card (fan) is already minted.', 'error');
+        setStatus('Already minted.', 'error');
       } else {
-        const label = displayFanName(selectedKey);
-        setStatus(`Ready to mint “${label}” for 1 POL.`, 'success');
+        setStatus('Ready to mint.', 'success');
       }
     }
     async function mintSelectedFan() {
       try {
-        if (!userAddress) {
-          setStatus('Connect wallet first.', 'error');
-          return;
-        }
-        if (!selectedKey) {
-          setStatus('Choose a card first.', 'error');
-          return;
-        }
-        if (isKeyMinted(selectedKey)) {
-          setStatus('This card is already minted.', 'error');
-          return;
-        }
+        if (!userAddress) return setStatus('Connect wallet.', 'error');
+        if (!selectedKey) return setStatus('Choose a card.', 'error');
+        if (isKeyMinted(selectedKey)) return setStatus('Already minted.', 'error');
         const label = displayFanName(selectedKey);
-        setStatus(`Submitting transaction to mint “${label}”…`, 'loading');
+        setStatus(`Minting “${label}”…`, 'loading');
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
         const tokenURI = buildFanTokenURI(selectedKey, nameColor);
         const priceWei = ethers.utils.parseEther(FIXED_MINT_PRICE_POL.toString());
         const tx = await contract.mintWithURI(tokenURI, { value: priceWei });
-        setStatus('Waiting for confirmation…', 'loading');
+        setStatus('Waiting…', 'loading');
         const receipt = await tx.wait();
         const ev = receipt.events?.find(e => e.event === 'Transfer');
         const mintedTokenId = ev?.args?.tokenId?.toString() || `temp-${Date.now()}`;
@@ -691,22 +719,23 @@
         await writeNftToFirebase(mintedTokenId, fullNftData);
         setStatus(`Minted “${label}”.`, 'success');
         updateMintButtonState();
+        updateFanTalkEligibility();
       } catch (e) {
-        console.error("Minting failed:", e);
-        const msg = e?.data?.message || e?.reason || e?.message || 'Unknown transaction error.';
-        setStatus(`Minting failed: ${msg}`, 'error');
+        console.error(e);
+        const msg = e?.data?.message || e?.reason || e?.message || 'Error.';
+        setStatus(`Failed: ${msg}`, 'error');
       }
     }
     function buildFanTokenURI(key, color) {
       const label = displayFanName(key);
       const metadata = {
-        name: `NFT FAN Community: ${label}`,
-        description: `NFT FAN COMMUNITY FAN role: ${label}.`,
+        name: `${label}`,
+        description: `Fan role: ${label}.`,
         image: buildFanSVG(label, color),
         attributes: [
-          { trait_type: "Community Fan", value: label },
-          { trait_type: "Internal Key", value: key },
-          { trait_type: "Display Color", value: color }
+          { trait_type: "Fan", value: label },
+          { trait_type: "Key", value: key },
+          { trait_type: "Color", value: color }
         ]
       };
       const json = JSON.stringify(metadata);
@@ -719,7 +748,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
           <rect width="800" height="420" fill="#050509"/>
           <rect x="20" y="20" width="760" height="380" fill="none" stroke="${safeColor}" stroke-width="2"/>
-          <text x="40" y="160" fill="${safeColor}" font-size="32" font-family="system-ui">NFT FAN COMMUNITY FAN</text>
           <text x="40" y="240" fill="#ffffff" font-size="60" font-family="system-ui">${safeLabel}</text>
         </svg>
       `;
@@ -730,32 +758,38 @@
         if (!window.firebase) throw new Error("Firebase not loaded");
         fbApp = firebase.initializeApp(firebaseConfig);
         fbDb = firebase.database();
-        // NFTs (fanNames)
         subscribeMintedOnFirebase();
+        subscribeFanTalkOnFirebase();
       } catch (e) {
-        console.error('Firebase init failed', e);
-        setStatus("Could not connect to the database.", "error");
+        console.error(e);
+        setStatus("Database error.", "error");
         initialLoader.classList.add('hidden');
       }
     }
     function subscribeMintedOnFirebase() {
       if (!fbDb) return;
-      allNftsRef = fbDb.ref('fanNames'); // namespace for this app
+      allNftsRef = fbDb.ref('fanNames');
       showCityLoading();
       allNftsRef.once('value', (snapshot) => {
-        snapshot.forEach((child) => {
-          upsertMintedFan(child.key, child.val());
-        });
+        snapshot.forEach((child) => upsertMintedFan(child.key, child.val()));
         initialLoader.classList.add('hidden');
         hideCityLoading();
         allNftsRef.on('child_added', (snap) => upsertMintedFan(snap.key, snap.val()));
         allNftsRef.on('child_changed', (snap) => upsertMintedFan(snap.key, snap.val()));
         allNftsRef.on('child_removed', (snap) => removeMintedFan(snap.key, snap.val()));
       }, (err) => {
-        console.error("Firebase read failed:", err);
-        setStatus("Cannot read fan data.", "error");
+        console.error(err);
+        setStatus("Data error.", "error");
         initialLoader.classList.add('hidden');
         hideCityLoading();
+      });
+    }
+    function subscribeFanTalkOnFirebase() {
+      if (!fbDb) return;
+      fanTalkRef = fbDb.ref('fanTalk');
+      fanTalkRef.on('child_added', (snap) => {
+        const msg = snap.val();
+        if (msg) addMessageToList(msg);
       });
     }
     function upsertMintedFan(tokenId, data) {
@@ -781,6 +815,7 @@
         const idx = generatedCards.findIndex(c => c.key === selectedKey);
         if (idx !== -1) selectByIndex(idx);
       }
+      updateFanTalkEligibility();
     }
     function removeMintedFan(tokenId, data) {
       if (!data || !data.meta) return;
@@ -790,10 +825,61 @@
       updateCountsAndLeaderboard();
       renderUsernamesTable();
       renderImageGrid();
+      updateFanTalkEligibility();
     }
     async function writeNftToFirebase(tokenId, fullNftData) {
       if (!fbDb) return;
       await fbDb.ref(`fanNames/${tokenId}`).set(fullNftData);
+    }
+    function getOwnedArts() {
+      if (!userAddress) return [];
+      const me = userAddress.toLowerCase();
+      return Array.from(nameDataByKey.values()).filter(d => d.owner === me).map(d => d.fan_key);
+    }
+    function updateFanTalkEligibility() {
+      const owned = getOwnedArts();
+      if (owned.length > 0 && userAddress) {
+        fanTalkInput.style.display = 'flex';
+      } else {
+        fanTalkInput.style.display = 'none';
+      }
+    }
+    async function postMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return setFanTalkStatus('Empty message.', 'error');
+      const owned = getOwnedArts();
+      if (owned.length === 0) return setFanTalkStatus('Mint to join.', 'error');
+      const artKey = owned[0]; // Pick first owned art
+      try {
+        await fanTalkRef.push({
+          sender: userAddress.toLowerCase(),
+          message: text,
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+          artKey: artKey
+        });
+        messageInput.value = '';
+        setFanTalkStatus('Posted.', 'success');
+      } catch (e) {
+        console.error(e);
+        setFanTalkStatus('Post failed.', 'error');
+      }
+    }
+    function addMessageToList(msg) {
+      const div = document.createElement('div');
+      div.className = 'message-item';
+      const num = parseInt(msg.artKey.slice(8)) || 1;
+      const url = generatePixelArt(num);
+      const ts = new Date(msg.timestamp).toLocaleString();
+      div.innerHTML = `
+        <div class="message-avatar"><img src="${escapeHTML(url)}" alt="Avatar" /></div>
+        <div class="message-content">
+          <div class="message-sender">${shortAddr(msg.sender)}</div>
+          <div class="message-text">${escapeHTML(msg.message)}</div>
+          <div class="message-timestamp">${ts}</div>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      messagesList.scrollTop = messagesList.scrollHeight;
     }
     function updateCountsAndLeaderboard() {
       let myOwnedCount = 0;
@@ -807,30 +893,25 @@
       }
       if (myOwnedCount > 0) {
         ownedCountPill.style.display = 'inline-flex';
-        ownedCountPill.innerHTML =
-          `<span class="material-icons">verified</span><span>You own ${myOwnedCount}</span>`;
+        ownedCountPill.innerHTML = `<span class="material-icons">verified</span><span>You own ${myOwnedCount}</span>`;
       } else {
         ownedCountPill.style.display = 'none';
       }
       const totalMinted = nameDataByKey.size;
       mintedCountPill.style.display = 'inline-flex';
-      mintedCountPill.innerHTML =
-        `<span class="material-icons">people</span><span>Total ${totalMinted}</span>`;
+      mintedCountPill.innerHTML = `<span class="material-icons">people</span><span>Total ${totalMinted}</span>`;
       for (const data of nameDataByKey.values()) {
         if (!data.owner) continue;
         ownerCounts[data.owner] = (ownerCounts[data.owner] || 0) + 1;
         ownerValues[data.owner] = (ownerValues[data.owner] || 0) + (data.mintPricePol || FIXED_MINT_PRICE_POL);
       }
-      const sorted = Object.entries(ownerCounts)
-        .map(([owner, count]) => ({ owner, count, value: ownerValues[owner] }))
-        .sort((a, b) => b.count - a.count || b.value - a.value);
+      const sorted = Object.entries(ownerCounts).map(([owner, count]) => ({ owner, count, value: ownerValues[owner] })).sort((a, b) => b.count - a.count || b.value - a.value);
       renderLeaderboard(sorted.slice(0, 20));
     }
     function renderLeaderboard(list) {
       leaderboardBody.innerHTML = '';
       if (list.length === 0) {
-        leaderboardBody.innerHTML =
-          '<tr><td colspan="4" style="padding:6px;color:#9b7f4a;">No fans minted yet.</td></tr>';
+        leaderboardBody.innerHTML = '<tr><td colspan="4" style="padding:6px;color:#9b7f4a;">None yet.</td></tr>';
         return;
       }
       list.forEach((entry, idx) => {
@@ -847,24 +928,16 @@
     function renderUsernamesTable() {
       usernamesBody.innerHTML = '';
       if (nameDataByKey.size === 0) {
-        usernamesBody.innerHTML =
-          '<tr><td colspan="3" style="padding:6px;color:#9b7f4a;">No community fans minted yet.</td></tr>';
+        usernamesBody.innerHTML = '<tr><td colspan="3" style="padding:6px;color:#9b7f4a;">None yet.</td></tr>';
         return;
       }
-      const list = Array.from(nameDataByKey.values())
-        .sort((a, b) => b.createdAt - a.createdAt);
+      const list = Array.from(nameDataByKey.values()).sort((a, b) => b.createdAt - a.createdAt);
       for (const data of list) {
         const label = displayFanName(data.fan_key);
-        const { url } = fanToXLink(data.fan_key);
         const color = data.nameColor || '#eebd6e';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>
-            <a href="${url}" target="_blank" rel="noopener noreferrer"
-               class="username-link" style="color:${color};">
-              ${escapeHTML(label)}
-            </a>
-          </td>
+          <td style="color:${color};">${escapeHTML(label)}</td>
           <td>${shortAddr(data.owner)}</td>
           <td class="right">${(data.mintPricePol || FIXED_MINT_PRICE_POL).toFixed(2)}</td>
         `;
@@ -881,16 +954,13 @@
         currentSeed = (currentSeed * 9301 + 49297) % 233280;
         return currentSeed / 233280;
       }
-      // Background
       ctx.fillStyle = `hsl(${Math.floor(srand() * 360)}, ${Math.floor(50 + srand() * 50)}%, ${Math.floor(30 + srand() * 40)}%)`;
       ctx.fillRect(0, 0, 32, 32);
-      // Body (oval head)
       const bodyColor = `hsl(${Math.floor(srand() * 360)}, ${Math.floor(50 + srand() * 50)}%, ${Math.floor(40 + srand() * 40)}%)`;
       ctx.fillStyle = bodyColor;
       ctx.beginPath();
       ctx.ellipse(16, 16, 12, 14, 0, 0, 2 * Math.PI);
       ctx.fill();
-      // Eyes
       const eyeColor = `hsl(${Math.floor(srand() * 360)}, ${Math.floor(50 + srand() * 50)}%, ${Math.floor(20 + srand() * 40)}%)`;
       ctx.fillStyle = eyeColor;
       const eyeOffsetX = 6 + Math.floor(srand() * 4);
@@ -898,30 +968,27 @@
       const eyeSize = 2 + Math.floor(srand() * 3);
       ctx.fillRect(16 - eyeOffsetX - eyeSize / 2, eyeY, eyeSize, eyeSize);
       ctx.fillRect(16 + eyeOffsetX - eyeSize / 2, eyeY, eyeSize, eyeSize);
-      // Mouth
       const mouthType = Math.floor(srand() * 3);
       ctx.fillStyle = `hsl(${Math.floor(srand() * 360)}, ${Math.floor(50 + srand() * 50)}%, ${Math.floor(20 + srand() * 20)}%)`;
-      if (mouthType === 0) { // Smile
+      if (mouthType === 0) {
         ctx.beginPath();
         ctx.arc(16, 22, 6, 0, Math.PI);
         ctx.lineWidth = 2;
         ctx.stroke();
-      } else if (mouthType === 1) { // Straight
+      } else if (mouthType === 1) {
         ctx.fillRect(12, 22, 8, 2);
-      } else { // Frown
+      } else {
         ctx.beginPath();
         ctx.arc(16, 26, 6, Math.PI, 2 * Math.PI);
         ctx.lineWidth = 2;
         ctx.stroke();
       }
-      // Optional hat
       if (srand() > 0.5) {
         const hatColor = `hsl(${Math.floor(srand() * 360)}, ${Math.floor(50 + srand() * 50)}%, ${Math.floor(30 + srand() * 40)}%)`;
         ctx.fillStyle = hatColor;
         ctx.fillRect(10, 4, 12, 4);
         ctx.fillRect(12, 2, 8, 2);
       }
-      // Optional ears
       if (srand() > 0.5) {
         ctx.fillStyle = bodyColor;
         ctx.beginPath();
@@ -946,11 +1013,6 @@
     }
     function renderImageGrid() {
       imageGrid.innerHTML = '';
-      if (generatedCards.length === 0) {
-        noImagesNote.style.display = 'inline';
-        return;
-      }
-      noImagesNote.style.display = 'none';
       generatedCards.forEach((cardData, i) => {
         const { key, label, url } = cardData;
         const lower = key.toLowerCase();
@@ -966,9 +1028,7 @@
           <img src="${safeUrl}" alt="${escapeHTML(label)}" loading="lazy" />
           <div class="image-card-footer">
             <div class="image-card-status ${minted ? 'taken' : 'available'}">
-              <span class="material-icons" style="font-size:10px;">
-                ${minted ? 'lock' : 'rocket_launch'}
-              </span>
+              <span class="material-icons" style="font-size:10px;">${minted ? 'lock' : 'rocket_launch'}</span>
               <span>${minted ? 'Taken' : 'Available'}</span>
             </div>
             <div class="image-card-index">${label}</div>
@@ -987,15 +1047,13 @@
       selectedIndex = null;
       selectionPill.style.display = 'none';
       document.querySelectorAll('.image-card').forEach(card => card.classList.remove('selected'));
-      setStatus('Selection cleared. Choose a card from the grid.', '');
+      setStatus('Choose a card.', '');
       updateMintButtonState();
     }
-    // Events
     connectBtn.addEventListener('click', connectWallet);
     mintBtn.addEventListener('click', mintSelectedFan);
     clearBtn.addEventListener('click', clearSelection);
     refreshBtn.addEventListener('click', () => {
-      setStatus('Data refresh is automatic from Firebase.', '');
       renderImageGrid();
     });
     nameColorInput.addEventListener('input', updateNameColorState);
@@ -1004,10 +1062,11 @@
         loadMore(10);
       }
     });
+    postMessageBtn.addEventListener('click', postMessage);
     window.addEventListener('DOMContentLoaded', () => {
       initFirebase();
       loadMore(20);
-      setStatus('Connect wallet and choose a card to mint.', '');
+      setStatus('Connect wallet.', '');
     });
   </script>
 </body>
