@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFT FAN – Image URL Uploader</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #050509;
+      --panel: #111119;
+      --border: #24242f;
+      --text: #eebd6e;
+      --muted: #9b7f4a;
+      --accent: #eebd6e;
+      --error: #ff4b4b;
+      --success: #7ed957;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 10px;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    #app-container {
+      width: 100%;
+      max-width: 720px;
+      padding: 8px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .logo .material-icons {
+      font-size: 10px;
+      color: var(--text);
+    }
+
+    .title-main { font-size: 10px; font-weight: 600; }
+    .title-sub { font-size: 9px; color: var(--muted); }
+
+    .pill {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 3px 6px;
+      font-size: 9px;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pill .material-icons { font-size: 10px; }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header-title { font-size: 9px; font-weight: 600; }
+
+    .row { display: flex; flex-direction: column; gap: 6px; }
+    .row.inline { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+    label {
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: #090910;
+      padding: 4px 6px;
+      font-size: 9px;
+      color: var(--text);
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #14141c;
+      color: var(--text);
+      font-size: 9px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    button .material-icons { font-size: 10px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      font-size: 9px;
+      padding: 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .status.success { color: var(--success); border-color: var(--success); }
+    .status.error { color: var(--error); border-color: var(--error); }
+    .status.loading { gap: 4px; }
+
+    .spinner {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-left-color: var(--text);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tag {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      font-size: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--muted);
+    }
+    .tag .material-icons { font-size: 10px; }
+
+    /* Gallery */
+    #galleryContainer {
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      padding: 4px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+    @media (max-width: 600px) {
+      .image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .image-card {
+      border-radius: 4px;
+      overflow: hidden;
+      background: #090910;
+      border: 1px solid #1b1b25;
+      font-size: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+    .image-card img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+    }
+    .image-card-footer {
+      padding: 3px 4px 4px;
+      border-top: 1px solid #1b1b25;
+      color: var(--muted);
+      word-break: break-all;
+    }
+    .image-card-footer a {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .image-card-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <header>
+      <div class="brand">
+        <div class="logo"><span class="material-icons">image</span></div>
+        <div>
+          <div class="title-main">NFT FAN – Firebase Image URL Uploader</div>
+          <div class="title-sub">Post image URLs (e.g. Twitter media) into Firebase</div>
+        </div>
+      </div>
+      <span class="pill">
+        <span class="material-icons">cloud</span>
+        <span>Realtime Database</span>
+      </span>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">Add new image URL</div>
+        </div>
+
+        <div class="row">
+          <div class="tag">
+            <span class="material-icons">info</span>
+            <span>Paste an image URL (for example: https://pbs.twimg.com/media/...), then click “Save to Firebase”.</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="urlInput">Image URL</label>
+          <input
+            id="urlInput"
+            type="text"
+            placeholder="https://pbs.twimg.com/media/G5zd-Z5XEAA--WP?format=jpg&name=medium"
+          />
+        </div>
+
+        <div class="row inline">
+          <button id="saveBtn">
+            <span class="material-icons">save</span>
+            <span>Save to Firebase</span>
+          </button>
+          <button id="prefillBtn">
+            <span class="material-icons">content_paste</span>
+            <span>Use example URL</span>
+          </button>
+        </div>
+
+        <div id="status" class="status">
+          Paste an image URL and click “Save to Firebase”.
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">Saved image URLs (live from Firebase)</div>
+        </div>
+        <div id="galleryContainer">
+          <div id="imageGrid" class="image-grid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Firebase config – same project you used before
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+
+    let fbApp, fbDb, imagesRef;
+    const statusEl = document.getElementById('status');
+    const urlInput = document.getElementById('urlInput');
+    const saveBtn = document.getElementById('saveBtn');
+    const prefillBtn = document.getElementById('prefillBtn');
+    const imageGrid = document.getElementById('imageGrid');
+
+    function setStatus(msg, type = '') {
+      statusEl.className = 'status';
+      if (type === 'success') statusEl.classList.add('success');
+      if (type === 'error') statusEl.classList.add('error');
+      if (type === 'loading') {
+        statusEl.classList.add('loading');
+        statusEl.innerHTML = '<span class="spinner"></span><span>' + msg + '</span>';
+      } else {
+        statusEl.textContent = msg;
+      }
+    }
+
+    function escapeHTML(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+    }
+
+    function isProbablyUrl(s) {
+      return /^https?:\/\/\S+$/i.test(s || '');
+    }
+
+    function initFirebase() {
+      try {
+        fbApp = firebase.initializeApp(firebaseConfig);
+        fbDb = firebase.database();
+        imagesRef = fbDb.ref('imageUrls'); // new node: imageUrls
+
+        // Subscribe to updates
+        imagesRef.on('value', (snapshot) => {
+          const data = snapshot.val() || {};
+          renderImages(data);
+        }, (err) => {
+          console.error('Firebase read error', err);
+          setStatus('Error reading from Firebase.', 'error');
+        });
+
+        setStatus('Firebase ready. Paste an image URL and click “Save to Firebase”.');
+      } catch (e) {
+        console.error('Firebase init failed', e);
+        setStatus('Could not initialize Firebase.', 'error');
+      }
+    }
+
+    function renderImages(dataObj) {
+      imageGrid.innerHTML = '';
+      const entries = Object.entries(dataObj)
+        .sort((a, b) => (b[1].created_at || 0) - (a[1].created_at || 0));
+
+      if (entries.length === 0) {
+        imageGrid.innerHTML = '<div style="font-size:9px;color:#9b7f4a;">No image URLs saved yet.</div>';
+        return;
+      }
+
+      for (const [key, value] of entries) {
+        const url = value.url || '';
+        const createdAt = value.created_at || 0;
+        const date = createdAt ? new Date(createdAt * 1000).toLocaleString() : '';
+
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        card.innerHTML = `
+          <img src="${escapeHTML(url)}" alt="Saved image" loading="lazy" />
+          <div class="image-card-footer">
+            <div style="margin-bottom:2px;">
+              <a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(url)}</a>
+            </div>
+            <div style="opacity:0.7;">${escapeHTML(date)}</div>
+          </div>
+        `;
+        imageGrid.appendChild(card);
+      }
+    }
+
+    async function saveUrl() {
+      const url = urlInput.value.trim();
+      if (!url) {
+        setStatus('Please paste an image URL.', 'error');
+        return;
+      }
+      if (!isProbablyUrl(url)) {
+        setStatus('This does not look like a valid URL.', 'error');
+        return;
+      }
+      if (!fbDb || !imagesRef) {
+        setStatus('Firebase is not ready yet.', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Saving URL to Firebase…', 'loading');
+        const now = Math.floor(Date.now() / 1000);
+        const newRef = imagesRef.push();
+        await newRef.set({
+          url,
+          created_at: now
+        });
+        setStatus('URL saved to Firebase.', 'success');
+        urlInput.value = '';
+      } catch (e) {
+        console.error('Save error', e);
+        setStatus('Failed to save URL to Firebase.', 'error');
+      }
+    }
+
+    saveBtn.addEventListener('click', saveUrl);
+    prefillBtn.addEventListener('click', () => {
+      urlInput.value = 'https://pbs.twimg.com/media/G5zd-Z5XEAA--WP?format=jpg&name=medium';
+      setStatus('Example URL filled. Click “Save to Firebase” to store it.', '');
+    });
+
+    window.addEventListener('DOMContentLoaded', initFirebase);
+  </script>
+</body>
+</html>
