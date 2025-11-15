@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFTFAN – Applications & Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f0f12;
+      --surface:#17171c;
+      --surface-2:#1d1d23;
+      --card:#16161b;
+      --text:#e6e6ea;
+      --muted:#8e8e98;
+      --border:#2a2a33;
+      --accent:#e4ae64;
+      --success:#74c690;
+      --danger:#f06d6d;
+      --radius:12px;
+      --shadow:0 6px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html, body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#0d0d10 0%,#0f0f12 60%) fixed;
+      color:var(--text);
+      font:400 11px/1.4 var(--font);
+    }
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:40;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:44px;
+      padding:0 12px;
+      background:rgba(15,15,18,.9);
+      backdrop-filter:saturate(140%) blur(10px);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar__title{
+      font-weight:800;
+      letter-spacing:.4px;
+      font-size:14px;
+      color:var(--text);
+      user-select:none;
+    }
+    .container{max-width:1040px; margin:14px auto 18px; padding:0 10px}
+    .layout{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:14px;
+    }
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr}
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .hero{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      background:linear-gradient(135deg,#2f281b 0%,#e4ae64 35%,#43321c 100%);
+      color:#1b130a;
+      border-color:#d6a055;
+    }
+    .hero__left{display:flex;align-items:center;gap:10px}
+    .hero__icon .square{
+      width:30px;
+      height:30px;
+      border-radius:7px;
+      background:#fff2db;
+      display:grid;
+      place-items:center;
+    }
+    .square__bar{
+      display:block;
+      width:12px;
+      height:3px;
+      background:#1b130a;
+      border-radius:2px;
+    }
+    .hero__title{font-weight:800;font-size:13px}
+    .hero__caption{color:#2a2116;font-size:11px}
+    .hero__pill{
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.18);
+      font-size:10px;
+      background:rgba(0,0,0,.06);
+      white-space:nowrap;
+    }
+
+    .section-title{margin:0;font-size:11px;font-weight:700}
+    .muted{color:var(--muted)}
+    .small{font-size:10px}
+    .badge{
+      padding:2px 6px;
+      border-radius:999px;
+      border:1px solid currentColor;
+      font-size:10px;
+      white-space:nowrap;
+    }
+    .badge--accepted{color:var(--success)}
+    .badge--rejected{color:var(--danger)}
+    .badge--verifying{color:var(--accent)}
+    .pill{
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:9px;
+      background:var(--surface-2);
+      border:1px solid var(--border);
+      color:var(--muted);
+    }
+
+    /* Compact tables */
+    .table-card{padding:8px 10px 9px;display:flex;flex-direction:column;gap:6px}
+    .table-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+    }
+    .table-header-left{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+    .table-title{font-size:11px;font-weight:700;margin:0;white-space:nowrap}
+    .divider-dot{
+      width:3px;height:3px;border-radius:50%;background:var(--border);
+    }
+    .table-header-right{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:9px;
+      color:var(--muted);
+    }
+    .summary-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:9px;
+      color:var(--muted);
+      padding:2px 0 3px;
+    }
+    .summary-row span strong{color:var(--text);font-weight:600}
+
+    .table-wrap{
+      border-radius:9px;
+      border:1px solid var(--border);
+      background:var(--surface);
+      overflow:hidden;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:10px;
+    }
+    thead{
+      background:var(--surface-2);
+    }
+    th, td{
+      padding:5px 7px;
+      text-align:left;
+      border-bottom:1px solid #15151a;
+      white-space:nowrap;
+    }
+    th:first-child, td:first-child{padding-left:8px}
+    th:last-child, td:last-child{padding-right:8px}
+    th{
+      font-weight:600;
+      color:var(--muted);
+      font-size:10px;
+    }
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:nth-child(even){background:#17171e}
+    tbody tr:hover{background:#1c1c24}
+
+    .username-link{
+      color:var(--text);
+      text-decoration:none;
+      max-width:150px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:inline-block;
+      vertical-align:bottom;
+    }
+    .username-link:hover{text-decoration:underline}
+    .status-chip{
+      padding:2px 6px;
+      border-radius:999px;
+      border:1px solid;
+      font-size:9px;
+    }
+    .status-chip--accepted{
+      border-color:rgba(116,198,144,.32);
+      color:var(--success);
+      background:rgba(116,198,144,.08);
+    }
+    .status-chip--rejected{
+      border-color:rgba(240,109,109,.38);
+      color:var(--danger);
+      background:rgba(240,109,109,.08);
+    }
+    .status-chip--verifying{
+      border-color:rgba(228,174,100,.38);
+      color:var(--accent);
+      background:rgba(228,174,100,.08);
+    }
+    .chip{
+      padding:1px 6px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:9px;
+      color:var(--muted);
+      background:var(--surface-2);
+    }
+    .chip--type1{color:#9fc6ff;border-color:#2a3550;background:#151b28}
+    .chip--type2{color:#ffddb0;border-color:#4a3720;background:#261a11}
+    .chip--type3{color:#c3b7ff;border-color:#3d305f;background:#1c162b}
+
+    .scroll-wrap{
+      max-height:380px;
+      overflow:auto;
+    }
+    .scroll-wrap::-webkit-scrollbar{width:6px;height:6px}
+    .scroll-wrap::-webkit-scrollbar-track{background:#111}
+    .scroll-wrap::-webkit-scrollbar-thumb{background:#333;border-radius:999px}
+
+    .stat-card{
+      padding:8px 9px 9px;
+      display:grid;
+      gap:7px;
+    }
+    .stat-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:6px;
+      font-size:10px;
+    }
+    .stat-item{
+      padding:6px 7px;
+      border-radius:8px;
+      background:var(--surface-2);
+      border:1px solid var(--border);
+    }
+    .stat-label{
+      font-size:9px;
+      color:var(--muted);
+      margin-bottom:2px;
+    }
+    .stat-value{
+      font-size:11px;
+      font-weight:700;
+    }
+    .stat-sub{font-size:9px;color:var(--muted)}
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      font-size:9px;
+      color:var(--muted);
+    }
+    .dot{
+      width:6px;height:6px;border-radius:50%;margin-right:4px;
+      display:inline-block;
+    }
+    .dot--accepted{background:var(--success)}
+    .dot--rejected{background:var(--danger)}
+    .dot--verifying{background:var(--accent)}
+
+    .note{
+      font-size:9px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+    .empty-row td{
+      padding:8px 7px;
+      color:var(--muted);
+      font-size:10px;
+    }
+
+    /* Leaderboard */
+    .leaderboard-card{
+      margin-top:12px;
+      padding:8px 10px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .leaderboard-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+    }
+    .leaderboard-title{
+      font-size:11px;
+      font-weight:700;
+      margin:0;
+    }
+    .leaderboard-sub{
+      font-size:9px;
+      color:var(--muted);
+    }
+    .leaderboard-wrap{
+      border-radius:9px;
+      border:1px solid var(--border);
+      background:var(--surface);
+      overflow:hidden;
+    }
+    .leaderboard-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:10px;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td{
+      padding:5px 7px;
+      text-align:left;
+      border-bottom:1px solid #15151a;
+      white-space:nowrap;
+    }
+    .leaderboard-table thead{
+      background:var(--surface-2);
+    }
+    .leaderboard-table tbody tr:last-child td{border-bottom:none}
+    .leaderboard-table tbody tr:nth-child(even){background:#17171e}
+    .leaderboard-table tbody tr:hover{background:#1c1c24}
+    .rank-pill{
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:9px;
+      border:1px solid var(--border);
+      background:var(--surface-2);
+      min-width:20px;
+      text-align:center;
+    }
+    .rank-1{border-color:#f5e08f;background:#3b2c11;color:#ffeaaa}
+    .rank-2{border-color:#c7d5f2;background:#222838;color:#e1ebff}
+    .rank-3{border-color:#f1c2a5;background:#352017;color:#ffe0c8}
+    .username-compact{
+      max-width:140px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:inline-block;
+      vertical-align:bottom;
+    }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar__title">NFTFAN</div>
+</header>
+
+<main class="container">
+  <section class="hero card">
+    <div class="hero__left">
+      <div class="hero__icon">
+        <div class="square"><span class="square__bar"></span></div>
+      </div>
+      <div>
+        <div class="hero__title">Applications & Results</div>
+        <div class="hero__caption">All submitted X applications, statuses, and top earners in $NFTFAN.</div>
+      </div>
+    </div>
+    <div class="hero__pill">
+      1 accepted application = 1,000,000,000,000 $NFTFAN
+    </div>
+  </section>
+
+  <div class="layout">
+    <!-- LEFT: Tweet Promotion Program -->
+    <section class="card table-card">
+      <header class="table-header">
+        <div class="table-header-left">
+          <h2 class="table-title">Tweet Promotion Program</h2>
+          <span class="divider-dot"></span>
+          <span class="chip chip--type1">Public X Posts</span>
+        </div>
+        <div class="table-header-right">
+          <span id="summary1Total">0 total</span>
+          <span>·</span>
+          <span id="summary1Accepted">0 accepted</span>
+          <span>·</span>
+          <span id="summary1Rejected">0 rejected</span>
+        </div>
+      </header>
+      <div class="summary-row">
+        <span>Showing <strong>clickable X usernames</strong> only.</span>
+        <span>Original tweet URLs are hidden to keep the table compact.</span>
+      </div>
+      <div class="table-wrap">
+        <div class="scroll-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40%">Username</th>
+                <th style="width:20%">Status</th>
+                <th style="width:22%">Type</th>
+                <th style="width:18%">Submitted</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyProgram1">
+              <tr class="empty-row">
+                <td colspan="4">No applications yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="note">
+        Usernames are parsed from tweet URLs when possible. Status changes update in real time.
+      </div>
+    </section>
+
+    <!-- RIGHT: Community + Stats -->
+    <div class="right-column">
+      <!-- X Community program -->
+      <section class="card table-card" style="margin-bottom:10px">
+        <header class="table-header">
+          <div class="table-header-left">
+            <h2 class="table-title">X Community Posting</h2>
+            <span class="divider-dot"></span>
+            <span class="chip chip--type2">NFTFAN Community</span>
+          </div>
+          <div class="table-header-right">
+            <span id="summary2Total">0 total</span>
+            <span>·</span>
+            <span id="summary2Accepted">0 accepted</span>
+            <span>·</span>
+            <span id="summary2Rejected">0 rejected</span>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <div class="scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:45%">Username</th>
+                  <th style="width:25%">Status</th>
+                  <th style="width:30%">Submitted</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyProgram2">
+                <tr class="empty-row">
+                  <td colspan="3">No community posts yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats / distribution -->
+      <section class="card stat-card">
+        <header class="table-header" style="margin-bottom:2px">
+          <div class="table-header-left">
+            <h2 class="table-title">Review Overview</h2>
+            <span class="divider-dot"></span>
+            <span class="chip chip--type3">All Programs</span>
+          </div>
+        </header>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-label">Total Applications</div>
+            <div class="stat-value" id="statTotalApps">0</div>
+            <div class="stat-sub" id="statTotalSplit">0 promo · 0 community</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Accepted</div>
+            <div class="stat-value" id="statAccepted">0</div>
+            <div class="stat-sub" id="statAcceptedPct">0% of all</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value" id="statRejected">0</div>
+            <div class="stat-sub" id="statRejectedPct">0% of all</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="dot dot--accepted"></span>Accepted</span>
+          <span><span class="dot dot--rejected"></span>Rejected</span>
+          <span><span class="dot dot--verifying"></span>Verifying</span>
+        </div>
+        <div class="note">
+          Earnings in leaderboard are based on accepted applications only.
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <section class="card leaderboard-card">
+    <header class="leaderboard-header">
+      <h2 class="leaderboard-title">Top Earners Leaderboard</h2>
+      <div class="leaderboard-sub">
+        1 accepted application = <strong>1,000,000,000,000 $NFTFAN</strong>
+      </div>
+    </header>
+    <div class="leaderboard-wrap">
+      <div class="scroll-wrap" style="max-height:260px;">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th style="width:12%">Rank</th>
+              <th style="width:40%">Username</th>
+              <th style="width:18%">Accepted</th>
+              <th style="width:30%">Earnings ($NFTFAN)</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyLeaderboard">
+            <tr class="empty-row">
+              <td colspan="4">No accepted applications yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="note">
+      Leaderboard merges all programs. If a user has multiple accepted applications, their earnings stack.
+    </div>
+  </section>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+    authDomain: "newnft-47bd7.firebaseapp.com",
+    databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+    projectId: "newnft-47bd7",
+    storageBucket: "newnft-47bd7.firebasestorage.app",
+    messagingSenderId: "172043823738",
+    appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+    measurementId: "G-8VB3DYRNXR"
+  };
+
+  const NFTFAN_PER_ACCEPT = 1_000_000_000_000; // 1 Trillion $NFTFAN per accepted application
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const tbodyProgram1 = document.getElementById("tbodyProgram1");
+  const tbodyProgram2 = document.getElementById("tbodyProgram2");
+  const tbodyLeaderboard = document.getElementById("tbodyLeaderboard");
+
+  const summary1Total = document.getElementById("summary1Total");
+  const summary1Accepted = document.getElementById("summary1Accepted");
+  const summary1Rejected = document.getElementById("summary1Rejected");
+
+  const summary2Total = document.getElementById("summary2Total");
+  const summary2Accepted = document.getElementById("summary2Accepted");
+  const summary2Rejected = document.getElementById("summary2Rejected");
+
+  const statTotalApps = document.getElementById("statTotalApps");
+  const statTotalSplit = document.getElementById("statTotalSplit");
+  const statAccepted = document.getElementById("statAccepted");
+  const statRejected = document.getElementById("statRejected");
+  const statAcceptedPct = document.getElementById("statAcceptedPct");
+  const statRejectedPct = document.getElementById("statRejectedPct");
+
+  function parseUsernameFromUrl(url){
+    try{
+      const u = new URL(url);
+      if (!/x\.com$|twitter\.com$/.test(u.hostname)) return null;
+      const parts = u.pathname.split("/").filter(Boolean);
+      const handle = parts[0];
+      if (!handle) return null;
+      return handle.startsWith("@") ? handle : "@"+handle;
+    }catch{
+      return null;
+    }
+  }
+
+  function formatDateShort(iso){
+    if (!iso) return "—";
+    try{
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined,{month:"short",day:"2-digit"});
+    }catch{
+      return "—";
+    }
+  }
+
+  function statusClass(status){
+    const s = String(status || "").toLowerCase();
+    if (s === "accepted") return "status-chip status-chip--accepted";
+    if (s === "rejected") return "status-chip status-chip--rejected";
+    return "status-chip status-chip--verifying";
+  }
+  function statusLabel(status){
+    return status || "Verifying";
+  }
+
+  function buildUsernameLink(url){
+    const username = parseUsernameFromUrl(url) || "unknown";
+    const base = "https://x.com/";
+    const handle = username.replace(/^@/,"");
+    const href = base + encodeURIComponent(handle);
+    return `<a class="username-link" href="${href}" target="_blank" rel="noopener noreferrer">${username}</a>`;
+  }
+
+  function renderProgramTable(tbody, items, includeType = true){
+    if (!items.length){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${includeType?4:3}">No applications yet.</td></tr>`;
+      return;
+    }
+    const rows = items.map(item => {
+      const userLink = buildUsernameLink(item.url || "");
+      const date = formatDateShort(item.submitted_at);
+      const stClass = statusClass(item.status);
+      const stLabel = statusLabel(item.status);
+      const typeCell = includeType ? `<td><span class="pill">Standard Tweet</span></td>` : "";
+      return `
+        <tr>
+          <td>${userLink}</td>
+          <td><span class="${stClass}">${stLabel}</span></td>
+          ${typeCell}
+          <td>${date}</td>
+        </tr>
+      `;
+    }).join("");
+    tbody.innerHTML = rows;
+  }
+
+  function computeSummary(items){
+    const total = items.length;
+    let acc = 0, rej = 0;
+    for (const it of items){
+      const s = String(it.status || "").toLowerCase();
+      if (s === "accepted") acc++;
+      else if (s === "rejected") rej++;
+    }
+    return { total, acc, rej };
+  }
+
+  function updateStats(all1, all2){
+    const s1 = computeSummary(all1);
+    const s2 = computeSummary(all2);
+    const totalApps = s1.total + s2.total;
+    const totalAcc = s1.acc + s2.acc;
+    const totalRej = s1.rej + s2.rej;
+
+    summary1Total.textContent = `${s1.total} total`;
+    summary1Accepted.textContent = `${s1.acc} accepted`;
+    summary1Rejected.textContent = `${s1.rej} rejected`;
+
+    summary2Total.textContent = `${s2.total} total`;
+    summary2Accepted.textContent = `${s2.acc} accepted`;
+    summary2Rejected.textContent = `${s2.rej} rejected`;
+
+    statTotalApps.textContent = totalApps.toString();
+    statTotalSplit.textContent = `${s1.total} promo · ${s2.total} community`;
+    statAccepted.textContent = totalAcc.toString();
+    statRejected.textContent = totalRej.toString();
+
+    const pctAcc = totalApps ? Math.round((totalAcc/totalApps)*100) : 0;
+    const pctRej = totalApps ? Math.round((totalRej/totalApps)*100) : 0;
+    statAcceptedPct.textContent = `${pctAcc}% of all`;
+    statRejectedPct.textContent = `${pctRej}% of all`;
+  }
+
+  function formatNumber(n){
+    try{
+      return Number(n).toLocaleString("en-US");
+    }catch{
+      return String(n);
+    }
+  }
+
+  function updateLeaderboard(all1, all2){
+    // Merge all accepted submissions across programs and aggregate by username
+    const combined = [...all1, ...all2];
+    const map = new Map(); // username (handle) -> { username, acceptedCount }
+
+    for (const item of combined){
+      const status = String(item.status || "").toLowerCase();
+      if (status !== "accepted") continue;
+      const username = parseUsernameFromUrl(item.url || "");
+      if (!username) continue;
+      const key = username.toLowerCase();
+      if (!map.has(key)){
+        map.set(key, { username, acceptedCount: 0 });
+      }
+      const entry = map.get(key);
+      entry.acceptedCount += 1;
+    }
+
+    const users = Array.from(map.values());
+    if (!users.length){
+      tbodyLeaderboard.innerHTML = `<tr class="empty-row"><td colspan="4">No accepted applications yet.</td></tr>`;
+      return;
+    }
+
+    // Sort by acceptedCount desc, then username asc
+    users.sort((a,b) => {
+      if (b.acceptedCount !== a.acceptedCount) return b.acceptedCount - a.acceptedCount;
+      return a.username.localeCompare(b.username);
+    });
+
+    const rows = users.map((u, idx) => {
+      const rank = idx + 1;
+      const classRank =
+        rank === 1 ? "rank-pill rank-1" :
+        rank === 2 ? "rank-pill rank-2" :
+        rank === 3 ? "rank-pill rank-3" :
+        "rank-pill";
+
+      const handle = u.username.replace(/^@/,"");
+      const profileUrl = `https://x.com/${encodeURIComponent(handle)}`;
+      const earnings = u.acceptedCount * NFTFAN_PER_ACCEPT;
+
+      return `
+        <tr>
+          <td><span class="${classRank}">${rank}</span></td>
+          <td>
+            <a class="username-link username-compact" href="${profileUrl}" target="_blank" rel="noopener noreferrer">
+              ${u.username}
+            </a>
+          </td>
+          <td>${u.acceptedCount}</td>
+          <td>${formatNumber(earnings)} <span style="color:var(--muted);font-size:9px">$NFTFAN</span></td>
+        </tr>
+      `;
+    }).join("");
+
+    tbodyLeaderboard.innerHTML = rows;
+  }
+
+  let cache1 = [];
+  let cache2 = [];
+
+  onValue(ref(db,"submissions"), snap => {
+    const val = snap.val() || {};
+    const items = Object.entries(val).map(([id,v]) => ({ id, ...(v || {}) }));
+    items.sort((a,b) => Date.parse(b.submitted_at || 0) - Date.parse(a.submitted_at || 0));
+    cache1 = items;
+    renderProgramTable(tbodyProgram1, items, true);
+    updateStats(cache1, cache2);
+    updateLeaderboard(cache1, cache2);
+  });
+
+  onValue(ref(db,"submissions_community"), snap => {
+    const val = snap.val() || {};
+    const items = Object.entries(val).map(([id,v]) => ({ id, ...(v || {}) }));
+    items.sort((a,b) => Date.parse(b.submitted_at || 0) - Date.parse(a.submitted_at || 0));
+    cache2 = items;
+    renderProgramTable(tbodyProgram2, items, false);
+    updateStats(cache1, cache2);
+    updateLeaderboard(cache1, cache2);
+  });
+</script>
+</body>
+</html>
