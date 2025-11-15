@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fan Names Minter — NFTFAN Community Fans</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #050509;
+      --panel: #111119;
+      --border: #24242f;
+      --text: #eebd6e;
+      --muted: #9b7f4a;
+      --accent: #eebd6e;
+      --error: #ff4b4b;
+      --success: #7ed957;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 10px;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    #app-container {
+      width: 100%;
+      max-width: 860px;
+      padding: 8px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .logo .material-icons {
+      font-size: 10px;
+      color: var(--text);
+    }
+
+    .title-main { font-size: 10px; font-weight: 600; }
+    .title-sub { font-size: 9px; color: var(--muted); }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 3px 6px;
+      font-size: 9px;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pill .material-icons { font-size: 10px; }
+
+    button {
+      border: 1px solid var(--border);
+      background: #14141c;
+      color: var(--text);
+      font-size: 9px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    button .material-icons { font-size: 10px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .wallet {
+      font-size: 9px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1.1fr 1.2fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 720px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header-title { font-size: 9px; font-weight: 600; }
+
+    .row { display: flex; flex-direction: column; gap: 6px; }
+    .row.inline { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+    .status {
+      font-size: 9px;
+      padding: 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .status.success { color: var(--success); border-color: var(--success); }
+    .status.error { color: var(--error); border-color: var(--error); }
+    .status.loading { gap: 4px; }
+
+    .spinner {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-left-color: var(--text);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tag {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      font-size: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--muted);
+    }
+    .tag .material-icons { font-size: 10px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 4px 3px;
+      text-align: left;
+    }
+
+    th { color: var(--muted); font-weight: 500; }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: #15151f; }
+
+    .rank-col { width: 20px; text-align: center; }
+    .right { text-align: right; }
+
+    #initial-loader {
+      position: fixed;
+      inset: 0;
+      background: #050509;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      z-index: 9999;
+    }
+    #initial-loader.hidden { display: none; }
+
+    #cityLoading {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111119;
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 3px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+    }
+    #cityLoading .spinner {
+      width: 8px;
+      height: 8px;
+      border-width: 1.5px;
+    }
+    #cityLoading .material-icons { font-size: 10px; }
+
+    a.username-link {
+      color: inherit;
+      text-decoration: none;
+    }
+    a.username-link:hover { text-decoration: underline; }
+
+    .name-color-input {
+      width: 40px;
+      height: 16px;
+      padding: 0;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: #090910;
+    }
+  </style>
+</head>
+<body>
+  <div id="initial-loader">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div class="spinner"></div>
+      <div>Loading NFT FAN COMMUNITY FANS…</div>
+    </div>
+  </div>
+
+  <div id="app-container">
+    <header>
+      <div class="brand">
+        <div class="logo"><span class="material-icons">alternate_email</span></div>
+        <div>
+          <div class="title-main">NFT FAN Community Fans</div>
+          <div class="title-sub">Mint predefined “Fan” roles on Polygon</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="pill">
+          <span class="material-icons">paid</span>
+          <span>Price: 1 POL</span>
+        </span>
+        <button id="connectBtn">
+          <span class="material-icons">account_balance_wallet</span>
+          <span>Connect</span>
+        </button>
+        <span id="wallet" class="wallet" style="display:none;"></span>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT: Mint control -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">Mint a community fan</div>
+        </div>
+
+        <div class="row">
+          <div class="tag">
+            <span class="material-icons">info</span>
+            <span>These are predefined NFT FAN COMMUNITY FANS (e.g. “Pepe Fan”, “Wojak Fan”). Pick one, choose a color, then mint.</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="panel-header-title" style="border-bottom:none;padding-bottom:0;">Available fans</div>
+          <div id="namesListContainer" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:3px;padding:4px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fan</th>
+                  <th>Status</th>
+                  <th class="right">Mint</th>
+                </tr>
+              </thead>
+              <tbody id="names-list-body">
+                <!-- dynamic -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row inline">
+          <span id="selectionPill" class="tag" style="display:none;"></span>
+          <span id="ownedCountPill" class="tag" style="display:none;"></span>
+          <span id="mintedCountPill" class="tag" style="display:none;"></span>
+        </div>
+
+        <div class="row inline">
+          <button id="mintBtn" disabled>
+            <span class="material-icons">rocket_launch</span>
+            <span>Mint selected</span>
+          </button>
+          <button id="clearBtn">
+            <span class="material-icons">delete_sweep</span>
+            <span>Clear</span>
+          </button>
+          <button id="refreshBtn">
+            <span class="material-icons">refresh</span>
+            <span>Refresh</span>
+          </button>
+          <div style="flex:1;"></div>
+          <div class="tag">
+            <span>Color:</span>
+            <input id="nameColorInput" class="name-color-input" type="color" value="#eebd6e" />
+          </div>
+        </div>
+
+        <div id="status" class="status">
+          Connect wallet, pick a fan, choose a color, then mint.
+        </div>
+      </section>
+
+      <!-- RIGHT: Leaderboard & list -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">Top collectors</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="rank-col">#</th>
+              <th>Owner</th>
+              <th class="right">Fans</th>
+              <th class="right">POL spent</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+
+        <div class="panel-header" style="margin-top:4px;">
+          <div class="panel-header-title">Minted community fans</div>
+        </div>
+        <div style="max-height:260px;overflow-y:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Fan (X link)</th>
+                <th>Owner</th>
+                <th class="right">Price (POL)</th>
+              </tr>
+            </thead>
+            <tbody id="usernames-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="cityLoading">
+    <span class="spinner"></span>
+    <span class="material-icons">alternate_email</span>
+    <span class="text">Loading fan data…</span>
+  </div>
+
+  <script>
+    // Polygon
+    const POLYGON_PARAMS = {
+      chainId: '0x89',
+      chainName: 'Polygon Mainnet',
+      nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+      rpcUrls: ['https://polygon-rpc.com/'],
+      blockExplorerUrls: ['https://polygonscan.com/']
+    };
+
+    // Contract
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const CONTRACT_ABI = [
+      "function mintWithURI(string tokenURI) external payable returns (uint256)",
+      "function mintPrice() view returns (uint256)",
+      "function tokenURI(uint256 tokenId) view returns (string)",
+      "function ownerOf(uint256 tokenId) view returns (address)",
+      "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+    ];
+    const FIXED_MINT_PRICE_POL = 1;
+
+    // Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+
+    // Predefined fan name keys (no spaces)
+    const PREDEFINED_KEYS = [
+      "PepeFan","WojakFan","DogeFan","ShibaFan","BonkFan","ApeFan","ChadFan","GigachadFan","KekFan","MoonFan",
+      "PumpFan","DumpFan","WAGMIFan","NGMIFan","HODLFan","FOMOFan","DeGenFan","MemeLordFan","TrollFan","ViralFan",
+      "RocketFan","MoonshotFan","DiamondFan","LaserEyesFan","WhaleFan","BullRunFan","BearMarketFan","AlphaFan","SigmaFan","SavageFan",
+      "CryptoFan","Web3Fan","DeFiFan","MetaFan","ChainFan","RollupFan","ZKFan","GasFan","WalletFan","TokenFan",
+      "AIoverlordFan","RoboFan","NeuralFan","QuantumFan","MatrixFan","CyberFan","PixelFan","VisionFan","CodeFan","DebugFan",
+      "MemeCoinFan","ShitcoinFan","ScamFan","RektFan","SniperFan","BotFan","LiquidityFan","AirdropFan","MintFan","StakeFan",
+      "TurboFan","HyperFan","UltraFan","MegaFan","GigaFan","OmegaFan","AtomicFan","PhotonFan","PlasmaFan","VortexFan",
+      "FUDFan","InsiderFan","BagHolderFan","ExitPumpFan","SatoshiFan","VitalikFan","ElonFan","CZFan","CathieFan","BuffetFan",
+      "MemeKingFan","TrendFan","ViralBoostFan","ZoomerFan","GenZFan","CryptoNinjaFan","BotArmyFan","PumpSquadFan","MoonGangFan","HypeMachineFan",
+      "FusionFan","NovaFan","AstroFan","OrbitFan","StellarFan","CircuitFan","ByteFan","MegaNodeFan","CodeWizardFan","QuantumChipFan"
+    ];
+
+    // State
+    let web3Provider, signer, userAddress;
+    let nameColor = '#eebd6e';
+    let selectedKey = ''; // internal key, e.g. "PepeFan"
+
+    let fbApp, fbDb, allNftsRef = null;
+    const nameDataByKey = new Map(); // key: lowercased key -> data
+
+    // UI refs
+    const initialLoader = document.getElementById('initial-loader');
+    const connectBtn = document.getElementById('connectBtn');
+    const walletEl = document.getElementById('wallet');
+    const mintBtn = document.getElementById('mintBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const statusEl = document.getElementById('status');
+    const selectionPill = document.getElementById('selectionPill');
+    const ownedCountPill = document.getElementById('ownedCountPill');
+    const mintedCountPill = document.getElementById('mintedCountPill');
+    const cityLoadingEl = document.getElementById('cityLoading');
+    const cityLoadingText = cityLoadingEl.querySelector('.text');
+    const nameColorInput = document.getElementById('nameColorInput');
+    const leaderboardBody = document.getElementById('leaderboard-body');
+    const usernamesBody = document.getElementById('usernames-body');
+    const namesListBody = document.getElementById('names-list-body');
+
+    function setStatus(msg, type = '') {
+      statusEl.className = 'status';
+      if (type === 'success') statusEl.classList.add('success');
+      if (type === 'error') statusEl.classList.add('error');
+      if (type === 'loading') {
+        statusEl.classList.add('loading');
+        statusEl.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
+      } else {
+        statusEl.textContent = msg;
+      }
+    }
+
+    function showCityLoading(text = 'Loading fan data…') {
+      cityLoadingText.textContent = text;
+      cityLoadingEl.style.display = 'flex';
+      setTimeout(() => {
+        if (cityLoadingEl.style.display !== 'none') {
+          cityLoadingEl.style.display = 'none';
+        }
+      }, 20000);
+    }
+
+    function hideCityLoading() {
+      cityLoadingEl.style.display = 'none';
+    }
+
+    function escapeHTML(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+    }
+
+    function shortAddr(a) {
+      return a ? `${a.slice(0,6)}...${a.slice(-4)}` : '';
+    }
+
+    // Convert "PepeFan" -> "Pepe Fan"
+    function displayFanName(key) {
+      if (!key.endsWith('Fan') || key.length <= 3) return key;
+      const base = key.slice(0, -3);
+      return base + ' Fan';
+    }
+
+    // For now, X link goes to NFTFAN community main account
+    function fanToXLink(key) {
+      const display = displayFanName(key);
+      return {
+        label: display,
+        url: 'https://x.com/nftfanstoken'
+      };
+    }
+
+    async function switchToPolygon() {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_PARAMS.chainId }]
+        });
+        return true;
+      } catch (e) {
+        if (e.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [POLYGON_PARAMS]
+            });
+            return true;
+          } catch {
+            setStatus('Failed to add Polygon network.', 'error');
+            return false;
+          }
+        }
+        setStatus('Failed to switch network.', 'error');
+        return false;
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus('Please install MetaMask.', 'error');
+        return;
+      }
+      try {
+        setStatus('Connecting wallet…', 'loading');
+        if (!await switchToPolygon()) return;
+
+        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        await web3Provider.send('eth_requestAccounts', []);
+        signer = web3Provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<span class="material-icons">check_circle</span><span>Connected</span>';
+        walletEl.textContent = shortAddr(userAddress);
+        walletEl.style.display = 'inline-block';
+
+        setStatus('Wallet connected. Choose a fan to mint.', 'success');
+        updateMintButtonState();
+        updateCountsAndLeaderboard();
+
+        if (window.ethereum?.on) {
+          window.ethereum.removeListener?.('accountsChanged', onAccountsChanged);
+          window.ethereum.on('accountsChanged', onAccountsChanged);
+        }
+      } catch (e) {
+        console.error(e);
+        setStatus('Wallet connection failed.', 'error');
+      }
+    }
+
+    async function onAccountsChanged(accounts) {
+      userAddress = (accounts && accounts[0]) ? accounts[0] : null;
+      if (userAddress) {
+        walletEl.textContent = shortAddr(userAddress);
+        walletEl.style.display = 'inline-block';
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<span class="material-icons">check_circle</span><span>Connected</span>';
+      } else {
+        walletEl.style.display = 'none';
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span><span>Connect</span>';
+      }
+      updateMintButtonState();
+      updateCountsAndLeaderboard();
+    }
+
+    function isKeyMinted(key) {
+      if (!key) return false;
+      const k = key.toLowerCase();
+      return nameDataByKey.has(k);
+    }
+
+    function selectKey(key) {
+      selectedKey = key || '';
+      if (selectedKey) {
+        const taken = isKeyMinted(selectedKey);
+        const label = displayFanName(selectedKey);
+        selectionPill.style.display = 'inline-flex';
+        selectionPill.innerHTML =
+          `<span class="material-icons">alternate_email</span>` +
+          `<span>${escapeHTML(label)}</span>` +
+          `<span style="color:${taken ? '#ff4b4b' : '#eebd6e'};">${taken ? 'Taken' : 'Available'}</span>`;
+      } else {
+        selectionPill.style.display = 'none';
+      }
+      updateMintButtonState();
+      renderNamesList(); // highlight row
+    }
+
+    function updateNameColorState() {
+      nameColor = nameColorInput.value || '#eebd6e';
+      updateMintButtonState();
+    }
+
+    function updateMintButtonState() {
+      const hasWallet = !!userAddress;
+      const hasKey = !!selectedKey;
+      const taken = hasKey && isKeyMinted(selectedKey);
+
+      mintBtn.disabled = !hasWallet || !hasKey || taken;
+
+      if (!hasWallet) {
+        setStatus('Connect wallet, then choose a community fan.', '');
+      } else if (!hasKey) {
+        setStatus('Choose a community fan from the list.', '');
+      } else if (taken) {
+        setStatus('This community fan is already minted.', 'error');
+      } else {
+        const label = displayFanName(selectedKey);
+        setStatus(`Ready to mint “${label}” for 1 POL.`, 'success');
+      }
+    }
+
+    async function mintSelectedFan() {
+      try {
+        if (!userAddress) {
+          setStatus('Connect wallet first.', 'error');
+          return;
+        }
+        if (!selectedKey) {
+          setStatus('Choose a fan first.', 'error');
+          return;
+        }
+        if (isKeyMinted(selectedKey)) {
+          setStatus('This fan is already minted.', 'error');
+          return;
+        }
+
+        const label = displayFanName(selectedKey);
+        setStatus(`Submitting transaction to mint “${label}”…`, 'loading');
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        const tokenURI = buildFanTokenURI(selectedKey, nameColor);
+        const priceWei = ethers.utils.parseEther(FIXED_MINT_PRICE_POL.toString());
+        const tx = await contract.mintWithURI(tokenURI, { value: priceWei });
+
+        setStatus('Waiting for confirmation…', 'loading');
+        const receipt = await tx.wait();
+        const ev = receipt.events?.find(e => e.event === 'Transfer');
+        const mintedTokenId = ev?.args?.tokenId?.toString() || `temp-${Date.now()}`;
+
+        const now = Math.floor(Date.now() / 1000);
+        const fullNftData = {
+          owner: userAddress,
+          meta: {
+            fan_key: selectedKey,
+            fan_key_lower: selectedKey.toLowerCase(),
+            name_color: nameColor,
+            mint_price_pol: FIXED_MINT_PRICE_POL,
+            created_at: now
+          }
+        };
+
+        await writeNftToFirebase(mintedTokenId, fullNftData);
+
+        setStatus(`Minted “${label}”.`, 'success');
+        updateMintButtonState();
+      } catch (e) {
+        console.error("Minting failed:", e);
+        const msg = e?.data?.message || e?.reason || e?.message || 'Unknown transaction error.';
+        setStatus(`Minting failed: ${msg}`, 'error');
+      }
+    }
+
+    function buildFanTokenURI(key, color) {
+      const label = displayFanName(key);
+      const metadata = {
+        name: `NFT FAN Community: ${label}`,
+        description: `NFT FAN COMMUNITY FAN role: ${label}.`,
+        image: buildFanSVG(label, color),
+        attributes: [
+          { trait_type: "Community Fan", value: label },
+          { trait_type: "Internal Key", value: key },
+          { trait_type: "Display Color", value: color }
+        ]
+      };
+      const json = JSON.stringify(metadata);
+      return "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
+    }
+
+    function buildFanSVG(label, color) {
+      const safeLabel = escapeHTML(label);
+      const safeColor = color || '#eebd6e';
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
+          <rect width="800" height="420" fill="#050509"/>
+          <rect x="20" y="20" width="760" height="380" fill="none" stroke="${safeColor}" stroke-width="2"/>
+          <text x="40" y="160" fill="${safeColor}" font-size="32" font-family="system-ui">NFT FAN COMMUNITY FAN</text>
+          <text x="40" y="240" fill="#ffffff" font-size="60" font-family="system-ui">${safeLabel}</text>
+        </svg>
+      `;
+      return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+    }
+
+    function initFirebase() {
+      try {
+        if (!window.firebase) throw new Error("Firebase not loaded");
+        fbApp = firebase.initializeApp(firebaseConfig);
+        fbDb = firebase.database();
+        subscribeMintedOnFirebase();
+      } catch (e) {
+        console.error('Firebase init failed', e);
+        setStatus("Could not connect to the database.", "error");
+        initialLoader.classList.add('hidden');
+      }
+    }
+
+    function subscribeMintedOnFirebase() {
+      if (!fbDb) return;
+      allNftsRef = fbDb.ref('fanNames'); // namespace for this app
+
+      showCityLoading();
+      allNftsRef.once('value', (snapshot) => {
+        snapshot.forEach((child) => {
+          upsertMintedFan(child.key, child.val());
+        });
+        initialLoader.classList.add('hidden');
+        hideCityLoading();
+
+        allNftsRef.on('child_added', (snap) => upsertMintedFan(snap.key, snap.val()));
+        allNftsRef.on('child_changed', (snap) => upsertMintedFan(snap.key, snap.val()));
+        allNftsRef.on('child_removed', (snap) => removeMintedFan(snap.key, snap.val()));
+      }, (err) => {
+        console.error("Firebase read failed:", err);
+        setStatus("Cannot read fan data.", "error");
+        initialLoader.classList.add('hidden');
+        hideCityLoading();
+      });
+    }
+
+    function upsertMintedFan(tokenId, data) {
+      if (!data || !data.meta) return;
+      const key = data.meta.fan_key;
+      if (!key) return;
+
+      const lower = (data.meta.fan_key_lower || key).toLowerCase();
+      const ownerLower = (data.owner || '').toLowerCase();
+
+      const fullData = {
+        tokenId,
+        owner: ownerLower,
+        fan_key: key,
+        fan_key_lower: lower,
+        nameColor: data.meta.name_color || '#eebd6e',
+        mintPricePol: data.meta.mint_price_pol || FIXED_MINT_PRICE_POL,
+        createdAt: data.meta.created_at || 0
+      };
+
+      nameDataByKey.set(lower, fullData);
+      updateCountsAndLeaderboard();
+      renderUsernamesTable();
+      renderNamesList();
+      if (selectedKey && selectedKey.toLowerCase() === lower) {
+        selectKey(selectedKey);
+      }
+    }
+
+    function removeMintedFan(tokenId, data) {
+      if (!data || !data.meta) return;
+      const lower = (data.meta.fan_key_lower || data.meta.fan_key || '').toLowerCase();
+      if (!lower) return;
+      nameDataByKey.delete(lower);
+      updateCountsAndLeaderboard();
+      renderUsernamesTable();
+      renderNamesList();
+    }
+
+    async function writeNftToFirebase(tokenId, fullNftData) {
+      if (!fbDb) return;
+      await fbDb.ref(`fanNames/${tokenId}`).set(fullNftData);
+    }
+
+    function updateCountsAndLeaderboard() {
+      let myOwnedCount = 0;
+      const ownerCounts = {};
+      const ownerValues = {};
+
+      if (userAddress) {
+        const me = userAddress.toLowerCase();
+        for (const data of nameDataByKey.values()) {
+          if (data.owner === me) myOwnedCount++;
+        }
+      }
+
+      if (myOwnedCount > 0) {
+        ownedCountPill.style.display = 'inline-flex';
+        ownedCountPill.innerHTML =
+          `<span class="material-icons">verified</span><span>You own ${myOwnedCount}</span>`;
+      } else {
+        ownedCountPill.style.display = 'none';
+      }
+
+      const totalMinted = nameDataByKey.size;
+      mintedCountPill.style.display = 'inline-flex';
+      mintedCountPill.innerHTML =
+        `<span class="material-icons">people</span><span>Total ${totalMinted}</span>`;
+
+      for (const data of nameDataByKey.values()) {
+        if (!data.owner) continue;
+        ownerCounts[data.owner] = (ownerCounts[data.owner] || 0) + 1;
+        ownerValues[data.owner] = (ownerValues[data.owner] || 0) + (data.mintPricePol || FIXED_MINT_PRICE_POL);
+      }
+
+      const sorted = Object.entries(ownerCounts)
+        .map(([owner, count]) => ({ owner, count, value: ownerValues[owner] }))
+        .sort((a, b) => b.count - a.count || b.value - a.value);
+
+      renderLeaderboard(sorted.slice(0, 20));
+    }
+
+    function renderLeaderboard(list) {
+      leaderboardBody.innerHTML = '';
+      if (list.length === 0) {
+        leaderboardBody.innerHTML =
+          '<tr><td colspan="4" style="padding:6px;color:#9b7f4a;">No fans minted yet.</td></tr>';
+        return;
+      }
+      list.forEach((entry, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank-col">${idx + 1}</td>
+          <td>${shortAddr(entry.owner)}</td>
+          <td class="right">${entry.count}</td>
+          <td class="right">${entry.value.toFixed(2)}</td>
+        `;
+        leaderboardBody.appendChild(tr);
+      });
+    }
+
+    function renderUsernamesTable() {
+      usernamesBody.innerHTML = '';
+      if (nameDataByKey.size === 0) {
+        usernamesBody.innerHTML =
+          '<tr><td colspan="3" style="padding:6px;color:#9b7f4a;">No community fans minted yet.</td></tr>';
+        return;
+      }
+      const list = Array.from(nameDataByKey.values())
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+      for (const data of list) {
+        const label = displayFanName(data.fan_key);
+        const { url } = fanToXLink(data.fan_key);
+        const color = data.nameColor || '#eebd6e';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <a href="${url}" target="_blank" rel="noopener noreferrer"
+               class="username-link" style="color:${color};">
+              ${escapeHTML(label)}
+            </a>
+          </td>
+          <td>${shortAddr(data.owner)}</td>
+          <td class="right">${(data.mintPricePol || FIXED_MINT_PRICE_POL).toFixed(2)}</td>
+        `;
+        usernamesBody.appendChild(tr);
+      }
+    }
+
+    function renderNamesList() {
+      namesListBody.innerHTML = '';
+      PREDEFINED_KEYS.forEach((key) => {
+        const lower = key.toLowerCase();
+        const minted = nameDataByKey.has(lower);
+        const isSelected = selectedKey && selectedKey.toLowerCase() === lower;
+        const owner = minted ? nameDataByKey.get(lower).owner : null;
+        const label = displayFanName(key);
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = minted ? 'default' : 'pointer';
+        if (isSelected) tr.style.backgroundColor = '#15151f';
+
+        tr.innerHTML = `
+          <td>${escapeHTML(label)}</td>
+          <td style="color:${minted ? '#ff4b4b' : '#7ed957'};">
+            ${minted ? 'Taken' : 'Available'}
+          </td>
+          <td class="right">
+            ${minted
+              ? shortAddr(owner)
+              : '<button type="button" data-key="'+escapeHTML(key)+'" style="font-size:9px;padding:2px 6px;">Select</button>'}
+          </td>
+        `;
+        namesListBody.appendChild(tr);
+      });
+
+      // Button click (Select)
+      namesListBody.querySelectorAll('button[data-key]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const key = e.currentTarget.getAttribute('data-key');
+          selectKey(key);
+        });
+      });
+
+      // Row click for available ones
+      Array.from(namesListBody.rows).forEach((row, idx) => {
+        const key = PREDEFINED_KEYS[idx];
+        const lower = key.toLowerCase();
+        const minted = nameDataByKey.has(lower);
+        if (!minted) {
+          row.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'button') return;
+            selectKey(key);
+          });
+        }
+      });
+    }
+
+    function clearSelection() {
+      selectedKey = '';
+      selectionPill.style.display = 'none';
+      setStatus('Selection cleared. Choose a community fan.', '');
+      updateMintButtonState();
+      renderNamesList();
+    }
+
+    // Events
+    connectBtn.addEventListener('click', connectWallet);
+    mintBtn.addEventListener('click', mintSelectedFan);
+    clearBtn.addEventListener('click', clearSelection);
+    refreshBtn.addEventListener('click', () => {
+      setStatus('Data refresh is automatic from Firebase.', 'error');
+    });
+    nameColorInput.addEventListener('input', updateNameColorState);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderNamesList();
+      initFirebase();
+      setStatus('Connect wallet and choose a community fan to mint.', '');
+    });
+  </script>
+</body>
+</html>
