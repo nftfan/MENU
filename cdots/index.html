@@ -466,7 +466,7 @@
           ? [...savedRings[monthIndex][dayOfMonth]]
           : [];
 
-        // NEW: random fill color per day
+        // random fill color per day
         const fillColor = randomFillColor();
 
         particles.push({
@@ -482,6 +482,65 @@
           isToday,
           categories: dayCats
         });
+      }
+    }
+
+    // NEW: resolve collisions between circles so they don't overlap
+    function resolveCollisions() {
+      const len = particles.length;
+      for (let i = 0; i < len; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < len; j++) {
+          const p2 = particles[j];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const distSq = dx * dx + dy * dy;
+          const minDist = p1.r + p2.r;
+
+          if (distSq === 0) {
+            // Prevent NaN when particles are exactly on top of each other
+            const epsilon = 0.01;
+            p2.x += epsilon;
+            p2.y += epsilon;
+            continue;
+          }
+
+          if (distSq < minDist * minDist) {
+            const dist = Math.sqrt(distSq);
+            const overlap = minDist - dist;
+
+            // Normalized collision normal
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            // Move each particle away from the other by half the overlap
+            const separation = overlap / 2;
+            p1.x -= nx * separation;
+            p1.y -= ny * separation;
+            p2.x += nx * separation;
+            p2.y += ny * separation;
+
+            // Relative velocity along normal
+            const dvx = p2.vx - p1.vx;
+            const dvy = p2.vy - p1.vy;
+            const vn = dvx * nx + dvy * ny;
+
+            // If they are moving apart already, skip velocity adjustment
+            if (vn > 0) continue;
+
+            // Simple elastic collision with restitution (slightly damped)
+            const restitution = 0.9;
+            const impulse = -(1 + restitution) * vn / 2; // equal mass
+
+            const impulseX = impulse * nx;
+            const impulseY = impulse * ny;
+
+            p1.vx -= impulseX;
+            p1.vy -= impulseY;
+            p2.vx += impulseX;
+            p2.vy += impulseY;
+          }
+        }
       }
     }
 
@@ -519,6 +578,9 @@
           p.vy *= 0.95;
         }
       }
+
+      // After moving and wall-bouncing, handle circle-circle collisions
+      resolveCollisions();
     }
 
     function draw() {
