@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>all nftfan services</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <!-- Google Material Icons -->
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+    rel="stylesheet"
+  />
+
+  <!-- Firebase (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #05060a;
+      --bg-elevated: #111320;
+      --accent: #5c7cfa;
+      --accent-soft: rgba(92, 124, 250, 0.15);
+      --accent-strong: rgba(92, 124, 250, 0.6);
+      --text-main: #f5f5f8;
+      --text-muted: #8f93b6;
+      --border-subtle: rgba(255, 255, 255, 0.03);
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.55);
+      --blur: 18px;
+      --icon-size: 26px;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: radial-gradient(circle at top, #141735 0, var(--bg) 52%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top, 16px) 14px
+        calc(env(safe-area-inset-bottom, 18px) + 8px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px 6px;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(
+          135deg,
+          rgba(92, 124, 250, 0.3),
+          transparent 48%
+        ),
+        rgba(10, 12, 26, 0.94);
+      border: 1px solid rgba(136, 148, 255, 0.35);
+      box-shadow: 0 0 0 1px rgba(11, 14, 44, 0.8), var(--shadow-soft);
+      backdrop-filter: blur(var(--blur));
+    }
+
+    .app-title {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .app-title-main {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #fdfdff;
+      white-space: nowrap;
+    }
+
+    .app-title-sub {
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .app-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 0 0, #3b82f6 0, transparent 60%),
+        rgba(14, 18, 42, 0.94);
+      border: 1px solid rgba(148, 163, 255, 0.45);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .app-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #4ade80 0, #16a34a 45%, #052e16 90%);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    }
+
+    /* Card container */
+    .card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 10px 10px;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top, rgba(92, 124, 250, 0.08), transparent 55%),
+        linear-gradient(145deg, #070814 0, #05060a 55%, #04030a 100%);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .card-title {
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .card-pill {
+      font-size: 8px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 255, 0.35);
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    /* Grid */
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 9px 6px;
+      padding: 8px 2px 4px;
+    }
+
+    .service-item {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      border-radius: var(--radius-md);
+      padding: 8px 4px 6px;
+      text-decoration: none;
+      color: inherit;
+      background: radial-gradient(circle at 50% -20%, var(--accent-soft), transparent 60%),
+        rgba(13, 16, 31, 0.96);
+      border: 1px solid rgba(148, 163, 255, 0.18);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out,
+        border-color 0.18s ease-out, background 0.18s ease-out;
+    }
+
+    .service-item::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at 50% -40%,
+        rgba(96, 165, 250, 0.55),
+        transparent 55%
+      );
+      opacity: 0;
+      transition: opacity 0.25s ease-out;
+      pointer-events: none;
+    }
+
+    .service-item:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+      border-color: rgba(129, 140, 248, 0.8);
+      background: radial-gradient(circle at 50% -20%, var(--accent-strong), transparent 70%),
+        rgba(8, 11, 32, 0.96);
+    }
+
+    .service-item:active::before {
+      opacity: 1;
+    }
+
+    .service-icon {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(
+          circle at 30% 0,
+          rgba(248, 250, 252, 0.22),
+          transparent 55%
+        ),
+        linear-gradient(145deg, #020617 0, #020617 50%, #020617 100%);
+      border: 1px solid rgba(148, 163, 255, 0.35);
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.7);
+      overflow: hidden;
+    }
+
+    .service-icon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at 0 0,
+        rgba(248, 250, 252, 0.3),
+        transparent 60%
+      );
+      mix-blend-mode: screen;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .service-icon-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #4f46e5 0, #22d3ee 50%, #0f172a 100%);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.55);
+    }
+
+    .material-icons-outlined {
+      font-size: var(--icon-size);
+      color: #e5e7eb;
+      text-shadow: 0 0 12px rgba(129, 140, 248, 0.7);
+    }
+
+    .service-label {
+      font-size: 8px;
+      max-width: 100%;
+      text-align: center;
+      color: var(--text-muted);
+      line-height: 1.2;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Empty / loading */
+    .empty-message {
+      font-size: 8px;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 12px;
+      opacity: 0.85;
+    }
+
+    /* Footer hint */
+    .footer-hint {
+      margin-top: 6px;
+      text-align: center;
+      font-size: 8px;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.75;
+    }
+
+    @media (max-width: 360px) {
+      .service-icon {
+        width: 30px;
+        height: 30px;
+      }
+      .service-label {
+        font-size: 7px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-title">
+        <span class="app-title-main">all nftfan services</span>
+        <span class="app-title-sub">web3 · tools · links</span>
+      </div>
+      <!-- Click badge to go to add-service page -->
+      <div class="app-badge" id="addServiceBtn">
+        <span class="app-badge-dot"></span>
+        add / edit
+      </div>
+    </header>
+
+    <!-- Main card -->
+    <main class="card">
+      <div class="card-header">
+        <span class="card-title">quick access</span>
+        <span class="card-pill" id="statusText">loading…</span>
+      </div>
+
+      <section class="service-grid" id="serviceGrid">
+        <!-- Services from Firebase will be injected here -->
+      </section>
+
+      <div class="empty-message" id="emptyMessage" style="display:none;">
+        no services yet · open "add / edit" to create one
+      </div>
+    </main>
+
+    <div class="footer-hint">
+      all nftfan services · optimized for mobile
+    </div>
+  </div>
+
+  <script>
+    // Firebase config (same as you provided)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+
+    // Init Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const serviceGrid = document.getElementById("serviceGrid");
+    const statusText = document.getElementById("statusText");
+    const emptyMessage = document.getElementById("emptyMessage");
+    const addServiceBtn = document.getElementById("addServiceBtn");
+
+    // Navigate to add-service page (use your actual filename)
+    addServiceBtn.addEventListener("click", () => {
+      window.location.href = "add-service.html";
+    });
+
+    function createServiceItem(service) {
+      const name = service.name || "Service";
+      const url = service.url || "#";
+      const icon = service.icon || "apps";
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "service-item";
+
+      const iconWrap = document.createElement("div");
+      iconWrap.className = "service-icon";
+
+      const iconInner = document.createElement("div");
+      iconInner.className = "service-icon-inner";
+
+      const iconEl = document.createElement("span");
+      iconEl.className = "material-icons-outlined";
+      iconEl.textContent = icon;
+
+      iconInner.appendChild(iconEl);
+      iconWrap.appendChild(iconInner);
+
+      const label = document.createElement("span");
+      label.className = "service-label";
+      label.textContent = name;
+
+      a.appendChild(iconWrap);
+      a.appendChild(label);
+
+      return a;
+    }
+
+    function renderServices(snapshot) {
+      serviceGrid.innerHTML = "";
+      const data = snapshot.val();
+
+      if (!data) {
+        statusText.textContent = "no data";
+        emptyMessage.style.display = "block";
+        return;
+      }
+
+      const services = Object.values(data)
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+      if (services.length === 0) {
+        statusText.textContent = "no data";
+        emptyMessage.style.display = "block";
+        return;
+      }
+
+      emptyMessage.style.display = "none";
+      statusText.textContent = services.length + " services";
+
+      services.forEach(service => {
+        const item = createServiceItem(service);
+        serviceGrid.appendChild(item);
+      });
+    }
+
+    function init() {
+      statusText.textContent = "loading…";
+
+      // Listen for changes under /services
+      db.ref("services").on("value",
+        (snapshot) => {
+          renderServices(snapshot);
+        },
+        (error) => {
+          console.error(error);
+          statusText.textContent = "error";
+          emptyMessage.style.display = "block";
+          emptyMessage.textContent = "error loading services";
+        }
+      );
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
