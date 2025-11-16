@@ -251,7 +251,7 @@
   </div>
 
   <script>
-    // Month colors
+    // Month colors (used for legend + border)
     const monthData = [
       { name: "Jan", days: 31, color: "#f97373" },
       { name: "Feb", days: 28, color: "#fb923c" },
@@ -390,7 +390,6 @@
       legendEl.appendChild(item);
 
       item.addEventListener("click", () => {
-        // Selecting a month always shows only that month
         activeMonthIndex = idx;
         filterHintEl.textContent = `Showing only ${m.name}`;
         updateLegendActiveStates();
@@ -427,6 +426,14 @@
       bigRadius = Math.min(width, height) / 2 - 8;
     }
 
+    // Utility: random pastel-ish fill color
+    function randomFillColor() {
+      const hue = Math.floor(Math.random() * 360);
+      const sat = 45 + Math.random() * 25;   // 45–70%
+      const light = 40 + Math.random() * 20; // 40–60%
+      return `hsl(${hue} ${sat}% ${light}%)`;
+    }
+
     // Always build particles only for activeMonthIndex
     function createParticles() {
       particles = [];
@@ -435,8 +442,8 @@
       const m = monthData[monthIndex];
       const totalDays = m.days;
 
-      // Larger base radius so 2-digit day numbers are readable
-      const baseRadius = Math.max(8, Math.min(11, bigRadius / 18));
+      // Bigger radius so digits don't touch the border
+      const baseRadius = Math.max(11, Math.min(15, bigRadius / 14));
 
       for (let d = 0; d < m.days; d++) {
         const angle = (d / totalDays) * Math.PI * 2;
@@ -459,13 +466,17 @@
           ? [...savedRings[monthIndex][dayOfMonth]]
           : [];
 
+        // NEW: random fill color per day
+        const fillColor = randomFillColor();
+
         particles.push({
           x,
           y,
           vx,
           vy,
           r: baseRadius,
-          color: m.color,
+          color: m.color,    // month color for border
+          fillColor,         // random color for background
           monthIndex,
           dayOfMonth,
           isToday,
@@ -513,13 +524,14 @@
     function draw() {
       ctx.clearRect(0, 0, width, height);
 
-      const gradient = ctx.createRadialGradient(
+      // Background vignette
+      const bgGrad = ctx.createRadialGradient(
         centerX, centerY, bigRadius * 0.1,
         centerX, centerY, bigRadius
       );
-      gradient.addColorStop(0, "rgba(15, 23, 42, 0)");
-      gradient.addColorStop(1, "rgba(15, 23, 42, 0.3)");
-      ctx.fillStyle = gradient;
+      bgGrad.addColorStop(0, "rgba(15, 23, 42, 0)");
+      bgGrad.addColorStop(1, "rgba(15, 23, 42, 0.3)");
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
       particles.forEach(p => {
@@ -533,35 +545,23 @@
 
         const baseR = p.isToday ? p.r * 1.6 : p.r;
 
-        // Glow (same for all days)
-        const grad = ctx.createRadialGradient(
-          p.x, p.y, 0,
-          p.x, p.y, baseR * 2.4
-        );
-        grad.addColorStop(0, p.color);
-        grad.addColorStop(1, "rgba(15, 23, 42, 0.1)");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, baseR * 2.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core circle (solid background for numbers)
-        ctx.fillStyle = p.isToday ? "#ffffff" : "#0f172a";
+        // Core circle with random fill color
+        ctx.fillStyle = p.fillColor;
         ctx.beginPath();
         ctx.arc(p.x, p.y, baseR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Thin colored ring to preserve month color identity
+        // Thin colored border for month identity
         ctx.strokeStyle = p.color;
-        ctx.lineWidth = Math.max(1, baseR * 0.22);
+        ctx.lineWidth = Math.max(1.2, baseR * 0.18);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, baseR * 0.92, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, baseR * 0.94, 0, Math.PI * 2);
         ctx.stroke();
 
         // Category rings (work / evil)
         if (p.categories && p.categories.length > 0) {
-          const ringBaseRadius = baseR * 1.1;
-          const ringGap = baseR * 0.33;
+          const ringBaseRadius = baseR * 1.15;
+          const ringGap = baseR * 0.35;
           ctx.lineCap = "round";
 
           p.categories.forEach((catKey, idx) => {
@@ -569,16 +569,16 @@
             if (!cfg) return;
             const radius = ringBaseRadius + idx * ringGap;
             ctx.strokeStyle = cfg.color;
-            ctx.lineWidth = Math.max(1.1, baseR * 0.22);
+            ctx.lineWidth = Math.max(1.3, baseR * 0.22);
             ctx.beginPath();
             ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
             ctx.stroke();
           });
         }
 
-        // Day number
-        const fontSize = baseR * 1.4;
-        ctx.fillStyle = p.isToday ? "#000000" : "#e5e7eb";
+        // Day number – slightly smaller relative to radius so it doesn't touch border
+        const fontSize = baseR * 1.1;
+        ctx.fillStyle = "#020617"; // dark text over random fills
         ctx.font = `600 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
