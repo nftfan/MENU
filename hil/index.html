@@ -45,10 +45,14 @@
             justify-content: space-between;
             align-items: baseline;
         }
+        .year-title {
+            cursor: pointer;
+        }
         .year-amount {
             font-size: 10px;
             color: #c9d1d9;
             opacity: 0.9;
+            cursor: pointer;
         }
         .month {
             display: grid;
@@ -90,17 +94,21 @@
             font-weight: bold;
             color: #FFFFFF;
             grid-column: span 8; /* 7 days + 1 for week number */
-            background-color: transparent; /* default; overridden by stored color */
+            background-color: transparent;
             padding: 2px 4px;
             border-radius: 4px;
             display: flex;
             justify-content: space-between;
             align-items: baseline;
         }
+        .month-title {
+            cursor: pointer;
+        }
         .month-amount {
             font-size: 9px;
             color: #c9d1d9;
             opacity: 0.9;
+            cursor: pointer;
         }
         .week-number {
             font-size: 5px;
@@ -211,6 +219,16 @@
             flex: 1;
         }
 
+        .amount-name-input {
+            flex: 1;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-size: 9px;
+        }
+
         .note-input {
             width: 100%;
             min-height: 60px;
@@ -221,7 +239,7 @@
             border: 1px solid #30363d;
             border-radius: 6px;
             resize: vertical;
-            font-size: 9px;  /* <= 10px */
+            font-size: 9px;
             line-height: 1.3;
         }
 
@@ -244,7 +262,7 @@
         }
 
         .notes-container {
-            max-height: 140px;
+            max-height: 100px;
             overflow-y: auto;
             margin: 2px 0 6px 0;
             padding-right: 2px;
@@ -292,7 +310,7 @@
         .popup-button {
             border: none;
             border-radius: 999px;
-            padding: 4px 10px;
+            padding: 6px 12px;
             font-size: 9px;
             cursor: pointer;
             display: inline-flex;
@@ -331,6 +349,90 @@
             border-radius: 1px;
         }
 
+        /* Money / Notes details modal */
+        .money-details-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100;
+        }
+        .money-details-panel {
+            background: #050608;
+            border-radius: 10px;
+            border: 1px solid #21262d;
+            max-width: 90%;
+            width: 320px;
+            max-height: 70%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.8);
+            font-size: 9px;
+        }
+        .money-details-header {
+            padding: 8px 10px;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .money-details-header-title {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #e6edf3;
+        }
+        .money-details-header-title .material-icons {
+            font-size: 11px;
+        }
+        .money-details-close {
+            cursor: pointer;
+            border-radius: 50%;
+            padding: 3px;
+        }
+        .money-details-close .material-icons {
+            font-size: 11px;
+            color: #8b949e;
+        }
+        .money-details-list {
+            padding: 6px 10px 8px 10px;
+            overflow-y: auto;
+        }
+        .money-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .money-entry:last-child {
+            border-bottom: none;
+        }
+        .money-entry-left {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .money-entry-name {
+            color: #c9d1d9;
+        }
+        .money-entry-date {
+            color: #8b949e;
+            font-size: 8px;
+        }
+        .money-entry-amount {
+            color: #e6edf3;
+            font-weight: 600;
+        }
+
+        /* Notes list rows (reuse styles) */
+        .note-list-text {
+            color: #c9d1d9;
+        }
+
         /* MOBILE: one year per row, full width */
         @media (max-width: 768px) {
             .container {
@@ -348,6 +450,7 @@
 
     <div class="container" id="container"></div>
 
+    <!-- Main popup -->
     <div class="color-picker" id="colorPicker">
         <div class="color-picker-header">
             <div class="popup-title">
@@ -388,7 +491,7 @@
             <input type="color" id="yearColorInput">
         </div>
 
-        <!-- EUR amount -->
+        <!-- EUR amount + name -->
         <div class="color-picker-row">
             <div class="color-picker-label">
                 <span class="material-icons">euro</span>
@@ -396,8 +499,16 @@
             </div>
             <div class="amount-wrapper">
                 <span class="amount-prefix">€</span>
-                <input type="number" step="0.01" id="amountInput" class="amount-input" placeholder="0.00">
+                <input type="number" step="0.01" id="amountInput" class="amount-input" placeholder="0.00" inputmode="decimal">
             </div>
+        </div>
+
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">label</span>
+                <span>Amount name</span>
+            </div>
+            <input type="text" id="amountNameInput" class="amount-name-input" placeholder="e.g. Rent, Salary">
         </div>
 
         <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
@@ -419,14 +530,32 @@
         <div class="notes-container" id="notesContainer"></div>
 
         <div class="popup-actions">
-            <button class="popup-button secondary" id="closeColorPickerBtn">
+            <button class="popup-button secondary" id="closeColorPickerBtn" type="button">
                 <span class="material-icons">close</span>
                 <span>Close</span>
             </button>
-            <button class="popup-button primary" id="saveColorBtn">
+            <button class="popup-button primary" id="saveColorBtn" type="button">
                 <span class="material-icons">save</span>
                 <span>Save</span>
             </button>
+        </div>
+    </div>
+
+    <!-- Money / Notes details modal -->
+    <div class="money-details-backdrop" id="moneyDetailsBackdrop">
+        <div class="money-details-panel">
+            <div class="money-details-header">
+                <div class="money-details-header-title">
+                    <span class="material-icons" id="moneyDetailsIcon">calendar_view_month</span>
+                    <span id="moneyDetailsTitle">Entries</span>
+                </div>
+                <div class="money-details-close" id="moneyDetailsClose">
+                    <span class="material-icons">close</span>
+                </div>
+            </div>
+            <div class="money-details-list" id="moneyDetailsList">
+                <!-- filled dynamically -->
+            </div>
         </div>
     </div>
 
@@ -454,6 +583,7 @@
         const monthColorInput = document.getElementById("monthColorInput");
         const yearColorInput = document.getElementById("yearColorInput");
         const amountInput = document.getElementById("amountInput");
+        const amountNameInput = document.getElementById("amountNameInput");
         const noteInput = document.getElementById("noteInput");
         const notesContainer = document.getElementById("notesContainer");
         const selectedDateElement = document.getElementById("selectedDate");
@@ -462,19 +592,30 @@
         const closeColorPickerBtn = document.getElementById("closeColorPickerBtn");
         const closeColorPickerIcon = document.getElementById("closeColorPickerIcon");
 
+        const moneyDetailsBackdrop = document.getElementById("moneyDetailsBackdrop");
+        const moneyDetailsList = document.getElementById("moneyDetailsList");
+        const moneyDetailsClose = document.getElementById("moneyDetailsClose");
+        const moneyDetailsTitle = document.getElementById("moneyDetailsTitle");
+        const moneyDetailsIcon = document.getElementById("moneyDetailsIcon");
+
         let currentDayElement = null;
         let currentDate = null;
         let currentYearForPopup = null;
         let currentMonthForPopup = null;
 
-        // In-memory maps for amounts (date -> number)
-        let dayAmounts = {}; // { "YYYY-M-D": number }
+        // In-memory maps
+        let dayAmounts = {}; // { "YYYY-M-D": { amount, name } }
+        let notesDataGlobal = {}; // { date: [notes...] }
 
         // Current date
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth(); // 0-based
         const currentDay = now.getDate();
+
+        function pad2(n) {
+            return n.toString().padStart(2, "0");
+        }
 
         function getDaysInMonth(year, month) {
             return new Date(year, month + 1, 0).getDate();
@@ -523,10 +664,16 @@
             const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
             noteDotColorInput.value = currentNoteDotColor;
 
-            // Load EUR amount
+            // Load amount + name
             const localAmounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
-            const amt = localAmounts[currentDate];
-            amountInput.value = (amt !== undefined && amt !== null) ? amt : "";
+            const entry = localAmounts[currentDate];
+            if (entry && typeof entry.amount === "number") {
+                amountInput.value = entry.amount;
+                amountNameInput.value = entry.name || "";
+            } else {
+                amountInput.value = "";
+                amountNameInput.value = "";
+            }
 
             // Load notes
             notesContainer.innerHTML = "";
@@ -551,6 +698,7 @@
             const note = noteInput.value.trim();
             const selectedNoteDotColor = noteDotColorInput.value;
             const amountStr = amountInput.value.trim();
+            const amountName = amountNameInput.value.trim();
             const amountVal = amountStr === "" ? null : parseFloat(amountStr);
 
             if (currentDayElement && currentDate != null) {
@@ -574,14 +722,13 @@
                     applyYearColorsFromLocal();
                 }
 
-                // EUR AMOUNT
+                // EUR AMOUNT + NAME
                 if (!isNaN(amountVal) && amountVal !== null) {
-                    saveDayAmountToLocal(currentDate, amountVal);
-                    saveDayAmountToFirebase(currentDate, amountVal);
+                    saveDayAmountToLocal(currentDate, { amount: amountVal, name: amountName });
+                    saveDayAmountToFirebase(currentDate, amountVal, amountName);
                 } else {
-                    // Clear if empty
                     saveDayAmountToLocal(currentDate, null);
-                    saveDayAmountToFirebase(currentDate, null);
+                    saveDayAmountToFirebase(currentDate, null, null);
                 }
                 recomputeAllSums();
 
@@ -646,22 +793,23 @@
         }
 
         // ===== Amount storage (per date) =====
-        function saveDayAmountToLocal(date, amount) {
+        function saveDayAmountToLocal(date, entry) {
             let amounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
-            if (amount === null) {
+            if (entry === null) {
                 delete amounts[date];
             } else {
-                amounts[date] = amount;
+                amounts[date] = { amount: entry.amount, name: entry.name || "" };
             }
             localStorage.setItem("dayAmounts", JSON.stringify(amounts));
             dayAmounts = amounts;
         }
 
-        function saveDayAmountToFirebase(date, amount) {
+        function saveDayAmountToFirebase(date, amount, name) {
             const amountsRef = ref(db, "dayAmounts");
             push(amountsRef, {
                 date,
                 amount: amount === null ? null : amount,
+                name: name || "",
                 ts: Date.now()
             });
         }
@@ -690,6 +838,7 @@
                     delete notesData[date];
                 }
                 localStorage.setItem("dayNotesLocal", JSON.stringify(notesData));
+                notesDataGlobal = notesData;
                 loadNotes(date);
                 updateNoteDots();
             }
@@ -706,6 +855,8 @@
             document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
 
             let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
+            notesDataGlobal = notesData;
+
             for (const date in notesData) {
                 if (notesData[date] && notesData[date].length > 0) {
                     const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
@@ -720,6 +871,7 @@
         function loadNotes(date) {
             notesContainer.innerHTML = "";
             let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
+            notesDataGlobal = notesData;
             const notes = notesData[date] || [];
 
             if (notes.length === 0) {
@@ -787,28 +939,50 @@
             }
         }
 
-        // Compute and render monthly and yearly sums
+        // Compute and render monthly and yearly sums + store structures for detail view
         function recomputeAllSums() {
-            // Load latest amounts
             let amounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
             dayAmounts = amounts;
 
-            const monthSums = {}; // key: "YYYY-M"
-            const yearSums = {};  // key: "YYYY"
+            const monthSums = {};   // key: "YYYY-M"
+            const monthEntries = {}; // key: "YYYY-M" -> [{date, amount, name}]
+            const yearSums = {};    // key: "YYYY"
+            const yearEntries = {};  // key: "YYYY" -> [{date, amount, name}]
 
-            for (const [date, val] of Object.entries(amounts)) {
-                if (val === null || isNaN(val)) continue;
+            for (const [date, obj] of Object.entries(amounts)) {
+                if (!obj || obj.amount === null || isNaN(obj.amount)) continue;
+                const val = Number(obj.amount);
+                const name = obj.name || "";
                 const parts = date.split("-");
                 if (parts.length !== 3) continue;
                 const year = parts[0];
-                const month = parts[1]; // already 1-based string
+                const month = parts[1]; // 1-based string
+                const day = parts[2];
 
                 const yKey = year;
                 const mKey = `${year}-${month}`;
 
-                yearSums[yKey] = (yearSums[yKey] || 0) + Number(val);
-                monthSums[mKey] = (monthSums[mKey] || 0) + Number(val);
+                yearSums[yKey] = (yearSums[yKey] || 0) + val;
+                monthSums[mKey] = (monthSums[mKey] || 0) + val;
+
+                if (!yearEntries[yKey]) yearEntries[yKey] = [];
+                yearEntries[yKey].push({
+                    date: `${year}-${pad2(month)}-${pad2(day)}`,
+                    amount: val,
+                    name
+                });
+
+                if (!monthEntries[mKey]) monthEntries[mKey] = [];
+                monthEntries[mKey].push({
+                    date: `${year}-${pad2(month)}-${pad2(day)}`,
+                    amount: val,
+                    name
+                });
             }
+
+            // store globally for dropdown
+            window._monthEntries = monthEntries;
+            window._yearEntries = yearEntries;
 
             // Apply to month titles
             document.querySelectorAll(".month").forEach(monthDiv => {
@@ -818,18 +992,16 @@
                 const monthNameEl = monthDiv.querySelector(".month-name");
                 if (!monthNameEl) return;
 
-                let labelSpan = monthNameEl.querySelector(".month-amount");
-                if (!labelSpan) {
-                    labelSpan = document.createElement("span");
-                    labelSpan.classList.add("month-amount");
-                    monthNameEl.appendChild(labelSpan);
-                }
-
+                const monthAmountSpan = monthNameEl.querySelector(".month-amount");
                 const sum = monthSums[key];
                 if (sum && !isNaN(sum)) {
-                    labelSpan.textContent = `€${sum.toFixed(2)}`;
+                    monthAmountSpan.textContent = `€${sum.toFixed(2)}`;
+                    monthAmountSpan.dataset.key = key;
+                    monthAmountSpan.classList.add("monthly-sum");
                 } else {
-                    labelSpan.textContent = "";
+                    monthAmountSpan.textContent = "";
+                    monthAmountSpan.removeAttribute("data-key");
+                    monthAmountSpan.classList.remove("monthly-sum");
                 }
             });
 
@@ -839,18 +1011,16 @@
                 const header = yearCard.querySelector(".year-header");
                 if (!header) return;
 
-                let yearAmountSpan = header.querySelector(".year-amount");
-                if (!yearAmountSpan) {
-                    yearAmountSpan = document.createElement("span");
-                    yearAmountSpan.classList.add("year-amount");
-                    header.appendChild(yearAmountSpan);
-                }
-
+                const yearAmountSpan = header.querySelector(".year-amount");
                 const sum = yearSums[year];
                 if (sum && !isNaN(sum)) {
                     yearAmountSpan.textContent = `€${sum.toFixed(2)}`;
+                    yearAmountSpan.dataset.yearKey = year;
+                    yearAmountSpan.classList.add("yearly-sum");
                 } else {
                     yearAmountSpan.textContent = "";
+                    yearAmountSpan.removeAttribute("data-year-key");
+                    yearAmountSpan.classList.remove("yearly-sum");
                 }
             });
         }
@@ -871,7 +1041,9 @@
                 yearHeader.classList.add("year-header");
 
                 const yearTitleSpan = document.createElement("span");
+                yearTitleSpan.classList.add("year-title");
                 yearTitleSpan.textContent = `${year}`;
+                yearTitleSpan.dataset.year = year;
                 yearHeader.appendChild(yearTitleSpan);
 
                 const yearAmountSpan = document.createElement("span");
@@ -890,7 +1062,10 @@
                     const monthNameDiv = document.createElement("div");
                     monthNameDiv.classList.add("month-name");
                     const monthTitleSpan = document.createElement("span");
+                    monthTitleSpan.classList.add("month-title");
                     monthTitleSpan.textContent = monthNames[month];
+                    monthTitleSpan.dataset.year = year;
+                    monthTitleSpan.dataset.month = month + 1;
                     const monthAmountSpan = document.createElement("span");
                     monthAmountSpan.classList.add("month-amount");
                     monthNameDiv.appendChild(monthTitleSpan);
@@ -994,6 +1169,7 @@
                     }
                 });
                 localStorage.setItem("dayNotesLocal", JSON.stringify(notesByDate));
+                notesDataGlobal = notesByDate;
                 updateNoteDots();
                 if (currentDate) {
                     loadNotes(currentDate);
@@ -1028,7 +1204,7 @@
                 applyYearColorsFromLocal();
             });
 
-            // Day amounts
+            // Day amounts (amount + name)
             const amountsQuery = query(ref(db, "dayAmounts"), orderByChild("date"));
             onValue(amountsQuery, (snapshot) => {
                 const amounts = {};
@@ -1036,9 +1212,12 @@
                     const val = child.val();
                     if (val.date) {
                         if (val.amount === null || val.amount === undefined || val.amount === "") {
-                            // skip; could also delete
+                            // skip
                         } else {
-                            amounts[val.date] = Number(val.amount);
+                            amounts[val.date] = {
+                                amount: Number(val.amount),
+                                name: val.name || ""
+                            };
                         }
                     }
                 });
@@ -1048,10 +1227,213 @@
             });
         }
 
-        // Button & icon event listeners
-        saveColorBtn.addEventListener("click", saveColor);
-        closeColorPickerBtn.addEventListener("click", closeColorPicker);
-        closeColorPickerIcon.addEventListener("click", closeColorPicker);
+        // Money / notes details modal
+        function openMoneyOrNotesDetails(type, key) {
+            moneyDetailsList.innerHTML = "";
+
+            if (type === "month-notes") {
+                // key = "YYYY-M"
+                const [year, month] = key.split("-");
+                moneyDetailsIcon.textContent = "notes";
+                moneyDetailsTitle.textContent = `Notes in ${year}-${pad2(month)}`;
+
+                const entries = collectNotesForMonth(year, month);
+                renderNotesList(entries);
+            } else if (type === "year-notes") {
+                const year = key;
+                moneyDetailsIcon.textContent = "notes";
+                moneyDetailsTitle.textContent = `Notes in ${year}`;
+                const entries = collectNotesForYear(year);
+                renderNotesList(entries);
+            } else if (type === "month-money") {
+                const monthEntries = window._monthEntries || {};
+                const entries = monthEntries[key] || [];
+                moneyDetailsTitle.textContent = `Month ${key} money entries`;
+                moneyDetailsIcon.textContent = "calendar_view_month";
+                renderMoneyList(entries);
+            } else if (type === "year-money") {
+                const yearEntries = window._yearEntries || {};
+                const entries = yearEntries[key] || [];
+                moneyDetailsTitle.textContent = `Year ${key} money entries`;
+                moneyDetailsIcon.textContent = "date_range";
+                renderMoneyList(entries);
+            }
+
+            moneyDetailsBackdrop.style.display = "flex";
+        }
+
+        function closeMoneyDetails() {
+            moneyDetailsBackdrop.style.display = "none";
+        }
+
+        function collectNotesForMonth(year, monthStr) {
+            const notesData = notesDataGlobal || {};
+            const list = [];
+            const month = parseInt(monthStr, 10); // 1-based
+
+            for (const [date, notes] of Object.entries(notesData)) {
+                const parts = date.split("-");
+                if (parts.length !== 3) continue;
+                const y = parts[0];
+                const m = parseInt(parts[1], 10);
+                const d = parts[2];
+                if (y === year && m === month) {
+                    notes.forEach(n => {
+                        list.push({
+                            date: `${y}-${pad2(parts[1])}-${pad2(d)}`,
+                            text: n.text || "",
+                            timestamp: n.timestamp || ""
+                        });
+                    });
+                }
+            }
+            list.sort((a,b)=> (a.date>b.date ? 1 : -1));
+            return list;
+        }
+
+        function collectNotesForYear(year) {
+            const notesData = notesDataGlobal || {};
+            const list = [];
+
+            for (const [date, notes] of Object.entries(notesData)) {
+                const parts = date.split("-");
+                if (parts.length !== 3) continue;
+                const y = parts[0];
+                const m = parts[1];
+                const d = parts[2];
+                if (y === year) {
+                    notes.forEach(n => {
+                        list.push({
+                            date: `${y}-${pad2(m)}-${pad2(d)}`,
+                            text: n.text || "",
+                            timestamp: n.timestamp || ""
+                        });
+                    });
+                }
+            }
+            list.sort((a,b)=> (a.date>b.date ? 1 : -1));
+            return list;
+        }
+
+        function renderMoneyList(entries) {
+            if (!entries || entries.length === 0) {
+                moneyDetailsList.innerHTML = "<p style='font-size:9px; color:#8b949e; margin:4px 0;'>No entries</p>";
+                return;
+            }
+            entries.forEach(e => {
+                const row = document.createElement("div");
+                row.classList.add("money-entry");
+
+                const left = document.createElement("div");
+                left.classList.add("money-entry-left");
+
+                const nameSpan = document.createElement("span");
+                nameSpan.classList.add("money-entry-name");
+                nameSpan.textContent = e.name || "(no name)";
+
+                const dateSpan = document.createElement("span");
+                dateSpan.classList.add("money-entry-date");
+                dateSpan.textContent = e.date;
+
+                left.appendChild(nameSpan);
+                left.appendChild(dateSpan);
+
+                const amtSpan = document.createElement("span");
+                amtSpan.classList.add("money-entry-amount");
+                amtSpan.textContent = `€${e.amount.toFixed(2)}`;
+
+                row.appendChild(left);
+                row.appendChild(amtSpan);
+                moneyDetailsList.appendChild(row);
+            });
+        }
+
+        function renderNotesList(entries) {
+            if (!entries || entries.length === 0) {
+                moneyDetailsList.innerHTML = "<p style='font-size:9px; color:#8b949e; margin:4px 0;'>No notes</p>";
+                return;
+            }
+            entries.forEach(e => {
+                const row = document.createElement("div");
+                row.classList.add("money-entry"); // reuse layout
+
+                const left = document.createElement("div");
+                left.classList.add("money-entry-left");
+
+                const textSpan = document.createElement("span");
+                textSpan.classList.add("note-list-text");
+                textSpan.textContent = e.text || "(empty)";
+
+                const dateSpan = document.createElement("span");
+                dateSpan.classList.add("money-entry-date");
+                dateSpan.textContent = e.date;
+
+                left.appendChild(textSpan);
+                left.appendChild(dateSpan);
+
+                row.appendChild(left);
+                moneyDetailsList.appendChild(row);
+            });
+        }
+
+        // Mobile-friendly button events
+        saveColorBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            saveColor();
+        }, { passive: false });
+
+        closeColorPickerBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeColorPicker();
+        }, { passive: false });
+
+        closeColorPickerIcon.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeColorPicker();
+        }, { passive: false });
+
+        moneyDetailsClose.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeMoneyDetails();
+        }, { passive: false });
+
+        moneyDetailsBackdrop.addEventListener("click", (e) => {
+            if (e.target === moneyDetailsBackdrop) {
+                closeMoneyDetails();
+            }
+        });
+
+        // Delegated click handling:
+        document.addEventListener("click", (e) => {
+            // Monthly money sum click
+            const monthSumSpan = e.target.closest(".monthly-sum");
+            if (monthSumSpan && monthSumSpan.dataset.key) {
+                openMoneyOrNotesDetails("month-money", monthSumSpan.dataset.key);
+                return;
+            }
+
+            // Yearly money sum click
+            const yearSumSpan = e.target.closest(".yearly-sum");
+            if (yearSumSpan && yearSumSpan.dataset.yearKey) {
+                openMoneyOrNotesDetails("year-money", yearSumSpan.dataset.yearKey);
+                return;
+            }
+
+            // Month title click -> notes list for that month
+            const monthTitleSpan = e.target.closest(".month-title");
+            if (monthTitleSpan && monthTitleSpan.dataset.year && monthTitleSpan.dataset.month) {
+                const key = `${monthTitleSpan.dataset.year}-${monthTitleSpan.dataset.month}`;
+                openMoneyOrNotesDetails("month-notes", key);
+                return;
+            }
+
+            // Year title click -> notes list for that year
+            const yearTitleSpan = e.target.closest(".year-title");
+            if (yearTitleSpan && yearTitleSpan.dataset.year) {
+                openMoneyOrNotesDetails("year-notes", yearTitleSpan.dataset.year);
+                return;
+            }
+        });
 
         // Initialize
         generateYearCards();
