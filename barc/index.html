@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Barcode Scanner with ZXing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1rem;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    }
+
+    .video-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    video {
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #000;
+    }
+
+    .controls {
+      margin: 0.5rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    input[type="text"] {
+      padding: 0.5rem;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button.start {
+      background: #007bff;
+      color: #fff;
+    }
+
+    button.save {
+      background: #28a745;
+      color: #fff;
+    }
+
+    button.stop {
+      background: #dc3545;
+      color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .scanned-value {
+      font-weight: bold;
+      color: #007bff;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Barcode Scanner (ZXing)</h1>
+
+    <div class="video-container">
+      <video id="video" autoplay playsinline></video>
+      <div class="controls">
+        <button id="startCamera" class="start">Start Scanner</button>
+        <button id="stopCamera" class="stop">Stop Scanner</button>
+        <span class="small">
+          Point the camera at a barcode. Detected value will appear below and can be saved to the table.
+        </span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label><strong>Last Detected Barcode:</strong></label>
+      <div id="detectedValue" class="scanned-value">None</div>
+
+      <label for="barcodeInput"><strong>Barcode Value (editable):</strong></label>
+      <input
+        type="text"
+        id="barcodeInput"
+        placeholder="Will be filled automatically when a barcode is detected"
+      />
+      <button id="saveData" class="save">Save to Table</button>
+    </div>
+
+    <h2>Saved Barcodes</h2>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Barcode Value</th>
+          <th>Format</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Entries will be added here -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ZXing library from CDN -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const startCameraBtn = document.getElementById('startCamera');
+    const stopCameraBtn = document.getElementById('stopCamera');
+    const saveDataBtn = document.getElementById('saveData');
+    const barcodeInput = document.getElementById('barcodeInput');
+    const dataTableBody = document.querySelector('#dataTable tbody');
+    const detectedValueDiv = document.getElementById('detectedValue');
+
+    let count = 0;
+    let selectedDeviceId = null;
+    let codeReader = null;
+    let lastFormat = '';
+
+    // Start scanner
+    startCameraBtn.addEventListener('click', async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('Camera not supported in this browser.');
+          return;
+        }
+
+        if (!codeReader) {
+          codeReader = new ZXing.BrowserMultiFormatReader();
+        } else {
+          codeReader.reset();
+        }
+
+        // Get camera devices (prefer back camera if available)
+        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+        if (devices.length === 0) {
+          alert('No video input devices found.');
+          return;
+        }
+
+        // Try to choose a back-facing camera
+        const backCam = devices.find(d =>
+          d.label.toLowerCase().includes('back') ||
+          d.label.toLowerCase().includes('rear')
+        );
+        selectedDeviceId = backCam ? backCam.deviceId : devices[0].deviceId;
+
+        codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
+          if (result) {
+            const value = result.getText();
+            const format = result.getBarcodeFormat && result.getBarcodeFormat().toString
+              ? result.getBarcodeFormat().toString()
+              : 'Unknown';
+
+            lastFormat = format;
+            detectedValueDiv.textContent = value;
+            barcodeInput.value = value;
+          }
+          // err is often just "NotFoundException" while scanning. Ignore.
+        });
+
+      } catch (err) {
+        console.error(err);
+        alert('Error starting scanner: ' + err.message);
+      }
+    });
+
+    // Stop scanner
+    stopCameraBtn.addEventListener('click', () => {
+      if (codeReader) {
+        codeReader.reset();
+      }
+      if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    });
+
+    // Save current barcode value to table
+    saveDataBtn.addEventListener('click', () => {
+      const value = barcodeInput.value.trim();
+      if (!value) {
+        alert('No barcode value to save.');
+        return;
+      }
+
+      count += 1;
+      const row = document.createElement('tr');
+
+      const now = new Date();
+      const timeString = now.toLocaleString();
+
+      row.innerHTML = `
+        <td>${count}</td>
+        <td>${value}</td>
+        <td>${lastFormat || 'N/A'}</td>
+        <td>${timeString}</td>
+      `;
+
+      dataTableBody.appendChild(row);
+      // keep value in the input, in case user wants to save multiple times or edit
+    });
+
+    // Optional: stop camera when leaving page
+    window.addEventListener('beforeunload', () => {
+      if (codeReader) {
+        codeReader.reset();
+      }
+      if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+      }
+    });
+  </script>
+</body>
+</html>
