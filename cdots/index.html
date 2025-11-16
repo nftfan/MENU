@@ -412,6 +412,7 @@
     let width, height, centerX, centerY, bigRadius;
     let particles = [];
     let running = true;
+    let time = 0; // for blinking effect
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -475,7 +476,7 @@
           vx,
           vy,
           r: baseRadius,
-          color: m.color,    // month color for border
+          color: m.color,    // month color (unused now for border)
           fillColor,         // random color for background
           monthIndex,
           dayOfMonth,
@@ -485,7 +486,7 @@
       }
     }
 
-    // NEW: resolve collisions between circles so they don't overlap
+    // Resolve collisions between circles so they don't overlap
     function resolveCollisions() {
       const len = particles.length;
       for (let i = 0; i < len; i++) {
@@ -498,7 +499,6 @@
           const minDist = p1.r + p2.r;
 
           if (distSq === 0) {
-            // Prevent NaN when particles are exactly on top of each other
             const epsilon = 0.01;
             p2.x += epsilon;
             p2.y += epsilon;
@@ -509,28 +509,23 @@
             const dist = Math.sqrt(distSq);
             const overlap = minDist - dist;
 
-            // Normalized collision normal
             const nx = dx / dist;
             const ny = dy / dist;
 
-            // Move each particle away from the other by half the overlap
             const separation = overlap / 2;
             p1.x -= nx * separation;
             p1.y -= ny * separation;
             p2.x += nx * separation;
             p2.y += ny * separation;
 
-            // Relative velocity along normal
             const dvx = p2.vx - p1.vx;
             const dvy = p2.vy - p1.vy;
             const vn = dvx * nx + dvy * ny;
 
-            // If they are moving apart already, skip velocity adjustment
             if (vn > 0) continue;
 
-            // Simple elastic collision with restitution (slightly damped)
             const restitution = 0.9;
-            const impulse = -(1 + restitution) * vn / 2; // equal mass
+            const impulse = -(1 + restitution) * vn / 2;
 
             const impulseX = impulse * nx;
             const impulseY = impulse * ny;
@@ -579,8 +574,10 @@
         }
       }
 
-      // After moving and wall-bouncing, handle circle-circle collisions
       resolveCollisions();
+
+      // faster blinking: larger time and higher frequency
+      time += 0.05;
     }
 
     function draw() {
@@ -597,7 +594,6 @@
       ctx.fillRect(0, 0, width, height);
 
       particles.forEach(p => {
-        // Keep particle.categories in sync with saved data (today might be toggled)
         if (p.isToday) {
           const latestCats = (savedRings[currentMonthIndex] && savedRings[currentMonthIndex][currentDayOfMonth])
             ? savedRings[currentMonthIndex][currentDayOfMonth]
@@ -605,7 +601,7 @@
           p.categories = [...latestCats];
         }
 
-        const baseR = p.isToday ? p.r * 1.6 : p.r;
+        const baseR = p.r;
 
         // Core circle with random fill color
         ctx.fillStyle = p.fillColor;
@@ -613,8 +609,19 @@
         ctx.arc(p.x, p.y, baseR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Thin colored border for month identity
-        ctx.strokeStyle = p.color;
+        // Border:
+        // - normal days: solid month color
+        // - today: white, faster blinking alpha
+        let borderColor;
+        if (p.isToday) {
+          // blink alpha between ~0.3 and 1.0, faster (frequency 4)
+          const blink = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * 4.0));
+          borderColor = `rgba(255, 255, 255, ${blink})`;
+        } else {
+          borderColor = p.color;
+        }
+
+        ctx.strokeStyle = borderColor;
         ctx.lineWidth = Math.max(1.2, baseR * 0.18);
         ctx.beginPath();
         ctx.arc(p.x, p.y, baseR * 0.94, 0, Math.PI * 2);
@@ -638,9 +645,9 @@
           });
         }
 
-        // Day number – slightly smaller relative to radius so it doesn't touch border
+        // Day number
         const fontSize = baseR * 1.1;
-        ctx.fillStyle = "#020617"; // dark text over random fills
+        ctx.fillStyle = "#020617";
         ctx.font = `600 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -667,7 +674,7 @@
 
     window.addEventListener("resize", () => {
       resizeCanvas();
-      createParticles(); // rebuild current month on resize
+      createParticles();
     });
 
     // Tap / click & hold inside the circle to pause / resume
