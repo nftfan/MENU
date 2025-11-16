@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Prevent zoom on text input on mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Life Calendar</title>
     <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
@@ -16,13 +17,8 @@
             margin: 0;
             padding: 0;
             text-align: center;
-            padding-top: 10px; /* time-bar removed, so smaller top padding */
-        }
-        h1 {
-            background-color: #333333;
-            color: white;
-            padding: 20px;
-            margin: 0;
+            padding-top: 10px;
+            font-size: 16px; /* helps prevent zoom on focus */
         }
         .container {
             display: grid;
@@ -81,6 +77,7 @@
             font-weight: bold;
             color: #FFFFFF;
             grid-column: span 8; /* 7 days + 1 for week number */
+            background-color: transparent; /* default; overridden by stored color */
         }
         .week-number {
             font-size: 5px;
@@ -101,7 +98,8 @@
             z-index: 1000;
         }
         .color-picker input[type="color"] {
-            margin: 10px;
+            margin: 10px 5px;
+            font-size: 16px; /* avoid zoom */
         }
         .color-picker button {
             padding: 10px;
@@ -112,6 +110,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
         }
         .color-picker button:hover {
             background-color: #5f9ea0;
@@ -126,6 +125,7 @@
             border: 1px solid #555;
             border-radius: 5px;
             resize: vertical;
+            font-size: 16px;
         }
         .notes-container {
             max-height: 500px;
@@ -156,14 +156,6 @@
             align-items: center;
             justify-content: center;
         }
-        .color-preview {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
         .selected-date {
             margin-bottom: 10px;
             font-weight: bold;
@@ -177,45 +169,6 @@
             height: 4px;
             background-color: #FFFFFF;
             border-radius: 1px;
-        }
-        .image-note-dot {
-            position: absolute;
-            bottom: 1px;
-            right: 1px;
-            width: 4px;
-            height: 4px;
-            background-color: #FF6347;
-            border-radius: 1px;
-        }
-        .note-image {
-            max-width: 100%;
-            height: auto;
-            margin-top: 10px;
-            border-radius: 5px;
-        }
-        .file-upload {
-            display: none; /* Photo upload removed */
-        }
-        .file-upload label {
-            padding: 8px 12px;
-            background-color: #4682b4;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        .file-upload label:hover {
-            background-color: #5f9ea0;
-        }
-        .file-upload input[type="file"] {
-            display: none;
-        }
-        .file-name {
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #ccc;
         }
 
         /* MOBILE: one year per row, full width */
@@ -237,11 +190,33 @@
 
     <div class="color-picker" id="colorPicker">
         <div class="selected-date" id="selectedDate"></div>
-        <input type="color" id="colorInput">
+
+        <!-- Day color -->
+        <div>
+            <label for="colorInput">Day color:</label>
+            <input type="color" id="colorInput">
+        </div>
+
+        <!-- Month title color -->
+        <div>
+            <label for="monthColorInput">Month title color:</label>
+            <input type="color" id="monthColorInput">
+        </div>
+
+        <!-- Year card color -->
+        <div>
+            <label for="yearColorInput">Year background:</label>
+            <input type="color" id="yearColorInput">
+        </div>
+
         <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
-        <input type="color" id="noteDotColorInput" value="#FFFFFF">
+
+        <div>
+            <label for="noteDotColorInput">Note dot color:</label>
+            <input type="color" id="noteDotColorInput" value="#FFFFFF">
+        </div>
+
         <div class="notes-container" id="notesContainer"></div>
-        <!-- Buttons have no inline onclick; JS will attach listeners -->
         <button id="saveColorBtn">Save</button>
         <button id="closeColorPickerBtn">Close</button>
     </div>
@@ -267,6 +242,8 @@
         const container = document.getElementById("container");
         const colorPicker = document.getElementById("colorPicker");
         const colorInput = document.getElementById("colorInput");
+        const monthColorInput = document.getElementById("monthColorInput");
+        const yearColorInput = document.getElementById("yearColorInput");
         const noteInput = document.getElementById("noteInput");
         const notesContainer = document.getElementById("notesContainer");
         const selectedDateElement = document.getElementById("selectedDate");
@@ -276,6 +253,8 @@
 
         let currentDayElement = null;
         let currentDate = null;
+        let currentYearForPopup = null;
+        let currentMonthForPopup = null;
 
         // Current date
         const now = new Date();
@@ -304,21 +283,36 @@
         function openColorPicker(dayElement, year, month, day) {
             currentDayElement = dayElement;
             currentDate = `${year}-${month + 1}-${day}`;
+            currentYearForPopup = year;
+            currentMonthForPopup = month; // 0-based
 
             selectedDateElement.textContent = formatDate(year, month, day);
 
-            const localColors = JSON.parse(localStorage.getItem("dayColors")) || {};
-            const currentColor = localColors[currentDate] || "#171814";
-            colorInput.value = currentColor;
+            // Load day color
+            const dayColors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            const dayColor = dayColors[currentDate] || "#171814";
+            colorInput.value = dayColor;
 
-            notesContainer.innerHTML = "";
-            noteInput.value = "";
+            // Load month title color
+            const monthKey = `${year}-${month + 1}`;
+            const monthColors = JSON.parse(localStorage.getItem("monthColors")) || {};
+            const monthColor = monthColors[monthKey] || "#000000"; // default
+            monthColorInput.value = monthColor;
 
-            loadNotes(currentDate);
+            // Load year color
+            const yearColors = JSON.parse(localStorage.getItem("yearColors")) || {};
+            const yearColor = yearColors[year] || "#000000"; // default
+            yearColorInput.value = yearColor;
 
+            // Load note dot color
             let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
             const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
             noteDotColorInput.value = currentNoteDotColor;
+
+            // Load notes
+            notesContainer.innerHTML = "";
+            noteInput.value = "";
+            loadNotes(currentDate);
 
             colorPicker.style.display = "block";
         }
@@ -327,18 +321,39 @@
             colorPicker.style.display = "none";
             currentDayElement = null;
             currentDate = null;
+            currentYearForPopup = null;
+            currentMonthForPopup = null;
         }
 
         function saveColor() {
-            const selectedColor = colorInput.value;
+            const selectedDayColor = colorInput.value;
+            const selectedMonthColor = monthColorInput.value;
+            const selectedYearColor = yearColorInput.value;
             const note = noteInput.value.trim();
             const selectedNoteDotColor = noteDotColorInput.value;
 
-            if (currentDayElement && currentDate) {
-                currentDayElement.style.backgroundColor = selectedColor;
-                saveColorToLocalCache(currentDate, selectedColor);
-                saveColorToFirebase(currentDate, selectedColor);
+            if (currentDayElement && currentDate != null) {
+                // DAY COLOR
+                currentDayElement.style.backgroundColor = selectedDayColor;
+                saveDayColorToLocal(currentDate, selectedDayColor);
+                saveDayColorToFirebase(currentDate, selectedDayColor);
 
+                // MONTH TITLE COLOR
+                if (currentYearForPopup != null && currentMonthForPopup != null) {
+                    const monthKey = `${currentYearForPopup}-${currentMonthForPopup + 1}`;
+                    saveMonthColorToLocal(monthKey, selectedMonthColor);
+                    saveMonthColorToFirebase(currentYearForPopup, currentMonthForPopup, selectedMonthColor);
+                    applyMonthColorsFromLocal();
+                }
+
+                // YEAR CARD COLOR
+                if (currentYearForPopup != null) {
+                    saveYearColorToLocal(currentYearForPopup, selectedYearColor);
+                    saveYearColorToFirebase(currentYearForPopup, selectedYearColor);
+                    applyYearColorsFromLocal();
+                }
+
+                // NOTE
                 if (note) {
                     saveNote(currentDate, note, selectedNoteDotColor);
                     noteInput.value = "";
@@ -347,16 +362,52 @@
             }
         }
 
-        function saveColorToLocalCache(date, color) {
+        // ===== Day color storage =====
+        function saveDayColorToLocal(date, color) {
             let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
             colors[date] = color;
             localStorage.setItem("dayColors", JSON.stringify(colors));
         }
 
-        function saveColorToFirebase(date, color) {
+        function saveDayColorToFirebase(date, color) {
             const colorsRef = ref(db, "dayColors");
             push(colorsRef, {
                 date,
+                color,
+                ts: Date.now()
+            });
+        }
+
+        // ===== Month color storage (month title only) =====
+        function saveMonthColorToLocal(monthKey, color) {
+            let monthColors = JSON.parse(localStorage.getItem("monthColors")) || {};
+            monthColors[monthKey] = color;
+            localStorage.setItem("monthColors", JSON.stringify(monthColors));
+        }
+
+        function saveMonthColorToFirebase(year, monthIndex0, color) {
+            const monthKey = `${year}-${monthIndex0 + 1}`;
+            const refMonths = ref(db, "monthColors");
+            push(refMonths, {
+                key: monthKey,
+                year,
+                month: monthIndex0 + 1,
+                color,
+                ts: Date.now()
+            });
+        }
+
+        // ===== Year color storage =====
+        function saveYearColorToLocal(year, color) {
+            let yearColors = JSON.parse(localStorage.getItem("yearColors")) || {};
+            yearColors[year] = color;
+            localStorage.setItem("yearColors", JSON.stringify(yearColors));
+        }
+
+        function saveYearColorToFirebase(year, color) {
+            const refYears = ref(db, "yearColors");
+            push(refYears, {
+                year,
                 color,
                 ts: Date.now()
             });
@@ -380,14 +431,11 @@
 
         function deleteNote(date, noteId) {
             let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
-            
             if (notesData[date]) {
                 notesData[date] = notesData[date].filter(note => note.id !== noteId);
-                
                 if (notesData[date].length === 0) {
                     delete notesData[date];
                 }
-                
                 localStorage.setItem("dayNotesLocal", JSON.stringify(notesData));
                 loadNotes(date);
                 updateNoteDots();
@@ -401,18 +449,10 @@
             dayElement.appendChild(dotElement);
         }
 
-        function addImageNoteDot(dayElement) {
-            const dotElement = document.createElement("div");
-            dotElement.classList.add("image-note-dot");
-            dayElement.appendChild(dotElement);
-        }
-
         function updateNoteDots() {
             document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
-            document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
-            
+
             let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
-            
             for (const date in notesData) {
                 if (notesData[date] && notesData[date].length > 0) {
                     const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
@@ -426,19 +466,18 @@
 
         function loadNotes(date) {
             notesContainer.innerHTML = "";
-            
             let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
             const notes = notesData[date] || [];
-            
+
             if (notes.length === 0) {
                 notesContainer.innerHTML = "<p>No notes for this day</p>";
                 return;
             }
-            
+
             notes.forEach(note => {
                 const noteElement = document.createElement("div");
                 noteElement.classList.add("note-item");
-                
+
                 const deleteButton = document.createElement("button");
                 deleteButton.classList.add("delete-note");
                 deleteButton.innerHTML = "×";
@@ -446,24 +485,52 @@
                     e.stopPropagation();
                     deleteNote(date, note.id);
                 };
-                
+
                 if (note.text) {
                     const textElement = document.createElement("div");
                     textElement.textContent = note.text;
                     noteElement.appendChild(textElement);
                 }
-                
+
                 noteElement.appendChild(deleteButton);
                 notesContainer.appendChild(noteElement);
             });
         }
 
-        function loadColorsFromLocalCache() {
+        function loadDayColorsFromLocal() {
             let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
             for (const [date, color] of Object.entries(colors)) {
                 const dayElement = document.querySelector(`[data-date="${date}"]`);
                 if (dayElement) {
                     dayElement.style.backgroundColor = color;
+                }
+            }
+        }
+
+        // Apply stored month title colors
+        function applyMonthColorsFromLocal() {
+            let monthColors = JSON.parse(localStorage.getItem("monthColors")) || {};
+            for (const [monthKey, color] of Object.entries(monthColors)) {
+                const [yearStr, monthStr] = monthKey.split("-");
+                const year = parseInt(yearStr, 10);
+                const month = parseInt(monthStr, 10); // 1-based
+
+                // Select month containers and then color their .month-name child
+                const selector = `.month[data-year="${year}"][data-month="${month}"] .month-name`;
+                const monthNameEls = document.querySelectorAll(selector);
+                monthNameEls.forEach(el => {
+                    el.style.backgroundColor = color;
+                });
+            }
+        }
+
+        function applyYearColorsFromLocal() {
+            let yearColors = JSON.parse(localStorage.getItem("yearColors")) || {};
+            for (const [yearStr, color] of Object.entries(yearColors)) {
+                const year = parseInt(yearStr, 10);
+                const yearCard = document.querySelector(`.year-card[data-year="${year}"]`);
+                if (yearCard) {
+                    yearCard.style.backgroundColor = color;
                 }
             }
         }
@@ -475,17 +542,22 @@
             for (let year = 1989; year <= 2089; year++) {
                 const yearCard = document.createElement("div");
                 yearCard.classList.add("year-card");
+                yearCard.dataset.year = year;
+                if (year === currentYear) {
+                    yearCard.id = "currentYearCard";
+                }
 
                 const yearHeader = document.createElement("div");
                 yearHeader.classList.add("year-header");
                 yearHeader.textContent = `${year}`;
                 if (year === currentYear) yearHeader.classList.add("highlight");
-
                 yearCard.appendChild(yearHeader);
 
                 for (let month = 0; month < 12; month++) {
                     const monthDiv = document.createElement("div");
                     monthDiv.classList.add("month");
+                    monthDiv.dataset.year = year;
+                    monthDiv.dataset.month = month + 1; // 1-based
 
                     const monthNameDiv = document.createElement("div");
                     monthNameDiv.classList.add("month-name");
@@ -509,10 +581,10 @@
                     let weekNumber = getWeekNumber(new Date(year, month, 1));
                     for (let i = 0; i < firstDay; i++) {
                         if (i === 0) {
-                            const weekNumberDiv = document.createElement("div");
-                            weekNumberDiv.classList.add("week-number");
-                            weekNumberDiv.textContent = weekNumber++;
-                            monthDiv.appendChild(weekNumberDiv);
+                            const weekNumberDiv2 = document.createElement("div");
+                            weekNumberDiv2.classList.add("week-number");
+                            weekNumberDiv2.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv2);
                         }
                         const emptyDiv = document.createElement("div");
                         emptyDiv.classList.add("day-cell");
@@ -521,10 +593,10 @@
 
                     for (let day = 1; day <= daysInMonth; day++) {
                         if ((firstDay + day - 1) % 7 === 0) {
-                            const weekNumberDiv = document.createElement("div");
-                            weekNumberDiv.classList.add("week-number");
-                            weekNumberDiv.textContent = weekNumber++;
-                            monthDiv.appendChild(weekNumberDiv);
+                            const weekNumberDiv3 = document.createElement("div");
+                            weekNumberDiv3.classList.add("week-number");
+                            weekNumberDiv3.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv3);
                         }
                         const dayDiv = document.createElement("div");
                         dayDiv.classList.add("day-cell");
@@ -544,11 +616,19 @@
                 container.appendChild(yearCard);
             }
 
-            loadColorsFromLocalCache();
+            loadDayColorsFromLocal();
+            applyMonthColorsFromLocal();
+            applyYearColorsFromLocal();
             updateNoteDots();
+
+            const currentYearCard = document.getElementById("currentYearCard");
+            if (currentYearCard) {
+                currentYearCard.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
         }
 
         function setupFirebaseListeners() {
+            // Day colors
             const colorsQuery = query(ref(db, "dayColors"), orderByChild("date"));
             onValue(colorsQuery, (snapshot) => {
                 const colors = {};
@@ -559,9 +639,10 @@
                     }
                 });
                 localStorage.setItem("dayColors", JSON.stringify(colors));
-                loadColorsFromLocalCache();
+                loadDayColorsFromLocal();
             });
 
+            // Notes
             const notesQuery = query(ref(db, "dayNotes"), orderByChild("date"));
             onValue(notesQuery, (snapshot) => {
                 const notesByDate = {};
@@ -583,9 +664,37 @@
                     loadNotes(currentDate);
                 }
             });
+
+            // Month title colors
+            const monthColorsQuery = query(ref(db, "monthColors"), orderByChild("key"));
+            onValue(monthColorsQuery, (snapshot) => {
+                const monthColors = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (val.key && val.color) {
+                        monthColors[val.key] = val.color;
+                    }
+                });
+                localStorage.setItem("monthColors", JSON.stringify(monthColors));
+                applyMonthColorsFromLocal();
+            });
+
+            // Year card colors
+            const yearColorsQuery = query(ref(db, "yearColors"), orderByChild("year"));
+            onValue(yearColorsQuery, (snapshot) => {
+                const yearColors = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (typeof val.year !== "undefined" && val.color) {
+                        yearColors[val.year] = val.color;
+                    }
+                });
+                localStorage.setItem("yearColors", JSON.stringify(yearColors));
+                applyYearColorsFromLocal();
+            });
         }
 
-        // Attach button event listeners so they work inside module
+        // Button event listeners
         saveColorBtn.addEventListener("click", saveColor);
         closeColorPickerBtn.addEventListener("click", closeColorPicker);
 
