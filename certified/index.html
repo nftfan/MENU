@@ -719,7 +719,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script>
-    /* ---------------- CONFIG & CONSTANTS ---------------- */
+    /* ---------------- CONFIG & CONSTANTS (v2-style) ---------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyCYSOx_niWPHLDisCjAQzK8UJSe5TfwtLI",
       authDomain: "nftfanactive.firebaseapp.com",
@@ -733,11 +733,18 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const tokenAddress = "0x2017Fcaea540d2925430586DC92818035Bfc2F50";
-    const apiKey = "3AFN3ZU4ANK3XEUJQ6BRJCBCITAFHKFVTV";
-    const KT_VALUE = 1000000000000000; // 1 KT = 1e15 ???
+    // Etherscan v2 config (Polygon mainnet)
+    const ES_API_KEY  = "Z7UUSFGES3UDZ8RMWVAWF9HA59IAJA83XJ";
+    const ES_CHAIN_ID = 137;
+    const ES_BASE     = "https://api.etherscan.io/v2/api";
 
-    // Level definitions (Ascending order)
+    const TOKEN_CA        = "0x2017Fcaea540d2925430586DC92818035Bfc2F50"; // NFTFAN/KT token
+    const TOKEN_DECIMALS  = 18;
+    // 1 KT = 1000 trillion tokens.
+    // 1 token = 1e18 base units → 1e3 * 1e12 * 1e18 = 1e33 base units.
+    const KT_UNIT         = 1_000_000_000_000_000_000_000_000_000_000_000n; // 1e33
+    const BASE_UNIT       = 10n ** BigInt(TOKEN_DECIMALS);                  // 1e18
+
     const LEVELS_ORDERED = [
       { key:'BASIC',    min:0,       icon:'person',              name:'Basic',    next:'ACTIVE'   },
       { key:'ACTIVE',   min:0.001,   icon:'bolt',                name:'Active',   next:'SUPER'    },
@@ -762,59 +769,88 @@
     ];
 
     const ACHIEVEMENTS = [
-      { id:'first_hold',    min:0.001, title:'First Spark',     icon:'flare',           desc:'Hold ≥ 0.001 KT', },
-      { id:'super_holder',  min:0.5,   title:'Rising Current',  icon:'bolt',            desc:'Reach Super tier (0.5 KT)', },
+      { id:'first_hold',    min:0.001, title:'First Spark',     icon:'flare',             desc:'Hold ≥ 0.001 KT', },
+      { id:'super_holder',  min:0.5,   title:'Rising Current',  icon:'bolt',              desc:'Reach Super tier (0.5 KT)', },
       { id:'bronze_step',   min:1,     title:'Bronze Claimed',  icon:'workspace_premium', desc:'Reach Bronze (1 KT)', },
-      { id:'silver_edge',   min:5,     title:'Silver Edge',     icon:'star',            desc:'Hold 5 KT', },
-      { id:'golden_core',   min:10,    title:'Golden Core',     icon:'stars',           desc:'Hold 10 KT', },
-      { id:'platinum_wave', min:50,    title:'Platinum Wave',   icon:'auto_awesome',    desc:'Hold 50 KT', },
-      { id:'diamond_sky',   min:100,   title:'Diamond Sky',     icon:'diamond',         desc:'Hold 100 KT', }
+      { id:'silver_edge',   min:5,     title:'Silver Edge',     icon:'star',              desc:'Hold 5 KT', },
+      { id:'golden_core',   min:10,    title:'Golden Core',     icon:'stars',             desc:'Hold 10 KT', },
+      { id:'platinum_wave', min:50,    title:'Platinum Wave',   icon:'auto_awesome',      desc:'Hold 50 KT', },
+      { id:'diamond_sky',   min:100,   title:'Diamond Sky',     icon:'diamond',           desc:'Hold 100 KT', }
     ];
 
-    // Simulated “quests” (visual XP)
     let QUESTS = [
-      { id:'q1', title:'Check Wallet',     desc:'Scan any valid wallet address.', icon:'search', reward:20, done:false, auto:true },
-      { id:'q2', title:'Social Share',     desc:'Share your level with friends.', icon:'share', reward:35, done:false },
+      { id:'q1', title:'Check Wallet',     desc:'Scan any valid wallet address.', icon:'search',   reward:20, done:false, auto:true },
+      { id:'q2', title:'Social Share',     desc:'Share your level with friends.', icon:'share',    reward:35, done:false },
       { id:'q3', title:'Come Back Later',  desc:'Return after 6 hours (session-based demo).', icon:'schedule', reward:50, done:false },
       { id:'q4', title:'Scan Again',       desc:'Rescan wallet (encourages balance refresh).', icon:'refresh', reward:15, done:false }
     ];
 
     let currentWalletState = {
-      address:null,
-      balanceRaw:0,
-      balanceKT:0,
-      level:LEVEL_MAP.BASIC,
-      xp:0
+      address: null,
+      balanceRawBase: 0n,
+      balanceKT: 0,
+      level: LEVEL_MAP.BASIC,
+      xp: 0
     };
 
-    /* ---------------- UTILITIES ---------------- */
-    function formatKT(tokens){
-      const kt = tokens / KT_VALUE;
+    function commas(n){
+      return (String(n||"0")).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    async function fetchJson(url){
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }
+
+    function toHuman(raw, decimals){
+      try{
+        const d   = Number(decimals || TOKEN_DECIMALS);
+        const big = BigInt(raw || "0");
+        if (d <= 0) return big.toString();
+        const factor = 10n ** BigInt(d);
+        return (big / factor).toString();
+      }catch{
+        return "0";
+      }
+    }
+
+    async function getTokenBalanceRaw(holder){
+      const url = `${ES_BASE}?chainid=${ES_CHAIN_ID}&module=account&action=tokenbalance&contractaddress=${TOKEN_CA}&address=${holder}&tag=latest&apikey=${ES_API_KEY}`;
+      const res = await fetchJson(url);
+      if (res.status !== "1") throw new Error(res.result || res.message || "Unable to fetch balance");
+      return BigInt(res.result);
+    }
+
+    function formatKTFromBase(rawBase){
+      // 1 KT = 1e33 base units
+      const kt = Number(rawBase) / Number(KT_UNIT);
       if (kt >= 1000) return kt.toLocaleString(undefined,{maximumFractionDigits:1});
-      if (kt >= 100) return kt.toLocaleString(undefined,{maximumFractionDigits:2});
-      if (kt >= 10) return kt.toLocaleString(undefined,{maximumFractionDigits:3});
-      if (kt >= 1) return kt.toLocaleString(undefined,{maximumFractionDigits:4});
+      if (kt >= 100)  return kt.toLocaleString(undefined,{maximumFractionDigits:2});
+      if (kt >= 10)   return kt.toLocaleString(undefined,{maximumFractionDigits:3});
+      if (kt >= 1)    return kt.toLocaleString(undefined,{maximumFractionDigits:4});
       return kt.toLocaleString(undefined,{maximumSignificantDigits:3});
     }
+
     function shortAddress(addr){ return addr ? addr.slice(0,6)+"..."+addr.slice(-4) : ""; }
     function validateEthAddress(a){ return /^0x[a-fA-F0-9]{40}$/.test(a); }
+
     function getLevel(balanceKT){
-      // balanceKT is in KT units (??? - we derive below)
-      // Actually we computed balanceKT as (balance / KT_VALUE) earlier (balance = raw / 1e18)
-      for (let i=LEVELS_ORDERED.length-1;i>=0;i--){
+      for (let i = LEVELS_ORDERED.length - 1; i >= 0; i--){
         if (balanceKT >= LEVELS_ORDERED[i].min) return LEVELS_ORDERED[i];
       }
       return LEVEL_MAP.BASIC;
     }
+
     function getNext(level){
       if (!level.next) return null;
       return LEVEL_MAP[level.next];
     }
 
-    /* ---------------- PARTICLES ---------------- */
     function generateParticles(){
       const colors = ['var(--rainbow-red)','var(--rainbow-orange)','var(--rainbow-yellow)','var(--rainbow-green)','var(--rainbow-blue)','var(--rainbow-indigo)','var(--rainbow-violet)'];
       const cont = document.getElementById('particles');
+      if (!cont) return;
       cont.innerHTML = '';
       const count = 36;
       for (let i=0;i<count;i++){
@@ -828,10 +864,10 @@
       }
     }
 
-    /* ---------------- MOTIVATION ROTATOR ---------------- */
-    let motIndex=0;
+    let motIndex = 0;
     function rotateMotivation(){
       const el = document.getElementById('motivation-rotator');
+      if (!el) return;
       motIndex = (motIndex+1)%MOTIVATION_LINES.length;
       el.style.opacity=0;
       setTimeout(()=>{
@@ -839,23 +875,27 @@
         el.style.opacity=1;
       },260);
     }
-    setInterval(()=>{ if (document.getElementById('game-wrapper') && !document.getElementById('game-wrapper').classList.contains('hidden')) rotateMotivation(); },5000);
+    setInterval(()=>{
+      const wrap = document.getElementById('game-wrapper');
+      if (wrap && !wrap.classList.contains('hidden')) rotateMotivation();
+    },5000);
 
-    /* ---------------- RADIAL PROGRESS ---------------- */
     function drawRadial(progress){
-      const bg = document.getElementById('radial-bg').getContext('2d');
-      const fg = document.getElementById('radial-fg').getContext('2d');
+      const bgCanvas = document.getElementById('radial-bg');
+      const fgCanvas = document.getElementById('radial-fg');
+      if (!bgCanvas || !fgCanvas) return;
+      const bg = bgCanvas.getContext('2d');
+      const fg = fgCanvas.getContext('2d');
       const size = 120;
       bg.clearRect(0,0,size,size);
       fg.clearRect(0,0,size,size);
-      // background circle
+
       bg.lineWidth=10;
       bg.strokeStyle='rgba(255,255,255,0.07)';
       bg.beginPath();
       bg.arc(size/2,size/2, size/2-10, 0, Math.PI*2);
       bg.stroke();
 
-      // progress gradient
       const grad = fg.createLinearGradient(0,0,size,0);
       grad.addColorStop(0,'#FF5757');
       grad.addColorStop(0.2,'#FFBD59');
@@ -874,7 +914,6 @@
       fg.stroke();
     }
 
-    /* ---------------- UI BUILDERS ---------------- */
     function buildLevelLadder(){
       const ladder = document.getElementById('level-ladder');
       ladder.innerHTML='';
@@ -883,12 +922,11 @@
         const unlocked = balKT >= l.min;
         const card = document.createElement('div');
         card.className='level-card '+(unlocked?'unlocked':'locked')+' fade-in';
-        // ring only if unlocked
         if (unlocked){
           const ringWrap=document.createElement('div');
-            ringWrap.className='progress-ring-wrapper';
+          ringWrap.className='progress-ring-wrapper';
           const ring=document.createElement('div');
-            ring.className='ring';
+          ring.className='ring';
           ringWrap.appendChild(ring);
           card.appendChild(ringWrap);
           const tag=document.createElement('div');
@@ -988,62 +1026,15 @@
         flashMotivation("Scan a wallet first!");
         return;
       }
-      const text = `I am ${currentWalletState.level.name} on NFTFANS — holding ${formatKT(currentWalletState.balanceRaw)} KT. Climbing to ${getNext(currentWalletState.level)?.name || 'MAX'}! #NFTFANS`;
+      const text = `I am ${currentWalletState.level.name} on NFTFANS — holding ${formatKTFromBase(currentWalletState.balanceRawBase)} KT. Climbing to ${getNext(currentWalletState.level)?.name || 'MAX'}! #NFTFANS`;
       if (navigator.share){
         navigator.share({title:"My NFTFANS Certification", text});
-      } else {
+      } else if (navigator.clipboard) {
         navigator.clipboard.writeText(text);
         flashMotivation("Progress copied! Share it now.");
-      }
-    }
-
-    /* ---------------- UPDATE DISPLAY ---------------- */
-    function updateCoreUI(){
-      // show wrapper
-      document.getElementById('game-wrapper').classList.remove('hidden');
-
-      // wallet + balance
-      document.getElementById('wallet-display').children[1].textContent = shortAddress(currentWalletState.address);
-      document.getElementById('balance-display').innerHTML = `${formatKT(currentWalletState.balanceRaw)} <small>KT</small>`;
-
-      // current level
-      const level = currentWalletState.level;
-      document.getElementById('current-level-title').textContent = `CURRENT: ${level.name.toUpperCase()}`;
-      const next = getNext(level);
-      const nextTarget=document.getElementById('next-target');
-      if (next){
-        nextTarget.innerHTML = `<span class="material-icons" style="font-size:9px;">trending_up</span><span>Next: ${next.name} (${next.min} KT)</span>`;
       } else {
-        nextTarget.innerHTML = `<span class="material-icons" style="font-size:9px;">emoji_events</span><span>MAX LEVEL REACHED</span>`;
+        flashMotivation("Share not supported – copy manually.");
       }
-
-      // progress
-      let progress=1;
-      let from = level.min;
-      let to = next ? next.min : level.min;
-      if (next){
-        const bal = currentWalletState.balanceKT;
-        progress = (bal - from) / (to - from);
-        progress = Math.max(0,Math.min(1,progress));
-      }
-      drawRadial(progress);
-      document.getElementById('radial-percent').textContent = Math.round(progress*100)+'%';
-      document.getElementById('radial-small').textContent = next ? `TO ${next.name.toUpperCase()}` : 'LEGENDARY';
-      const barFill=document.getElementById('bar-progress-fill');
-      requestAnimationFrame(()=> barFill.style.width = (progress*100)+'%');
-      document.getElementById('progress-from').textContent = from+' KT';
-      document.getElementById('progress-to').textContent = next ? (next.min+' KT') : 'MAX';
-
-      // builds
-      buildLevelLadder();
-      buildAchievements();
-      buildInlineLevels();
-      buildQuests();
-
-      // ambient difficulty / visuals: scale brightness by level
-      const wrapper = document.getElementById('game-wrapper');
-      wrapper.style.boxShadow = `0 0 25px -6px ${progressColor(progress)}`;
-      generateParticles();
     }
 
     function progressColor(p){
@@ -1054,7 +1045,55 @@
       return 'rgba(193,89,255,0.5)';
     }
 
-    /* ---------------- CERTIFY (SCAN) WALLET ---------------- */
+    function updateCoreUI(){
+      document.getElementById('game-wrapper').classList.remove('hidden');
+
+      document.getElementById('wallet-display').children[1].textContent =
+        shortAddress(currentWalletState.address);
+      document.getElementById('balance-display').innerHTML =
+        `${formatKTFromBase(currentWalletState.balanceRawBase)} <small>KT</small>`;
+
+      const level = currentWalletState.level;
+      document.getElementById('current-level-title').textContent =
+        `CURRENT: ${level.name.toUpperCase()}`;
+      const next = getNext(level);
+      const nextTarget=document.getElementById('next-target');
+      if (next){
+        nextTarget.innerHTML =
+          `<span class="material-icons" style="font-size:9px;">trending_up</span><span>Next: ${next.name} (${next.min} KT)</span>`;
+      } else {
+        nextTarget.innerHTML =
+          `<span class="material-icons" style="font-size:9px;">emoji_events</span><span>MAX LEVEL REACHED</span>`;
+      }
+
+      let progress=1;
+      let from = level.min;
+      let to = next ? next.min : level.min;
+      if (next){
+        const bal = currentWalletState.balanceKT;
+        progress = (bal - from) / (to - from);
+        progress = Math.max(0,Math.min(1,progress));
+      }
+      drawRadial(progress);
+      document.getElementById('radial-percent').textContent =
+        Math.round(progress*100)+'%';
+      document.getElementById('radial-small').textContent =
+        next ? `TO ${next.name.toUpperCase()}` : 'LEGENDARY';
+      const barFill=document.getElementById('bar-progress-fill');
+      requestAnimationFrame(()=> barFill.style.width = (progress*100)+'%');
+      document.getElementById('progress-from').textContent = from+' KT';
+      document.getElementById('progress-to').textContent = next ? (next.min+' KT') : 'MAX';
+
+      buildLevelLadder();
+      buildAchievements();
+      buildInlineLevels();
+      buildQuests();
+
+      const wrapper = document.getElementById('game-wrapper');
+      wrapper.style.boxShadow = `0 0 25px -6px ${progressColor(progress)}`;
+      generateParticles();
+    }
+
     async function certifyWallet(){
       const wallet = document.getElementById("wallet").value.trim();
       const resultDiv = document.getElementById("result");
@@ -1070,7 +1109,6 @@
         return;
       }
 
-      // UI loading
       const btn=document.getElementById('certify-btn');
       const originalHTML=btn.innerHTML;
       btn.disabled=true;
@@ -1079,53 +1117,49 @@
       resultDiv.className='loading';
 
       try{
-        const url = `https://api.polygonscan.com/api?module=account&action=tokenbalance&contractaddress=${tokenAddress}&address=${wallet}&tag=latest&apikey=${apiKey}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.status === "1"){
-          const decimals=18;
-            const balance = Number(data.result) / 10 ** decimals; // raw token
-            const balanceKT = balance / KT_VALUE; // convert to KT scale
-            const level = getLevel(balanceKT);
-          currentWalletState.address = wallet;
-          currentWalletState.balanceRaw = balance;
-          currentWalletState.balanceKT = balanceKT;
-          currentWalletState.level = level;
+        const rawBase = await getTokenBalanceRaw(wallet);
+        const humanTokensStr = toHuman(rawBase.toString(), TOKEN_DECIMALS);
+        const humanTokens = Number(humanTokensStr);
+        const balanceKT = Number(rawBase) / Number(KT_UNIT);
 
-          // Save / update Firebase
-          const ts=new Date().toISOString();
-          const ref=db.ref('certified-wallets/'+wallet.toLowerCase());
-          ref.once('value').then(snap=>{
-            if (snap.exists()){
-              ref.update({balance, balanceKT, level:level.name, lastUpdated:ts});
-            } else {
-              ref.set({
-                address:wallet.toLowerCase(),
-                balance, balanceKT,
-                level:level.name,
-                certified:true,
-                certifiedAt:ts,
-                lastUpdated:ts
-              });
-            }
-          });
+        const level = getLevel(balanceKT);
+        currentWalletState.address        = wallet;
+        currentWalletState.balanceRawBase = rawBase;
+        currentWalletState.balanceKT      = balanceKT;
+        currentWalletState.level          = level;
 
-          resultDiv.textContent = `Level: ${level.name} | Balance: ${formatKT(balance)} KT`;
-          resultDiv.className='success';
+        const ts=new Date().toISOString();
+        const ref=db.ref('certified-wallets/'+wallet.toLowerCase());
+        ref.once('value').then(snap=>{
+          const data = {
+            address: wallet.toLowerCase(),
+            balanceBase: rawBase.toString(),
+            balanceTokens: humanTokens,
+            balanceKT,
+            level: level.name,
+            certified:true,
+            lastUpdated:ts
+          };
+          if (snap.exists()){
+            ref.update(data);
+          } else {
+            data.certifiedAt = ts;
+            ref.set(data);
+          }
+        });
 
-          // mark quest "Check Wallet" as done if present
-          const q = QUESTS.find(q=>q.id==='q1');
-          if (q && !q.done){ q.done=true; currentWalletState.xp += q.reward; }
+        resultDiv.textContent =
+          `Level: ${level.name} | Balance: ${formatKTFromBase(rawBase)} KT`;
+        resultDiv.className='success';
 
-          updateCoreUI();
-          flashMotivation("Scan success! Keep climbing.");
-        } else {
-          resultDiv.textContent = 'Error fetching token balance.';
-          resultDiv.className='error';
-        }
+        const q = QUESTS.find(q=>q.id==='q1');
+        if (q && !q.done){ q.done=true; currentWalletState.xp += q.reward; }
+
+        updateCoreUI();
+        flashMotivation("Scan success! Keep climbing.");
       } catch(err){
         console.error(err);
-        resultDiv.textContent='Network error. Please retry.';
+        resultDiv.textContent='Error fetching token balance. Please retry.';
         resultDiv.className='error';
       } finally {
         btn.disabled=false;
@@ -1133,15 +1167,14 @@
       }
     }
 
-    /* ---------------- INIT ---------------- */
     document.addEventListener('DOMContentLoaded',()=>{
-      document.getElementById('time-stamp').textContent = new Date().toISOString().replace('T',' ').slice(0,19);
+      document.getElementById('time-stamp').textContent =
+        new Date().toISOString().replace('T',' ').slice(0,19);
       buildInlineLevels();
       buildAchievements();
       buildQuests();
       drawRadial(0);
     });
-
   </script>
 </body>
 </html>
