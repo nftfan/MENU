@@ -9,6 +9,9 @@
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
     <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
     <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +21,7 @@
             padding: 0;
             text-align: center;
             padding-top: 10px;
-            font-size: 16px; /* helps prevent zoom on focus */
+            font-size: 16px; /* page base */
         }
         .container {
             display: grid;
@@ -30,7 +33,7 @@
             background-color: #000000;
             border-radius: 10px;
             padding: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
             overflow: hidden;
         }
         .year-header {
@@ -38,6 +41,14 @@
             font-weight: bold;
             color: #FFFFFF;
             margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .year-amount {
+            font-size: 10px;
+            color: #c9d1d9;
+            opacity: 0.9;
         }
         .month {
             display: grid;
@@ -53,9 +64,11 @@
             font-size: 7px;
             color: #969696;
             position: relative;
+            transition: background-color 0.15s ease, transform 0.1s ease;
         }
         .day-cell:hover {
-            background-color: #87cefa;
+            background-color: #2f81f7;
+            transform: translateY(-1px);
         }
         .highlight {
             background-color: #00a000;
@@ -78,88 +91,235 @@
             color: #FFFFFF;
             grid-column: span 8; /* 7 days + 1 for week number */
             background-color: transparent; /* default; overridden by stored color */
+            padding: 2px 4px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .month-amount {
+            font-size: 9px;
+            color: #c9d1d9;
+            opacity: 0.9;
         }
         .week-number {
             font-size: 5px;
             color: #FF6347;
         }
+
+        /* Sleek popup styling, max 10px fonts inside */
         .color-picker {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #000000;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 80%;
-            width: 400px;
+            background: #050608;
+            padding: 14px;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+            max-width: 90%;
+            width: 360px;
             z-index: 1000;
+            border: 1px solid #21262d;
+        }
+        .color-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .popup-title {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+        .popup-title .material-icons {
+            font-size: 12px;
+            color: #2f81f7;
+        }
+        .popup-close-icon {
+            cursor: pointer;
+            border-radius: 50%;
+            padding: 4px;
+            transition: background-color 0.15s ease;
+        }
+        .popup-close-icon .material-icons {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .popup-close-icon:hover {
+            background-color: #161b22;
+        }
+
+        .selected-date {
+            font-size: 9px;
+            font-weight: 500;
+            color: #8b949e;
+            margin-bottom: 6px;
+            text-align: left;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 4px 0;
+            gap: 8px;
+        }
+        .color-picker-label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 9px;
+            color: #c9d1d9;
+        }
+        .color-picker-label .material-icons {
+            font-size: 11px;
+            color: #8b949e;
         }
         .color-picker input[type="color"] {
-            margin: 10px 5px;
-            font-size: 16px; /* avoid zoom */
-        }
-        .color-picker button {
-            padding: 10px;
-            margin-top: 10px;
-            margin-right: 5px;
-            background-color: #4682b4;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            width: 32px;
+            height: 16px;
+            padding: 0;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            background: transparent;
             cursor: pointer;
-            font-size: 16px;
         }
-        .color-picker button:hover {
-            background-color: #5f9ea0;
+
+        .amount-input {
+            flex: 1;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-size: 9px;
         }
+        .amount-prefix {
+            font-size: 9px;
+            color: #8b949e;
+            margin-right: 2px;
+        }
+        .amount-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
         .note-input {
             width: 100%;
-            min-height: 80px;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #000000;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 5px;
+            min-height: 60px;
+            margin: 6px 0;
+            padding: 6px;
+            background-color: #0d1117;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 6px;
             resize: vertical;
-            font-size: 16px;
+            font-size: 9px;  /* <= 10px */
+            line-height: 1.3;
         }
+
+        .notes-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #8b949e;
+            margin-top: 4px;
+            margin-bottom: 2px;
+        }
+        .notes-header-left {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .notes-header-left .material-icons {
+            font-size: 11px;
+        }
+
         .notes-container {
-            max-height: 500px;
+            max-height: 140px;
             overflow-y: auto;
-            margin: 10px 0;
+            margin: 2px 0 6px 0;
+            padding-right: 2px;
         }
         .note-item {
-            background-color: #444;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
+            background-color: #151b23;
+            padding: 6px;
+            margin: 3px 0;
+            border-radius: 6px;
             text-align: left;
             position: relative;
+            font-size: 9px;
+            color: #c9d1d9;
+            border: 1px solid #21262d;
         }
         .delete-note {
             position: absolute;
-            right: 5px;
-            top: 5px;
-            background-color: #ff4d4d;
-            color: white;
+            right: 4px;
+            top: 4px;
+            background-color: transparent;
+            color: #f85149;
             border: none;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 10px;
+            width: 14px;
+            height: 14px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0;
         }
-        .selected-date {
-            margin-bottom: 10px;
-            font-weight: bold;
+        .delete-note .material-icons {
+            font-size: 11px;
         }
+        .delete-note:hover {
+            background-color: rgba(248, 81, 73, 0.12);
+        }
+
+        .popup-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .popup-button {
+            border: none;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 9px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+        .popup-button .material-icons {
+            font-size: 11px;
+        }
+        .popup-button.primary {
+            background-color: #238636;
+            color: #ffffff;
+        }
+        .popup-button.primary:hover {
+            background-color: #2ea043;
+            transform: translateY(-0.5px);
+        }
+        .popup-button.secondary {
+            background-color: #161b22;
+            color: #c9d1d9;
+        }
+        .popup-button.secondary:hover {
+            background-color: #21262d;
+            transform: translateY(-0.5px);
+        }
+
         .note-dot {
             position: absolute;
             bottom: 1px;
@@ -189,36 +349,85 @@
     <div class="container" id="container"></div>
 
     <div class="color-picker" id="colorPicker">
+        <div class="color-picker-header">
+            <div class="popup-title">
+                <span class="material-icons">event_note</span>
+                <span>Day details</span>
+            </div>
+            <div class="popup-close-icon" id="closeColorPickerIcon">
+                <span class="material-icons">close</span>
+            </div>
+        </div>
+
         <div class="selected-date" id="selectedDate"></div>
 
         <!-- Day color -->
-        <div>
-            <label for="colorInput">Day color:</label>
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">color_lens</span>
+                <span>Day</span>
+            </div>
             <input type="color" id="colorInput">
         </div>
 
         <!-- Month title color -->
-        <div>
-            <label for="monthColorInput">Month title color:</label>
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">calendar_view_month</span>
+                <span>Month title</span>
+            </div>
             <input type="color" id="monthColorInput">
         </div>
 
         <!-- Year card color -->
-        <div>
-            <label for="yearColorInput">Year background:</label>
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">date_range</span>
+                <span>Year</span>
+            </div>
             <input type="color" id="yearColorInput">
+        </div>
+
+        <!-- EUR amount -->
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">euro</span>
+                <span>Amount</span>
+            </div>
+            <div class="amount-wrapper">
+                <span class="amount-prefix">€</span>
+                <input type="number" step="0.01" id="amountInput" class="amount-input" placeholder="0.00">
+            </div>
         </div>
 
         <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
 
-        <div>
-            <label for="noteDotColorInput">Note dot color:</label>
+        <div class="color-picker-row">
+            <div class="color-picker-label">
+                <span class="material-icons">fiber_manual_record</span>
+                <span>Note dot</span>
+            </div>
             <input type="color" id="noteDotColorInput" value="#FFFFFF">
         </div>
 
+        <div class="notes-header">
+            <div class="notes-header-left">
+                <span class="material-icons">notes</span>
+                <span>Notes</span>
+            </div>
+        </div>
         <div class="notes-container" id="notesContainer"></div>
-        <button id="saveColorBtn">Save</button>
-        <button id="closeColorPickerBtn">Close</button>
+
+        <div class="popup-actions">
+            <button class="popup-button secondary" id="closeColorPickerBtn">
+                <span class="material-icons">close</span>
+                <span>Close</span>
+            </button>
+            <button class="popup-button primary" id="saveColorBtn">
+                <span class="material-icons">save</span>
+                <span>Save</span>
+            </button>
+        </div>
     </div>
 
     <script type="module">
@@ -244,17 +453,22 @@
         const colorInput = document.getElementById("colorInput");
         const monthColorInput = document.getElementById("monthColorInput");
         const yearColorInput = document.getElementById("yearColorInput");
+        const amountInput = document.getElementById("amountInput");
         const noteInput = document.getElementById("noteInput");
         const notesContainer = document.getElementById("notesContainer");
         const selectedDateElement = document.getElementById("selectedDate");
         const noteDotColorInput = document.getElementById("noteDotColorInput");
         const saveColorBtn = document.getElementById("saveColorBtn");
         const closeColorPickerBtn = document.getElementById("closeColorPickerBtn");
+        const closeColorPickerIcon = document.getElementById("closeColorPickerIcon");
 
         let currentDayElement = null;
         let currentDate = null;
         let currentYearForPopup = null;
         let currentMonthForPopup = null;
+
+        // In-memory maps for amounts (date -> number)
+        let dayAmounts = {}; // { "YYYY-M-D": number }
 
         // Current date
         const now = new Date();
@@ -296,18 +510,23 @@
             // Load month title color
             const monthKey = `${year}-${month + 1}`;
             const monthColors = JSON.parse(localStorage.getItem("monthColors")) || {};
-            const monthColor = monthColors[monthKey] || "#000000"; // default
+            const monthColor = monthColors[monthKey] || "#000000";
             monthColorInput.value = monthColor;
 
             // Load year color
             const yearColors = JSON.parse(localStorage.getItem("yearColors")) || {};
-            const yearColor = yearColors[year] || "#000000"; // default
+            const yearColor = yearColors[year] || "#000000";
             yearColorInput.value = yearColor;
 
             // Load note dot color
             let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
             const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
             noteDotColorInput.value = currentNoteDotColor;
+
+            // Load EUR amount
+            const localAmounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
+            const amt = localAmounts[currentDate];
+            amountInput.value = (amt !== undefined && amt !== null) ? amt : "";
 
             // Load notes
             notesContainer.innerHTML = "";
@@ -331,6 +550,8 @@
             const selectedYearColor = yearColorInput.value;
             const note = noteInput.value.trim();
             const selectedNoteDotColor = noteDotColorInput.value;
+            const amountStr = amountInput.value.trim();
+            const amountVal = amountStr === "" ? null : parseFloat(amountStr);
 
             if (currentDayElement && currentDate != null) {
                 // DAY COLOR
@@ -352,6 +573,17 @@
                     saveYearColorToFirebase(currentYearForPopup, selectedYearColor);
                     applyYearColorsFromLocal();
                 }
+
+                // EUR AMOUNT
+                if (!isNaN(amountVal) && amountVal !== null) {
+                    saveDayAmountToLocal(currentDate, amountVal);
+                    saveDayAmountToFirebase(currentDate, amountVal);
+                } else {
+                    // Clear if empty
+                    saveDayAmountToLocal(currentDate, null);
+                    saveDayAmountToFirebase(currentDate, null);
+                }
+                recomputeAllSums();
 
                 // NOTE
                 if (note) {
@@ -413,6 +645,27 @@
             });
         }
 
+        // ===== Amount storage (per date) =====
+        function saveDayAmountToLocal(date, amount) {
+            let amounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
+            if (amount === null) {
+                delete amounts[date];
+            } else {
+                amounts[date] = amount;
+            }
+            localStorage.setItem("dayAmounts", JSON.stringify(amounts));
+            dayAmounts = amounts;
+        }
+
+        function saveDayAmountToFirebase(date, amount) {
+            const amountsRef = ref(db, "dayAmounts");
+            push(amountsRef, {
+                date,
+                amount: amount === null ? null : amount,
+                ts: Date.now()
+            });
+        }
+
         function saveNote(date, note, noteDotColor) {
             let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
             noteDotColors[date] = noteDotColor;
@@ -470,7 +723,7 @@
             const notes = notesData[date] || [];
 
             if (notes.length === 0) {
-                notesContainer.innerHTML = "<p>No notes for this day</p>";
+                notesContainer.innerHTML = "<p style='font-size:9px; color:#8b949e; margin:2px 0;'>No notes for this day</p>";
                 return;
             }
 
@@ -480,7 +733,7 @@
 
                 const deleteButton = document.createElement("button");
                 deleteButton.classList.add("delete-note");
-                deleteButton.innerHTML = "×";
+                deleteButton.innerHTML = '<span class="material-icons">close</span>';
                 deleteButton.onclick = (e) => {
                     e.stopPropagation();
                     deleteNote(date, note.id);
@@ -515,7 +768,6 @@
                 const year = parseInt(yearStr, 10);
                 const month = parseInt(monthStr, 10); // 1-based
 
-                // Select month containers and then color their .month-name child
                 const selector = `.month[data-year="${year}"][data-month="${month}"] .month-name`;
                 const monthNameEls = document.querySelectorAll(selector);
                 monthNameEls.forEach(el => {
@@ -535,6 +787,74 @@
             }
         }
 
+        // Compute and render monthly and yearly sums
+        function recomputeAllSums() {
+            // Load latest amounts
+            let amounts = JSON.parse(localStorage.getItem("dayAmounts")) || {};
+            dayAmounts = amounts;
+
+            const monthSums = {}; // key: "YYYY-M"
+            const yearSums = {};  // key: "YYYY"
+
+            for (const [date, val] of Object.entries(amounts)) {
+                if (val === null || isNaN(val)) continue;
+                const parts = date.split("-");
+                if (parts.length !== 3) continue;
+                const year = parts[0];
+                const month = parts[1]; // already 1-based string
+
+                const yKey = year;
+                const mKey = `${year}-${month}`;
+
+                yearSums[yKey] = (yearSums[yKey] || 0) + Number(val);
+                monthSums[mKey] = (monthSums[mKey] || 0) + Number(val);
+            }
+
+            // Apply to month titles
+            document.querySelectorAll(".month").forEach(monthDiv => {
+                const year = monthDiv.dataset.year;
+                const month = monthDiv.dataset.month;
+                const key = `${year}-${month}`;
+                const monthNameEl = monthDiv.querySelector(".month-name");
+                if (!monthNameEl) return;
+
+                let labelSpan = monthNameEl.querySelector(".month-amount");
+                if (!labelSpan) {
+                    labelSpan = document.createElement("span");
+                    labelSpan.classList.add("month-amount");
+                    monthNameEl.appendChild(labelSpan);
+                }
+
+                const sum = monthSums[key];
+                if (sum && !isNaN(sum)) {
+                    labelSpan.textContent = `€${sum.toFixed(2)}`;
+                } else {
+                    labelSpan.textContent = "";
+                }
+            });
+
+            // Apply to year headers
+            document.querySelectorAll(".year-card").forEach(yearCard => {
+                const year = yearCard.dataset.year;
+                const header = yearCard.querySelector(".year-header");
+                if (!header) return;
+
+                let yearAmountSpan = header.querySelector(".year-amount");
+                if (!yearAmountSpan) {
+                    yearAmountSpan = document.createElement("span");
+                    yearAmountSpan.classList.add("year-amount");
+                    header.appendChild(yearAmountSpan);
+                }
+
+                const sum = yearSums[year];
+                if (sum && !isNaN(sum)) {
+                    yearAmountSpan.textContent = `€${sum.toFixed(2)}`;
+                } else {
+                    yearAmountSpan.textContent = "";
+                }
+            });
+        }
+
         function generateYearCards() {
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
@@ -549,7 +869,15 @@
 
                 const yearHeader = document.createElement("div");
                 yearHeader.classList.add("year-header");
-                yearHeader.textContent = `${year}`;
+
+                const yearTitleSpan = document.createElement("span");
+                yearTitleSpan.textContent = `${year}`;
+                yearHeader.appendChild(yearTitleSpan);
+
+                const yearAmountSpan = document.createElement("span");
+                yearAmountSpan.classList.add("year-amount");
+                yearHeader.appendChild(yearAmountSpan);
+
                 if (year === currentYear) yearHeader.classList.add("highlight");
                 yearCard.appendChild(yearHeader);
 
@@ -561,11 +889,17 @@
 
                     const monthNameDiv = document.createElement("div");
                     monthNameDiv.classList.add("month-name");
-                    monthNameDiv.textContent = monthNames[month];
+                    const monthTitleSpan = document.createElement("span");
+                    monthTitleSpan.textContent = monthNames[month];
+                    const monthAmountSpan = document.createElement("span");
+                    monthAmountSpan.classList.add("month-amount");
+                    monthNameDiv.appendChild(monthTitleSpan);
+                    monthNameDiv.appendChild(monthAmountSpan);
                     monthDiv.appendChild(monthNameDiv);
 
                     const weekNumberDiv = document.createElement("div");
                     weekNumberDiv.classList.add("week-number");
+                    weekNumberDiv.textContent = "";
                     monthDiv.appendChild(weekNumberDiv);
 
                     dayNames.forEach(day => {
@@ -620,6 +954,7 @@
             applyMonthColorsFromLocal();
             applyYearColorsFromLocal();
             updateNoteDots();
+            recomputeAllSums();
 
             const currentYearCard = document.getElementById("currentYearCard");
             if (currentYearCard) {
@@ -692,11 +1027,31 @@
                 localStorage.setItem("yearColors", JSON.stringify(yearColors));
                 applyYearColorsFromLocal();
             });
+
+            // Day amounts
+            const amountsQuery = query(ref(db, "dayAmounts"), orderByChild("date"));
+            onValue(amountsQuery, (snapshot) => {
+                const amounts = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (val.date) {
+                        if (val.amount === null || val.amount === undefined || val.amount === "") {
+                            // skip; could also delete
+                        } else {
+                            amounts[val.date] = Number(val.amount);
+                        }
+                    }
+                });
+                localStorage.setItem("dayAmounts", JSON.stringify(amounts));
+                dayAmounts = amounts;
+                recomputeAllSums();
+            });
         }
 
-        // Button event listeners
+        // Button & icon event listeners
         saveColorBtn.addEventListener("click", saveColor);
         closeColorPickerBtn.addEventListener("click", closeColorPicker);
+        closeColorPickerIcon.addEventListener("click", closeColorPicker);
 
         // Initialize
         generateYearCards();
