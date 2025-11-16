@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Calendar</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png" type="image/png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="apple-touch-startup-image" href="https://raw.githubusercontent.com/nftfan/MENU/refs/heads/main/day/Copy%20of%20Untitled%20Design%20(11).png">
+    <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0d1117;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            padding-top: 10px; /* time-bar removed, so smaller top padding */
+        }
+        h1 {
+            background-color: #333333;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        .year-card {
+            background-color: #000000;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .year-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+        .month {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr); /* 7 days + 1 for week number */
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .day-cell {
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #171814;
+            cursor: pointer;
+            font-size: 7px;
+            color: #969696;
+            position: relative;
+        }
+        .day-cell:hover {
+            background-color: #87cefa;
+        }
+        .highlight {
+            background-color: #00a000;
+        }
+        .current-day-blink {
+            animation: blinkBorder 2s infinite;
+        }
+        @keyframes blinkBorder {
+            0% { border: 2px solid transparent; }
+            50% { border: 2px solid #238636; }
+            100% { border: 2px solid transparent; }
+        }
+        .day-name {
+            font-size: 8px;
+            color: #4682b4;
+        }
+        .month-name {
+            font-size: 10px;
+            font-weight: bold;
+            color: #FFFFFF;
+            grid-column: span 8; /* 7 days + 1 for week number */
+        }
+        .week-number {
+            font-size: 5px;
+            color: #FF6347;
+        }
+        .color-picker {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #000000;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 80%;
+            width: 400px;
+            z-index: 1000;
+        }
+        .color-picker input[type="color"] {
+            margin: 10px;
+        }
+        .color-picker button {
+            padding: 10px;
+            margin-top: 10px;
+            margin-right: 5px;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .color-picker button:hover {
+            background-color: #5f9ea0;
+        }
+        .note-input {
+            width: 100%;
+            min-height: 80px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #000000;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        .notes-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .note-item {
+            background-color: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-align: left;
+            position: relative;
+        }
+        .delete-note {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .selected-date {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .note-dot {
+            position: absolute;
+            bottom: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #FFFFFF;
+            border-radius: 1px;
+        }
+        .image-note-dot {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 4px;
+            height: 4px;
+            background-color: #FF6347;
+            border-radius: 1px;
+        }
+        .note-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .file-upload {
+            display: none; /* Photo upload removed */
+        }
+        .file-upload label {
+            padding: 8px 12px;
+            background-color: #4682b4;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .file-upload label:hover {
+            background-color: #5f9ea0;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ccc;
+        }
+
+        /* MOBILE: one year per row, full width */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .year-card {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="container"></div>
+
+    <div class="color-picker" id="colorPicker">
+        <div class="selected-date" id="selectedDate"></div>
+        <input type="color" id="colorInput">
+        <textarea id="noteInput" class="note-input" placeholder="Add a note for this day..."></textarea>
+        <input type="color" id="noteDotColorInput" value="#FFFFFF">
+        <div class="notes-container" id="notesContainer"></div>
+        <!-- Buttons have no inline onclick; JS will attach listeners -->
+        <button id="saveColorBtn">Save</button>
+        <button id="closeColorPickerBtn">Close</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getDatabase, ref, push, query, orderByChild, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+          authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+          databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+          projectId: "tokentransfer-4a9b3",
+          storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+          messagingSenderId: "205455490321",
+          appId: "1:205455490321:web:9919f5dde059316c9320b0",
+          measurementId: "G-Y6CVEDL9XH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const container = document.getElementById("container");
+        const colorPicker = document.getElementById("colorPicker");
+        const colorInput = document.getElementById("colorInput");
+        const noteInput = document.getElementById("noteInput");
+        const notesContainer = document.getElementById("notesContainer");
+        const selectedDateElement = document.getElementById("selectedDate");
+        const noteDotColorInput = document.getElementById("noteDotColorInput");
+        const saveColorBtn = document.getElementById("saveColorBtn");
+        const closeColorPickerBtn = document.getElementById("closeColorPickerBtn");
+
+        let currentDayElement = null;
+        let currentDate = null;
+
+        // Current date
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-based
+        const currentDay = now.getDate();
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getWeekNumber(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - startOfYear) / 86400000;
+            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+        }
+
+        function formatDate(year, month, day) {
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            return `${monthNames[month]} ${day}, ${year}`;
+        }
+
+        function openColorPicker(dayElement, year, month, day) {
+            currentDayElement = dayElement;
+            currentDate = `${year}-${month + 1}-${day}`;
+
+            selectedDateElement.textContent = formatDate(year, month, day);
+
+            const localColors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            const currentColor = localColors[currentDate] || "#171814";
+            colorInput.value = currentColor;
+
+            notesContainer.innerHTML = "";
+            noteInput.value = "";
+
+            loadNotes(currentDate);
+
+            let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+            const currentNoteDotColor = noteDotColors[currentDate] || "#FFFFFF";
+            noteDotColorInput.value = currentNoteDotColor;
+
+            colorPicker.style.display = "block";
+        }
+
+        function closeColorPicker() {
+            colorPicker.style.display = "none";
+            currentDayElement = null;
+            currentDate = null;
+        }
+
+        function saveColor() {
+            const selectedColor = colorInput.value;
+            const note = noteInput.value.trim();
+            const selectedNoteDotColor = noteDotColorInput.value;
+
+            if (currentDayElement && currentDate) {
+                currentDayElement.style.backgroundColor = selectedColor;
+                saveColorToLocalCache(currentDate, selectedColor);
+                saveColorToFirebase(currentDate, selectedColor);
+
+                if (note) {
+                    saveNote(currentDate, note, selectedNoteDotColor);
+                    noteInput.value = "";
+                    loadNotes(currentDate);
+                }
+            }
+        }
+
+        function saveColorToLocalCache(date, color) {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            colors[date] = color;
+            localStorage.setItem("dayColors", JSON.stringify(colors));
+        }
+
+        function saveColorToFirebase(date, color) {
+            const colorsRef = ref(db, "dayColors");
+            push(colorsRef, {
+                date,
+                color,
+                ts: Date.now()
+            });
+        }
+
+        function saveNote(date, note, noteDotColor) {
+            let noteDotColors = JSON.parse(localStorage.getItem("noteDotColors")) || {};
+            noteDotColors[date] = noteDotColor;
+            localStorage.setItem("noteDotColors", JSON.stringify(noteDotColors));
+
+            const notesRef = ref(db, "dayNotes");
+            push(notesRef, {
+                date,
+                text: note,
+                dotColor: noteDotColor,
+                timestamp: new Date().toISOString()
+            });
+
+            updateNoteDots();
+        }
+
+        function deleteNote(date, noteId) {
+            let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
+            
+            if (notesData[date]) {
+                notesData[date] = notesData[date].filter(note => note.id !== noteId);
+                
+                if (notesData[date].length === 0) {
+                    delete notesData[date];
+                }
+                
+                localStorage.setItem("dayNotesLocal", JSON.stringify(notesData));
+                loadNotes(date);
+                updateNoteDots();
+            }
+        }
+
+        function addNoteDot(dayElement, color) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("note-dot");
+            dotElement.style.backgroundColor = color;
+            dayElement.appendChild(dotElement);
+        }
+
+        function addImageNoteDot(dayElement) {
+            const dotElement = document.createElement("div");
+            dotElement.classList.add("image-note-dot");
+            dayElement.appendChild(dotElement);
+        }
+
+        function updateNoteDots() {
+            document.querySelectorAll('.note-dot').forEach(dot => dot.remove());
+            document.querySelectorAll('.image-note-dot').forEach(dot => dot.remove());
+            
+            let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
+            
+            for (const date in notesData) {
+                if (notesData[date] && notesData[date].length > 0) {
+                    const dayElements = document.querySelectorAll(`[data-date="${date}"]`);
+                    dayElements.forEach(dayElement => {
+                        const noteDotColor = notesData[date][0].dotColor || "#FFFFFF";
+                        addNoteDot(dayElement, noteDotColor);
+                    });
+                }
+            }
+        }
+
+        function loadNotes(date) {
+            notesContainer.innerHTML = "";
+            
+            let notesData = JSON.parse(localStorage.getItem("dayNotesLocal")) || {};
+            const notes = notesData[date] || [];
+            
+            if (notes.length === 0) {
+                notesContainer.innerHTML = "<p>No notes for this day</p>";
+                return;
+            }
+            
+            notes.forEach(note => {
+                const noteElement = document.createElement("div");
+                noteElement.classList.add("note-item");
+                
+                const deleteButton = document.createElement("button");
+                deleteButton.classList.add("delete-note");
+                deleteButton.innerHTML = "×";
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteNote(date, note.id);
+                };
+                
+                if (note.text) {
+                    const textElement = document.createElement("div");
+                    textElement.textContent = note.text;
+                    noteElement.appendChild(textElement);
+                }
+                
+                noteElement.appendChild(deleteButton);
+                notesContainer.appendChild(noteElement);
+            });
+        }
+
+        function loadColorsFromLocalCache() {
+            let colors = JSON.parse(localStorage.getItem("dayColors")) || {};
+            for (const [date, color] of Object.entries(colors)) {
+                const dayElement = document.querySelector(`[data-date="${date}"]`);
+                if (dayElement) {
+                    dayElement.style.backgroundColor = color;
+                }
+            }
+        }
+
+        function generateYearCards() {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+
+            for (let year = 1989; year <= 2089; year++) {
+                const yearCard = document.createElement("div");
+                yearCard.classList.add("year-card");
+
+                const yearHeader = document.createElement("div");
+                yearHeader.classList.add("year-header");
+                yearHeader.textContent = `${year}`;
+                if (year === currentYear) yearHeader.classList.add("highlight");
+
+                yearCard.appendChild(yearHeader);
+
+                for (let month = 0; month < 12; month++) {
+                    const monthDiv = document.createElement("div");
+                    monthDiv.classList.add("month");
+
+                    const monthNameDiv = document.createElement("div");
+                    monthNameDiv.classList.add("month-name");
+                    monthNameDiv.textContent = monthNames[month];
+                    monthDiv.appendChild(monthNameDiv);
+
+                    const weekNumberDiv = document.createElement("div");
+                    weekNumberDiv.classList.add("week-number");
+                    monthDiv.appendChild(weekNumberDiv);
+
+                    dayNames.forEach(day => {
+                        const dayNameDiv = document.createElement("div");
+                        dayNameDiv.classList.add("day-name");
+                        dayNameDiv.textContent = day;
+                        monthDiv.appendChild(dayNameDiv);
+                    });
+
+                    const daysInMonth = getDaysInMonth(year, month);
+                    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+
+                    let weekNumber = getWeekNumber(new Date(year, month, 1));
+                    for (let i = 0; i < firstDay; i++) {
+                        if (i === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const emptyDiv = document.createElement("div");
+                        emptyDiv.classList.add("day-cell");
+                        monthDiv.appendChild(emptyDiv);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if ((firstDay + day - 1) % 7 === 0) {
+                            const weekNumberDiv = document.createElement("div");
+                            weekNumberDiv.classList.add("week-number");
+                            weekNumberDiv.textContent = weekNumber++;
+                            monthDiv.appendChild(weekNumberDiv);
+                        }
+                        const dayDiv = document.createElement("div");
+                        dayDiv.classList.add("day-cell");
+                        dayDiv.dataset.date = `${year}-${month + 1}-${day}`;
+                        if (year === currentYear && month === currentMonth && day === currentDay) {
+                            dayDiv.classList.add("highlight");
+                            dayDiv.classList.add("current-day-blink");
+                        }
+                        dayDiv.textContent = day;
+                        dayDiv.onclick = () => openColorPicker(dayDiv, year, month, day);
+                        monthDiv.appendChild(dayDiv);
+                    }
+
+                    yearCard.appendChild(monthDiv);
+                }
+
+                container.appendChild(yearCard);
+            }
+
+            loadColorsFromLocalCache();
+            updateNoteDots();
+        }
+
+        function setupFirebaseListeners() {
+            const colorsQuery = query(ref(db, "dayColors"), orderByChild("date"));
+            onValue(colorsQuery, (snapshot) => {
+                const colors = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (val.date && val.color) {
+                        colors[val.date] = val.color;
+                    }
+                });
+                localStorage.setItem("dayColors", JSON.stringify(colors));
+                loadColorsFromLocalCache();
+            });
+
+            const notesQuery = query(ref(db, "dayNotes"), orderByChild("date"));
+            onValue(notesQuery, (snapshot) => {
+                const notesByDate = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (val.date && (val.text || val.image)) {
+                        if (!notesByDate[val.date]) notesByDate[val.date] = [];
+                        notesByDate[val.date].push({
+                            id: child.key,
+                            text: val.text || "",
+                            dotColor: val.dotColor || "#FFFFFF",
+                            timestamp: val.timestamp || ""
+                        });
+                    }
+                });
+                localStorage.setItem("dayNotesLocal", JSON.stringify(notesByDate));
+                updateNoteDots();
+                if (currentDate) {
+                    loadNotes(currentDate);
+                }
+            });
+        }
+
+        // Attach button event listeners so they work inside module
+        saveColorBtn.addEventListener("click", saveColor);
+        closeColorPickerBtn.addEventListener("click", closeColorPicker);
+
+        // Initialize
+        generateYearCards();
+        setupFirebaseListeners();
+    </script>
+</body>
+</html>
