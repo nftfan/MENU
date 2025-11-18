@@ -277,7 +277,7 @@
     <div class="category-bar" id="categoryBar"></div>
     <div class="today-note" id="todayNote"></div>
 
-    <!-- Size control buttons: only affect today's dot -->
+    <!-- Size control buttons: only affect today's dot, and are saved -->
     <div class="size-bar" id="sizeBar">
       <button id="btnHappy" class="size-button">Happy</button>
       <button id="btnSad" class="size-button">Sad</button>
@@ -324,7 +324,7 @@
 
     todayNoteEl.textContent =
       `Today: ${monthData[currentMonthIndex].name} ${currentDayOfMonth}, ${currentYear}. ` +
-      `Rings you add apply only to this day and are saved on this device.`;
+      `Rings and size you add apply only to this day and are saved on this device.`;
 
     // Start with current month selected
     let activeMonthIndex = currentMonthIndex;
@@ -350,17 +350,70 @@
       }
     }
 
-    // Structure: savedRings[monthIndex][dayOfMonth] = array of category keys
+    // Structure (backwards‑compatible):
+    // savedRings[monthIndex][dayOfMonth] can be:
+    //   - array of category keys (old)
+    //   - or object { categories: [...], radius: number|null } (new)
     let savedRings = loadSavedRings();
 
-    // Ensure nested structure exists
-    function ensureDayEntry(monthIdx, day) {
-      if (!savedRings[monthIdx]) savedRings[monthIdx] = {};
-      if (!Array.isArray(savedRings[monthIdx][day])) savedRings[monthIdx][day] = [];
+    function getDayEntryRaw(monthIdx, day) {
+      if (!savedRings[monthIdx]) return undefined;
       return savedRings[monthIdx][day];
     }
 
-    const todayCategories = ensureDayEntry(currentMonthIndex, currentDayOfMonth);
+    function ensureDayEntryObject(monthIdx, day) {
+      if (!savedRings[monthIdx]) savedRings[monthIdx] = {};
+      const existing = savedRings[monthIdx][day];
+
+      if (Array.isArray(existing)) {
+        // migrate from array -> object
+        savedRings[monthIdx][day] = {
+          categories: existing.slice(),
+          radius: null
+        };
+      } else if (!existing) {
+        savedRings[monthIdx][day] = {
+          categories: [],
+          radius: null
+        };
+      } else if (typeof existing === "object") {
+        if (!Array.isArray(existing.categories)) existing.categories = [];
+        if (typeof existing.radius !== "number") existing.radius = null;
+      }
+
+      return savedRings[monthIdx][day];
+    }
+
+    function getDayCategories(monthIdx, day) {
+      const raw = getDayEntryRaw(monthIdx, day);
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw.slice();
+      if (Array.isArray(raw.categories)) return raw.categories.slice();
+      return [];
+    }
+
+    function getDayRadius(monthIdx, day) {
+      const raw = getDayEntryRaw(monthIdx, day);
+      if (!raw || Array.isArray(raw)) return null;
+      if (typeof raw.radius === "number") return raw.radius;
+      return null;
+    }
+
+    function setDayCategories(monthIdx, day, cats) {
+      const entry = ensureDayEntryObject(monthIdx, day);
+      entry.categories = cats.slice();
+      saveRings(savedRings);
+    }
+
+    function setDayRadius(monthIdx, day, radius) {
+      const entry = ensureDayEntryObject(monthIdx, day);
+      entry.radius = radius;
+      saveRings(savedRings);
+    }
+
+    // Today normalized entry
+    const todayEntry = ensureDayEntryObject(currentMonthIndex, currentDayOfMonth);
+    const todayCategories = todayEntry.categories;
 
     // Build category buttons (only work and evil)
     Object.entries(categoryConfig).forEach(([key, cfg]) => {
@@ -406,7 +459,7 @@
       } else {
         todayCategories.splice(idx, 1);
       }
-      saveRings(savedRings);
+      setDayCategories(currentMonthIndex, currentDayOfMonth, todayCategories);
     }
 
     // Legend creation + click handling
@@ -481,8 +534,8 @@
       const m = monthData[monthIndex];
       const totalDays = m.days;
 
-      // Base radius for all (per-particle copies of this)
-      const baseRadius = Math.max(11, Math.min(15, bigRadius / 14));
+      // Base radius for all, can be overridden per-day by saved radius
+      const defaultRadius = Math.max(11, Math.min(15, bigRadius / 14));
 
       for (let d = 0; d < m.days; d++) {
         const angle = (d / totalDays) * Math.PI * 2;
@@ -500,12 +553,15 @@
           monthIndex === currentMonthIndex &&
           dayOfMonth === currentDayOfMonth;
 
-        // Categories (rings) for this day from saved data
-        const dayCats = (savedRings[monthIndex] && savedRings[monthIndex][dayOfMonth])
-          ? [...savedRings[monthIndex][dayOfMonth]]
-          : [];
+        // Categories from saved data
+        const dayCats = getDayCategories(monthIndex, dayOfMonth);
 
-        // random fill color per day
+        // Radius override (if saved)
+        const savedRadius = getDayRadius(monthIndex, dayOfMonth);
+        const radius = typeof savedRadius === "number"
+          ? savedRadius
+          : defaultRadius;
+
         const fillColor = randomFillColor();
 
         particles.push({
@@ -513,7 +569,7 @@
           y,
           vx,
           vy,
-          r: baseRadius,     // IMPORTANT: per-particle radius
+          r: radius,          // per-particle radius
           color: m.color,
           fillColor,
           monthIndex,
@@ -613,15 +669,12 @@
       }
 
       resolveCollisions();
-
-      // faster blinking: larger time and higher frequency
       time += 0.05;
     }
 
     function draw() {
       ctx.clearRect(0, 0, width, height);
 
-      // Background vignette
       const bgGrad = ctx.createRadialGradient(
         centerX, centerY, bigRadius * 0.1,
         centerX, centerY, bigRadius
@@ -633,26 +686,21 @@
 
       particles.forEach(p => {
         if (p.isToday) {
-          const latestCats = (savedRings[currentMonthIndex] && savedRings[currentMonthIndex][currentDayOfMonth])
-            ? savedRings[currentMonthIndex][currentDayOfMonth]
-            : [];
+          const latestCats = getDayCategories(currentMonthIndex, currentDayOfMonth);
           p.categories = [...latestCats];
         }
 
         const baseR = p.r;
 
-        // Core circle with random fill color
+        // Core circle
         ctx.fillStyle = p.fillColor;
         ctx.beginPath();
         ctx.arc(p.x, p.y, baseR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Border:
-        // - normal days: solid month color
-        // - today: white, faster blinking alpha
+        // Border
         let borderColor;
         if (p.isToday) {
-          // blink alpha between ~0.3 and 1.0, faster (frequency 4)
           const blink = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * 4.0));
           borderColor = `rgba(255, 255, 255, ${blink})`;
         } else {
@@ -665,7 +713,7 @@
         ctx.arc(p.x, p.y, baseR * 0.94, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Category rings (work / evil)
+        // Category rings
         if (p.categories && p.categories.length > 0) {
           const ringBaseRadius = baseR * 1.15;
           const ringGap = baseR * 0.35;
@@ -701,12 +749,11 @@
       requestAnimationFrame(loop);
     }
 
-    // Happy/Sad: change ONLY today's circle radius by 1px
+    // Happy/Sad: change ONLY today's circle radius by 1px, and persist it
     const btnHappy = document.getElementById("btnHappy");
     const btnSad = document.getElementById("btnSad");
 
     function adjustTodayRadius(delta) {
-      // Find today's particle (in current active month)
       const todayParticle = particles.find(
         p => p.isToday && p.monthIndex === activeMonthIndex
       );
@@ -714,6 +761,9 @@
 
       const newR = Math.max(6, Math.min(30, todayParticle.r + delta));
       todayParticle.r = newR;
+
+      // Save radius for today
+      setDayRadius(currentMonthIndex, currentDayOfMonth, newR);
     }
 
     btnHappy.addEventListener("click", () => {
@@ -729,6 +779,7 @@
       createParticles();
       filterHintEl.textContent = `Showing only ${monthData[activeMonthIndex].name}`;
       updateLegendActiveStates();
+      updateCategoryButtons();
       draw();
       requestAnimationFrame(loop);
     }
