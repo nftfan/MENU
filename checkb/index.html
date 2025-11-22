@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>$NFTFAN — Check Balance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f0f13;
+    --card-bg:#15151b;
+    --text:#e7e7ea;
+    --muted:#9a9aa3;
+    --accent:#8fb1ff;
+    --border:#23232b;
+    --radius:12px;
+    --shadow:0 2px 12px rgba(0,0,0,0.25);
+    --copy-bg:#16161c;
+    --copy-border:#2a2a33;
+    --font-thin:300;
+  }
+  @media (max-width:640px){
+    :root{
+      --bg: #18151a;
+      --card-bg: #212027;
+      --text: #e3dccf;
+      --muted: #726b7b;
+      --accent: #e4ae64;
+      --border: #2d2936;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(228,174,100,0.16);
+      --copy-bg: #232029;
+      --copy-border: #3a3241;
+      --font-thin: 350;
+    }
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ height:100%; max-width:100%; overflow-x:hidden; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-size:10px;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    display:flex; align-items:flex-start; justify-content:center; padding:14px;
+  }
+  .app{ width:100%; max-width:380px; display:grid; gap:18px; }
+  .card{
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 14px 16px 14px;
+    min-width:0;
+  }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0; width:100%; }
+  .muted{ color:var(--muted); }
+  .thin{ font-weight:var(--font-thin); }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  .addr{ font-size:8px; }
+  .title{ margin:0 0 8px; font-weight:600; letter-spacing:.2px }
+  .btn{
+    appearance:none; border:none; border-radius:10px; cursor:pointer;
+    background:transparent; color:var(--text);
+    border:1px solid var(--border); padding:8px 10px; white-space:nowrap;
+    font-size:inherit; transition:.1s background, .1s color;
+  }
+  .btn:hover{ border-color: var(--accent); background:var(--accent); color:#1b1208;}
+  .btn.primary{ background:var(--accent); color:#1b1208; border-color:transparent; }
+  .btn.primary:hover{ background:#fff; color:var(--accent); }
+  .input{
+    width:100%; padding:9px 10px; border-radius:10px; outline:none;
+    background:var(--copy-bg); color:var(--text);
+    border:1px solid var(--copy-border); min-width:0;
+  }
+  .input:focus{ border-color: var(--accent) }
+  .out{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .error{ color:#ff6b6b; white-space:normal;}
+  footer{ color:var(--muted); text-align:center; padding:4px }
+  @media (max-width:640px){
+    input, select, textarea, .input, .input.addr {
+      font-size:16px;
+    }
+  }
+
+  /* Modal styling - top popup */
+  #modal-bg {
+    display:none;
+    position:fixed; z-index:50; left:0; top:0; width:100vw; height:100vh;
+    background:rgba(20,18,23,0.38);
+    justify-content:center; align-items:flex-start;
+    animation: modal-fade-in 0.2s;
+  }
+  #modal-bg.active{ display:flex;}
+  .modal-popup{
+    background:var(--card-bg);
+    border-radius:18px;
+    border:2px solid var(--accent);
+    box-shadow:0 4px 28px rgba(140,120,255,0.23);
+    min-width:200px; max-width:95vw; 
+    padding:12px 16px 14px 16px;
+    text-align:center;
+    position:relative;
+    margin-top:30px;
+    animation: topIn .23s cubic-bezier(.42,.63,.65,1.21);
+  }
+  @keyframes topIn {
+    0%{ transform:translateY(-40px); opacity:0;}
+    100%{transform:none;opacity:1;}
+  }
+  @keyframes modal-fade-in {
+    from {opacity:0;} to {opacity:1;}
+  }
+  .modal-title {
+    font-size:12px;
+    font-weight:800;
+    margin-bottom:9px;
+    color:var(--accent);
+    letter-spacing:0.2px;
+  }
+  #modal-balance {
+    font-size:10px !important;
+    font-weight:700;
+    margin:10px 0 7px 0;
+    min-height:1em;
+    letter-spacing:.5px;
+    color:var(--text);
+    opacity:0;
+    transition:opacity .18s;
+    font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+  #modal-balance.visible {
+    opacity:1;
+    animation:balanceFadeIn .25s;
+  }
+  @keyframes balanceFadeIn {
+    0%{ opacity:0; transform:scale(.93); }
+    100%{ opacity:1; transform:none; }
+  }
+  .modal-close-btn {
+    position:absolute;
+    top:3px; right:8px;
+    font-size:16px; font-weight:700; color:var(--muted); background:transparent; border:none; cursor:pointer;
+    padding:2px 4px; border-radius:3px; transition:.13s background, .13s color;
+  }
+  .modal-close-btn:hover {
+    color:var(--accent); background:var(--copy-bg);
+  }
+  .modal-address {
+    font-size:8px;
+    font-family: ui-monospace, Monaco, monospace;
+    color:var(--muted);
+    margin-top:2px;
+    margin-bottom:0;
+    white-space: break-all;
+    word-break: break-all;
+  }
+  .modal-spinner {
+    width:16px; height:16px; margin:8px auto; border:2px solid var(--muted);
+    border-top:2px solid var(--accent); border-radius:50%;
+    display:block;
+    animation:spin .72s linear infinite;
+  }
+  @keyframes spin {
+    to{transform:rotate(360deg);}
+  }
+  .confetti-canvas {
+    pointer-events: none; 
+    position: fixed; left:0; top:0; width:100vw; height:100vh; z-index:56;
+  }
+</style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <h3 class="title">Check Your $NFTFAN Balance</h3>
+      <input id="address" class="input mono addr" type="text" placeholder="Enter your wallet address (0x…)" />
+      <div class="row" style="margin-top:8px;">
+        <button id="checkBtn" class="btn primary">Check Balance</button>
+        <button id="clearBtn" class="btn">Clear</button>
+        <a id="tokenOnScan" class="btn" target="_blank" rel="noopener">Token on Polygonscan</a>
+      </div>
+      <div id="output" class="out" style="margin-top:8px;">
+        <span class="muted">Result will appear here.</span>
+      </div>
+    </section>
+    <a class="btn primary" style="font-size: 16px; text-align:center; font-weight:600;" href="https://www.nftfanstoken.com/tokensale/" target="_blank" rel="noopener">TOKEN SALE</a>
+    <footer class="thin" style="font-size:11px;">Uses Etherscan v2 API for Polygon. Double‑check addresses before sending funds.</footer>
+  </main>
+
+  <!-- Modal & Confetti -->
+  <div id="modal-bg">
+    <div class="modal-popup">
+      <button class="modal-close-btn" id="modalCloseBtn" title="Close">&times;</button>
+      <div class="modal-title">Your $NFTFAN Balance</div>
+      <div id="modal-balance"></div>
+      <div id="modal-spinner-block">
+        <div class="modal-spinner"></div>
+        <div style="font-size:10px; color:var(--muted);margin-top:2px;">Loading…</div>
+      </div>
+      <div class="modal-address" id="modal-address"></div>
+    </div>
+  </div>
+  <canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
+<!-- Confetti CDN (canvas-confetti) -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.0/dist/confetti.browser.min.js"></script>
+<script>
+(function(){
+  const apiKey  = "Z7UUSFGES3UDZ8RMWVAWF9HA59IAJA83XJ";
+  const chainid = 137; // Polygon mainnet
+  const base    = "https://api.etherscan.io/v2/api";
+  const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50"; // $NFTFAN token
+
+  const el = {
+    tokenOnScan:  document.getElementById("tokenOnScan"),
+    out:          document.getElementById("output"),
+    input:        document.getElementById("address"),
+    checkBtn:     document.getElementById("checkBtn"),
+    clearBtn:     document.getElementById("clearBtn"),
+    modalBg:      document.getElementById("modal-bg"),
+    modalClose:   document.getElementById("modalCloseBtn"),
+    modalBalance: document.getElementById("modal-balance"),
+    modalAddress: document.getElementById("modal-address"),
+    modalSpinner: document.getElementById("modal-spinner-block"),
+    confettiCanv: document.getElementById("confetti-canvas")
+  };
+
+  function commas(n){ 
+    return (String(n||"0")).replace(/\B(?=(\d{3})+(?!\d))/g, ","); 
+  }
+  async function fetchJson(url){
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+  function toHuman(raw, decimals){
+    try{
+      const d = Number(decimals || 18);
+      const big = BigInt(raw || "0");
+      if(d <= 0) return big.toString();
+      const factor = 10n ** BigInt(d);
+      return (big / factor).toString();
+    }catch{ return "0"; }
+  }
+  async function getTokenInfo(){
+    const url = `${base}?chainid=${chainid}&module=token&action=tokeninfo&contractaddress=${TOKEN_CA}&apikey=${apiKey}`;
+    const res = await fetchJson(url);
+    if(res.status === "1" && res.result){
+      const r = Array.isArray(res.result) ? res.result[0] : res.result;
+      return {
+        decimals: Number(r.decimals || r.tokenDecimal || 18),
+        symbol: (r.symbol || r.tokenSymbol || "NFTFAN"),
+      };
+    }
+    return { decimals: 18, symbol: "NFTFAN" };
+  }
+  async function getTokenBalance(holder){
+    const url = `${base}?chainid=${chainid}&module=account&action=tokenbalance&contractaddress=${TOKEN_CA}&address=${holder}&tag=latest&apikey=${apiKey}`;
+    const res = await fetchJson(url);
+    if(res.status !== "1") throw new Error(res.result || res.message || "Unable to fetch balance");
+    return res.result;
+  }
+
+  // Animate number count up in modal
+  function animateNumber(elem, from, to, duration, decimals=0, symbol="") {
+    let start = null;
+    const numFrom = Number(from), numTo = Number(to);
+    function step(ts) {
+      if(!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const val = numFrom + (numTo-numFrom) * progress;
+      elem.textContent = commas(val.toFixed(decimals)) + " " + symbol;
+      if(progress < 1) requestAnimationFrame(step);
+      else elem.textContent = commas(Number(to).toFixed(decimals)) + " " + symbol;
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Show pop-up modal (appears instantly at top)
+  function showModal(address){
+    el.modalBalance.textContent = "";
+    el.modalBalance.classList.remove("visible");
+    el.modalSpinner.style.display = "block";
+    el.modalBg.classList.add("active");
+    el.modalAddress.textContent = address;
+    // Focus close button for accessibility
+    el.modalClose.focus();
+    document.addEventListener('keydown', escCloseModal);
+  }
+
+  function showBalanceInModal(balance, symbol){
+    // Animate number in modal (count up)
+    let countFrom = Math.max(0, Number(balance) * 0.95); // dynamic
+    el.modalSpinner.style.display = "none";
+    el.modalBalance.style.opacity=0;
+    el.modalBalance.classList.add("visible");
+    animateNumber(el.modalBalance, countFrom, Number(balance), 600, 0, symbol);
+    setTimeout(() => {
+      el.modalBalance.style.opacity=1;
+    }, 80);
+    // Confetti
+    setTimeout(()=>{
+      confetti({
+        particleCount: 55,
+        spread: 68,
+        startVelocity:36,
+        origin: { y: 0.145 },
+        colors: ['#8fb1ff','#e4ae64','#fff','#84ffc9'],
+        disableForReducedMotion: true,
+        zIndex: 60
+      });
+    }, 220);
+  }
+
+  function closeModal(){
+    el.modalBg.classList.remove("active");
+    el.modalBalance.classList.remove("visible");
+    el.modalSpinner.style.display = "block";
+    el.modalBalance.textContent = "";
+    el.modalAddress.textContent = "";
+    document.removeEventListener('keydown', escCloseModal);
+  }
+  function escCloseModal(e){
+    if(e.key === "Escape") closeModal();
+  }
+
+  // Main balance check logic
+  async function checkUserBalance(addr){
+    el.out.className = "out";
+    el.out.textContent = "Querying…";
+    // Show modal instantly, do not wait for fetch
+    showModal(addr);
+    try{
+      const info = await getTokenInfo();
+      const raw  = await getTokenBalance(addr);
+      const human = toHuman(raw, info.decimals);
+      el.out.innerHTML = `<span class="muted">Balance will show in popup!</span>`;
+      showBalanceInModal(human, info.symbol);
+    }catch(e){
+      el.modalSpinner.style.display = "none";
+      el.modalBalance.style.opacity=1;
+      el.modalBalance.textContent = e.message || "Failed to fetch balance";
+      el.modalBalance.classList.add("visible");
+      el.out.innerHTML = `<span class="error">❌ ${e.message || e}</span>`;
+    }
+  }
+
+  el.tokenOnScan.href = `https://polygonscan.com/token/${TOKEN_CA}`;
+  el.checkBtn.onclick = async () => {
+    const addr = el.input.value.trim();
+    if(!addr){
+      el.out.innerHTML = `<span class="error">Please enter a wallet address.</span>`;
+      return;
+    }
+    await checkUserBalance(addr);
+  };
+  el.clearBtn.onclick = () => {
+    el.input.value = "";
+    el.out.innerHTML = `<span class="muted">Result will appear here.</span>`;
+    el.out.className = "out";
+  };
+
+  // Modal events
+  el.modalBg.onclick = (e) => {
+    if(e.target === el.modalBg) closeModal();
+  };
+  el.modalClose.onclick = closeModal;
+})();
+</script>
+</body>
+</html>
