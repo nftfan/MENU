@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>$NFTFAN — Token Sale & Balance</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    :root {
+      --cyan:#0ff; --glow:rgba(0,255,255,0.6); --bg:#000; --card:rgba(0,255,255,0.05);
+      --border:rgba(0,255,255,0.3); --text:#0ff; --muted:rgba(0,255,255,0.6);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;
+      min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
+      padding:16px;font-size:10px;text-shadow:0 0 8px var(--glow);
+    }
+    .app{max-width:760px;width:100%;display:grid;gap:14px;}
+
+    /* Holders banner — 20px bold on all screens */
+    .holders{
+      background:var(--card);border:1px solid var(--border);border-radius:18px;
+      padding:16px;text-align:center;font-size:20px;font-weight:900;
+      box-shadow:0 10px 30px rgba(0,255,255,0.2);text-shadow:0 0 20px var(--glow);
+    }
+    .holders .subline{
+      margin-top:8px;font-size:10px;color:var(--muted);display:flex;
+      align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    }
+
+    .card{
+      background:var(--card);border:1px solid var(--border);border-radius:18px;
+      padding:20px;box-shadow:0 10px 30px rgba(0,255,255,0.15);
+      backdrop-filter:blur(10px);
+    }
+    .title{font-size:16px;font-weight:800;margin-bottom:14px;text-align:center;text-shadow:0 0 20px var(--glow);}
+    .badge{background:var(--cyan);color:#000;padding:4px 10px;border-radius:999px;font-weight:700;font-size:10px;}
+    .copyline{
+      background:rgba(0,255,255,0.08);border:1px solid var(--border);border-radius:14px;
+      padding:12px;display:flex;gap:10px;align-items:center;font-size:8px;
+      font-family:ui-monospace,monospace;word-break:break-all;
+    }
+    .copyline .value{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .btn{
+      padding:10px 14px;background:transparent;border:2px solid var(--cyan);color:var(--cyan);
+      border-radius:12px;font-weight:700;cursor:pointer;transition:0.4s;
+      box-shadow:0 0 15px rgba(0,255,255,0.3);text-decoration:none;text-align:center;
+      font-size:10px;
+    }
+    .btn:hover{background:var(--cyan);color:#000;box-shadow:0 0 25px var(--glow);transform:translateY(-3px);}
+    .btn.primary{background:var(--cyan);color:#000;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .stat{
+      flex:1;min-width:130px;background:rgba(0,255,255,0.08);border:1px solid var(--border);
+      border-radius:12px;padding:12px;text-align:center;font-size:9px;
+    }
+    .stat .label{opacity:0.8;}
+    .stat .value{font-weight:900;font-size:10px;margin-top:4px;}
+    input{
+      width:100%;padding:14px;background:rgba(0,255,255,0.08);border:1px solid var(--border);
+      border-radius:12px;color:var(--cyan);outline:none;transition:0.3s;
+      font-family:ui-monospace,monospace;
+      /* 16px on mobile inputs to prevent iOS zoom */
+      font-size:16px !important;
+    }
+    input::placeholder{color:rgba(0,255,255,0.5);}
+    .out{margin-top:12px;font-weight:700;text-align:center;min-height:20px;font-size:10px;}
+    footer{text-align:center;font-size:8px;opacity:0.7;margin-top:10px;}
+
+    /* MOBILE: MAX 10px fonts (or less) */
+    @media (max-width: 640px) {
+      body { font-size:9px; }                     /* base text */
+      .title { font-size:14px; }
+      .holders { font-size:18px; }                /* still bold & big */
+      .holders .subline { font-size:9px; }
+      .btn, .badge, .stat, .out { font-size:9px !important; }
+      .stat .value { font-size:10px !important; }
+      .copyline { font-size:7.5px !important; }   /* addresses tiny & crisp */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- Holders Banner -->
+    <div class="holders">
+      <div>Total holders: 229,031</div>
+      <div class="subline">
+        Tokens in sale contract: <strong id="tokensTop">—</strong>
+        <button class="btn" id="copySaleTop">Copy CA</button>
+      </div>
+    </div>
+
+    <!-- Token Sale -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:10px;opacity:0.9;">
+        <div><span class="badge">$NFTFAN</span> Polygon Mainnet</div>
+        <div>Rate: 1 POL → <strong id="rateDisplay">1,000,000,000,000,000</strong> $NFTFAN</div>
+      </div>
+
+      <h3 class="title">Token Sale Contract</h3>
+      <div class="copyline">
+        <div id="saleAddress" class="value">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</div>
+        <button class="btn" id="copySale">Copy</button>
+        <a class="btn" id="saleOnScan" href="https://polygonscan.com/address/0xaf2d132C8773bca3821C24EcF64e844E202A12e8" target="_blank">Scan</a>
+      </div>
+
+      <div class="row">
+        <div class="stat">
+          <div class="label">Tokens Left</div>
+          <div class="value" id="tokensLeft">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">How to Buy</div>
+          <div class="value">Send 1 POL → Get 1,000T $NFTFAN</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button class="btn" id="refreshSale">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Balance Checker -->
+    <div class="card">
+      <h3 class="title">Check Balance</h3>
+      <input id="address" placeholder="0x...">
+      <div class="row">
+        <button id="checkBtn" class="btn primary">Check</button>
+        <button id="clearBtn" class="btn">Clear</button>
+        <a id="tokenOnScan" href="https://polygonscan.com/token/0x2017fcaea540d2925430586dc92818035bfc2f50" target="_blank" class="btn">Token</a>
+      </div>
+      <div id="output" class="out">Enter address above</div>
+    </div>
+
+    <footer>Etherscan API • Polygon • Verify addresses before sending</footer>
+  </div>
+
+  <script>
+    const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50";
+    const SALE_CA = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+    const API_KEY = "Z7UUSFGES3UDZ8RMWVAWF9HA59IAJA83XJ";
+    const BASE = "https://api.etherscan.io/v2/api?chainid=137";
+
+    const el = {
+      tokensLeft: document.getElementById("tokensLeft"),
+      tokensTop: document.getElementById("tokensTop"),
+      rateDisplay: document.getElementById("rateDisplay"),
+      refreshSale: document.getElementById("refreshSale"),
+      output: document.getElementById("output"),
+      input: document.getElementById("address"),
+      checkBtn: document.getElementById("checkBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      copySale: document.getElementById("copySale"),
+      copySaleTop: document.getElementById("copySaleTop")
+    };
+
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Network error");
+      return r.json();
+    }
+
+    async function getBalance(addr) {
+      const res = await fetchJson(`${BASE}&module=account&action=tokenbalance&contractaddress=${TOKEN_CA}&address=${addr}&tag=latest&apikey=${API_KEY}`);
+      if (res.status !== "1") throw new Error(res.result || "Failed");
+      return BigInt(res.result) / 1_000_000_000_000_000_000n;
+    }
+
+    async function loadSaleData() {
+      el.tokensLeft.textContent = el.tokensTop.textContent = "Loading…";
+      try {
+        const bal = await getBalance(SALE_CA);
+        const formatted = bal.toLocaleString();
+        el.tokensLeft.textContent = el.tokensTop.textContent = formatted;
+      } catch (e) {
+        el.tokensLeft.textContent = el.tokensTop.textContent = "Error";
+      }
+    }
+
+    async function checkBalance() {
+      const addr = el.input.value.trim();
+      if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        el.output.textContent = "Invalid address";
+        return;
+      }
+      el.output.textContent = "Checking…";
+      try {
+        const bal = await getBalance(addr);
+        el.output.textContent = `${bal.toLocaleString()} $NFTFAN`;
+      } catch (e) {
+        el.output.textContent = "Failed";
+      }
+    }
+
+    function copy(text, btn) {
+      navigator.clipboard.writeText(text);
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = orig, 1200);
+    }
+
+    el.rateDisplay.textContent = "1,000,000,000,000,000";
+    el.copySale.onclick = () => copy(SALE_CA, el.copySale);
+    el.copySaleTop.onclick = () => copy(SALE_CA, el.copySaleTop);
+    el.checkBtn.onclick = checkBalance;
+    el.clearBtn.onclick = () => { el.input.value = ""; el.output.textContent = "Enter address above"; };
+    el.refreshSale.onclick = loadSaleData;
+
+    loadSaleData();
+  </script>
+</body>
+</html>
