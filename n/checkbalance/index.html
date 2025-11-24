@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>$NFTFAN — Check Balance</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    :root { --cyan:#0ff; --glow:rgba(0,255,255,0.6); --bg:#000; --card:rgba(0,255,255,0.05); --border:rgba(0,255,255,0.3); }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:var(--bg); color:var(--cyan); font-family:'Segoe UI',sans-serif;
+      min-height:100vh; display:flex; align-items:flex-start; justify-content:center;
+      padding:16px; font-size:10px; text-shadow:0 0 8px var(--glow);
+    }
+    .app { width:100%; max-width:380px; display:grid; gap:18px; }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:20px 16px; box-shadow:0 10px 30px rgba(0,255,255,0.15);
+      backdrop-filter:blur(10px);
+    }
+    .title {
+      font-size:18px; font-weight:800; text-align:center; margin-bottom:16px;
+      text-shadow:0 0 15px var(--glow);
+    }
+    input {
+      width:100%; padding:14px; background:rgba(0,255,255,0.08); border:1px solid var(--border);
+      border-radius:12px; color:var(--cyan); font-size:14px; outline:none;
+      transition:0.3s; font-family:ui-monospace,monospace;
+    }
+    input:focus { border-color:var(--cyan); box-shadow:0 0 20px var(--glow); }
+    input::placeholder { color:rgba(0,255,255,0.5); }
+    .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .btn {
+      flex:1; min-width:100px; padding:12px; background:transparent; border:2px solid var(--cyan);
+      color:var(--cyan); border-radius:12px; font-weight:700; cursor:pointer;
+      transition:0.4s; text-align:center; text-decoration:none; font-size:13px;
+      box-shadow:0 0 15px rgba(0,255,255,0.3);
+    }
+    .btn:hover { background:var(--cyan); color:#000; box-shadow:0 0 25px var(--glow); transform:translateY(-3px); }
+    .btn.primary { background:var(--cyan); color:#000; }
+    .out { margin-top:12px; font-weight:700; text-align:center; min-height:20px; }
+
+    /* Modal */
+    #modal-bg {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9);
+      backdrop-filter:blur(8px); justify-content:center; align-items:flex-start;
+      z-index:100; padding-top:40px;
+    }
+    #modal-bg.active { display:flex; }
+    .modal {
+      background:var(--card); border:2px solid var(--cyan); border-radius:20px;
+      padding:20px; text-align:center; min-width:280px; max-width:90vw;
+      box-shadow:0 20px 50px rgba(0,255,255,0.4); position:relative;
+      animation:pop 0.3s cubic-bezier(0.2,0.8,0.4,1);
+    }
+    @keyframes pop { from{transform:scale(0.8);opacity:0;} to{transform:none;opacity:1;} }
+    .modal-title { font-size:16px; font-weight:800; margin-bottom:12px; color:var(--cyan); }
+    #modal-balance {
+      font-size:28px; font-weight:900; margin:16px 0; letter-spacing:1px;
+      background:linear-gradient(90deg,#0ff,#0f9); -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent; min-height:40px;
+    }
+    .modal-address { font-size:9px; opacity:0.8; word-break:break-all; margin-top:8px; }
+    .spinner {
+      width:20px; height:20px; border:3px solid rgba(0,255,255,0.3);
+      border-top:3px solid var(--cyan); border-radius:50%; margin:12px auto;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .close-btn {
+      position:absolute; top:8px; right:12px; background:none; border:none;
+      color:var(--cyan); font-size:24px; cursor:pointer; opacity:0.7;
+    }
+    .close-btn:hover { opacity:1; }
+
+    footer { text-align:center; font-size:9px; opacity:0.7; margin-top:10px; }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <div class="card">
+      <h3 class="title"><i class="fas fa-wallet"></i> $NFTFAN Balance Checker</h3>
+      <input id="address" placeholder="Enter wallet (0x...)" autocomplete="off">
+      <div class="btn-row">
+        <button id="checkBtn" class="btn primary"><i class="fas fa-search"></i> Check</button>
+        <button id="clearBtn" class="btn"><i class="fas fa-trash"></i> Clear</button>
+        <a href="https://polygonscan.com/token/0x2017fcaea540d2925430586dc92818035bfc2f50" target="_blank" class="btn">Polygonscan</a>
+      </div>
+      <div id="output" class="out">Enter address above</div>
+    </div>
+
+    <a href="https://www.nftfanstoken.com/tokensale/" target="_blank" class="btn primary" style="text-align:center;padding:16px;font-size:16px;">
+      <i class="fas fa-tag"></i> TOKEN SALE LIVE
+    </a>
+
+    <footer>Polygon Mainnet • Real-time via Etherscan API</footer>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-bg">
+    <div class="modal">
+      <button class="close-btn" id="modalClose">×</button>
+      <div class="modal-title">Your $NFTFAN Balance</div>
+      <div class="spinner" id="spinner"></div>
+      <div id="modal-balance"></div>
+      <div class="modal-address" id="modal-address"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.0/dist/confetti.browser.min.js"></script>
+  <script>
+    const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50";
+    const API_KEY = "Z7UUSFGES3UDZ8RMWVAWF9HA59IAJA83XJ";
+    const BASE = "https://api.etherscan.io/v2/api?chainid=137";
+
+    const el = {
+      input: document.getElementById("address"),
+      output: document.getElementById("output"),
+      checkBtn: document.getElementById("checkBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      modal: document.getElementById("modal-bg"),
+      balanceEl: document.getElementById("modal-balance"),
+      spinner: document.getElementById("spinner"),
+      addrEl: document.getElementById("modal-address"),
+      closeBtn: document.getElementById("modalClose")
+    };
+
+    function showModal(addr) {
+      el.modal.classList.add("active");
+      el.balanceEl.textContent = "";
+      el.addrEl.textContent = addr;
+      el.spinner.style.display = "block";
+    }
+
+    function showBalance(balance, symbol = "NFTFAN") {
+      el.spinner.style.display = "none";
+      el.balanceEl.textContent = `${balance.toLocaleString()} ${symbol}`;
+      setTimeout(() => {
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ['#0ff','#0f9','#fff'] });
+      }, 200);
+    }
+
+    async function checkBalance() {
+      const addr = el.input.value.trim();
+      if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
+        el.output.textContent = "Invalid address";
+        return;
+      }
+
+      el.output.textContent = "Fetching...";
+      showModal(addr);
+
+      try {
+        const balRes = await fetch(`${BASE}&module=account&action=tokenbalance&contractaddress=${TOKEN_CA}&address=${addr}&tag=latest&apikey=${API_KEY}`);
+        const balData = await balRes.json();
+        if (balData.status !== "1") throw new Error(balData.result || "Not found");
+
+        const raw = balData.result;
+        const balance = Number(raw) / 1e18;
+        showBalance(balance.toFixed(0));
+        el.output.textContent = "Check popup!";
+      } catch (e) {
+        el.spinner.style.display = "none";
+        el.balanceEl.textContent = "Error: " + (e.message || "Failed");
+        el.output.textContent = "Failed to fetch";
+      }
+    }
+
+    el.checkBtn.onclick = checkBalance;
+    el.clearBtn.onclick = () => {
+      el.input.value = "";
+      el.output.textContent = "Enter address above";
+    };
+    el.closeBtn.onclick = () => el.modal.classList.remove("active");
+    el.modal.onclick = (e) => { if (e.target === el.modal) el.modal.classList.remove("active"); };
+  </script>
+</body>
+</html>
