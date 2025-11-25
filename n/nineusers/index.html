@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>$NFTFAN — Username Picker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    :root{--cyan:#0ff;--glow:rgba(0,255,255,0.6);--bg:#000;--card:rgba(0,255,255,0.05);--border:rgba(0,255,255,0.3);--text:#0ff;--muted:rgba(0,255,255,0.6);}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{
+      height:100%;width:100%;margin:0;padding:0;background:var(--bg);
+      color:var(--text);font-family:'Segoe UI',sans-serif;
+      font-size:10px;text-shadow:0 0 8px var(--glow);overflow-x:hidden;
+    }
+    body{
+      display:flex;flex-direction:column;align-items:center;
+      padding:0 !important; /* Force zero padding */
+    }
+    .box{
+      background:var(--card);border:1px solid var(--border);border-radius:20px;
+      padding:28px 24px;max-width:380px;width:100%;margin:16px;
+      box-shadow:0 15px 40px rgba(0,255,255,0.2);backdrop-filter:blur(12px);
+      text-align:center;
+    }
+    h2{font-size:18px;font-weight:900;margin-bottom:20px;text-shadow:0 0 20px var(--glow);}
+    .steps{background:rgba(0,255,255,0.08);border:1px dashed var(--cyan);border-radius:14px;padding:16px;margin:16px 0;font-size:10px;line-height:1.7;}
+    .steps b{color:var(--cyan);}
+    .promo{background:rgba(0,255,255,0.1);border:1px solid var(--border);border-radius:14px;padding:14px;margin:16px 0;font-size:10px;line-height:1.6;word-break:break-all;}
+    .promo a{color:var(--cyan);text-decoration:underline;font-weight:700;}
+    .usernames{background:rgba(0,255,255,0.08);border:1px solid var(--border);border-radius:12px;padding:16px;margin:16px 0;font-family:ui-monospace,monospace;font-size:10px;min-height:80px;line-height:1.7;word-break:break-all;}
+    .btn{padding:12px 20px;background:transparent;border:2px solid var(--cyan);color:var(--cyan);border-radius:12px;font-weight:700;cursor:pointer;margin:6px;transition:0.4s;box-shadow:0 0 15px rgba(0,255,255,0.3);font-size:10px;}
+    .btn:hover{background:var(--cyan);color:#000;box-shadow:0 0 30px var(--glow);transform:translateY(-4px);}
+    .btn.primary{background:var(--cyan);color:#000;}
+    .msg{margin-top:10px;font-size:9px;opacity:0.9;}
+    .loading{color:#ff0;}
+    .error{color:#f66;}
+    .copied{color:#0f9;font-weight:700;}
+    .community-btn{display:block;margin:20px auto 10px;padding:16px;background:var(--cyan);color:#000;border-radius:14px;font-weight:900;font-size:12px;text-decoration:none;box-shadow:0 0 30px var(--glow);}
+    .community-btn:hover{transform:scale(1.05);}
+    @media (max-width:640px){
+      html,body{font-size:9px;}
+      h2{font-size:16px;}
+      .steps,.promo,.usernames,.btn{font-size:9px !important;}
+      .usernames{font-size:8px !important;}
+      .box{margin:12px;padding:24px 20px;}
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const PROMO_TEXT = "Claim 5b free $nftfan by @nftfanstoken here: https://www.nftfanstoken.com/checkb/";
+
+    const el = {
+      usernames: document.getElementById("usernames"),
+      loading: document.getElementById("loading"),
+      error: document.getElementById("error"),
+      copied: document.getElementById("copied")
+    };
+
+    async function getUsernames() {
+      el.loading.style.display = "block";
+      el.error.textContent = "";
+      el.copied.style.display = "none";
+      el.usernames.textContent = "Fetching from Firebase…";
+
+      try {
+        const snap = await get(ref(db, 'groups'));
+        if (!snap.exists()) throw new Error("No groups found");
+
+        const groups = snap.val();
+        const available = Object.entries(groups)
+          .filter(([_, g]) => g.status !== "done" && Array.isArray(g.usernames) && g.usernames.length > 0);
+
+        if (available.length === 0) {
+          el.usernames.textContent = "No more usernames available.";
+          el.loading.style.display = "none";
+          return;
+        }
+
+        let selected = [], usedKeys = [];
+        for (const [key, group] of available) {
+          if (selected.length >= 9) break;
+          selected.push(...group.usernames);
+          usedKeys.push(key);
+        }
+        selected = selected.slice(0, 9);
+
+        const updates = {};
+        usedKeys.forEach(k => updates[`groups/${k}/status`] = "done");
+        if (Object.keys(updates).length) await update(ref(db), updates);
+
+        el.usernames.textContent = selected.join(", ");
+      } catch (err) {
+        el.error.textContent = "Error: " + err.message;
+        el.usernames.textContent = "";
+      }
+      el.loading.style.display = "none";
+    }
+
+    function copyAll() {
+      const text = PROMO_TEXT + "\n\n" + el.usernames.textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        el.copied.style.display = "inline";
+        setTimeout(() => el.copied.style.display = "none", 1500);
+      });
+    }
+
+    window.getUsernames = getUsernames;
+    window.copyAll = copyAll;
+  </script>
+</head>
+<body>
+
+  <div class="box">
+    <h2>Get 9 Usernames</h2>
+
+    <div class="steps">
+      <b>How it works:</b><br>
+      1. Click <b>“Get Usernames”</b> → loads 9 fresh usernames<br>
+      2. Click <b>“Copy All”</b> → copies tweet with usernames<br>
+      3. Paste & post in the <b>NFTFANS X Community</b> below<br>
+      4. Get rewarded instantly!
+    </div>
+
+    <div class="promo">
+      Claim 5b free $nftfan by @nftfanstoken here:<br>
+      <a href="https://www.nftfanstoken.com/checkb/" target="_blank">
+        https://www.nftfanstoken.com/checkb/
+      </a>
+    </div>
+
+    <div class="usernames" id="usernames">
+      Press button to load usernames
+    </div>
+
+    <div>
+      <button onclick="getUsernames()" class="btn primary">Get Usernames</button>
+      <button onclick="copyAll()" class="btn">Copy All</button>
+    </div>
+
+    <div class="msg loading" id="loading" style="display:none;">Loading from Firebase…</div>
+    <div class="msg error" id="error"></div>
+    <div class="msg copied" id="copied" style="display:none;">Copied to clipboard!</div>
+
+    <a href="https://x.com/i/communities/1648665563332263936" target="_blank" class="community-btn">
+      Post Tweet in NFTFANS X Community
+    </a>
+  </div>
+
+</body>
+</html>
