@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>NFT FAN Post • Mint</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #050509;
+      --card: #111119;
+      --border: #24242f;
+      --gold: #eebd6e;
+      --green: #7ed957;
+      --red: #ff4b4b;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--gold);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) 20px env(safe-area-inset-left);
+    }
+    .app {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .connect-bar {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      z-index: 10;
+    }
+    #connectBtn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      max-width: 400px;
+    }
+    #connectBtn.connected {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+    .feed {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      padding: 20px 16px;
+    }
+    @media (min-width: 480px) {
+      .feed { grid-template-columns: repeat(2, 1fr); }
+    }
+    .post {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .post img {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: contain;
+      background: #000;
+    }
+    .post-footer {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-grow: 1;
+    }
+    .info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status.available { color: var(--green); }
+    .status.minted { color: var(--red); opacity: 0.7; }
+    .mint-btn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: auto;
+    }
+    .mint-btn:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #333;
+      border-left-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status {
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      color: #9b9b9b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <div class="connect-bar">
+      <button id="connectBtn">Connect Wallet to Mint</button>
+    </div>
+
+    <div id="status">Loading posts…</div>
+
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+    const ABI = ["function mintWithURI(string tokenURI) external payable returns (uint256)"];
+    const PRICE = ethers.utils.parseEther("1");
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+    };
+
+    let provider, signer, address;
+    let mintedKeys = new Set();
+
+    const feed = document.getElementById('feed');
+    const connectBtn = document.getElementById('connectBtn');
+    const statusEl = document.getElementById('status');
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const imagesRef = db.ref('imageUrls');
+    const postsRef = db.ref('fanPosts');
+
+    postsRef.on('value', snap => {
+      mintedKeys.clear();
+      snap.forEach(child => {
+        const key = child.val()?.meta?.post_key;
+        if (key) mintedKeys.add(key);
+      });
+      render();
+    });
+
+    imagesRef.on('value', snap => {
+      const data = snap.val() || {};
+      window.images = Object.entries(data)
+        .map(([id, v]) => ({ id, url: v.url, ts: v.created_at || 0 }))
+        .filter(x => x.url)
+        .sort((a,b) => b.ts - a.ts);
+      render();
+      if (window.images?.length > 0) statusEl.textContent = "Choose any post to mint • 1 POL";
+    });
+
+    function render() {
+      if (!window.images) return;
+      feed.innerHTML = '';
+
+      window.images.forEach((img, i) => {
+        const key = `Post#${i+1}`;
+        const minted = mintedKeys.has(key);
+
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+          <img src="${img.url}" loading="lazy" alt="${key}" />
+          <div class="post-footer">
+            <div class="info">
+              <strong>${key}</strong>
+              <span class="status ${minted ? 'minted' : 'available'}">
+                ${minted ? 'Minted' : 'Available'}
+              </span>
+            </div>
+            <button class="mint-btn" data-key="${key}" data-url="${img.url}" ${minted || !address ? 'disabled' : ''}>
+              ${minted ? 'Already Minted' : 'Mint This Post • 1 POL'}
+            </button>
+          </div>
+        `;
+
+        if (!minted && address) {
+          div.querySelector('.mint-btn').onclick = (e) => mintPost(e.target, img.url, key);
+        }
+
+        feed.appendChild(div);
+      });
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) return alert("Install MetaMask or any Web3 wallet");
+
+      statusEl.innerHTML = '<div class="spinner"></div> Connecting...';
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x89' }], // Polygon
+        });
+
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        address = await signer.getAddress();
+
+        connectBtn.textContent = `Connected ${address.slice(0,6)}…${address.slice(-4)}`;
+        connectBtn.classList.add('connected');
+        statusEl.textContent = "Connected! Tap any post to mint";
+        render();
+      } catch (e) {
+        statusEl.textContent = "Connection failed";
+        console.error(e);
+      }
+    }
+
+    async function mintPost(btn, imageUrl, postKey) {
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Sending...';
+
+      try {
+        const metadata = {
+          name: `NFT FAN Post ${postKey}`,
+          description: "Minted instantly on NFT FAN Post",
+          image: imageUrl,
+          attributes: [{ trait_type: "Post", value: postKey }]
+        };
+        const tokenURI = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(metadata))));
+
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        const tx = await contract.mintWithURI(tokenURI, { value: PRICE });
+
+        btn.innerHTML = '<div class="spinner"></div> Confirming...';
+        await tx.wait();
+
+        await postsRef.child(Date.now()).set({
+          owner: address,
+          meta: { post_key: postKey, image_url: imageUrl, created_at: Math.floor(Date.now()/1000) }
+        });
+
+        btn.textContent = "Minted!";
+        btn.style.background = '#222';
+        statusEl.textContent = `You just minted ${postKey}!`;
+        statusEl.style.color = 'var(--green)';
+      } catch (err) {
+        console.error(err);
+        btn.textContent = "Failed — Try Again";
+        btn.disabled = false;
+        statusEl.textContent = err?.reason || "Mint failed";
+        statusEl.style.color = 'var(--red)';
+      }
+    }
+
+    connectBtn.onclick = connectWallet;
+  </script>
+</body>
+</html>
