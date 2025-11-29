@@ -253,11 +253,13 @@
         allGroupKeys.forEach((gk, idx) => {
             const g = groups[gk];
             if (g.status !== 'done') {
-                pendingWalletsCount += Array.isArray(g.wallets) ? g.wallets.length : 0;
+                // Only consider valid string addresses in pending counter
+                let validWallets = Array.isArray(g.wallets) ? g.wallets.filter(w => typeof w === "string" && /^0x[a-fA-F0-9]{40}$/.test(w)) : [];
+                pendingWalletsCount += validWallets.length;
                 pendingGroups.push({
                     key: gk,
                     idx: idx+1,
-                    count: Array.isArray(g.wallets) ? g.wallets.length : 0,
+                    count: validWallets.length,
                     status: g.status
                 });
             }
@@ -278,7 +280,7 @@
                     <td>${group.count}</td>
                     <td class="${group.status === 'done' ? 'status-done' : 'status-pending'}">${group.status}</td>
                     <td>
-                        <button class="btn" onclick="airdropGroup('${group.key}', ${group.count})">Airdrop</button>
+                        <button class="btn" onclick="airdropGroup('${group.key}')">Airdrop</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -346,7 +348,7 @@
     }
 
     // ---- Airdrop Action ----
-    window.airdropGroup = async function(gKey, walletCount) {
+    window.airdropGroup = async function(gKey) {
         setStatus('Connecting wallet...');
         let account;
         try {
@@ -355,13 +357,19 @@
         setStatus('Preparing airdrop...');
         const snap = await db.ref('wallet_groups/' + gKey).once('value');
         const group = snap.val();
-        if (!group || !group.wallets || group.status === 'done') {
-            setStatus('❌ Group already done or removed.');
+        if (!group || !Array.isArray(group.wallets) || group.status === 'done') {
+            setStatus('❌ Group missing, empty, or already done.');
+            return;
+        }
+        // Only keep valid ETH addresses in the wallet array
+        const wallets = group.wallets.filter(w => typeof w === "string" && /^0x[a-fA-F0-9]{40}$/.test(w));
+        if (wallets.length === 0) {
+            setStatus('❌ Group has no valid wallets.');
             return;
         }
         let preview, tokensNeeded;
         try {
-            preview = await distributorContract.methods.previewDistribution(account, group.wallets).call();
+            preview = await distributorContract.methods.previewDistribution(account, wallets).call();
             tokensNeeded = preview.tokensNeeded;
             const balance = await nftfanContract.methods.balanceOf(account).call();
             if (BigInt(balance) < BigInt(tokensNeeded)) {
@@ -383,8 +391,8 @@
             return;
         }
         try {
-            setStatus(`Airdropping group (${walletCount} wallets)...`);
-            await distributorContract.methods.distributeTokens(group.wallets).send({from:account,gas:500_0000});
+            setStatus(`Airdropping group (${wallets.length} wallets)...`);
+            await distributorContract.methods.distributeTokens(wallets).send({from:account,gas:500_0000});
             setStatus('✅ Done! Group airdropped.');
             await db.ref('wallet_groups/' + gKey).update({status: 'done'});
             await loadDashboard();
