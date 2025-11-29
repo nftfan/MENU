@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,maximum-scale=1.0">
+    <title>ETH Wallet Airdrop Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #101622 0%, #2c3242 100%);
+            color: #f2f2ff;
+            margin: 0; 
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 400px;
+            background: #1a1c29;
+            margin: 24px auto 0;
+            padding: 16px 16px 30px 16px;
+            border-radius: 14px;
+            box-shadow: 0 0 19px #1a1a1ecc, 0 1px 2px #31313350;
+        }
+        h2 {
+            color: #59aaff;
+            font-size: 1.23em;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.7px;
+        }
+        .bar {
+            background: #161a27;
+            border-radius: 7px;
+            margin-bottom: 13px;
+            padding: 10px 13px 7px 13px;
+            box-shadow: 0 1px 2.5px #23243b33;
+        }
+        .bar h3 { margin: 0 0 6px 0; font-size: 16px; color: #99deff; font-weight: 500;}
+        .summary-info {
+            color: #b5c0e0;
+            font-size: 13px;
+            margin: 3px 0 0 0;
+        }
+        .pending-groups-table {
+            width: 100%;
+            background: #23243b;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 13px;
+            margin-bottom: 9px;
+        }
+        .pending-groups-table th,
+        .pending-groups-table td {
+            padding: 8px 7px;
+            border-bottom: 1.2px solid #272a3a;
+        }
+        .pending-groups-table th {
+            color: #7ee3ff;
+            font-weight: 600;
+            background: #23263b;
+            letter-spacing: 0.02em;
+        }
+        .pending-groups-table tr:last-child td { border-bottom: none; }
+        .status-pending { color: #b7b724; font-weight: 700; }
+        .status-done { color: #2fe68d; font-weight: 700;}
+        .btn {
+            background: linear-gradient(135deg, #3692fa 0%, #555ff8 100%);
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            margin-top: 8px;
+            margin-bottom: 6px;
+            transition: background 0.15s;
+        }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .btn-done {
+            background: linear-gradient(90deg, #1bc672 0%, #3de9bb 100%);
+            color: #101;
+        }
+        .dashboard-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .wallet-info-block {
+            padding: 8px 12px;
+            margin: 8px auto 12px;
+            background: #212542;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px #16213133;
+            font-size: 1.03em;
+            display: flex;
+            justify-content: space-between;
+            color: #caedfa;
+        }
+        .amount-label {
+            font-weight: 500;
+            color: #aad5fc;
+            margin-right: 5px;
+        }
+        .bar-label {font-size: 0.98em; color: #b5c0e0;}
+        .balance-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            background: #161c2e;
+            border-radius: 6px;
+            font-size: 15px;
+            color: #dbedff;
+            margin-bottom: 10px;
+        }
+        .token-symbol {
+            font-size:1em;
+            margin-left: 2.3px;
+            color: #87b6e8;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .topbar-wallet {
+            color: #93bddf;
+            font-size: 0.93em;
+            font-family: monospace;
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .connect-btn {
+            background: linear-gradient(135deg, #2940a7 0%, #6262b2 100%);
+            color: #fff;
+            border: none;
+            padding: 6px 13px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            min-width: 90px;
+        }
+        .airdrop-status {
+            margin: 12px 0 0 0;
+            padding: 7px 13px;
+            background: #181c37;
+            border-radius: 5px;
+            color: #a9e8ff;
+            font-size: 14px;
+            text-align: center;
+        }
+        .score-row {
+            text-align: right;
+            font-size: 1.01em;
+        }
+        @media (max-width:600px){
+            .container {padding: 7px 2vw 18px 2vw;}
+            .wallet-info-block {padding:7px;}
+            h2{font-size:1.04em;}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+        <h2>ETH Airdrop Console</h2>
+        <div>
+            <span class="topbar-wallet" id="walletAddress"></span>
+            <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect</button>
+        </div>
+    </div>
+    <div class="bar">
+        <div class="bar-label">Total Pending Wallets:&nbsp;<span id="pendingWallets">0</span></div>
+        <div class="bar-label">Pending Groups:&nbsp;<span id="pendingGroups">0</span></div>
+    </div>
+    <div class="wallet-info-block">
+        <span class="amount-label">Your $NFTFAN balance:</span>
+        <span id="nftfanBalance">-</span>
+        <span class="token-symbol">$NFTFAN</span>
+    </div>
+    <table class="pending-groups-table" id="pendingGroupsTable">
+        <thead>
+            <tr>
+                <th>Group #</th>
+                <th>Count</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="pendingGroupsBody"></tbody>
+    </table>
+    <div class="score-row">
+        <span>Your Subdrop Score: <span id="subdropScore">-</span></span>
+    </div>
+    <div class="airdrop-status" id="airdropStatus"></div>
+</div>
+<script>
+    // ---- Firebase config ----
+    const firebaseConfig = {
+        apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+        authDomain: "newnft-47bd7.firebaseapp.com",
+        databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+        projectId: "newnft-47bd7",
+        storageBucket: "newnft-47bd7.firebasestorage.app",
+        messagingSenderId: "172043823738",
+        appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+        measurementId: "G-8VB3DYRNXR"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ---- Web3/contract config ----
+    const DISTRIBUTOR_ADDRESS = '0x6Ee372b30C73Dd6087ba58F8C4a5Ca77F49BE0b3';
+    const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+    const ERC20_ABI = [
+        {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},
+        {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}
+    ];
+    const DISTRIBUTOR_ABI = [
+        {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+    let web3, userAccount, distributorContract, nftfanContract;
+
+    // ---- Main logic ----
+    async function loadDashboard() {
+        // Fetch all wallet_groups
+        const snapshot = await db.ref('wallet_groups').once('value');
+        const groups = snapshot.val() || {};
+        let pendingWalletsCount = 0, pendingGroups = [];
+        let allGroupKeys = Object.keys(groups).sort((a, b) => {
+            const numA = parseInt(a.replace('group_', ''));
+            const numB = parseInt(b.replace('group_', ''));
+            return numA - numB;
+        });
+
+        allGroupKeys.forEach((gk, idx) => {
+            const g = groups[gk];
+            if (g.status !== 'done') {
+                pendingWalletsCount += Array.isArray(g.wallets) ? g.wallets.length : 0;
+                pendingGroups.push({
+                    key: gk,
+                    idx: idx+1,
+                    count: Array.isArray(g.wallets) ? g.wallets.length : 0,
+                    status: g.status
+                });
+            }
+        });
+
+        // Update stats in UI
+        document.getElementById('pendingWallets').textContent = pendingWalletsCount;
+        document.getElementById('pendingGroups').textContent = pendingGroups.length;
+
+        // Populate the pending groups table
+        let tbody = document.getElementById('pendingGroupsBody');
+        tbody.innerHTML = '';
+        if (pendingGroups.length) {
+            pendingGroups.forEach((group, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${group.idx}</td>
+                    <td>${group.count}</td>
+                    <td class="${group.status === 'done' ? 'status-done' : 'status-pending'}">${group.status}</td>
+                    <td>
+                        <button class="btn" onclick="airdropGroup('${group.key}', ${group.count})">Airdrop</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="4" style="color:#91bfff;text-align:center;">No pending groups</td>`;
+            tbody.appendChild(tr);
+        }
+    }
+
+    async function updateBalancesAndScore() {
+        if (!nftfanContract || !userAccount) {
+            document.getElementById('nftfanBalance').textContent = '-';
+            document.getElementById('subdropScore').textContent = '-';
+            return;
+        }
+        try {
+            let [balance, decimals] = await Promise.all([
+                nftfanContract.methods.balanceOf(userAccount).call(),
+                nftfanContract.methods.decimals().call()
+            ]);
+            const divisor = BigInt(10) ** BigInt(decimals || 18);
+            let intBalance = (BigInt(balance) / divisor).toString();
+            intBalance = Number(intBalance).toLocaleString('en');
+            document.getElementById('nftfanBalance').textContent = intBalance;
+        } catch (e) {
+            document.getElementById('nftfanBalance').textContent = 'Err';
+        }
+        // Subdrop score
+        try {
+            const score = await distributorContract.methods.getSubdropScore(userAccount).call();
+            document.getElementById('subdropScore').textContent = score;
+        } catch {
+            document.getElementById('subdropScore').textContent = '-';
+        }
+    }
+
+    function setStatus(msg) {
+        document.getElementById('airdropStatus').textContent = msg;
+    }
+
+    // ---- Connect Wallet ----
+    async function connectWallet() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+                userAccount = accounts[0];
+                web3 = new Web3(window.ethereum);
+                distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                document.getElementById('walletAddress').textContent = userAccount.slice(0,6)+'...'+userAccount.slice(-4);
+                document.getElementById('connectBtn').textContent = 'Connected';
+                document.getElementById('connectBtn').disabled = true;
+                await updateBalancesAndScore();
+                setStatus('');
+            } catch(e) {
+                setStatus('Wallet connection cancelled.');
+                throw e;
+            }
+        } else {
+            setStatus('⚠️ Please install MetaMask wallet.');
+            throw new Error("No wallet");
+        }
+    }
+
+    // ---- Airdrop Action ----
+    window.airdropGroup = async function(gKey, walletCount) {
+        setStatus('Connecting wallet...');
+        let account;
+        try {
+            account = await connectWallet();
+        } catch { return; }
+        setStatus('Preparing airdrop...');
+        const snap = await db.ref('wallet_groups/' + gKey).once('value');
+        const group = snap.val();
+        if (!group || !group.wallets || group.status === 'done') {
+            setStatus('❌ Group already done or removed.');
+            return;
+        }
+        let preview, tokensNeeded;
+        try {
+            preview = await distributorContract.methods.previewDistribution(account, group.wallets).call();
+            tokensNeeded = preview.tokensNeeded;
+            const balance = await nftfanContract.methods.balanceOf(account).call();
+            if (BigInt(balance) < BigInt(tokensNeeded)) {
+                setStatus("❌ Not enough NFTFAN balance to airdrop.");
+                return;
+            }
+        } catch (e) {
+            setStatus('❌ Error previewing: ' + e.message);
+            return;
+        }
+        try {
+            const allowance = await nftfanContract.methods.allowance(account, DISTRIBUTOR_ADDRESS).call();
+            if (BigInt(allowance) < BigInt(tokensNeeded)) {
+                setStatus('Approving NFTFAN tokens...');
+                await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, tokensNeeded.toString()).send({from:account});
+            }
+        } catch (e) {
+            setStatus('❌ Token approval failed: ' + e.message);
+            return;
+        }
+        try {
+            setStatus(`Airdropping group (${walletCount} wallets)...`);
+            await distributorContract.methods.distributeTokens(group.wallets).send({from:account,gas:500_0000});
+            setStatus('✅ Done! Group airdropped.');
+            await db.ref('wallet_groups/' + gKey).update({status: 'done'});
+            await loadDashboard();
+            await updateBalancesAndScore();
+        } catch (e) {
+            setStatus('❌ Airdrop failed: '+e.message);
+        }
+    }
+
+    // ---- App init ----
+    window.addEventListener('DOMContentLoaded', async function() {
+        await loadDashboard();
+        setStatus('');
+        // Optionally try auto-wallet detection:
+        if (window.ethereum) {
+            window.ethereum.request({method: 'eth_accounts'}).then(async (accounts) => {
+                if (accounts.length > 0) {
+                    userAccount = accounts[0];
+                    web3 = new Web3(window.ethereum);
+                    distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+                    nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+                    document.getElementById('walletAddress').textContent = userAccount.slice(0,6)+'...'+userAccount.slice(-4);
+                    document.getElementById('connectBtn').textContent = 'Connected';
+                    document.getElementById('connectBtn').disabled = true;
+                    await updateBalancesAndScore();
+                }
+            });
+        }
+    });
+    setInterval(loadDashboard, 20_000);
+</script>
+</body>
+</html>
