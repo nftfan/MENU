@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>SUBFAN HUNTERS — Airdrop Console</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root{--cyan:#0ff;--glow:rgba(0,255,255,0.6);--bg:#000;--card:rgba(0,255,255,0.05);--border:rgba(0,255,255,0.3);--text:#0ff;--muted:rgba(0,255,255,0.6);}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;width:100%;margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;overflow-x:hidden;font-size:10px;text-shadow:0 0 8px var(--glow);}
+    body{display:flex;flex-direction:column;align-items:center;}
+    .container{max-width:420px;width:100%;margin:0;padding:20px 16px;}
+    .header{text-align:center;margin-bottom:20px;}
+    h1{font-size:2.4rem;font-weight:900;background:linear-gradient(90deg,#0ff,#0f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px var(--glow);margin:0;}
+    .tagline{font-size:1.opacity:0.9;margin-top:8px;}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,255,255,0.15);backdrop-filter:blur(10px);}
+    .info{display:flex;justify-content:space-between;align-items:center;font-size:10px;margin-bottom:12px;}
+    .label{opacity:0.8;}
+    .value{font-weight:900;}
+    .wallet{display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,255,0.08);padding:12px;border-radius:12px;font-family:ui-monospace,monospace;font-size:9px;}
+    .btn{display:block;width:100%;padding:14px;background:transparent;border:2px solid var(--cyan);color:var(--cyan;border-radius:12px;font-weight:700;cursor:pointer;transition:0.4s;margin:10px 0;box-shadow:0 0 20px rgba(0,255,255,0.3);font-size:11px;}
+    .btn:hover{background:var(--cyan);color:#000;box-shadow:0 0 35px var(--glow);transform:translateY(-3px);}
+    .btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .connect{background:linear-gradient(135deg,#0f6,#0ff);color:#000;}
+    table{width:100%;border-collapse:collapse;margin:16px 0;font-size:9px;}
+    th,td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);}
+    th{background:rgba(0,255,255,0.1);font-weight:700;}
+    .status-pending{color:#ff0;}
+    .status-done{color:#0f9;font-weight:900;}
+    .progress{margin:20px 0;display:none;}
+    .bar{height:12px;background:rgba(0,255,255,0.1);border-radius:6px;overflow:hidden;}
+    .fill{height:100%;width:0%;background:linear-gradient(90deg,#0ff,#0f9);transition:width 0.4s;}
+    .status{text-align:center;padding:12px;background:rgba(0,255,255,0.08);border-radius:12px;font-weight:700;margin-top:10px;}
+
+    @media (max-width:640px){
+      html,body{font-size:9px;}
+      h1{font-size:2rem;}
+      .container{padding:16px 12px;}
+      .wallet{font-size:8px;}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>SUBFAN HUNTERS</h1>
+      <p class="tagline">Airdrop Console — Powered by $NFTFAN</p>
+    </div>
+
+    <div class="card">
+      <div class="info">
+        <span class="label">Pending Wallets</span>
+        <span class="value" id="pendingWallets">0</span>
+      </div>
+      <div class="info">
+        <span class="label">Pending Groups</span>
+        <span class="value" id="pendingGroups">0</span>
+      </div>
+
+      <div class="wallet">
+        <span>Wallet: <span id="walletAddress">Not connected</span></span>
+        <button class="btn connect" id="connectBtn">Connect Wallet</button>
+      </div>
+
+      <div style="margin:16px 0; padding:12px;background:rgba(0,255,255,0.08);border-radius:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span>Your $NFTFAN Balance:</span>
+          <strong id="nftfanBalance">-</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span>Your <strong>Subfan Score</strong>:</span>
+          <strong id="subdropScore">-</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table id="pendingGroupsTable">
+        <thead>
+          <tr><th>Group</th><th>Wallets</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody id="pendingGroupsBody">
+          <tr><td colspan="4" style="text-align:center;padding:20px;opacity:0.7;">Loading groups...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="progress" id="progressSection">
+      <div class="bar"><div class="fill" id="progressFill"></div></div>
+      <div class="status" id="progressText">Ready</div>
+    </div>
+
+    <div class="status" id="airdropStatus">Connect wallet to begin</div>
+  </div>
+
+  <script>
+    const firebaseConfig = { apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY", authDomain: "newnft-47bd7.firebaseapp.com", databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com", projectId: "newnft-47bd7", storageBucket: "newnft-47bd7.firebasestorage.app", messagingSenderId: "172043823738", appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const DISTRIBUTOR_ADDRESS = '0x6Ee372b30C73Dd6087ba58F8C4a5Ca77F49BE0b3';
+    const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+    const POLYGON_CHAIN_ID = '0x89';
+
+    const DISTRIBUTOR_ABI = [ {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"}, {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"} ];
+
+    const ERC20_ABI = [ {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}, {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}, {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}, {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"} ];
+
+    let web3, userAccount, distributorContract, nftfanContract;
+
+    async function connectWallet() {
+      if (!window.ethereum) return setStatus("MetaMask required");
+      try {
+        await window.ethereum.request({method: 'wallet_switchEthereumChain', params: [{chainId: POLYGON_CHAIN_ID}]});
+        const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+        userAccount = accounts[0];
+        web3 = new Web3(window.ethereum);
+        distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+        nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+
+        document.getElementById('walletAddress').textContent = userAccount.slice(0,6)+'...'+userAccount.slice(-4);
+        document.getElementById('connectBtn').textContent = 'Connected';
+        document.getElementById('connectBtn').disabled = true;
+
+        await Promise.all([updateBalancesAndScore(), loadDashboard()]);
+        setStatus("Ready to hunt subfans");
+      } catch (e) {
+        setStatus("Connection failed");
+      }
+    }
+
+    async function loadDashboard() {
+      const snap = await db.ref('wallet_groups').once('value');
+      const groups = snap.val() || {};
+      const keys = Object.keys(groups);
+      let pendingCount = 0, pendingGroups = [];
+
+      keys.forEach((key, i) => {
+        const g = groups[key];
+        if (g && g.status !== 'done') {
+          const valid = (g.wallets || []).filter(w => /^0x[a-fA-F0-9]{40}$/i.test(w));
+          if (valid.length) {
+            pendingCount += valid.length;
+            pendingGroups.push({key, num:i+1, count:valid.length, status:g.status||'pending'});
+          }
+        }
+      });
+
+      document.getElementById('pendingWallets').textContent = pendingCount;
+      document.getElementById('pendingGroups').textContent = pendingGroups.length;
+
+      const tbody = document.getElementById('pendingGroupsBody');
+      tbody.innerHTML = pendingGroups.length === 0
+        ? `<tr><td colspan="4" style="padding:20px;opacity:0.7;">No pending groups</td></tr>`
+        : pendingGroups.map(g => `
+          <tr>
+            <td>#${g.num}</td>
+            <td>${g.count}</td>
+            <td class="${g.status==='done'?'status-done':'status-pending'}">${g.status||'pending'}</td>
+            <td><button class="btn" onclick="airdropGroup('${g.key}')">Airdrop</button></td>
+          </tr>`).join('');
+    }
+
+    async function updateBalancesAndScore() {
+      if (!userAccount) return;
+      try {
+        const [bal, dec, score] = await Promise.all([
+          nftfanContract.methods.balanceOf(userAccount).call(),
+          nftfanContract.methods.decimals().call(),
+          distributorContract.methods.getSubdropScore(userAccount).call()
+        ]);
+        const formatted = (BigInt(bal) / (10n ** BigInt(dec || 18))).toString();
+        document.getElementById('nftfanBalance').textContent = Number(formatted).toLocaleString();
+        document.getElementById('subdropScore').textContent = Number(score).toLocaleString();
+      } catch (e) {
+        document.getElementById('nftfanBalance').textContent = 'Error';
+        document.getElementById('subdropScore').textContent = '-';
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById('airdropStatus').textContent = msg;
+    }
+
+    window.airdropGroup = async function(groupKey) {
+      if (!userAccount) { await connectWallet(); if (!userAccount) return; }
+      document.getElementById('progressSection').style.display = 'block';
+      setStatus('Preparing airdrop...');
+
+      try {
+        const snap = await db.ref('wallet_groups/' + groupKey).once('value');
+        const group = snap.val();
+        const wallets = (group.wallets || []).filter(w => /^0x[a-fA-F0-9]{40}$/i.test(w));
+
+        const preview = await distributorContract.methods.previewDistribution(userAccount, wallets).call({from: userAccount});
+        const needed = BigInt(preview.tokensNeeded || preview[1]);
+
+        const balance = await nftfanContract.methods.balanceOf(userAccount).call();
+        if (BigInt(balance) < needed) throw new Error("Not enough $NFTFAN");
+
+        const allowance = await nftfanContract.methods.allowance(userAccount, DISTRIBUTOR_ADDRESS).call();
+        if (BigInt(allowance) < needed) {
+          setStatus('Approving tokens...');
+          await nftfanContract.methods.approve(DISTRIBUTOR_ADDRESS, '115792089237316195423570985008687907853269984665640564039457584007913129639935').send({from: userAccount});
+        }
+
+        setStatus('Sending airdrop...');
+        document.getElementById('progressFill').style.width = '60%';
+
+        await distributorContract.methods.distributeTokens(wallets).send({from: userAccount, gas: 6000000});
+
+        await db.ref('wallet_groups/' + groupKey).update({status: 'done'});
+
+        document.getElementById('progressFill').style.width = '100%';
+        setStatus('Airdrop successful!');
+        await Promise.all([loadDashboard(), updateBalancesAndScore()]);
+        setTimeout(() => document.getElementById('progressSection').style.display = 'none', 2000);
+      } catch (e) {
+        setStatus('Failed: ' + (e.message || 'tx error'));
+        document.getElementById('progressSection').style.display = 'none';
+      }
+    };
+
+    document.getElementById('connectBtn').onclick = connectWallet;
+
+    // Auto load
+    (async () => {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({method: 'eth_accounts'});
+        if (accounts.length) await connectWallet();
+      }
+      await loadDashboard();
+      setInterval(loadDashboard, 20000);
+    })();
+  </script>
+</body>
+</html>
