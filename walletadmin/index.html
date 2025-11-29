@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ETH Wallet Group Collector (Admin)</title>
+    <style>
+        :root {
+            --bg: #181A20;
+            --panel: #22252b;
+            --accent: #2962FF;
+            --text: #e5e5e5;
+            --border: #333740;
+            --pending: #b47c00;
+            --done: #35c26b;
+            --tab-bg: #22252b;
+            --tab-active-bg: #181A20;
+        }
+        html, body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', 'Roboto', Arial, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+        body { margin: 24px 0 0 0; }
+        h2 {
+            font-size: 13px;
+            margin-left: 32px;
+            letter-spacing: 1px;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .tabs { margin: 0 0 0 32px; padding: 0; }
+        .tab-btn {
+            padding: 7px 16px;
+            font-size: 11px;
+            border: none;
+            background: var(--tab-bg);
+            color: #a5b4c7;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            margin-right: 2px;
+            transition: background 0.15s, color 0.15s;
+            outline: none;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--tab-active-bg);
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        .tab-content {
+            display: none;
+            background: var(--panel);
+            margin: 0 32px;
+            border-radius: 0 5px 5px 5px;
+            padding: 18px 22px 18px 22px;
+            box-shadow: 0 2px 8px rgba(10,16,32,.13);
+        }
+        .tab-content.active { display: block; }
+        #countsBar { margin-bottom: 10px; font-size: 11px; }
+        .count-box {
+            display: inline-block;
+            margin-right: 18px;
+            background: var(--tab-bg);
+            padding: 2px 10px 2px 8px;
+            border-radius: 4px;
+            color: #c3c7d1;
+            font-size: 11px;
+        }
+        .count-total { font-weight: bold; color: var(--accent); }
+        .count-pending { color: var(--pending); font-weight: bold; }
+        .count-done { color: var(--done); font-weight: bold; }
+        label, input, textarea { font-size: 11px; font-family: inherit; }
+        #submitAsLabel { font-weight: 600; color: var(--accent); }
+        #submitAs, #inputText {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 6px 6px;
+        }
+        #inputText { resize: vertical; width: 100%; min-height: 120px; box-sizing: border-box; margin-top: 8px; }
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.18s;
+            padding: 8px 14px;
+            margin-top: 8px;
+        }
+        button:hover { background: #2047b8; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 18px;
+            background: var(--panel);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+        }
+        th, td {
+            border: none;
+            border-bottom: 1px solid var(--border);
+            padding: 7px 9px;
+            text-align: left;
+            font-size: 11px;
+            color: var(--text);
+            background: transparent;
+        }
+        th {
+            background: var(--tab-bg);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+        }
+        tr:last-child td { border-bottom: none; }
+        .group-cell { font-weight: bold; color: var(--accent); }
+        .status-pending { color: var(--pending); font-weight: bold; }
+        .status-done { color: var(--done); font-weight: bold; }
+        @media (max-width:700px) {
+            .tab-content { padding: 8px 3vw; }
+            h2, .tabs { margin-left: 5vw; }
+        }
+    </style>
+</head>
+<body>
+<h2>ETH Wallet Group Collector (Admin)</h2>
+<div class="tabs">
+    <button class="tab-btn active" id="groupsTabBtn" data-tab="groups">Wallet Groups</button>
+    <button class="tab-btn" id="submittersTabBtn" data-tab="submitters">Submitters</button>
+</div>
+<div id="groupsTab" class="tab-content active">
+    <div id="countsBar">
+        <span class="count-box count-total">Total Groups: <span id="totalGroups">0</span></span>
+        <span class="count-box count-pending">Pending: <span id="pendingGroups">0</span></span>
+        <span class="count-box count-done">Done: <span id="doneGroups">0</span></span>
+    </div>
+    <label id="submitAsLabel">Submit As:</label>
+    <input type="text" id="submitAs" placeholder="@username"><br>
+    <textarea id="inputText" placeholder="Paste ETH wallet addresses here (0x... or lowercase)..."></textarea><br>
+    <button id="extractBtn">Extract Wallets</button>
+    <table id="walletTable" style="display:none;">
+        <thead>
+        <tr>
+            <th>Group #</th>
+            <th>Wallets (50 per group)</th>
+            <th>Status</th>
+            <th>Submitted By</th>
+        </tr>
+        </thead>
+        <tbody id="walletTableBody"></tbody>
+    </table>
+</div>
+
+<div id="submittersTab" class="tab-content">
+    <table id="submittersTable" style="display:none;">
+        <thead>
+        <tr>
+            <th>Submitter Username</th>
+            <th># of Wallets Submitted</th>
+        </tr>
+        </thead>
+        <tbody id="submittersTableBody"></tbody>
+    </table>
+</div>
+
+<!-- Firebase (Modular SDK) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    import {
+        getDatabase,
+        ref,
+        get,
+        update,
+        set
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+        authDomain: "newnft-47bd7.firebaseapp.com",
+        databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+        projectId: "newnft-47bd7",
+        storageBucket: "newnft-47bd7.firebasestorage.app",
+        messagingSenderId: "172043823738",
+        appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+        measurementId: "G-8VB3DYRNXR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    analyticsSupported().then(s => { if (s) getAnalytics(app); });
+    const db = getDatabase(app);
+
+    // --- Tab Handling ---
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === tabName + 'Tab');
+        });
+        if (tabName === 'submitters') {
+            loadSubmittersFromFirebase();
+        }
+    }
+    document.getElementById('groupsTabBtn').addEventListener('click', () => showTab('groups'));
+    document.getElementById('submittersTabBtn').addEventListener('click', () => showTab('submitters'));
+
+    // --- Counts Bar ---
+    function updateCountsBar(groupsObj) {
+        let total = 0, pending = 0, done = 0;
+        if (groupsObj) {
+            Object.values(groupsObj).forEach(group => {
+                total++;
+                if (group.status === 'done') done++; else pending++;
+            });
+        }
+        totalGroups.textContent = total;
+        pendingGroups.textContent = pending;
+        doneGroups.textContent = done;
+    }
+
+    // --- Render Groups ---
+    function renderGroups(groupsObj) {
+        const tbody = document.getElementById('walletTableBody');
+        tbody.innerHTML = '';
+        updateCountsBar(groupsObj);
+        if (!groupsObj || Object.keys(groupsObj).length === 0) {
+            document.getElementById('walletTable').style.display = 'none';
+            return;
+        }
+        const groupKeys = Object.keys(groupsObj).sort((a, b) => {
+            const numA = parseInt(a.replace('group_', ''));
+            const numB = parseInt(b.replace('group_', ''));
+            return numA - numB;
+        });
+        groupKeys.forEach((key, idx) => {
+            const group = groupsObj[key];
+            const tr = document.createElement('tr');
+
+            const groupCell = document.createElement('td');
+            groupCell.className = 'group-cell';
+            groupCell.textContent = 'Group ' + (idx + 1);
+
+            const walletsCell = document.createElement('td');
+            walletsCell.textContent = (group.wallets || []).join(', ');
+
+            const statusCell = document.createElement('td');
+            const status = group.status || 'pending';
+            statusCell.textContent = status;
+            statusCell.className = status === 'done' ? 'status-done' : 'status-pending';
+
+            const submitterCell = document.createElement('td');
+            submitterCell.textContent = group.submitter || '';
+
+            tr.appendChild(groupCell);
+            tr.appendChild(walletsCell);
+            tr.appendChild(statusCell);
+            tr.appendChild(submitterCell);
+            tbody.appendChild(tr);
+        });
+        document.getElementById('walletTable').style.display = '';
+    }
+
+    async function loadGroupsFromFirebase() {
+        try {
+            const snapshot = await get(ref(db, 'wallet_groups'));
+            renderGroups(snapshot.val());
+        } catch (e) {
+            console.error('Error loading wallet groups:', e);
+        }
+    }
+
+    // --- Extract / Save Wallets ---
+    async function extractWallets() {
+        const raw = document.getElementById('inputText').value;
+        const submitAs = document.getElementById('submitAs').value.trim();
+        if (!/^@[A-Za-z0-9_]{2,32}$/.test(submitAs)) {
+            alert('Please enter a valid "Submit As" username, e.g. @yourname');
+            return;
+        }
+        // Capture all potential 0x... wallets (40 hex after 0x, ignoring case)
+        const regex = /\b0x[a-fA-F0-9]{40}\b/g;
+        const walletsSet = new Set();
+        let match;
+        while ((match = regex.exec(raw)) !== null) {
+            walletsSet.add(match[0].toLowerCase());
+        }
+        const inputWallets = Array.from(walletsSet);
+        if (inputWallets.length === 0) {
+            alert('No valid ETH wallet addresses found.');
+            return;
+        }
+
+        try {
+            // Load all existing wallet addresses
+            const groupsSnap = await get(ref(db, 'wallet_groups'));
+            const groupsObj = groupsSnap.val();
+            let nextGroupNum = 1;
+            const existingWalletsSet = new Set();
+
+            if (groupsObj) {
+                const numericKeys = Object.keys(groupsObj)
+                    .map(k => parseInt(k.replace('group_', '')))
+                    .filter(n => !isNaN(n));
+                if (numericKeys.length > 0) {
+                    nextGroupNum = Math.max(...numericKeys) + 1;
+                }
+                Object.values(groupsObj).forEach(group => {
+                    if (Array.isArray(group.wallets)) {
+                        group.wallets.forEach(w => existingWalletsSet.add(w));
+                    }
+                });
+            }
+            // Load all previously submitted by this submitter
+            const submitterSnap = await get(ref(db, 'submitters/' + submitAs));
+            const submittersWallets = submitterSnap.exists() ? submitterSnap.val() : [];
+            // Don't allow posting same wallet twice, by anyone
+            const newWallets = inputWallets.filter(w => !existingWalletsSet.has(w));
+            if (newWallets.length === 0) {
+                alert('All submitted wallets already exist.');
+                return;
+            }
+            newWallets.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+            const groups = [];
+            for (let i = 0; i < newWallets.length; i += 50) {
+                groups.push(newWallets.slice(i, i + 50));
+            }
+
+            const updates = {};
+            groups.forEach((group, idx) => {
+                updates['wallet_groups/group_' + (nextGroupNum + idx)] = {
+                    wallets: group,
+                    status: 'pending',
+                    submitter: submitAs
+                };
+            });
+            updates['submitters/' + submitAs] = submittersWallets.concat(newWallets);
+
+            await update(ref(db), updates);
+            document.getElementById('inputText').value = '';
+            await loadGroupsFromFirebase();
+            if (document.getElementById('submittersTab').classList.contains('active')) {
+                await loadSubmittersFromFirebase();
+            }
+        } catch (e) {
+            console.error('Failed to save:', e);
+            alert('Failed to save to Firebase.');
+        }
+    }
+
+    // --- Submitters ---
+    function renderSubmitters(submittersObj) {
+        const tbody = document.getElementById('submittersTableBody');
+        tbody.innerHTML = '';
+        if (!submittersObj || Object.keys(submittersObj).length === 0) {
+            document.getElementById('submittersTable').style.display = 'none';
+            return;
+        }
+        Object.keys(submittersObj).forEach(submitter => {
+            const list = Array.isArray(submittersObj[submitter]) ? submittersObj[submitter] : [];
+            const count = list.length;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                    <td>${submitter}</td>
+                    <td>${count}</td>
+                `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('submittersTable').style.display = '';
+    }
+
+    async function loadSubmittersFromFirebase() {
+        try {
+            const snapshot = await get(ref(db, 'submitters'));
+            renderSubmitters(snapshot.val());
+        } catch (e) {
+            console.error('Error loading submitters:', e);
+        }
+    }
+
+    // --- Event Listeners ---
+    document.getElementById('extractBtn').addEventListener('click', extractWallets);
+
+    // Initial load
+    window.addEventListener('DOMContentLoaded', () => {
+        loadGroupsFromFirebase();
+    });
+</script>
+</body>
+</html>
