@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NFTFAN — Simple Step-by-Step Sale</title>
+<style>
+  /*
+    Compact stepper UI
+    - base font: 11px
+    - wallet input font: 9px
+    - balance font: 10px
+    - mobile-first, no horizontal scroll
+  */
+  :root{
+    --bg:#0b0c10;
+    --card:#0f1113;
+    --muted:#9ca3af;
+    --accent:#8b5cf6;
+    --accent-2:#ec4899;
+    --border: rgba(255,255,255,0.03);
+    --radius:10px;
+  }
+
+  html,body{height:100%;overflow-x:hidden}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+    background:linear-gradient(180deg,#070708,#0b0c10);
+    color:#e6eef8;
+    padding:14px;
+    font-size:11px; /* default */
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+  .top{
+    display:flex;align-items:center;gap:12px;
+  }
+  .logo{
+    width:44px;height:44px;border-radius:8px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#050306;
+    font-family:ui-monospace,monospace;
+  }
+  h1{font-size:15px}
+  .lead{color:var(--muted);font-size:12px;margin-top:2px}
+
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 8px 30px rgba(2,6,23,0.6);
+  }
+
+  .step-indicator{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .step-title{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .step-title h2{font-size:13px;margin:0}
+  .step-desc{color:var(--muted);font-size:11px;margin-top:8px}
+
+  /* Input */
+  .input-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+  input[type="text"]{
+    flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);
+    background:#0b0c10;color:#eaf0ff;outline:none;font-size:9px;font-family:ui-monospace,monospace;min-width:0;
+  }
+  input::placeholder{color:rgba(255,255,255,0.16);font-size:9px}
+
+  /* Balance display */
+  .balance{
+    margin-top:12px;padding:10px;border-radius:8px;background:#0b0d11;border:1px solid rgba(255,255,255,0.02);
+  }
+  .balance .value{font-size:10px;font-weight:800;color:#f3f5f7}
+  .balance .sub{font-size:9px;color:var(--muted);margin-top:6px}
+
+  .addr-box{
+    margin-top:10px;padding:10px;border-radius:8px;background:#0b0d11;border:1px solid rgba(255,255,255,0.02);
+    font-family:ui-monospace,monospace;font-size:11px;color:#dbe7ff;word-break:break-all;
+  }
+
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  button.btn{
+    padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);
+    background:#0e1013;color:#eaf0ff;font-weight:700;font-size:11px;cursor:pointer;
+  }
+  button.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;color:#050306}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  button.full{flex:1}
+
+  .footer-row{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap}
+  .small{font-size:11px;color:var(--muted)}
+
+  .hidden{display:none}
+
+  /* toast */
+  .toast{
+    position:fixed;right:14px;bottom:14px;background:#0b0c10;border:1px solid rgba(255,255,255,0.03);
+    padding:8px 10px;border-radius:8px;color:#eaf0ff;font-size:11px;box-shadow:0 8px 20px rgba(0,0,0,0.6);
+    opacity:0;transform:translateY(8px);transition:all .16s ease;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto}
+
+  @media (max-width:480px){
+    body{padding:10px}
+    .top{gap:8px}
+    .logo{width:40px;height:40px}
+    .controls{flex-direction:column}
+    .controls .btn{width:100%}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="logo">NF</div>
+      <div>
+        <h1>NFTFAN — Quick Buy</h1>
+        <div class="lead">Step-by-step guide to buy $NFTFAN: enter wallet, optionally buy, send POL, confirm.</div>
+      </div>
+    </div>
+
+    <div class="card" id="step-card">
+      <div class="step-indicator" id="step-indicator">Step 1 of 5</div>
+
+      <!-- Step content containers -->
+      <!-- STEP 1: Enter your wallet -->
+      <div id="step-1" class="step-panel">
+        <div class="step-title"><h2>Enter your wallet</h2></div>
+        <div class="step-desc">Provide the address where you want to receive $NFTFAN.</div>
+
+        <div class="input-row">
+          <input id="wallet-input" type="text" placeholder="0x..." aria-label="wallet address">
+          <button id="validate-btn" class="btn ghost">Validate</button>
+        </div>
+
+        <div class="controls">
+          <button id="s1-next" class="btn primary" disabled>Next</button>
+          <button id="s1-reset" class="btn">Start Over</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Show your balance -->
+      <div id="step-2" class="step-panel hidden">
+        <div class="step-title"><h2>Your $NFTFAN balance</h2></div>
+        <div class="step-desc">We read your current token balance on Polygon.</div>
+
+        <div class="balance" aria-live="polite">
+          <div class="value" id="user-balance">Loading…</div>
+          <div class="sub" id="user-balance-sub">Raw: —</div>
+        </div>
+
+        <div class="controls">
+          <button id="s2-back" class="btn ghost">Back</button>
+          <button id="s2-buy" class="btn primary">Buy more $NFTFAN</button>
+          <button id="s2-skip" class="btn">Skip buying</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Show sale contract and tokens left -->
+      <div id="step-3" class="step-panel hidden">
+        <div class="step-title"><h2>Sale contract & amount left</h2></div>
+        <div class="step-desc">Send POL to the sale address below to buy $NFTFAN automatically.</div>
+
+        <div class="addr-box" id="sale-addr-box"></div>
+
+        <div class="balance" style="margin-top:10px">
+          <div class="value" id="tokens-left">Loading…</div>
+          <div class="sub" id="tokens-left-sub">Raw: —</div>
+        </div>
+
+        <div class="controls">
+          <button id="s3-back" class="btn ghost">Back</button>
+          <button id="s3-sent" class="btn primary">I've sent POL</button>
+          <button id="s3-notyet" class="btn">Not yet</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Confirm POL sent? -->
+      <div id="step-4" class="step-panel hidden">
+        <div class="step-title"><h2>Confirm</h2></div>
+        <div class="step-desc">Did you send POL to the sale contract?</div>
+
+        <div style="margin-top:12px">
+          <button id="s4-yes" class="btn primary">Yes — check my new balance</button>
+          <button id="s4-no" class="btn">No — go back</button>
+        </div>
+
+        <div class="controls" style="margin-top:12px">
+          <button id="s4-back" class="btn ghost">Back</button>
+        </div>
+      </div>
+
+      <!-- STEP 5: Show updated balance and restart -->
+      <div id="step-5" class="step-panel hidden">
+        <div class="step-title"><h2>Updated balance</h2></div>
+        <div class="step-desc">If the sale processed, your balance should increase.</div>
+
+        <div class="balance" aria-live="polite">
+          <div class="value" id="new-balance">Loading…</div>
+          <div class="sub" id="new-balance-sub">Raw: —</div>
+        </div>
+
+        <div class="controls" style="margin-top:12px">
+          <button id="restart-btn" class="btn primary full">Start Again</button>
+        </div>
+      </div>
+
+      <div class="footer-row">
+        <div class="small">This page only reads on-chain data. Always verify addresses on Polygonscan before sending funds.</div>
+        <div class="small" id="ts">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* Configuration */
+const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50"; // token contract (ERC-20)
+const SALE_CA  = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8"; // sale contract
+const RPC = "https://polygon-bor.publicnode.com";
+const BALANCE_OF_SIG = "0x70a08231"; // balanceOf(address)
+const DECIMALS = 18n; // assume 18 decimals
+
+/* Simple utilities */
+function showToast(msg, timeout = 2200){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> t.classList.remove('show'), timeout);
+}
+function isAddress(a){ return /^0x[a-fA-F0-9]{40}$/.test(a); }
+function formatToken(rawBigInt){
+  const whole = rawBigInt / (10n ** DECIMALS);
+  const frac = rawBigInt % (10n ** DECIMALS);
+  let fracStr = "";
+  if (frac !== 0n){
+    const scaled = (frac * 100000n) / (10n ** DECIMALS); // 5 decimals
+    fracStr = "." + scaled.toString().padStart(5,"0").replace(/0+$/,"");
+  }
+  return whole.toLocaleString() + fracStr + " $NFTFAN";
+}
+async function ethCall(to, data){
+  const res = await fetch(RPC, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"eth_call", params:[{to, data},"latest"] })
+  });
+  const j = await res.json();
+  if (!j || !j.result) throw new Error("no-result");
+  return j.result;
+}
+function padAddressForCall(addr){
+  return addr.replace(/^0x/,"").padStart(64, "0");
+}
+
+/* Elements */
+const panels = {
+  1: document.getElementById('step-1'),
+  2: document.getElementById('step-2'),
+  3: document.getElementById('step-3'),
+  4: document.getElementById('step-4'),
+  5: document.getElementById('step-5')
+};
+const stepIndicator = document.getElementById('step-indicator');
+const tsEl = document.getElementById('ts');
+
+const els = {
+  walletInput: document.getElementById('wallet-input'),
+  validateBtn: document.getElementById('validate-btn'),
+  s1Next: document.getElementById('s1-next'),
+  s1Reset: document.getElementById('s1-reset'),
+
+  userBalance: document.getElementById('user-balance'),
+  userBalanceSub: document.getElementById('user-balance-sub'),
+  s2Back: document.getElementById('s2-back'),
+  s2Buy: document.getElementById('s2-buy'),
+  s2Skip: document.getElementById('s2-skip'),
+
+  saleAddrBox: document.getElementById('sale-addr-box'),
+  tokensLeft: document.getElementById('tokens-left'),
+  tokensLeftSub: document.getElementById('tokens-left-sub'),
+  s3Back: document.getElementById('s3-back'),
+  s3Sent: document.getElementById('s3-sent'),
+  s3NotYet: document.getElementById('s3-notyet'),
+
+  s4Yes: document.getElementById('s4-yes'),
+  s4No: document.getElementById('s4-no'),
+  s4Back: document.getElementById('s4-back'),
+
+  newBalance: document.getElementById('new-balance'),
+  newBalanceSub: document.getElementById('new-balance-sub'),
+  restartBtn: document.getElementById('restart-btn')
+};
+
+/* State */
+let step = 1;
+let wallet = "";
+let initialBalance = 0n;
+let latestBalance = 0n;
+
+/* Helpers to show/hide steps */
+function showStep(n){
+  step = n;
+  stepIndicator.textContent = `Step ${n} of 5`;
+  for (const k in panels){
+    panels[k].classList.toggle('hidden', Number(k) !== n);
+  }
+}
+
+/* Step actions and flows */
+els.validateBtn.addEventListener('click', ()=>{
+  const a = els.walletInput.value.trim();
+  if (!isAddress(a)){ showToast("Invalid address"); return; }
+  showToast("Address looks valid");
+});
+
+els.walletInput.addEventListener('input', ()=>{
+  const a = els.walletInput.value.trim();
+  els.s1Next.disabled = !isAddress(a);
+});
+
+/* Step 1 Next */
+els.s1Next.addEventListener('click', async ()=>{
+  wallet = els.walletInput.value.trim();
+  if (!isAddress(wallet)){ showToast("Enter a valid address"); return; }
+  // proceed to step 2: fetch user balance
+  showStep(2);
+  await loadUserBalance();
+});
+
+/* Reset / start over */
+els.s1Reset.addEventListener('click', ()=>{
+  wallet = "";
+  els.walletInput.value = "";
+  els.s1Next.disabled = true;
+  initialBalance = 0n;
+  latestBalance = 0n;
+  showStep(1);
+  showToast("Reset");
+});
+
+/* LOAD user balance for step 2 */
+async function loadUserBalance(){
+  els.userBalance.textContent = "Loading…";
+  els.userBalanceSub.textContent = "Checking on Polygon…";
+  try {
+    const data = BALANCE_OF_SIG + padAddressForCall(wallet);
+    const result = await ethCall(TOKEN_CA, data);
+    const raw = BigInt(result);
+    initialBalance = raw;
+    latestBalance = raw;
+    els.userBalance.textContent = formatToken(raw);
+    els.userBalanceSub.textContent = `Raw: ${raw.toString()}`;
+    tsEl.textContent = new Date().toLocaleString();
+  } catch (err){
+    console.error(err);
+    els.userBalance.textContent = "Error";
+    els.userBalanceSub.textContent = "Unable to fetch balance";
+    showToast("Failed to load balance", 2000);
+  }
+}
+
+/* Step 2 actions */
+els.s2Back.addEventListener('click', ()=> showStep(1));
+els.s2Buy.addEventListener('click', ()=>{
+  // go to sale info
+  showStep(3);
+  loadSaleInfo();
+});
+els.s2Skip.addEventListener('click', ()=>{
+  // skip buying, go to final step showing same balance
+  latestBalance = initialBalance;
+  showFinalBalance();
+  showStep(5);
+});
+
+/* Load sale info (step 3) */
+async function loadSaleInfo(){
+  els.saleAddrBox.textContent = SALE_CA;
+  els.tokensLeft.textContent = "Loading…";
+  els.tokensLeftSub.textContent = "Checking on Polygon…";
+  try {
+    const data = BALANCE_OF_SIG + padAddressForCall(SALE_CA);
+    const result = await ethCall(TOKEN_CA, data);
+    const raw = BigInt(result);
+    els.tokensLeft.textContent = formatToken(raw);
+    els.tokensLeftSub.textContent = `Raw: ${raw.toString()}`;
+    tsEl.textContent = new Date().toLocaleString();
+  } catch (err){
+    console.error(err);
+    els.tokensLeft.textContent = "Error";
+    els.tokensLeftSub.textContent = "Unable to fetch tokens remaining";
+    showToast("Failed to load sale info", 2000);
+  }
+}
+
+/* Step 3 actions */
+els.s3Back.addEventListener('click', ()=> showStep(2));
+els.s3NotYet.addEventListener('click', ()=> showToast("Take your time — return when ready"));
+els.s3Sent.addEventListener('click', ()=>{
+  // user claims they've sent POL; go to confirm step
+  showStep(4);
+});
+
+/* Step 4 actions */
+els.s4Back.addEventListener('click', ()=> showStep(3));
+els.s4No.addEventListener('click', ()=> {
+  showToast("OK — don't forget to send POL to the sale address when ready");
+  showStep(3);
+});
+els.s4Yes.addEventListener('click', async ()=>{
+  showToast("Checking for updated balance…", 1500);
+  // fetch fresh balance and show updated info
+  try {
+    const data = BALANCE_OF_SIG + padAddressForCall(wallet);
+    const result = await ethCall(TOKEN_CA, data);
+    const raw = BigInt(result);
+    latestBalance = raw;
+    showFinalBalance();
+    showStep(5);
+  } catch (err){
+    console.error(err);
+    showToast("Failed to fetch updated balance", 2000);
+  }
+});
+
+/* Show final updated balance (step 5) */
+function showFinalBalance(){
+  els.newBalance.textContent = formatToken(latestBalance);
+  els.newBalanceSub.textContent = `Raw: ${latestBalance.toString()}`;
+}
+
+/* Restart button */
+els.restartBtn.addEventListener('click', ()=>{
+  // keep wallet filled so user can repeat quickly, but reset initial/latest
+  initialBalance = latestBalance;
+  showToast("Ready to start again");
+  showStep(1);
+});
+
+/* Initialize UI */
+(function init(){
+  showStep(1);
+  tsEl.textContent = new Date().toLocaleString();
+  // enable Next if saved wallet present
+  const saved = localStorage.getItem('NFTFAN_WALLET');
+  if (saved && isAddress(saved)){
+    els.walletInput.value = saved;
+    els.s1Next.disabled = false;
+  } else {
+    els.s1Next.disabled = true;
+  }
+
+  // store wallet on Enter in step 1
+  els.walletInput.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && isAddress(els.walletInput.value.trim())){
+      els.s1Next.click();
+      localStorage.setItem('NFTFAN_WALLET', els.walletInput.value.trim());
+    }
+  });
+})();
+
+/* Small helper: auto-refresh sale info and balance occasionally when relevant */
+setInterval(async ()=>{
+  if (step === 2 && wallet) {
+    try {
+      const data = BALANCE_OF_SIG + padAddressForCall(wallet);
+      const result = await ethCall(TOKEN_CA, data);
+      const raw = BigInt(result);
+      // update displayed balance if changed
+      if (raw !== latestBalance){
+        latestBalance = raw;
+        els.userBalance.textContent = formatToken(raw);
+        els.userBalanceSub.textContent = `Raw: ${raw.toString()}`;
+      }
+    } catch {}
+  }
+  if (step === 3) {
+    try {
+      const data = BALANCE_OF_SIG + padAddressForCall(SALE_CA);
+      const result = await ethCall(TOKEN_CA, data);
+      const raw = BigInt(result);
+      const txt = formatToken(raw);
+      if (els.tokensLeft.textContent !== txt){
+        els.tokensLeft.textContent = txt;
+        els.tokensLeftSub.textContent = `Raw: ${raw.toString()}`;
+      }
+    } catch {}
+  }
+}, 20000); // every 20s
+
+</script>
+</body>
+</html>
