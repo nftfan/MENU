@@ -5,173 +5,842 @@
     <title>ETH Wallet Group Collector (Admin)</title>
     <style>
         :root {
-            --bg: #181A20;
-            --panel: #22252b;
-            --accent: #2962FF;
-            --text: #e5e5e5;
-            --border: #333740;
-            --pending: #b47c00;
-            --done: #35c26b;
-            --tab-bg: #22252b;
-            --tab-active-bg: #181A20;
+            --bg: #070816;
+            --bg-elevated: #101322;
+            --bg-soft: #141828;
+            --accent: #4C7DFF;
+            --accent-soft: rgba(76, 125, 255, 0.12);
+            --accent-strong: #2A54E5;
+            --text: #e8edf7;
+            --muted: #9aa3ba;
+            --border-subtle: #23283a;
+            --danger: #ff5c7a;
+            --success: #3CCB7F;
+            --shadow-soft: 0 16px 60px rgba(5, 10, 40, 0.55);
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
         html, body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', 'Roboto', Arial, sans-serif;
-            font-size: 11px;
             margin: 0;
             padding: 0;
-        }
-        body { margin: 24px 0 0 0; }
-        h2 {
+            background: radial-gradient(circle at top left, #181f3a 0, #050614 55%);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Roboto", sans-serif;
             font-size: 13px;
-            margin-left: 32px;
-            letter-spacing: 1px;
-            color: var(--accent);
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 16px;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1120px;
+            background: linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(10, 15, 30, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .app-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                    radial-gradient(circle at 0 0, rgba(76,125,255,0.15) 0, transparent 55%),
+                    radial-gradient(circle at 100% 0, rgba(56,189,248,0.18) 0, transparent 55%);
+            mix-blend-mode: screen;
+            opacity: 0.6;
+        }
+
+        .app-inner {
+            position: relative;
+            z-index: 1;
+            padding: 18px 22px 22px 22px;
+        }
+
+        /* Header */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            background: conic-gradient(from 210deg, #4C7DFF, #3CCB7F, #F97316, #4C7DFF);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.8), 0 12px 30px rgba(15, 23, 42, 0.9);
+        }
+
+        .brand-logo-inner {
+            width: 18px;
+            height: 18px;
+            border-radius: 7px;
+            background: radial-gradient(circle at 30% 20%, #E5E7EB 0, #9CA3AF 40%, #4B5563 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
             font-weight: 700;
+            color: #020617;
+        }
+
+        .brand-title {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title-main {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .header-meta {
+            text-align: right;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px 2px 6px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            margin-bottom: 4px;
+            gap: 6px;
+        }
+
+        .chip-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #22c55e 0, #15803d 55%, transparent 70%);
+            box-shadow: 0 0 0 1px rgba(5, 46, 22, 0.8), 0 0 10px rgba(34, 197, 94, 0.8);
+        }
+
+        /* Tabs (top-right) */
+        .tabs {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.97);
+            border-radius: 999px;
+            padding: 3px;
+            border: 1px solid rgba(148, 163, 184, 0.36);
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.8);
+        }
+
+        .tab-btn {
+            position: relative;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.16s ease, transform 0.16s ease;
+        }
+
+        .tab-btn-icon {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .tab-btn::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background: transparent;
+            transition: background 0.18s ease, box-shadow 0.18s ease;
+            z-index: -1;
+        }
+
+        .tab-btn.active {
+            color: #E5EDFF;
+            transform: translateY(-0.5px);
+        }
+
+        .tab-btn.active::before {
+            background: radial-gradient(circle at 30% 0, rgba(56,189,248,0.28) 0, transparent 60%), linear-gradient(135deg, rgba(37,99,235,0.9), rgba(59,130,246,0.9));
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+        }
+
+        .tab-btn:not(.active):hover {
+            color: #cbd5f5;
+        }
+
+        /* Layout */
+        .content {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .header-meta {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .app-inner {
+                padding: 15px 14px 18px 14px;
+            }
+        }
+
+        .panel {
+            background: var(--bg-elevated);
+            border-radius: 14px;
+            border: 1px solid var(--border-subtle);
+            padding: 14px 14px 12px 14px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.75);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(46, 144, 250, 0.18) 0, transparent 56%);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #d1ddff;
+        }
+
+        .panel-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(15, 23, 42, 0.85);
+        }
+
+        .pill-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 999px;
+            background: #38bdf8;
+        }
+
+        /* Metrics bar */
+        .metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric-card {
+            flex: 1 1 120px;
+            min-width: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
+            border-radius: 10px;
+            padding: 7px 9px;
+            border: 1px solid rgba(148, 163, 184, 0.38);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .metric-value {
+            font-size: 17px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .metric-value span {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .metric-value.total {
+            color: #E5EDFF;
+        }
+
+        .metric-value.unique {
+            color: var(--success);
+        }
+
+        .metric-value.pending {
+            color: #facc15;
+        }
+
+        .metric-value.done {
+            color: #4ade80;
+        }
+
+        /* Form */
+        label {
+            font-size: 11px;
+            color: var(--muted);
+            display: inline-block;
+            margin-bottom: 3px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
             margin-bottom: 8px;
         }
-        .tabs { margin: 0 0 0 32px; padding: 0; }
-        .tab-btn {
-            padding: 7px 16px;
-            font-size: 11px;
-            border: none;
-            background: var(--tab-bg);
-            color: #a5b4c7;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            margin-right: 2px;
-            transition: background 0.15s, color 0.15s;
-            outline: none;
-            font-weight: 500;
+
+        .form-control {
+            flex: 1;
+            position: relative;
         }
-        .tab-btn.active {
-            background: var(--tab-active-bg);
-            color: var(--accent);
-            border-bottom: 2px solid var(--accent);
-        }
-        .tab-content {
-            display: none;
-            background: var(--panel);
-            margin: 0 32px;
-            border-radius: 0 5px 5px 5px;
-            padding: 18px 22px 18px 22px;
-            box-shadow: 0 2px 8px rgba(10,16,32,.13);
-        }
-        .tab-content.active { display: block; }
-        #countsBar { margin-bottom: 10px; font-size: 11px; }
-        .count-box {
-            display: inline-block;
-            margin-right: 18px;
-            background: var(--tab-bg);
-            padding: 2px 10px 2px 8px;
-            border-radius: 4px;
-            color: #c3c7d1;
-            font-size: 11px;
-        }
-        .count-total { font-weight: bold; color: var(--accent); }
-        .count-pending { color: var(--pending); font-weight: bold; }
-        .count-done { color: var(--done); font-weight: bold; }
-        label, input, textarea { font-size: 11px; font-family: inherit; }
-        #submitAsLabel { font-weight: 600; color: var(--accent); }
-        #submitAs, #inputText {
-            background: var(--bg);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 6px 6px;
-        }
-        #inputText { resize: vertical; width: 100%; min-height: 120px; box-sizing: border-box; margin-top: 8px; }
-        button {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.18s;
-            padding: 8px 14px;
-            margin-top: 8px;
-        }
-        button:hover { background: #2047b8; }
-        table {
-            border-collapse: collapse;
+
+        .input,
+        textarea {
             width: 100%;
-            margin-top: 18px;
-            background: var(--panel);
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0,0,0,.08);
-        }
-        th, td {
-            border: none;
-            border-bottom: 1px solid var(--border);
-            padding: 7px 9px;
-            text-align: left;
-            font-size: 11px;
+            border-radius: 9px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background: rgba(15, 23, 42, 0.96);
             color: var(--text);
-            background: transparent;
+            font-size: 12px;
+            padding: 8px 9px;
+            outline: none;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, transform 0.06s ease;
+            font-family: inherit;
         }
+
+        .input::placeholder,
+        textarea::placeholder {
+            color: #6b7280;
+        }
+
+        .input:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.75), 0 0 0 8px rgba(37, 99, 235, 0.12);
+            background: rgba(15, 23, 42, 1);
+            transform: translateY(-0.5px);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 140px;
+            max-height: 260px;
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .badge-inline {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 1px 6px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-left: 6px;
+            color: #9ca3af;
+        }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.08s ease, box-shadow 0.14s ease, background 0.14s ease, opacity 0.12s ease;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563EB, #4F46E5);
+            color: #E5EDFF;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.7);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 35px rgba(37, 99, 235, 0.9);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0px) scale(0.99);
+            box-shadow: 0 7px 18px rgba(37, 99, 235, 0.7);
+        }
+
+        .btn-ghost {
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--muted);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(31, 41, 55, 0.9);
+            color: #e5e7eb;
+        }
+
+        .btn-icon {
+            font-size: 14px;
+        }
+
+        .btn[disabled] {
+            opacity: 0.6;
+            cursor: default;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        thead tr {
+            background: rgba(15, 23, 42, 0.96);
+        }
+
+        th, td {
+            padding: 7px 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+        }
+
         th {
-            background: var(--tab-bg);
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #9ca3af;
         }
-        tr:last-child td { border-bottom: none; }
-        .group-cell { font-weight: bold; color: var(--accent); }
-        .status-pending { color: var(--pending); font-weight: bold; }
-        .status-done { color: var(--done); font-weight: bold; }
-        @media (max-width:700px) {
-            .tab-content { padding: 8px 3vw; }
-            h2, .tabs { margin-left: 5vw; }
+
+        tbody tr:nth-child(even) {
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        tbody tr:nth-child(odd) {
+            background: rgba(17, 24, 39, 0.85);
+        }
+
+        tbody tr:hover {
+            background: rgba(30, 64, 175, 0.32);
+        }
+
+        .submitter-name {
+            font-weight: 500;
+            color: #E5EDFF;
+        }
+
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-size: 11px;
+            gap: 5px;
+        }
+
+        .count-badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .empty-state {
+            padding: 20px 10px 16px 10px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .empty-state strong {
+            color: #e5e7eb;
+        }
+
+        /* Toasts */
+        .toast-container {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .toast-container {
+                right: 12px;
+                left: 12px;
+                bottom: 12px;
+            }
+        }
+
+        .toast {
+            min-width: 260px;
+            max-width: 360px;
+            background: radial-gradient(circle at top left, rgba(22,163,74,0.35) 0, rgba(15,23,42,0.98) 50%);
+            border-radius: 12px;
+            border: 1px solid rgba(52, 211, 153, 0.7);
+            padding: 10px 11px 9px 11px;
+            color: #dcfce7;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            box-shadow: 0 14px 40px rgba(22, 163, 74, 0.75);
+            animation: slideInRight 0.28s ease-out forwards;
+        }
+
+        .toast.error {
+            border-color: rgba(248, 113, 113, 0.9);
+            background: radial-gradient(circle at top left, rgba(248,113,113,0.3) 0, rgba(15,23,42,0.99) 50%);
+            color: #fee2e2;
+            box-shadow: 0 14px 40px rgba(248, 113, 113, 0.8);
+        }
+
+        .toast-icon {
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .toast-body {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        .toast-message {
+            font-size: 11px;
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 4px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(16px) translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) translateY(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(18px);
+            }
+        }
+
+        .toast.hide {
+            animation: slideOutRight 0.22s ease-in forwards;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-content {
+            animation: fadeInUp 0.22s ease-out;
         }
     </style>
 </head>
 <body>
-<h2>ETH Wallet Group Collector (Admin)</h2>
-<div class="tabs">
-    <button class="tab-btn active" id="groupsTabBtn" data-tab="groups">Wallet Groups</button>
-    <button class="tab-btn" id="submittersTabBtn" data-tab="submitters">Submitters</button>
-</div>
-<div id="groupsTab" class="tab-content active">
-    <div id="countsBar">
-        <span class="count-box count-total">Total Groups: <span id="totalGroups">0</span></span>
-        <span class="count-box count-pending">Pending: <span id="pendingGroups">0</span></span>
-        <span class="count-box count-done">Done: <span id="doneGroups">0</span></span>
+<div class="app-shell">
+    <div class="app-inner">
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-logo">
+                    <div class="brand-logo-inner">Ξ</div>
+                </div>
+                <div class="brand-title">
+                    <span class="brand-title-main">ETH Wallet Collector</span>
+                    <span class="brand-subtitle">Admin console for grouped wallet submissions</span>
+                </div>
+            </div>
+            <div class="header-meta">
+                <div class="chip">
+                    <span class="chip-dot"></span>
+                    <span>Realtime Firebase backend</span>
+                </div>
+                <div>Viewing as <strong>Administrator</strong></div>
+            </div>
+        </header>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="groups">
+                    <span class="tab-btn-icon">📦</span> Wallet Groups
+                </button>
+                <button class="tab-btn" data-tab="submitters">
+                    <span class="tab-btn-icon">👥</span> Submitters
+                </button>
+            </div>
+        </div>
+
+        <main class="app-main">
+            <div class="content">
+                <!-- LEFT: Groups / Submission -->
+                <section class="panel" id="groupsTab">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Submit Wallets</div>
+                            <div class="panel-subtitle">
+                                Paste any content – we’ll extract valid 0x Ethereum wallets, group them into 50 per batch,
+                                and keep your existing integrations intact.
+                            </div>
+                        </div>
+                        <div class="pill">
+                            <span class="pill-dot"></span>
+                            0x… mainnet addresses
+                        </div>
+                    </div>
+
+                    <!-- Counts Bar (same data as before, just prettier) -->
+                    <div class="metrics" id="countsBar">
+                        <div class="metric-card">
+                            <div class="metric-label">Total groups</div>
+                            <div class="metric-value total">
+                                <span id="totalGroups">0</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Pending groups</div>
+                            <div class="metric-value pending">
+                                <span id="pendingGroups">0</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Completed groups</div>
+                            <div class="metric-value done">
+                                <span id="doneGroups">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="form-row">
+                        <div class="form-control">
+                            <label for="submitAs">
+                                Submit as
+                                <span class="badge-inline">Public handle</span>
+                            </label>
+                            <input type="text" id="submitAs" class="input" placeholder="@username">
+                            <div class="help-text">
+                                Format: <code>@name</code> (2–32 characters, letters/digits/underscore).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label for="inputText">Wallet input</label>
+                        <textarea id="inputText" placeholder="Paste ETH wallet addresses or any mixed text. We will auto-detect 0x... addresses (40 hex chars)."></textarea>
+                        <div class="help-text">
+                            Already‑submitted wallets (by anyone) are ignored so each address is only counted once globally.
+                        </div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button id="resetFormBtn" type="button" class="btn btn-ghost">
+                            <span class="btn-icon">↻</span> Clear
+                        </button>
+                        <button id="extractBtn" type="button" class="btn btn-primary">
+                            <span class="btn-icon">✨</span> Submit Wallets
+                        </button>
+                    </div>
+                </section>
+
+                <!-- RIGHT: Submitters Stats -->
+                <section class="panel" id="submittersTab" style="display:none;">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Submitter Stats</div>
+                            <div class="panel-subtitle">
+                                See how many wallets each contributor has submitted to the pool.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="submittersTableWrapper">
+                            <table id="submittersTable" style="display:none;">
+                                <thead>
+                                <tr>
+                                    <th>Submitter Username</th>
+                                    <th># of Wallets Submitted</th>
+                                </tr>
+                                </thead>
+                                <tbody id="submittersTableBody"></tbody>
+                            </table>
+                            <div id="submittersEmpty" class="empty-state" style="display:none;">
+                                <strong>No submissions yet.</strong><br>
+                                Once wallets are submitted, per‑user totals appear here automatically.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Fallback simple right panel when Groups tab is active (no table) -->
+                <section class="panel" id="submittersMiniPanel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Submitter Stats</div>
+                            <div class="panel-subtitle">
+                                Summary of how many wallets each handle has submitted.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-content">
+                        <div id="submittersTableWrapperMini">
+                            <table id="submittersTableMini" style="display:none;">
+                                <thead>
+                                <tr>
+                                    <th>Submitter</th>
+                                    <th>Wallets</th>
+                                </tr>
+                                </thead>
+                                <tbody id="submittersTableBodyMini"></tbody>
+                            </table>
+                            <div id="submittersEmptyMini" class="empty-state" style="display:none;">
+                                <strong>No submissions yet.</strong><br>
+                                Submit wallets on the left to populate this list.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
     </div>
-    <label id="submitAsLabel">Submit As:</label>
-    <input type="text" id="submitAs" placeholder="@username"><br>
-    <textarea id="inputText" placeholder="Paste ETH wallet addresses here (0x... or lowercase)..."></textarea><br>
-    <button id="extractBtn">Extract Wallets</button>
-    <table id="walletTable" style="display:none;">
-        <thead>
-        <tr>
-            <th>Group #</th>
-            <th>Wallets (50 per group)</th>
-            <th>Status</th>
-            <th>Submitted By</th>
-        </tr>
-        </thead>
-        <tbody id="walletTableBody"></tbody>
-    </table>
 </div>
 
-<div id="submittersTab" class="tab-content">
-    <table id="submittersTable" style="display:none;">
-        <thead>
-        <tr>
-            <th>Submitter Username</th>
-            <th># of Wallets Submitted</th>
-        </tr>
-        </thead>
-        <tbody id="submittersTableBody"></tbody>
-    </table>
-</div>
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
-<!-- Firebase (Modular SDK) -->
+<!-- Firebase + Logic (original data behavior preserved) -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
@@ -179,8 +848,7 @@
         getDatabase,
         ref,
         get,
-        update,
-        set
+        update
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
@@ -198,22 +866,98 @@
     analyticsSupported().then(s => { if (s) getAnalytics(app); });
     const db = getDatabase(app);
 
-    // --- Tab Handling ---
+    // Elements
+    const groupsTabEl = document.getElementById('groupsTab');
+    const submittersTabEl = document.getElementById('submittersTab');
+    const submittersMiniPanelEl = document.getElementById('submittersMiniPanel');
+
+    const totalGroupsEl = document.getElementById('totalGroups');
+    const pendingGroupsEl = document.getElementById('pendingGroups');
+    const doneGroupsEl = document.getElementById('doneGroups');
+
+    const submitAsInput = document.getElementById('submitAs');
+    const inputText = document.getElementById('inputText');
+    const extractBtn = document.getElementById('extractBtn');
+    const resetFormBtn = document.getElementById('resetFormBtn');
+
+    const submittersTable = document.getElementById('submittersTable');
+    const submittersTableBody = document.getElementById('submittersTableBody');
+    const submittersEmpty = document.getElementById('submittersEmpty');
+
+    const submittersTableMini = document.getElementById('submittersTableMini');
+    const submittersTableBodyMini = document.getElementById('submittersTableBodyMini');
+    const submittersEmptyMini = document.getElementById('submittersEmptyMini');
+
+    const toastContainer = document.getElementById('toastContainer');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+
+    // Tabs behavior: we only change right panel visibility
     function showTab(tabName) {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        tabButtons.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === tabName + 'Tab');
-        });
-        if (tabName === 'submitters') {
-            loadSubmittersFromFirebase();
+
+        if (tabName === 'groups') {
+            submittersTabEl.style.display = 'none';
+            submittersMiniPanelEl.style.display = '';
+        } else {
+            submittersTabEl.style.display = '';
+            submittersMiniPanelEl.style.display = 'none';
+            loadSubmittersFromFirebase(); // refresh when switching
         }
     }
-    document.getElementById('groupsTabBtn').addEventListener('click', () => showTab('groups'));
-    document.getElementById('submittersTabBtn').addEventListener('click', () => showTab('submitters'));
 
-    // --- Counts Bar ---
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => showTab(btn.dataset.tab));
+    });
+
+    // Toasts
+    function showToast({ title, message, type = 'success', timeout = 5500 }) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'toast-icon';
+        iconSpan.textContent = type === 'error' ? '⚠️' : '✅';
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'toast-body';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'toast-title';
+        titleDiv.textContent = title;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'toast-message';
+        messageDiv.innerHTML = message;
+
+        bodyDiv.appendChild(titleDiv);
+        bodyDiv.appendChild(messageDiv);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'toast-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => hideToast(toast));
+
+        toast.appendChild(iconSpan);
+        toast.appendChild(bodyDiv);
+        toast.appendChild(closeBtn);
+
+        toastContainer.appendChild(toast);
+
+        if (timeout && timeout > 0) {
+            setTimeout(() => hideToast(toast), timeout);
+        }
+    }
+
+    function hideToast(toastEl) {
+        toastEl.classList.add('hide');
+        toastEl.addEventListener('animationend', () => {
+            toastEl.remove();
+        });
+    }
+
+    // --- Counts Bar (same logic as your original, just different UI) ---
     function updateCountsBar(groupsObj) {
         let total = 0, pending = 0, done = 0;
         if (groupsObj) {
@@ -222,70 +966,87 @@
                 if (group.status === 'done') done++; else pending++;
             });
         }
-        totalGroups.textContent = total;
-        pendingGroups.textContent = pending;
-        doneGroups.textContent = done;
-    }
-
-    // --- Render Groups ---
-    function renderGroups(groupsObj) {
-        const tbody = document.getElementById('walletTableBody');
-        tbody.innerHTML = '';
-        updateCountsBar(groupsObj);
-        if (!groupsObj || Object.keys(groupsObj).length === 0) {
-            document.getElementById('walletTable').style.display = 'none';
-            return;
-        }
-        const groupKeys = Object.keys(groupsObj).sort((a, b) => {
-            const numA = parseInt(a.replace('group_', ''));
-            const numB = parseInt(b.replace('group_', ''));
-            return numA - numB;
-        });
-        groupKeys.forEach((key, idx) => {
-            const group = groupsObj[key];
-            const tr = document.createElement('tr');
-
-            const groupCell = document.createElement('td');
-            groupCell.className = 'group-cell';
-            groupCell.textContent = 'Group ' + (idx + 1);
-
-            const walletsCell = document.createElement('td');
-            walletsCell.textContent = (group.wallets || []).join(', ');
-
-            const statusCell = document.createElement('td');
-            const status = group.status || 'pending';
-            statusCell.textContent = status;
-            statusCell.className = status === 'done' ? 'status-done' : 'status-pending';
-
-            const submitterCell = document.createElement('td');
-            submitterCell.textContent = group.submitter || '';
-
-            tr.appendChild(groupCell);
-            tr.appendChild(walletsCell);
-            tr.appendChild(statusCell);
-            tr.appendChild(submitterCell);
-            tbody.appendChild(tr);
-        });
-        document.getElementById('walletTable').style.display = '';
+        totalGroupsEl.textContent = total;
+        pendingGroupsEl.textContent = pending;
+        doneGroupsEl.textContent = done;
     }
 
     async function loadGroupsFromFirebase() {
         try {
             const snapshot = await get(ref(db, 'wallet_groups'));
-            renderGroups(snapshot.val());
+            const groupsObj = snapshot.val();
+            updateCountsBar(groupsObj);
+            // We no longer render the full wallet list here – just counts.
         } catch (e) {
             console.error('Error loading wallet groups:', e);
         }
     }
 
-    // --- Extract / Save Wallets ---
-    async function extractWallets() {
-        const raw = document.getElementById('inputText').value;
-        const submitAs = document.getElementById('submitAs').value.trim();
-        if (!/^@[A-Za-z0-9_]{2,32}$/.test(submitAs)) {
-            alert('Please enter a valid "Submit As" username, e.g. @yourname');
+    // --- Submitters rendering (per-user totals, no wallet list) ---
+    function renderSubmitters(submittersObj, isMini = false) {
+        const table = isMini ? submittersTableMini : submittersTable;
+        const tbody = isMini ? submittersTableBodyMini : submittersTableBody;
+        const empty = isMini ? submittersEmptyMini : submittersEmpty;
+
+        tbody.innerHTML = '';
+
+        if (!submittersObj || Object.keys(submittersObj).length === 0) {
+            table.style.display = 'none';
+            empty.style.display = '';
             return;
         }
+
+        const entries = Object.entries(submittersObj)
+            .map(([submitter, wallets]) => ({
+                submitter,
+                count: Array.isArray(wallets) ? wallets.length : 0
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        entries.forEach(({ submitter, count }) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="submitter-name">${submitter}</td>
+                <td>
+                    <span class="count-badge">
+                        <span class="count-badge-dot"></span>
+                        ${count.toLocaleString()}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        table.style.display = '';
+        empty.style.display = 'none';
+    }
+
+    async function loadSubmittersFromFirebase() {
+        try {
+            const snapshot = await get(ref(db, 'submitters'));
+            const data = snapshot.val();
+            renderSubmitters(data, false);
+            renderSubmitters(data, true);
+        } catch (e) {
+            console.error('Error loading submitters:', e);
+        }
+    }
+
+    // --- Extract / Save Wallets (backend behavior preserved) ---
+    async function extractWallets() {
+        const raw = inputText.value;
+        const submitAs = submitAsInput.value.trim();
+
+        if (!/^@[A-Za-z0-9_]{2,32}$/.test(submitAs)) {
+            showToast({
+                title: 'Invalid handle',
+                message: 'Please enter a valid "Submit as" username, e.g. <code>@yourname</code> (2–32 chars, letters/digits/underscore).',
+                type: 'error'
+            });
+            submitAsInput.focus();
+            return;
+        }
+
         // Capture all potential 0x... wallets (40 hex after 0x, ignoring case)
         const regex = /\b0x[a-fA-F0-9]{40}\b/g;
         const walletsSet = new Set();
@@ -295,12 +1056,19 @@
         }
         const inputWallets = Array.from(walletsSet);
         if (inputWallets.length === 0) {
-            alert('No valid ETH wallet addresses found.');
+            showToast({
+                title: 'No wallets detected',
+                message: 'We didn’t find any valid Ethereum addresses in your input. Make sure they are in the format <code>0x...</code> with 40 hex characters.',
+                type: 'error'
+            });
             return;
         }
 
+        extractBtn.disabled = true;
+        extractBtn.innerHTML = '<span class="btn-icon">⏳</span>Submitting…';
+
         try {
-            // Load all existing wallet addresses
+            // Load all existing wallet addresses (from wallet_groups – unchanged)
             const groupsSnap = await get(ref(db, 'wallet_groups'));
             const groupsObj = groupsSnap.val();
             let nextGroupNum = 1;
@@ -319,17 +1087,29 @@
                     }
                 });
             }
-            // Load all previously submitted by this submitter
+
+            // Load all previously submitted by this submitter (unchanged)
             const submitterSnap = await get(ref(db, 'submitters/' + submitAs));
             const submittersWallets = submitterSnap.exists() ? submitterSnap.val() : [];
+
             // Don't allow posting same wallet twice, by anyone
             const newWallets = inputWallets.filter(w => !existingWalletsSet.has(w));
+            const duplicates = inputWallets.length - newWallets.length;
+
             if (newWallets.length === 0) {
-                alert('All submitted wallets already exist.');
+                showToast({
+                    title: 'All wallets already recorded',
+                    message: 'Every wallet you submitted is already part of the global pool. Try submitting new addresses.',
+                    type: 'error'
+                });
+                extractBtn.disabled = false;
+                extractBtn.innerHTML = '<span class="btn-icon">✨</span> Submit Wallets';
                 return;
             }
+
             newWallets.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
+            // Same grouping logic (50 per group) as your old app
             const groups = [];
             for (let i = 0; i < newWallets.length; i += 50) {
                 groups.push(newWallets.slice(i, i + 50));
@@ -346,53 +1126,61 @@
             updates['submitters/' + submitAs] = submittersWallets.concat(newWallets);
 
             await update(ref(db), updates);
-            document.getElementById('inputText').value = '';
-            await loadGroupsFromFirebase();
-            if (document.getElementById('submittersTab').classList.contains('active')) {
-                await loadSubmittersFromFirebase();
-            }
+            inputText.value = '';
+
+            await Promise.all([
+                loadGroupsFromFirebase(),
+                loadSubmittersFromFirebase()
+            ]);
+
+            showToast({
+                title: `${newWallets.length.toLocaleString()} new wallets recorded`,
+                message: `
+                    You submitted <strong>${inputWallets.length.toLocaleString()}</strong> wallets.<br>
+                    <strong>${newWallets.length.toLocaleString()}</strong> were new and added to the pool,<br>
+                    <strong>${duplicates.toLocaleString()}</strong> ${duplicates === 1 ? 'was' : 'were'} already present.
+                `
+            });
+
+            showToast({
+                title: 'Thank you for your contribution',
+                message: 'Your wallets have been safely stored and grouped. Keep them coming!'
+            });
+
         } catch (e) {
             console.error('Failed to save:', e);
-            alert('Failed to save to Firebase.');
+            showToast({
+                title: 'Submission failed',
+                message: 'We couldn’t save your wallets to Firebase. Please try again shortly.',
+                type: 'error'
+            });
+        } finally {
+            extractBtn.disabled = false;
+            extractBtn.innerHTML = '<span class="btn-icon">✨</span> Submit Wallets';
         }
     }
 
-    // --- Submitters ---
-    function renderSubmitters(submittersObj) {
-        const tbody = document.getElementById('submittersTableBody');
-        tbody.innerHTML = '';
-        if (!submittersObj || Object.keys(submittersObj).length === 0) {
-            document.getElementById('submittersTable').style.display = 'none';
-            return;
-        }
-        Object.keys(submittersObj).forEach(submitter => {
-            const list = Array.isArray(submittersObj[submitter]) ? submittersObj[submitter] : [];
-            const count = list.length;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                    <td>${submitter}</td>
-                    <td>${count}</td>
-                `;
-            tbody.appendChild(tr);
-        });
-        document.getElementById('submittersTable').style.display = '';
+    function resetForm() {
+        inputText.value = '';
+        inputText.focus();
     }
 
-    async function loadSubmittersFromFirebase() {
-        try {
-            const snapshot = await get(ref(db, 'submitters'));
-            renderSubmitters(snapshot.val());
-        } catch (e) {
-            console.error('Error loading submitters:', e);
+    // Event listeners
+    extractBtn.addEventListener('click', extractWallets);
+    resetFormBtn.addEventListener('click', resetForm);
+    inputText.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            extractWallets();
         }
-    }
+    });
 
-    // --- Event Listeners ---
-    document.getElementById('extractBtn').addEventListener('click', extractWallets);
-
-    // Initial load
-    window.addEventListener('DOMContentLoaded', () => {
-        loadGroupsFromFirebase();
+    window.addEventListener('DOMContentLoaded', async () => {
+        await Promise.all([
+            loadGroupsFromFirebase(),
+            loadSubmittersFromFirebase()
+        ]);
+        // default view
+        showTab('groups');
     });
 </script>
 </body>
