@@ -28,6 +28,29 @@
       overflow: visible;
     }
 
+    /* NEW: Holders Info */
+    .holders-info {
+      text-align: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: linear-gradient(135deg, #1a1f40, #0f162e);
+      border-radius: 16px;
+      border: 1px solid #3355ff;
+      box-shadow: 0 0 20px #3388ff40;
+    }
+    .holders-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #88c8ff;
+      margin-bottom: 6px;
+    }
+    .holders-number {
+      font-size: 24px;
+      font-weight: 800;
+      color: #33e6ff;
+      text-shadow: 0 0 12px #33e6ff80;
+    }
+
     /* NFTFAN TEST AD BANNER */
     .ad-banner {
       text-align: center;
@@ -39,32 +62,20 @@
       box-shadow: 0 0 20px #3388ff40;
     }
     .ad-banner img {
-      width: 80%;           /* smaller image */
-      max-width: 260px;     /* reduced max width */
+      width: 100%;
+      max-width: 300px; /* MADE SMALLER */
       border-radius: 12px;
       border: 2px solid #33aaff;
-      box-shadow: 0 0 20px #33aaff60;
+      box-shadow: 0 0 25px #33aaff60;
     }
     .ad-title {
       font-size: 18px;
       font-weight: 900;
       color: #33ddff;
-      margin: 8px 0 4px;
+      margin: 12px 0 6px;
       text-shadow: 0 0 12px #33ddff80;
       letter-spacing: 1px;
     }
-
-    /* NEW: holders on top */
-    .holders-line {
-      font-size: 11px;
-      margin-top: 6px;
-      color: #a8d4ff;
-    }
-    .holders-count {
-      font-weight: 800;
-      color: #33e6ff;
-    }
-
     .revenue-box {
       display: flex;
       justify-content: space-between;
@@ -344,15 +355,16 @@
 
 <div class="container">
 
+  <!-- NEW: Holders Info on Top -->
+  <div class="holders-info">
+    <div class="holders-label">$NFTFAN Holders</div>
+    <div class="holders-number" id="holdersCount">254000</div>
+  </div>
+
   <!-- NFTFAN TEST AD -->
   <div class="ad-banner">
     <div class="ad-title">NFTFAN TEST AD</div>
     <img src="https://pbs.twimg.com/media/G6_wwcPWMAADw3F?format=png&name=small" alt="NFTFAN Ad">
-    <!-- NEW: HOLDERS DISPLAY -->
-    <div class="holders-line">
-      $NFTFAN HOLDERS: <span id="holdersCount" class="holders-count">254,000</span>
-    </div>
-
     <div class="revenue-box">
       <div class="rev-item">
         <div class="rev-label">Total Revenue from this Ad</div>
@@ -428,19 +440,16 @@
   const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
   const POLYGON_CHAIN_ID = '0x89';
 
-  // base holders (on-chain) – you gave: 254000
-  const BASE_HOLDERS = 254000;
-
   const ERC20_ABI = [
-    {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"",""}],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"",""}],"stateMutability":"view","type":"function"}
+    {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}
   ];
 
   const DISTRIBUTOR_ABI = [
     {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"}
   ];
 
@@ -452,53 +461,6 @@
 
   // Track last known score to calculate earnings delta
   let lastScore = 0;
-
-  // --- NEW: offchain holders count state ---
-  let offchainHolders = 0;
-
-  // Helper: format number with commas
-  function formatNumber(n) {
-    return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
-  }
-
-  // --- NEW: Load offchain holders from Firebase and update UI ---
-  async function loadOffchainHolders() {
-    try {
-      const snap = await db.ref('stats/offchain_subfan_holders').once('value');
-      const val = snap.val();
-      offchainHolders = typeof val === 'number' ? val : 0;
-
-      const total = BASE_HOLDERS + offchainHolders;
-      document.getElementById('holdersCount').textContent = formatNumber(total);
-    } catch (e) {
-      console.error('Error loading offchain holders:', e);
-      offchainHolders = 0;
-      document.getElementById('holdersCount').textContent = formatNumber(BASE_HOLDERS);
-    }
-  }
-
-  // --- NEW: Increment offchain holders in Firebase atomically ---
-  function incrementOffchainHolders(deltaScore) {
-    if (deltaScore <= 0) return;
-
-    const ref = db.ref('stats/offchain_subfan_holders');
-    // use transaction to be safe with several concurrent users
-    ref.transaction(current => {
-      const currentVal = typeof current === 'number' ? current : 0;
-      return currentVal + deltaScore;
-    }, (error, committed, snapshot) => {
-      if (error) {
-        console.error('Failed to update offchain holders:', error);
-        return;
-      }
-      if (!committed) return;
-
-      const newVal = snapshot.val() || 0;
-      offchainHolders = newVal;
-      const total = BASE_HOLDERS + offchainHolders;
-      document.getElementById('holdersCount').textContent = formatNumber(total);
-    });
-  }
 
   // Helper: Update Earnings Live (based on score)
   function updateEarnings(score) {
@@ -541,6 +503,23 @@
 
     // Auto-remove after 4.5s
     setTimeout(removeToast, 4500);
+  }
+
+  // Helper: Update Holders Count Display
+  async function updateHoldersDisplay() {
+    try {
+      const snap = await db.ref('holders_count').once('value');
+      let count = snap.val();
+      if (count == null) {
+        // Initialize to 254000 if not set
+        count = 254000;
+        await db.ref('holders_count').set(count);
+      }
+      document.getElementById('holdersCount').textContent = count.toLocaleString();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('holdersCount').textContent = 'Error';
+    }
   }
 
   // Helper: Status / Progress
@@ -629,7 +608,7 @@
       await Promise.all([
         updateScore(),
         updateBalance(),
-        loadNextPendingGroup()
+        updateHoldersDisplay()
       ]);
 
       setStatus('Connected to Polygon');
@@ -854,9 +833,17 @@
       const scoreAfter = lastScore;
       const deltaScore = Math.max(0, scoreAfter - scoreBefore);
 
-      // NEW: update offchain holders tracking if score increased
+      // --- NEW: Update holders count by adding deltaScore ---
       if (deltaScore > 0) {
-        incrementOffchainHolders(deltaScore);
+        await db.ref('holders_count').transaction(current => {
+          const currentVal = current || 254000;
+          return currentVal + deltaScore;
+        });
+        await updateHoldersDisplay();
+      }
+
+      // --- NEW: earnings notification on success ---
+      if (deltaScore > 0) {
         showEarningsNotification(deltaScore);
       }
 
@@ -884,9 +871,6 @@
     document.getElementById('connectBtn').addEventListener('click', connectWallet);
     document.getElementById('refreshBtn').addEventListener('click', loadNextPendingGroup);
 
-    // load offchain holders on page load
-    await loadOffchainHolders();
-
     if (window.ethereum) {
       try {
         const accounts = await ethereum.request({ method: 'eth_accounts' });
@@ -906,7 +890,8 @@
 
             await Promise.all([
               updateScore(),
-              updateBalance()
+              updateBalance(),
+              updateHoldersDisplay()
             ]);
 
             setStatus('Connected to Polygon');
@@ -942,7 +927,7 @@
         } else {
           setStatus('Polygon network detected.');
           if (userAccount) {
-            await Promise.all([updateScore(), updateBalance()]);
+            await Promise.all([updateScore(), updateBalance(), updateHoldersDisplay()]);
           }
         }
       });
