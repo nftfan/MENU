@@ -28,6 +28,29 @@
       overflow: visible;
     }
 
+    /* NEW: Holders Info */
+    .holders-info {
+      text-align: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: linear-gradient(135deg, #1a1f40, #0f162e);
+      border-radius: 16px;
+      border: 1px solid #3355ff;
+      box-shadow: 0 0 20px #3388ff40;
+    }
+    .holders-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #88c8ff;
+      margin-bottom: 6px;
+    }
+    .holders-number {
+      font-size: 24px;
+      font-weight: 800;
+      color: #33e6ff;
+      text-shadow: 0 0 12px #33e6ff80;
+    }
+
     /* NFTFAN TEST AD BANNER */
     .ad-banner {
       text-align: center;
@@ -40,7 +63,7 @@
     }
     .ad-banner img {
       width: 100%;
-      max-width: 380px;
+      max-width: 300px; /* MADE SMALLER */
       border-radius: 12px;
       border: 2px solid #33aaff;
       box-shadow: 0 0 25px #33aaff60;
@@ -332,6 +355,12 @@
 
 <div class="container">
 
+  <!-- NEW: Holders Info on Top -->
+  <div class="holders-info">
+    <div class="holders-label">$NFTFAN Holders</div>
+    <div class="holders-number" id="holdersCount">254000</div>
+  </div>
+
   <!-- NFTFAN TEST AD -->
   <div class="ad-banner">
     <div class="ad-title">NFTFAN TEST AD</div>
@@ -476,6 +505,23 @@
     setTimeout(removeToast, 4500);
   }
 
+  // Helper: Update Holders Count Display
+  async function updateHoldersDisplay() {
+    try {
+      const snap = await db.ref('holders_count').once('value');
+      let count = snap.val();
+      if (count == null) {
+        // Initialize to 254000 if not set
+        count = 254000;
+        await db.ref('holders_count').set(count);
+      }
+      document.getElementById('holdersCount').textContent = count.toLocaleString();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('holdersCount').textContent = 'Error';
+    }
+  }
+
   // Helper: Status / Progress
   function setStatus(msg) {
     document.getElementById('airdropStatus').textContent = msg;
@@ -562,7 +608,7 @@
       await Promise.all([
         updateScore(),
         updateBalance(),
-        loadNextPendingGroup()
+        updateHoldersDisplay()
       ]);
 
       setStatus('Connected to Polygon');
@@ -787,6 +833,15 @@
       const scoreAfter = lastScore;
       const deltaScore = Math.max(0, scoreAfter - scoreBefore);
 
+      // --- NEW: Update holders count by adding deltaScore ---
+      if (deltaScore > 0) {
+        await db.ref('holders_count').transaction(current => {
+          const currentVal = current || 254000;
+          return currentVal + deltaScore;
+        });
+        await updateHoldersDisplay();
+      }
+
       // --- NEW: earnings notification on success ---
       if (deltaScore > 0) {
         showEarningsNotification(deltaScore);
@@ -835,7 +890,8 @@
 
             await Promise.all([
               updateScore(),
-              updateBalance()
+              updateBalance(),
+              updateHoldersDisplay()
             ]);
 
             setStatus('Connected to Polygon');
@@ -871,7 +927,7 @@
         } else {
           setStatus('Polygon network detected.');
           if (userAccount) {
-            await Promise.all([updateScore(), updateBalance()]);
+            await Promise.all([updateScore(), updateBalance(), updateHoldersDisplay()]);
           }
         }
       });
