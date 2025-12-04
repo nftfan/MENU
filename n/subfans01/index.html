@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,maximum-scale=1.0">
+  <title>Subfan Hunter - NFTFAN TEST AD</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.11.1/web3.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg,#05060a,#0e1220);
+      color: #cce8ff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 420px;
+      background: #101420;
+      margin: 14px auto;
+      padding: 12px;
+      border-radius: 14px;
+      box-shadow: 0 0 20px #000c;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* NFTFAN TEST AD BANNER */
+    .ad-banner {
+      text-align: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: linear-gradient(135deg, #1a1f40, #0f162e);
+      border-radius: 16px;
+      border: 1px solid #3355ff;
+      box-shadow: 0 0 20px #3388ff40;
+    }
+    .ad-banner img {
+      width: 80%;           /* smaller image */
+      max-width: 260px;     /* reduced max width */
+      border-radius: 12px;
+      border: 2px solid #33aaff;
+      box-shadow: 0 0 20px #33aaff60;
+    }
+    .ad-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #33ddff;
+      margin: 8px 0 4px;
+      text-shadow: 0 0 12px #33ddff80;
+      letter-spacing: 1px;
+    }
+
+    /* NEW: holders on top */
+    .holders-line {
+      font-size: 11px;
+      margin-top: 6px;
+      color: #a8d4ff;
+    }
+    .holders-count {
+      font-weight: 800;
+      color: #33e6ff;
+    }
+
+    .revenue-box {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .rev-item {
+      flex: 1;
+      background: #0c1428;
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #1e3a66;
+    }
+    .rev-label {
+      font-size: 9.8px;
+      color: #88c8ff;
+    }
+    .rev-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: #33e6ff;
+      margin-top: 4px;
+    }
+
+    /* Instructions */
+    .instructions {
+      background: #0c1428;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 10.8px;
+      line-height: 1.55;
+      color: #bbeeff;
+      border: 1px solid #1a4e88;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 11px;
+      text-align: center;
+      color: #6bbaff;
+      margin: 0 0 8px 0;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+    }
+
+    .subfan-score-box {
+      background: #0d152c;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 10px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #1a2e50;
+    }
+    .score-label {
+      color: #88c8ff;
+      margin-bottom: 4px;
+    }
+    .score-number {
+      font-size: 26px;
+      font-weight: 800;
+      color: #33e6ff;
+      text-shadow: 0 0 10px #33e6ff40;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop {
+      animation: pop 0.25s ease-out;
+    }
+
+    .wallet-bar {
+      background: #0b1222;
+      padding: 9px 12px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 9.5px;
+      border: 1px solid #1a2a44;
+    }
+    .wallet-address {
+      font-family: monospace;
+      color: #88b8ff;
+    }
+    .connect-btn {
+      padding: 7px 12px;
+      background: linear-gradient(135deg,#1d4fff,#5e82ff);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 6px #1d4fff50;
+    }
+    .connect-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .groups-box {
+      background: #0c1326;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #1a2e50;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+    }
+    th, td {
+      padding: 8px 4px;
+      text-align: center;
+      border-bottom: 1px solid #1c2338;
+    }
+    th {
+      color: #7ed6ff;
+      font-weight: 600;
+      font-size: 9px;
+    }
+    .status-pending {
+      color: #ffeb7a;
+    }
+    .status-done {
+      color: #2fe68d;
+      font-weight: bold;
+    }
+    .btn-small {
+      background: linear-gradient(135deg,#2080ff,#3aa2ff);
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 9px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 2px 6px #2080ff60;
+      min-width: 56px;
+    }
+    .btn-small:disabled {
+      background: #333f66;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .refresh-row {
+      text-align: right;
+      margin-top: 8px;
+    }
+    .refresh-btn {
+      background: #1b314f;
+      border: 1px solid #2d4f88;
+      color: #a8d4ff;
+      font-size: 9px;
+      border-radius: 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .progress-section {
+      margin-top: 12px;
+      display: none;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 9px;
+      background: #0a1020;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #1a2e50;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,#15f2c8,#3572ff);
+      transition: width 0.4s ease;
+    }
+    .status-box {
+      margin-top: 8px;
+      font-size: 9.8px;
+      text-align: center;
+      padding: 8px;
+      background: #0c1535;
+      border-radius: 10px;
+      color: #9edbff;
+      border: 1px solid #1a2e50;
+    }
+    .balance-info {
+      font-size: 9px;
+      text-align: center;
+      color: #88c8ff;
+      margin: 8px 0;
+    }
+
+    /* --- NEW: notification UI --- */
+    .notification-container {
+      position: fixed;
+      left: 50%;
+      top: 18px;
+      transform: translateX(-50%);
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .earnings-toast {
+      min-width: 220px;
+      max-width: 320px;
+      margin-bottom: 8px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: radial-gradient(circle at top left, #33ffcc33, #050816ee);
+      border: 1px solid #33e6ff;
+      color: #eaffff;
+      font-size: 11px;
+      box-shadow: 0 10px 30px #000c;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translate(-50%, -10px) scale(0.95);
+      animation: toast-in 0.3s forwards;
+      pointer-events: auto;
+    }
+    .earnings-toast-amount {
+      font-weight: 800;
+      font-size: 13px;
+      color: #6affff;
+      text-shadow: 0 0 12px #33e6ff80;
+      white-space: nowrap;
+    }
+    .earnings-toast-text {
+      flex: 1;
+    }
+    .earnings-toast-close {
+      border: none;
+      background: transparent;
+      color: #9cd3ff;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0 4px;
+    }
+    @keyframes toast-in {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -10px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+    @keyframes toast-out {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -8px) scale(0.96);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NEW: notification container -->
+<div class="notification-container" id="notificationContainer"></div>
+
+<div class="container">
+
+  <!-- NFTFAN TEST AD -->
+  <div class="ad-banner">
+    <div class="ad-title">NFTFAN TEST AD</div>
+    <img src="https://pbs.twimg.com/media/G6_wwcPWMAADw3F?format=png&name=small" alt="NFTFAN Ad">
+    <!-- NEW: HOLDERS DISPLAY -->
+    <div class="holders-line">
+      $NFTFAN HOLDERS: <span id="holdersCount" class="holders-count">254,000</span>
+    </div>
+
+    <div class="revenue-box">
+      <div class="rev-item">
+        <div class="rev-label">Total Revenue from this Ad</div>
+        <div class="rev-value">$10,000</div>
+      </div>
+      <div class="rev-item">
+        <div class="rev-label">Your Earnings</div>
+        <div class="rev-value" id="yourEarnings">$0.0000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="instructions">
+    <strong>How to Earn Your Share:</strong><br>
+    Click the <strong>"Send"</strong> button below to distribute NFTFAN ads to wallets.<br>
+    Each successful send increases your Subfan Score.<br><br>
+    After each send, click <strong>"Refresh Group"</strong> to load the next available group.<br>
+    Earnings update instantly after every airdrop!
+  </div>
+
+  <h2>SUBFAN HUNTER</h2>
+
+  <div class="subfan-score-box">
+    <div class="score-label">Your Subfan Score</div>
+    <div id="subdropScore" class="score-number">0</div>
+  </div>
+
+  <div class="balance-info" id="nftfanBalance">- $NFTFAN</div>
+
+  <div class="wallet-bar">
+    <span class="wallet-address" id="walletAddress">Not Connected</span>
+    <button class="connect-btn" id="connectBtn" type="button">Connect</button>
+  </div>
+
+  <div class="groups-box">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Wallets</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody id="pendingGroupsBody">
+        <tr><td colspan="4" style="color:#88b7ff;">Loading group...</td></tr>
+      </tbody>
+    </table>
+    <div class="refresh-row">
+      <button class="refresh-btn" id="refreshBtn" type="button">Refresh Group</button>
+    </div>
+  </div>
+
+  <div class="progress-section" id="progressSection">
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div class="status-box" id="progressText">Preparing...</div>
+  </div>
+
+  <div class="status-box" id="airdropStatus">Ready</div>
+</div>
+
+<script>
+  // Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+    authDomain: "newnft-47bd7.firebaseapp.com",
+    databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+    projectId: "newnft-47bd7",
+    storageBucket: "newnft-47bd7.firebasestorage.app",
+    messagingSenderId: "172043823738",
+    appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const DISTRIBUTOR_ADDRESS = '0x6Ee372b30C73Dd6087ba58F8C4a5Ca77F49BE0b3';
+  const NFTFAN_ADDRESS = '0x2017Fcaea540d2925430586DC92818035Bfc2F50';
+  const POLYGON_CHAIN_ID = '0x89';
+
+  // base holders (on-chain) – you gave: 254000
+  const BASE_HOLDERS = 254000;
+
+  const ERC20_ABI = [
+    {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"",""}],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"",""}],"stateMutability":"view","type":"function"}
+  ];
+
+  const DISTRIBUTOR_ABI = [
+    {"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"distributeTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"wallet","type":"address"}],"name":"getSubdropScore","outputs":[{"internalType":"uint256","name":"","type":"",""}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"}],"name":"previewDistribution","outputs":[{"internalType":"uint256","name":"successfulDrops","type":"uint256"},{"internalType":"uint256","name":"tokensNeeded","type":"uint256"}],"stateMutability":"view","type":"function"}
+  ];
+
+  let web3;
+  let userAccount;
+  let distributorContract;
+  let nftfanContract;
+  let currentGroupKey = null;
+
+  // Track last known score to calculate earnings delta
+  let lastScore = 0;
+
+  // --- NEW: offchain holders count state ---
+  let offchainHolders = 0;
+
+  // Helper: format number with commas
+  function formatNumber(n) {
+    return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  // --- NEW: Load offchain holders from Firebase and update UI ---
+  async function loadOffchainHolders() {
+    try {
+      const snap = await db.ref('stats/offchain_subfan_holders').once('value');
+      const val = snap.val();
+      offchainHolders = typeof val === 'number' ? val : 0;
+
+      const total = BASE_HOLDERS + offchainHolders;
+      document.getElementById('holdersCount').textContent = formatNumber(total);
+    } catch (e) {
+      console.error('Error loading offchain holders:', e);
+      offchainHolders = 0;
+      document.getElementById('holdersCount').textContent = formatNumber(BASE_HOLDERS);
+    }
+  }
+
+  // --- NEW: Increment offchain holders in Firebase atomically ---
+  function incrementOffchainHolders(deltaScore) {
+    if (deltaScore <= 0) return;
+
+    const ref = db.ref('stats/offchain_subfan_holders');
+    // use transaction to be safe with several concurrent users
+    ref.transaction(current => {
+      const currentVal = typeof current === 'number' ? current : 0;
+      return currentVal + deltaScore;
+    }, (error, committed, snapshot) => {
+      if (error) {
+        console.error('Failed to update offchain holders:', error);
+        return;
+      }
+      if (!committed) return;
+
+      const newVal = snapshot.val() || 0;
+      offchainHolders = newVal;
+      const total = BASE_HOLDERS + offchainHolders;
+      document.getElementById('holdersCount').textContent = formatNumber(total);
+    });
+  }
+
+  // Helper: Update Earnings Live (based on score)
+  function updateEarnings(score) {
+    const earnings = (Number(score) * 0.001).toFixed(4);
+    document.getElementById('yourEarnings').textContent = '$' + earnings;
+  }
+
+  // --- NEW: Show animated earnings notification ---
+  function showEarningsNotification(deltaScore) {
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+
+    const deltaEarnings = deltaScore * 0.001;
+    if (deltaEarnings <= 0 || !isFinite(deltaEarnings)) return;
+
+    const formatted = deltaEarnings.toFixed(4);
+
+    const toast = document.createElement('div');
+    toast.className = 'earnings-toast';
+
+    toast.innerHTML = `
+      <div class="earnings-toast-amount">+${formatted} $</div>
+      <div class="earnings-toast-text">
+        Earned from this airdrop!<br>
+        <span style="font-size:10px;color:#9cd3ff;">Keep hunting Subfans to grow your share.</span>
+      </div>
+      <button class="earnings-toast-close" type="button">&times;</button>
+    `;
+
+    const close = toast.querySelector('.earnings-toast-close');
+    const removeToast = () => {
+      toast.style.animation = 'toast-out 0.25s forwards';
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 260);
+    };
+    close.addEventListener('click', removeToast);
+
+    container.appendChild(toast);
+
+    // Auto-remove after 4.5s
+    setTimeout(removeToast, 4500);
+  }
+
+  // Helper: Status / Progress
+  function setStatus(msg) {
+    document.getElementById('airdropStatus').textContent = msg;
+  }
+  function showProgress(show) {
+    document.getElementById('progressSection').style.display = show ? 'block' : 'none';
+  }
+  function updateProgress(pct, text = '') {
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = text || (pct + '%');
+  }
+
+  // Switch / add Polygon
+  async function switchToPolygon() {
+    if (!window.ethereum) {
+      setStatus('No wallet detected. Please install MetaMask or a compatible wallet.');
+      throw new Error('No ethereum provider');
+    }
+    try {
+      const currentChain = await ethereum.request({ method: 'eth_chainId' });
+      if (currentChain === POLYGON_CHAIN_ID) return;
+
+      await ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: POLYGON_CHAIN_ID }]
+      });
+    } catch (e) {
+      if (e && e.code === 4902) {
+        try {
+          await ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: POLYGON_CHAIN_ID,
+              chainName: 'Polygon',
+              nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+              rpcUrls: ['https://polygon-rpc.com'],
+              blockExplorerUrls: ['https://polygonscan.com']
+            }]
+          });
+        } catch (addErr) {
+          console.error(addErr);
+          setStatus('Please add the Polygon network in your wallet and try again.');
+          throw addErr;
+        }
+      } else {
+        console.error(e);
+        setStatus('Could not switch to Polygon. Please check your wallet.');
+        throw e;
+      }
+    }
+  }
+
+  async function connectWallet() {
+    if (!window.ethereum) {
+      setStatus('MetaMask not found. Please install a web3 wallet.');
+      return;
+    }
+
+    const btn = document.getElementById('connectBtn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+
+    try {
+      await switchToPolygon();
+
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        setStatus('No accounts found. Please unlock your wallet.');
+        btn.disabled = false;
+        btn.textContent = 'Connect';
+        return;
+      }
+
+      userAccount = accounts[0];
+      web3 = new Web3(window.ethereum);
+      distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+      nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+
+      document.getElementById('walletAddress').textContent =
+        userAccount.slice(0, 6) + '...' + userAccount.slice(-4);
+      btn.textContent = 'Connected';
+      btn.disabled = true;
+
+      await Promise.all([
+        updateScore(),
+        updateBalance(),
+        loadNextPendingGroup()
+      ]);
+
+      setStatus('Connected to Polygon');
+    } catch (e) {
+      console.error(e);
+      if (e && (e.code === 4001 || (e.message && e.message.includes('User rejected')))) {
+        setStatus('Connection request was rejected in your wallet.');
+      } else {
+        setStatus('Connection failed. Please check your wallet and reload the page.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Connect';
+    }
+  }
+
+  async function updateScore() {
+    if (!userAccount || !distributorContract) return;
+    try {
+      const scoreRaw = await distributorContract.methods.getSubdropScore(userAccount).call();
+      const score = Number(scoreRaw);
+      lastScore = score; // update tracker
+
+      const el = document.getElementById('subdropScore');
+      el.classList.remove('pop');
+      void el.offsetWidth; // reflow
+      el.classList.add('pop');
+      el.textContent = score.toLocaleString();
+      updateEarnings(score);
+    } catch (e) {
+      console.error(e);
+      lastScore = 0;
+      document.getElementById('subdropScore').textContent = '0';
+      updateEarnings(0);
+    }
+  }
+
+  async function updateBalance() {
+    const el = document.getElementById('nftfanBalance');
+    if (!userAccount || !nftfanContract) {
+      el.textContent = '- $NFTFAN';
+      return;
+    }
+    try {
+      const [bal, dec] = await Promise.all([
+        nftfanContract.methods.balanceOf(userAccount).call(),
+        nftfanContract.methods.decimals().call()
+      ]);
+      const decimals = Number(dec || 18);
+      const raw = BigInt(bal);
+      const divisor = 10n ** BigInt(decimals);
+      const integerPart = raw / divisor;
+      const fractionalPart = raw % divisor;
+
+      const fractionStr = (Number(fractionalPart) / Number(divisor))
+        .toFixed(4)
+        .slice(1); // remove leading "0"
+
+      const formatted = integerPart.toString() + fractionStr;
+      el.textContent = Number(formatted).toLocaleString(undefined, {
+        maximumFractionDigits: 4
+      }) + ' $NFTFAN';
+    } catch (e) {
+      console.error(e);
+      el.textContent = 'Error loading balance';
+    }
+  }
+
+  // Fetch next pending group from Firebase
+  async function fetchNextPendingGroup() {
+    const snap = await db.ref('wallet_groups').once('value');
+    const data = snap.val() || {};
+    const keys = Object.keys(data).sort((a, b) => {
+      const na = parseInt(a.replace('group_', ''), 10) || 0;
+      const nb = parseInt(b.replace('group_', ''), 10) || 0;
+      return na - nb;
+    });
+
+    for (const key of keys) {
+      const g = data[key];
+      if (!g || g.status === 'done') continue;
+
+      const wallets = (g.wallets || []).filter(w =>
+        /^0x[a-fA-F0-9]{40}$/i.test(w)
+      );
+      if (wallets.length > 0) {
+        return { key, group: g, walletCount: wallets.length };
+      }
+    }
+
+    return null;
+  }
+
+  // Load and render one group
+  async function loadNextPendingGroup() {
+    const tbody = document.getElementById('pendingGroupsBody');
+    tbody.innerHTML =
+      '<tr><td colspan="4" style="color:#88b7ff;">Loading group...</td></tr>';
+    currentGroupKey = null;
+
+    try {
+      const result = await fetchNextPendingGroup();
+      if (!result) {
+        tbody.innerHTML =
+          '<tr><td colspan="4" style="color:#88b7ff;">No pending groups. Click "Refresh Group" again later.</td></tr>';
+        setStatus('No pending groups available right now.');
+        return;
+      }
+
+      const { key, walletCount, group } = result;
+      currentGroupKey = key;
+
+      const statusText = group.status || 'pending';
+
+      const rowHtml = `
+        <tr>
+          <td>1</td>
+          <td>${walletCount}</td>
+          <td class="status-pending">${statusText}</td>
+          <td>
+            <button class="btn-small" type="button" onclick="airdropCurrentGroup()">Send</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML = rowHtml;
+      setStatus('Group loaded. Click "Send" to airdrop, then "Refresh Group" to get a new one.');
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML =
+        '<tr><td colspan="4" style="color:#ff8080;">Error loading group. Please click "Refresh Group" to retry.</td></tr>';
+      setStatus('Error loading group from server.');
+    }
+  }
+
+  // Airdrop currently loaded group
+  window.airdropCurrentGroup = async function () {
+    if (!currentGroupKey) {
+      setStatus('No group selected. Click "Refresh Group" to load one.');
+      return;
+    }
+    await airdropGroup(currentGroupKey);
+  };
+
+  async function airdropGroup(groupKey) {
+    if (!userAccount) {
+      await connectWallet();
+      if (!userAccount) return;
+    }
+
+    setStatus('Loading group data...');
+    const snap = await db.ref('wallet_groups/' + groupKey).once('value');
+    const group = snap.val();
+
+    if (!group) {
+      setStatus('Group not found. Click "Refresh Group" to load a new one.');
+      await loadNextPendingGroup();
+      return;
+    }
+    if (group.status === 'done') {
+      setStatus('This group is already processed. Loading next group...');
+      await loadNextPendingGroup();
+      return;
+    }
+
+    const wallets = (group.wallets || []).filter(w =>
+      /^0x[a-fA-F0-9]{40}$/i.test(w)
+    );
+    if (wallets.length === 0) {
+      setStatus('No valid wallets in this group. Loading next group...');
+      await db.ref('wallet_groups/' + groupKey).update({ status: 'done' });
+      await loadNextPendingGroup();
+      return;
+    }
+
+    showProgress(true);
+    updateProgress(10, 'Preparing airdrop...');
+
+    // Capture score before tx to compute delta
+    let scoreBefore = lastScore;
+
+    try {
+      const preview = await distributorContract.methods
+        .previewDistribution(userAccount, wallets)
+        .call({ from: userAccount });
+
+      const needed = BigInt(
+        preview.tokensNeeded !== undefined ? preview.tokensNeeded : preview[1]
+      );
+
+      const balance = await nftfanContract.methods.balanceOf(userAccount).call();
+      if (BigInt(balance) < needed) {
+        setStatus('Not enough $NFTFAN tokens to send this airdrop.');
+        showProgress(false);
+        return;
+      }
+
+      const allowance = await nftfanContract.methods
+        .allowance(userAccount, DISTRIBUTOR_ADDRESS)
+        .call();
+
+      if (BigInt(allowance) < needed) {
+        updateProgress(30, 'Approving distributor to spend your $NFTFAN...');
+        await nftfanContract.methods
+          .approve(
+            DISTRIBUTOR_ADDRESS,
+            '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+          )
+          .send({ from: userAccount });
+      }
+
+      updateProgress(60, 'Sending airdrop transaction...');
+      await distributorContract.methods
+        .distributeTokens(wallets)
+        .send({ from: userAccount, gas: 6000000 });
+
+      updateProgress(90, 'Finalizing...');
+      await db.ref('wallet_groups/' + groupKey).update({ status: 'done' });
+
+      // Refresh score & balance
+      await Promise.all([updateScore(), updateBalance()]);
+
+      // Compute score delta based on updated lastScore vs previous scoreBefore
+      const scoreAfter = lastScore;
+      const deltaScore = Math.max(0, scoreAfter - scoreBefore);
+
+      // NEW: update offchain holders tracking if score increased
+      if (deltaScore > 0) {
+        incrementOffchainHolders(deltaScore);
+        showEarningsNotification(deltaScore);
+      }
+
+      updateProgress(100, 'Success!');
+      setStatus('Airdrop completed! Click "Refresh Group" to load a new group.');
+
+      // Load next group
+      await loadNextPendingGroup();
+      setTimeout(() => showProgress(false), 1500);
+    } catch (e) {
+      console.error(e);
+      if (e && (e.code === 4001 || (e.message && e.message.includes('User denied')))) {
+        setStatus('Transaction was rejected in your wallet.');
+      } else {
+        setStatus('Airdrop failed: ' + (e.message || 'Unknown error'));
+      }
+      showProgress(false);
+    }
+  }
+
+  // Auto-connect & init listeners
+  window.addEventListener('DOMContentLoaded', async () => {
+    updateEarnings(0);
+
+    document.getElementById('connectBtn').addEventListener('click', connectWallet);
+    document.getElementById('refreshBtn').addEventListener('click', loadNextPendingGroup);
+
+    // load offchain holders on page load
+    await loadOffchainHolders();
+
+    if (window.ethereum) {
+      try {
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) {
+          userAccount = accounts[0];
+          try {
+            await switchToPolygon();
+            web3 = new Web3(window.ethereum);
+            distributorContract = new web3.eth.Contract(DISTRIBUTOR_ABI, DISTRIBUTOR_ADDRESS);
+            nftfanContract = new web3.eth.Contract(ERC20_ABI, NFTFAN_ADDRESS);
+
+            document.getElementById('walletAddress').textContent =
+              userAccount.slice(0, 6) + '...' + userAccount.slice(-4);
+            const btn = document.getElementById('connectBtn');
+            btn.textContent = 'Connected';
+            btn.disabled = true;
+
+            await Promise.all([
+              updateScore(),
+              updateBalance()
+            ]);
+
+            setStatus('Connected to Polygon');
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      ethereum.on && ethereum.on('accountsChanged', async (accounts) => {
+        if (!accounts || accounts.length === 0) {
+          userAccount = null;
+          document.getElementById('walletAddress').textContent = 'Not Connected';
+          const btn = document.getElementById('connectBtn');
+          btn.disabled = false;
+          btn.textContent = 'Connect';
+          setStatus('Wallet disconnected. Please reconnect.');
+          updateEarnings(0);
+          lastScore = 0;
+          document.getElementById('subdropScore').textContent = '0';
+          document.getElementById('nftfanBalance').textContent = '- $NFTFAN';
+          return;
+        }
+        userAccount = accounts[0];
+        await connectWallet();
+      });
+
+      ethereum.on && ethereum.on('chainChanged', async (chainId) => {
+        if (chainId !== POLYGON_CHAIN_ID) {
+          setStatus('Wrong network. Please switch to Polygon.');
+        } else {
+          setStatus('Polygon network detected.');
+          if (userAccount) {
+            await Promise.all([updateScore(), updateBalance()]);
+          }
+        }
+      });
+    } else {
+      setStatus('No web3 wallet detected. Please install MetaMask or a compatible wallet.');
+    }
+
+    await loadNextPendingGroup();
+  });
+</script>
+</body>
+</html>
