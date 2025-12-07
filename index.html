@@ -105,7 +105,7 @@
       position: fixed;
       width: 100%;
       top: 0;
-      z-index: 1000;
+      z-index: 1100;
       box-shadow:
         0 10px 28px rgba(11,191,201,0.18),
         0 0 0 1px rgba(255,255,255,0.9) inset;
@@ -189,30 +189,127 @@
       background:#020617;
       border-color:#020617;
     }
-    .header-btn-x:hover {
+    .header-btn-tg {
+      background:#0f766e;
+      border-color:#0d9488;
+    }
+    .header-btn-buy {
+      background:#b91c1c;
+      border-color:#ef4444;
+    }
+
+    .header-btn:hover {
       filter:brightness(1.08);
       box-shadow:0 0 14px rgba(15,23,42,0.5);
       transform:translateY(-1px);
     }
 
-    .header-btn-tg {
-      background:#0f766e;
-      border-color:#0d9488;
+    /* Notifications icon */
+    .notif-wrapper {
+      position:relative;
     }
-    .header-btn-tg:hover {
-      filter:brightness(1.08);
-      box-shadow:0 0 14px rgba(13,148,136,0.5);
+
+    .notif-btn {
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid #0bbfc9;
+      background:#020617;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      color:#e5f6ff;
+      transition:transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .notif-btn:hover {
+      filter:brightness(1.1);
+      box-shadow:0 0 10px rgba(11,191,201,0.6);
       transform:translateY(-1px);
     }
 
-    .header-btn-buy {
-      background:#b91c1c;
-      border-color:#ef4444;
+    .notif-btn .material-icons-round {
+      font-size:18px;
     }
-    .header-btn-buy:hover {
-      filter:brightness(1.08);
-      box-shadow:0 0 14px rgba(239,68,68,0.5);
-      transform:translateY(-1px);
+
+    .notif-count {
+      position:absolute;
+      top:-4px;
+      right:-4px;
+      min-width:14px;
+      padding:1px 3px;
+      border-radius:999px;
+      background:#ef4444;
+      color:#fff;
+      font-size:9px;
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+    }
+
+    /* Notifications dropdown */
+    .notif-dropdown {
+      position:absolute;
+      top:38px;
+      right:0;
+      width:260px;
+      max-height:320px;
+      background:#0b1120;
+      border-radius:10px;
+      border:1px solid rgba(148,163,184,0.6);
+      box-shadow:0 16px 40px rgba(15,23,42,0.85);
+      padding:8px 0;
+      z-index:1200;
+      display:none;
+    }
+
+    .notif-dropdown.open {
+      display:block;
+    }
+
+    .notif-header {
+      padding:6px 10px 4px;
+      font-size:0.75rem;
+      text-transform:uppercase;
+      letter-spacing:0.12em;
+      color:#e5e7eb;
+      border-bottom:1px solid rgba(55,65,81,0.7);
+    }
+
+    .notif-list {
+      max-height:260px;
+      overflow-y:auto;
+    }
+
+    .notif-item {
+      padding:6px 10px;
+      font-size:0.75rem;
+      color:#e5e7eb;
+      border-bottom:1px solid rgba(31,41,55,0.65);
+      cursor:pointer;
+    }
+
+    .notif-item:last-child {
+      border-bottom:none;
+    }
+
+    .notif-item:hover {
+      background:#111827;
+    }
+
+    .notif-item-title {
+      font-weight:600;
+      margin-bottom:2px;
+    }
+
+    .notif-item-url {
+      font-size:0.68rem;
+      color:#9ca3af;
+      word-break:break-all;
     }
 
     @media (max-width:768px) {
@@ -236,7 +333,6 @@
       min-height:calc(100vh - 90px);
     }
 
-    /* Main content: give more width */
     .main-column {
       flex: 1 1 auto;
       min-width:0;
@@ -244,7 +340,6 @@
       max-width: calc(100% - 320px);
     }
 
-    /* Side panel fixed to extreme right, compact */
     .side-panel-wrapper {
       flex: 0 0 320px;
       position:relative;
@@ -288,7 +383,7 @@
         position:static;
         width:100%;
         max-height:none;
-        overflow:visible;
+        overflow:visible; /* allow native scroll on mobile */
         padding:0 1rem 2rem;
       }
     }
@@ -819,13 +914,10 @@
 
     @media (max-width: 899px) {
       #side-feed-wrapper {
-        max-height:0;
-        opacity:0;
-      }
-      #side-feed-wrapper.open {
-        max-height:1200px;
+        max-height:none; /* no collapse, natural scroll */
         opacity:1;
       }
+      .mobile-feed-toggle { display:none; } /* no need for toggle now */
     }
 
     /* ========== FOOTER ========== */
@@ -874,15 +966,10 @@
     }
 
     @media (max-width: 768px) {
-      html, body {
-        font-size: 10px;
-      }
+      html, body { font-size: 10px; }
     }
-
     @media (max-width: 360px) {
-      html, body {
-        font-size: 9px;
-      }
+      html, body { font-size: 9px; }
     }
   </style>
 </head>
@@ -904,6 +991,18 @@
           <span class="material-icons-round">shopping_bag</span>
           <span>Buy $NFTFAN</span>
         </a>
+
+        <!-- Notifications icon -->
+        <div class="notif-wrapper">
+          <button type="button" class="notif-btn" id="notifBtn">
+            <span class="material-icons-round">notifications</span>
+            <span class="notif-count" id="notifCount">0</span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">Community Feed</div>
+            <div class="notif-list" id="notifList"></div>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -933,14 +1032,6 @@
                 <span class="material-icons-round">payments</span>
                 <span>Become NFT Ads Sender</span>
               </a>
-            </div>
-
-            <!-- MOBILE: Toggle button for side panel feed -->
-            <div class="mobile-feed-toggle">
-              <button id="toggleFeedBtn" class="btn btn-outline-cyan" type="button">
-                <span class="material-icons-round">view_carousel</span>
-                <span>View Community Feed</span>
-              </button>
             </div>
           </div>
         </section>
@@ -1036,7 +1127,7 @@
             <span class="material-icons-round">visibility</span>
             <span>View on PolygonScan</span>
           </a>
-          <a href="https://www.nftfanstoken.com/quickbuynft/" class="btn btn-cyan" target="_blank">
+          <a href="https://www.nftfanstoken.com/quickbuynft/" class="btn btn-cyan" target="_blank" id="tokenBuyBtn">
             <span class="material-icons-round">shopping_cart</span>
             <span>Buy $NFTFAN Now</span>
           </a>
@@ -1107,9 +1198,13 @@
 
     const postsContainer = document.getElementById("postsContainer");
     const emptyState = document.getElementById("emptyState");
+    const notifList = document.getElementById("notifList");
+    const notifCountEl = document.getElementById("notifCount");
 
     function renderPosts(snapshot) {
       postsContainer.innerHTML = "";
+      notifList.innerHTML = "";
+      notifCountEl.textContent = "0";
 
       const data = snapshot.val();
       if (!data) {
@@ -1136,7 +1231,10 @@
         emptyState.style.display = "none";
       }
 
+      notifCountEl.textContent = postsArr.length;
+
       for (const post of postsArr) {
+        // Side panel card
         const card = document.createElement("article");
         card.className = "post-card";
 
@@ -1182,6 +1280,25 @@
         card.appendChild(content);
 
         postsContainer.appendChild(card);
+
+        // Notifications list item (titles only)
+        const notifItem = document.createElement("div");
+        notifItem.className = "notif-item";
+        notifItem.addEventListener("click", () => {
+          window.open(post.url, "_blank", "noopener,noreferrer");
+        });
+
+        const notifTitle = document.createElement("div");
+        notifTitle.className = "notif-item-title";
+        notifTitle.textContent = post.title || "Untitled";
+
+        const notifUrl = document.createElement("div");
+        notifUrl.className = "notif-item-url";
+        notifUrl.textContent = post.url;
+
+        notifItem.appendChild(notifTitle);
+        notifItem.appendChild(notifUrl);
+        notifList.appendChild(notifItem);
       }
     }
 
@@ -1229,42 +1346,56 @@
       });
     });
 
-    // Mobile: toggle side panel feed
-    const toggleBtn = document.getElementById('toggleFeedBtn');
-    const sideFeedWrapper = document.getElementById('side-feed-wrapper');
+    // Mobile: side feed always scrollable via native scroll now (no collapse)
 
-    if (toggleBtn && sideFeedWrapper) {
-      toggleBtn.addEventListener('click', () => {
-        const isOpen = sideFeedWrapper.classList.toggle('open');
-        toggleBtn.querySelector('span:last-child').textContent = isOpen
-          ? 'Hide Community Feed'
-          : 'View Community Feed';
-        if (isOpen) {
-          const rect = sideFeedWrapper.getBoundingClientRect();
-          const offset = window.scrollY + rect.top - 100;
-          window.scrollTo({ top: offset, behavior: 'smooth' });
+    // Notifications dropdown toggle
+    (function setupNotifications() {
+      const notifBtn = document.getElementById('notifBtn');
+      const notifDropdown = document.getElementById('notifDropdown');
+
+      if (!notifBtn || !notifDropdown) return;
+
+      notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notifDropdown.classList.toggle('open');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!notifDropdown.contains(e.target) && !notifBtn.contains(e.target)) {
+          notifDropdown.classList.remove('open');
         }
       });
-    }
+    })();
 
-    // ========== AUTO-SCROLLING COMMUNITY FEED ==========
+    // ========== AUTO-SCROLLING COMMUNITY FEED (DESKTOP ONLY, SMOOTH) ==========
     (function setupAutoScroll() {
       const sidePanel = document.getElementById('sidePanel');
       if (!sidePanel) return;
 
-      let baseSpeed = 0.25;      // default px per frame
-      let speed = baseSpeed;
-      let direction = 1;         // 1 = down, -1 = up
+      const isDesktop = () => window.innerWidth >= 900;
+      let baseSpeed = 8;        // px per second
+      let extraSpeed = 0;       // additional px/s controlled by hover
+      let direction = 1;        // 1 = down, -1 = up
       let lastTime = null;
 
       function step(timestamp) {
+        if (!isDesktop()) {
+          // On mobile: do nothing, user scrolls natively
+          lastTime = timestamp;
+          requestAnimationFrame(step);
+          return;
+        }
+
         if (lastTime == null) lastTime = timestamp;
-        const delta = timestamp - lastTime;
+        const deltaMs = timestamp - lastTime;
         lastTime = timestamp;
 
+        const totalSpeed = (baseSpeed + extraSpeed) * direction; // px/s with sign
+        const deltaPx = totalSpeed * (deltaMs / 1000);
+
         const maxScroll = sidePanel.scrollHeight - sidePanel.clientHeight;
-        if (maxScroll > 0) {
-          let next = sidePanel.scrollTop + direction * speed * (delta / 16); // normalize to ~60fps
+        if (maxScroll > 0 && Math.abs(deltaPx) > 0.01) {
+          let next = sidePanel.scrollTop + deltaPx;
 
           if (next >= maxScroll) {
             next = 0; // loop to top
@@ -1280,23 +1411,30 @@
 
       // Mouse hover control (desktop only)
       sidePanel.addEventListener('mousemove', (e) => {
+        if (!isDesktop()) return;
+
         const rect = sidePanel.getBoundingClientRect();
         const midY = rect.top + rect.height / 2;
         const distance = e.clientY - midY;
 
-        const maxBoost = 1.2; // maximum extra speed
+        const maxBoost = 40; // extra px/s
         const ratio = Math.min(Math.abs(distance) / (rect.height / 2), 1); // 0..1
 
         direction = distance > 0 ? 1 : -1;           // below middle = scroll down, above = up
-        speed = baseSpeed + maxBoost * ratio;       // increase speed as you move away from center
+        extraSpeed = maxBoost * ratio;              // more distance => faster
       });
 
       sidePanel.addEventListener('mouseleave', () => {
+        extraSpeed = 0;
         direction = 1;
-        speed = baseSpeed;
       });
 
-      // Start animation
+      // Also pause auto scroll while user scrolls with wheel (desktop)
+      sidePanel.addEventListener('wheel', () => {
+        extraSpeed = 0;
+        direction = 1;
+      });
+
       requestAnimationFrame(step);
     })();
   </script>
