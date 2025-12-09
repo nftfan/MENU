@@ -462,6 +462,22 @@
   // Track last known score to calculate earnings delta
   let lastScore = 0;
 
+  // --- NEW: Common blackhole / burn addresses (normalized to lowercase) ---
+  const BLACKHOLE_ADDRESSES = new Set([
+    '0x0000000000000000000000000000000000000000',
+    '0x000000000000000000000000000000000000dead',
+    '0x000000000000000000000000000000000000dEaD'.toLowerCase()
+    // Add any project-specific blackhole wallets here:
+    // '0x1234...abcd'.toLowerCase()
+  ]);
+
+  function isValidNonBlackholeWallet(addr) {
+    if (typeof addr !== 'string') return false;
+    const trimmed = addr.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/i.test(trimmed)) return false;
+    return !BLACKHOLE_ADDRESSES.has(trimmed.toLowerCase());
+  }
+
   // Helper: Update Earnings Live (based on score)
   function updateEarnings(score) {
     const earnings = (Number(score) * 0.001).toFixed(4);
@@ -690,9 +706,8 @@
       const g = data[key];
       if (!g || g.status === 'done') continue;
 
-      const wallets = (g.wallets || []).filter(w =>
-        /^0x[a-fA-F0-9]{40}$/i.test(w)
-      );
+      // FILTER: valid + non-blackhole wallets
+      const wallets = (g.wallets || []).filter(isValidNonBlackholeWallet);
       if (wallets.length > 0) {
         return { key, group: g, walletCount: wallets.length };
       }
@@ -772,9 +787,8 @@
       return;
     }
 
-    const wallets = (group.wallets || []).filter(w =>
-      /^0x[a-fA-F0-9]{40}$/i.test(w)
-    );
+    // FILTER: valid + non-blackhole wallets
+    const wallets = (group.wallets || []).filter(isValidNonBlackholeWallet);
     if (wallets.length === 0) {
       setStatus('No valid wallets in this group. Loading next group...');
       await db.ref('wallet_groups/' + groupKey).update({ status: 'done' });
