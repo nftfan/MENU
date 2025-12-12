@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Personal Delivery">
+  <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/apple-calculator.png">
+  <title>Euro Keypad</title>
+  <style>
+    :root {
+      --bg1: #0f2027; --bg2: #203a43; --bg3: #2c5364;
+      --card: rgba(255, 255, 255, 0.08);
+      --accent: #7c4dff; --accent2: #59c4ff;
+      --text: #e9f1ff; --shadow: 0 12px 30px rgba(0,0,0,0.28);
+      --post1: #4caf50; --post2: #7bd68a;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
+      color: var(--text);
+      display: flex; justify-content: center; align-items: flex-start;
+      padding: 22px 14px 40px;
+    }
+    .app {
+      width: min(520px, 98vw);
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .display {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .amount {
+      font-size: clamp(48px, 12vw, 64px);
+      font-weight: 800;
+      display: flex; justify-content: space-between; align-items: baseline;
+      line-height: 1.05;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    button {
+      height: 72px;
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: clamp(48px, 12vw, 64px);
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    button:active { transform: translateY(1px) scale(0.993); }
+    .accent {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 12px 24px rgba(124,77,255,0.35);
+      color: #0d1021;
+    }
+    .dot {
+      background: linear-gradient(135deg, #4dd0e1, #81ecec);
+      color: #0d1021;
+      box-shadow: 0 12px 20px rgba(77, 208, 225, 0.35);
+      font-size: clamp(48px, 12vw, 64px); /* center with same size */
+      line-height: 1;
+      text-align: center;
+    }
+    .btn-clear {
+      background: linear-gradient(135deg, #ff5f6d, #ffc371);
+      color: #0d1021;
+      box-shadow: 0 12px 20px rgba(255,95,109,0.35);
+    }
+    .btn-post {
+      background: linear-gradient(135deg, var(--post1), var(--post2));
+      color: #0f2412;
+      box-shadow: 0 12px 20px rgba(76, 175, 80, 0.35);
+    }
+    .plus-wide { grid-column: span 2; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 10px;
+      color: #e8f0ff;
+    }
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      word-break: break-word;
+      font-size: 10px;
+    }
+    th { color: #bcd0ff; font-weight: 700; }
+    .del-btn {
+      background: none;
+      border: none;
+      color: #ffb3b3;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="display">
+      <div class="amount">
+        <span id="amount">€0.00</span>
+        <small id="op"></small>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Top row: C, + (span 2), ., P -->
+      <button class="btn-clear" id="clear">C</button>
+      <button class="accent plus-wide" data-op="+">+</button>
+      <button class="dot" data-digit=".">.</button>
+      <button class="btn-post" id="post">P</button>
+
+      <!-- Digits: 5 per row -->
+      <button data-digit="1">1</button>
+      <button data-digit="2">2</button>
+      <button data-digit="3">3</button>
+      <button data-digit="4">4</button>
+      <button data-digit="5">5</button>
+
+      <button data-digit="6">6</button>
+      <button data-digit="7">7</button>
+      <button data-digit="8">8</button>
+      <button data-digit="9">9</button>
+      <button data-digit="0">0</button>
+    </div>
+
+    <div class="log">
+      <table>
+        <thead>
+          <tr><th>Date & Time</th><th>Posted Amount</th><th>Subtotal</th><th></th></tr>
+        </thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR",
+    };
+
+    // Init Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const entriesRef = db.ref("entries");
+
+    const amountEl = document.getElementById("amount");
+    const opEl = document.getElementById("op");
+    const logBody = document.getElementById("log-body");
+
+    let current = 0;
+    let pendingOp = "";
+    let buffer = "";
+    let subtotal = 0;
+
+    const formatEuro = (v) =>
+      new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(v || 0);
+
+    function updateDisplay() {
+      amountEl.textContent = buffer ? buffer : formatEuro(current);
+      opEl.textContent = pendingOp;
+    }
+
+    function applyBuffer() {
+      if (!buffer || buffer === ".") return false;
+      const val = parseFloat(buffer);
+      if (isNaN(val)) return false;
+
+      if (pendingOp === "+") current += val;
+      else current = val;
+
+      buffer = "";
+      return true;
+    }
+
+    function onDigit(d) {
+      if (d === "." && buffer.includes(".")) return;
+      if (buffer === "0" && d !== ".") buffer = "";
+      buffer += d;
+      updateDisplay();
+    }
+
+    function onOp(op) {
+      applyBuffer();
+      pendingOp = op;
+      updateDisplay();
+    }
+
+    function onClear() {
+      buffer = "";
+      current = 0;
+      pendingOp = "";
+      updateDisplay();
+    }
+
+    function onPost() {
+      applyBuffer();      // commit any typed number
+      pendingOp = "";
+      updateDisplay();
+
+      const entry = {
+        ts: Date.now(),
+        amount: current,
+      };
+      entriesRef.push(entry);
+    }
+
+    // Render table from DB
+    entriesRef.on("value", (snapshot) => {
+      const data = snapshot.val() || {};
+      const rows = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+      // Sort ascending to compute running subtotal
+      rows.sort((a, b) => a.ts - b.ts);
+      let running = 0;
+      rows.forEach((r) => {
+        running += Number(r.amount || 0);
+        r.subtotal = running;
+      });
+      // Render newest first
+      rows.sort((a, b) => b.ts - a.ts);
+
+      logBody.innerHTML = "";
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        const dt = new Date(r.ts).toLocaleString();
+        tr.innerHTML = `
+          <td>${dt}</td>
+          <td>${formatEuro(r.amount)}</td>
+          <td>${formatEuro(r.subtotal)}</td>
+          <td><button class="del-btn" title="Delete" data-id="${r.id}">✕</button></td>
+        `;
+        logBody.appendChild(tr);
+      });
+      // Attach delete handlers with confirm
+      logBody.querySelectorAll(".del-btn").forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          if (confirm("Delete this entry?")) {
+            entriesRef.child(id).remove();
+          }
+        };
+      });
+    });
+
+    document.querySelectorAll("[data-digit]").forEach((btn) => {
+      btn.addEventListener("click", () => onDigit(btn.dataset.digit));
+    });
+    document.querySelectorAll("[data-op]").forEach((btn) => {
+      btn.addEventListener("click", () => onOp(btn.dataset.op));
+    });
+    document.getElementById("clear").addEventListener("click", onClear);
+    document.getElementById("post").addEventListener("click", onPost);
+
+    updateDisplay();
+  </script>
+</body>
+</html>
