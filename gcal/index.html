@@ -24,6 +24,7 @@
       color: var(--text);
       display: flex; justify-content: center; align-items: flex-start;
       padding: 22px 14px 40px;
+      -webkit-tap-highlight-color: transparent;
     }
     .app {
       width: min(520px, 98vw);
@@ -63,14 +64,16 @@
       font-weight: 800;
       letter-spacing: 0.3px;
       cursor: pointer;
-      transition: transform 120ms ease, box-shadow 120ms ease;
+      transition: transform 80ms ease, box-shadow 80ms ease;
       background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
       border: 1px solid rgba(255, 255, 255, 0.10);
       box-shadow: 0 10px 20px rgba(0,0,0,0.25);
       display: flex; align-items: center; justify-content: center;
       padding: 0;
+      touch-action: manipulation;
+      user-select: none;
     }
-    button:active { transform: translateY(1px) scale(0.993); }
+    button:active { transform: translateY(1px) scale(0.992); }
     .accent {
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       box-shadow: 0 12px 24px rgba(124,77,255,0.35);
@@ -80,7 +83,7 @@
       background: linear-gradient(135deg, #4dd0e1, #81ecec);
       color: #0d1021;
       box-shadow: 0 12px 20px rgba(77, 208, 225, 0.35);
-      font-size: clamp(48px, 12vw, 64px); /* center with same size */
+      font-size: clamp(48px, 12vw, 64px);
       line-height: 1;
       text-align: center;
     }
@@ -118,6 +121,8 @@
       cursor: pointer;
       padding: 0 4px;
       line-height: 1;
+      touch-action: manipulation;
+      user-select: none;
     }
   </style>
 </head>
@@ -132,10 +137,10 @@
 
     <div class="grid">
       <!-- Top row: C, + (span 2), ., P -->
-      <button class="btn-clear" id="clear">C</button>
+      <button class="btn-clear" data-action="clear">C</button>
       <button class="accent plus-wide" data-op="+">+</button>
       <button class="dot" data-digit=".">.</button>
-      <button class="btn-post" id="post">P</button>
+      <button class="btn-post" data-action="post">P</button>
 
       <!-- Digits: 5 per row -->
       <button data-digit="1">1</button>
@@ -195,68 +200,57 @@
     const formatEuro = (v) =>
       new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(v || 0);
 
-    function updateDisplay() {
+    const updateDisplay = () => {
       amountEl.textContent = buffer ? buffer : formatEuro(current);
       opEl.textContent = pendingOp;
-    }
+    };
 
-    function applyBuffer() {
+    const applyBuffer = () => {
       if (!buffer || buffer === ".") return false;
       const val = parseFloat(buffer);
-      if (isNaN(val)) return false;
-
+      if (Number.isNaN(val)) return false;
       if (pendingOp === "+") current += val;
       else current = val;
-
       buffer = "";
       return true;
-    }
+    };
 
-    function onDigit(d) {
+    const onDigit = (d) => {
       if (d === "." && buffer.includes(".")) return;
       if (buffer === "0" && d !== ".") buffer = "";
       buffer += d;
       updateDisplay();
-    }
+    };
 
-    function onOp(op) {
+    const onOp = (op) => {
       applyBuffer();
       pendingOp = op;
       updateDisplay();
-    }
+    };
 
-    function onClear() {
+    const onClear = () => {
       buffer = "";
       current = 0;
       pendingOp = "";
       updateDisplay();
-    }
+    };
 
-    function onPost() {
-      applyBuffer();      // commit any typed number
+    const onPost = () => {
+      applyBuffer(); // commit typed number
       pendingOp = "";
       updateDisplay();
-
-      const entry = {
-        ts: Date.now(),
-        amount: current,
-      };
+      const entry = { ts: Date.now(), amount: current };
       entriesRef.push(entry);
-    }
+    };
 
     // Render table from DB
     entriesRef.on("value", (snapshot) => {
       const data = snapshot.val() || {};
       const rows = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-      // Sort ascending to compute running subtotal
-      rows.sort((a, b) => a.ts - b.ts);
+      rows.sort((a, b) => a.ts - b.ts); // ascending to compute subtotal
       let running = 0;
-      rows.forEach((r) => {
-        running += Number(r.amount || 0);
-        r.subtotal = running;
-      });
-      // Render newest first
-      rows.sort((a, b) => b.ts - a.ts);
+      rows.forEach((r) => { running += Number(r.amount || 0); r.subtotal = running; });
+      rows.sort((a, b) => b.ts - a.ts); // newest first
 
       logBody.innerHTML = "";
       rows.forEach((r) => {
@@ -270,26 +264,30 @@
         `;
         logBody.appendChild(tr);
       });
-      // Attach delete handlers with confirm
       logBody.querySelectorAll(".del-btn").forEach((btn) => {
         btn.onclick = () => {
           const id = btn.dataset.id;
-          if (confirm("Delete this entry?")) {
-            entriesRef.child(id).remove();
-          }
+          if (confirm("Delete this entry?")) entriesRef.child(id).remove();
         };
       });
     });
 
-    document.querySelectorAll("[data-digit]").forEach((btn) => {
-      btn.addEventListener("click", () => onDigit(btn.dataset.digit));
-    });
-    document.querySelectorAll("[data-op]").forEach((btn) => {
-      btn.addEventListener("click", () => onOp(btn.dataset.op));
-    });
-    document.getElementById("clear").addEventListener("click", onClear);
-    document.getElementById("post").addEventListener("click", onPost);
+    // Faster touch: use pointerdown for immediate response
+    const bindButtons = () => {
+      document.querySelectorAll("[data-digit]").forEach((btn) => {
+        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); onDigit(btn.dataset.digit); }, { passive: true });
+      });
+      document.querySelectorAll("[data-op]").forEach((btn) => {
+        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); onOp(btn.dataset.op); }, { passive: true });
+      });
+      document.querySelectorAll("[data-action]").forEach((btn) => {
+        const action = btn.dataset.action;
+        const handler = action === "clear" ? onClear : onPost;
+        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); handler(); }, { passive: true });
+      });
+    };
 
+    bindButtons();
     updateDisplay();
   </script>
 </body>
