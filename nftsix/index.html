@@ -34,7 +34,7 @@
     header {
       display: flex; justify-content: space-between; align-items: flex-end;
       border-bottom: 1px solid var(--cyber-yellow);
-      padding-bottom: 8px; margin-bottom: 16px;
+      padding-bottom: 8px; margin-bottom: 10px;
       gap: 10px;
     }
     h1 {
@@ -117,6 +117,13 @@
     .price { color: var(--cyber-cyan); }
     .status { margin-bottom: 10px; color: var(--cyber-cyan); border-left: 2px solid var(--cyber-cyan); padding-left: 8px; }
     .status.err { color: var(--cyber-red); border-color: var(--cyber-red); }
+    .controls { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .select {
+      background: #0b0b0b; color: var(--cyber-cyan);
+      border: 1px solid var(--cyber-cyan);
+      padding: 6px 8px; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
@@ -131,6 +138,16 @@
         <button id="connectBtn" class="btn">LINK START</button>
       </div>
     </header>
+
+    <div class="controls">
+      <div style="color:var(--cyber-yellow); font-weight:700;">SORT</div>
+      <select id="sortSelect" class="select">
+        <option value="date_desc">DATE ↓</option>
+        <option value="date_asc">DATE ↑</option>
+        <option value="price_desc">PRICE ↓</option>
+        <option value="price_asc">PRICE ↑</option>
+      </select>
+    </div>
 
     <div id="status" class="status">SYSTEM READY...</div>
     <div id="grid" class="grid"></div>
@@ -156,8 +173,6 @@
 
     const CONTRACT_ADDRESS = "0x2585Ba6e04973e9b4675f6dc9e31b67539fb5678";
     const EXPECTED_CHAIN_ID = 137;
-
-    // New ABI: mint(tokenURI, priceWei)
     const ABI = [
       "function mint(string tokenURI, uint256 priceWei) payable",
       "function totalMinted() view returns (uint256)"
@@ -171,6 +186,8 @@
     const statusEl = document.getElementById('status');
     const addrEl = document.getElementById('addr');
     const connectBtn = document.getElementById('connectBtn');
+    const sortSelect = document.getElementById('sortSelect');
+    let currentEntries = [];
 
     function setStatus(msg, cls = "") {
       statusEl.className = `status ${cls}`;
@@ -213,21 +230,11 @@
     });
 
     async function mint(tokenURI, pricePol) {
-      if (!tokenURI) {
-        setStatus("ERR: NULL URI DATA", "err");
-        return;
-      }
-      if (!pricePol) {
-        setStatus("ERR: PRICE MISSING", "err");
-        return;
-      }
+      if (!tokenURI) return setStatus("ERR: NULL URI DATA", "err");
+      if (!pricePol) return setStatus("ERR: PRICE MISSING", "err");
       let priceWei;
-      try {
-        priceWei = ethers.parseEther(pricePol.toString());
-      } catch {
-        setStatus("ERR: BAD PRICE FORMAT", "err");
-        return;
-      }
+      try { priceWei = ethers.parseEther(pricePol.toString()); }
+      catch { return setStatus("ERR: BAD PRICE FORMAT", "err"); }
       setStatus("AWAITING BIO-SIG (WALLET)...");
       try {
         await ensureWallet();
@@ -278,18 +285,42 @@
       return card;
     }
 
-    db.ref("nfts").orderByChild("createdAt").on("value", (snapshot) => {
+    function sortEntries(entries, mode) {
+      return entries.slice().sort((a, b) => {
+        const da = a[1].createdAt || 0;
+        const db = b[1].createdAt || 0;
+        const pa = parseFloat(a[1].price || "0");
+        const pb = parseFloat(b[1].price || "0");
+        switch (mode) {
+          case "date_asc": return da - db;
+          case "price_desc": return pb - pa;
+          case "price_asc": return pa - pb;
+          case "date_desc":
+          default: return db - da;
+        }
+      });
+    }
+
+    function renderList() {
       gridEl.innerHTML = "";
+      const mode = sortSelect.value;
+      const sorted = sortEntries(currentEntries, mode);
+      sorted.forEach(([id, data]) => gridEl.appendChild(renderCard(id, data)));
+      setStatus(`DB SYNC COMPLETE: ${sorted.length} RECORDS`, "ok");
+    }
+
+    sortSelect.addEventListener('change', renderList);
+
+    db.ref("nfts").orderByChild("createdAt").on("value", (snapshot) => {
       const val = snapshot.val();
       if (!val) {
+        currentEntries = [];
+        gridEl.innerHTML = "";
         setStatus("DATABASE EMPTY", "");
         return;
       }
-      const entries = Object.entries(val).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-      entries.forEach(([id, data]) => {
-        gridEl.appendChild(renderCard(id, data));
-      });
-      setStatus(`DB SYNC COMPLETE: ${entries.length} RECORDS`, "ok");
+      currentEntries = Object.entries(val);
+      renderList();
     }, (err) => {
       console.error(err);
       setStatus("DB READ ERROR", "err");
