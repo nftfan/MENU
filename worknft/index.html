@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>$NFTFAN — Username Picker</title>
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+  <style>
+    :root{
+      --cyan:#0ff;
+      --bg:#0b0b0b;
+      --card:#111;
+      --border:#1d1d1d;
+      --text:#e8f6f6;
+      --muted:#9adcdc;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{
+      height:100%;width:100%;margin:0;padding:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Segoe UI',sans-serif;
+      font-size:10px;
+      overflow-x:hidden;
+    }
+    body{
+      display:flex;flex-direction:column;align-items:center;
+      padding:0 !important;
+    }
+    .box{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:24px 20px;
+      max-width:420px;
+      width:100%;
+      margin:16px;
+      text-align:center;
+    }
+    h2{font-size:18px;font-weight:800;margin-bottom:16px;}
+    .steps{
+      background:#121212;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px;
+      margin:14px 0;
+      font-size:10px;
+      line-height:1.6;
+      color:var(--muted);
+    }
+    .steps b{color:var(--cyan);}
+    .promo{
+      background:#121212;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      margin:14px 0;
+      font-size:10px;
+      line-height:1.5;
+      word-break:break-all;
+      color:var(--muted);
+    }
+    .promo a{color:var(--cyan);text-decoration:underline;font-weight:700;}
+    .usernames{
+      background:#121212;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px;
+      margin:14px 0;
+      font-family:ui-monospace,monospace;
+      font-size:10px;
+      min-height:80px;
+      line-height:1.6;
+      word-break:break-all;
+      color:var(--text);
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:10px 16px;
+      background:#0e0e0e;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+      margin:6px;
+      transition:background 0.2s, color 0.2s, border-color 0.2s;
+      font-size:10px;
+    }
+    .btn .material-icons{font-size:14px;}
+    .btn:hover{background:#161616;border-color:#2a2a2a;}
+    .btn.primary{background:var(--cyan);color:#0a0a0a;border-color:var(--cyan);}
+    .btn.primary:hover{background:#8ffefe;color:#000;}
+    .msg{margin-top:10px;font-size:9px;opacity:0.9;}
+    .loading{color:#ffd166;}
+    .error{color:#ff6b6b;}
+    .copied{color:#6bff9a;font-weight:700;}
+    .community-btn{
+      display:block;
+      margin:20px auto 10px;
+      padding:14px;
+      background:var(--cyan);
+      color:#000;
+      border-radius:12px;
+      font-weight:900;
+      font-size:12px;
+      text-decoration:none;
+      border:1px solid var(--cyan);
+    }
+    .community-btn:hover{background:#8ffefe;color:#000;}
+    @media (max-width:640px){
+      html,body{font-size:10px;}
+      h2{font-size:16px;}
+      .steps,.promo,.usernames,.btn{font-size:10px !important;}
+      .usernames{font-size:10px !important;}
+      .box{margin:12px;padding:20px 16px;}
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3"
+    };
+
+    const TG_LINK = "https://t.me/nftfanstokens";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 10 tweet templates; each expects 6 usernames in `u`
+    const TWEET_TEMPLATES = [
+      ({ u }) => `Hi, I mentioned you can claim 5B FREE $NFTFAN by dropping your EVM wallet 0x in this TG group: ${TG_LINK}. Dont forget to follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `You can claim 5B FREE $NFTFAN! Drop your EVM wallet (0x...) in the TG group ${TG_LINK} and make sure you follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `Claim 5B FREE $NFTFAN: join the TG group ${TG_LINK}, drop your EVM 0x wallet, and follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `5B FREE $NFTFAN is live. Drop your EVM wallet 0x in the TG group ${TG_LINK} + follow @nftfantoken to qualify.\n\n${u}`,
+      ({ u }) => `Reminder: claim 5B FREE $NFTFAN by submitting your EVM 0x wallet in the TG group ${TG_LINK}. Follow @nftfantoken too.\n\n${u}`,
+      ({ u }) => `If you want 5B FREE $NFTFAN, drop your EVM 0x wallet in the TG group ${TG_LINK} and follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `5B FREE $NFTFAN claim steps: (1) drop EVM wallet 0x in TG group ${TG_LINK} (2) follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `Claim alert: 5B FREE $NFTFAN. Post your EVM 0x wallet in the TG group ${TG_LINK} and don’t forget to follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `Get 5B FREE $NFTFAN now — add your EVM 0x wallet in the TG group ${TG_LINK} and follow @nftfantoken.\n\n${u}`,
+      ({ u }) => `Hi! To claim 5B FREE $NFTFAN, drop your EVM wallet (0x...) in the TG group ${TG_LINK} & follow @nftfantoken.\n\n${u}`
+    ];
+
+    const el = {
+      usernames: document.getElementById("usernames"),
+      tweetBox: document.getElementById("tweetBox"),
+      loading: document.getElementById("loading"),
+      error: document.getElementById("error"),
+      copied: document.getElementById("copied")
+    };
+
+    let lastTweetText = "";
+
+    const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    function buildTweet(usernamesList) {
+      const six = usernamesList.slice(0, 6).join(" ");
+      const template = pickRandom(TWEET_TEMPLATES);
+      return template({ u: six });
+    }
+
+    async function getUsernames() {
+      el.loading.style.display = "block";
+      el.error.textContent = "";
+      el.copied.style.display = "none";
+      el.usernames.textContent = "Fetching from Firebase…";
+      if (el.tweetBox) el.tweetBox.style.display = "none";
+
+      try {
+        const snap = await get(ref(db, "groups"));
+        if (!snap.exists()) throw new Error("No groups found");
+
+        const groups = snap.val();
+        const available = Object.entries(groups)
+          .filter(([_, g]) => g.status !== "done" && Array.isArray(g.usernames) && g.usernames.length > 0);
+
+        if (available.length === 0) {
+          el.usernames.textContent = "No more usernames available.";
+          el.loading.style.display = "none";
+          return;
+        }
+
+        let selected = [];
+        const usedKeys = [];
+
+        for (const [key, group] of available) {
+          if (selected.length >= 6) break;
+          selected.push(...group.usernames);
+          usedKeys.push(key);
+        }
+
+        selected = selected.slice(0, 6);
+
+        const updates = {};
+        usedKeys.forEach(k => updates[`groups/${k}/status`] = "done");
+        if (Object.keys(updates).length) await update(ref(db), updates);
+
+        el.usernames.textContent = selected.join(", ");
+
+        // Build random tweet
+        lastTweetText = buildTweet(selected);
+        if (el.tweetBox) {
+          el.tweetBox.textContent = lastTweetText;
+          el.tweetBox.style.display = "block";
+        }
+      } catch (err) {
+        el.error.textContent = "Error: " + err.message;
+        el.usernames.textContent = "";
+        lastTweetText = "";
+        if (el.tweetBox) el.tweetBox.style.display = "none";
+      }
+      el.loading.style.display = "none";
+    }
+
+    function copyAll() {
+      if (!lastTweetText) return;
+      navigator.clipboard.writeText(lastTweetText).then(() => {
+        el.copied.style.display = "inline";
+        setTimeout(() => el.copied.style.display = "none", 1500);
+      });
+    }
+
+    function shareOnX() {
+      if (!lastTweetText) return;
+      const url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(lastTweetText);
+      window.open(url, "_blank");
+    }
+
+    window.getUsernames = getUsernames;
+    window.copyAll = copyAll;
+    window.shareOnX = shareOnX;
+  </script>
+</head>
+<body>
+
+  <div class="box">
+    <h2>Get 6 Usernames</h2>
+
+    <div class="steps">
+      <b>How it works:</b><br>
+      1. Click <b>“Get Usernames”</b> → loads 6 fresh usernames<br>
+      2. A random tweet (from 10 templates) is built for you<br>
+      3. Click <b>“Copy Tweet”</b> or <b>“Share on X”</b><br>
+      4. Post in the <b>NFTFANS X Community</b> below<br>
+      5. Get rewarded instantly!
+    </div>
+
+    <div class="promo">
+      Claim 5b free $nftfan by @nftfanstoken here:<br>
+      <a href="https://www.nftfanstoken.com/checkb/" target="_blank">
+        https://www.nftfanstoken.com/checkb/
+      </a><br><br>
+      Telegram group: <a href="https://t.me/nftfanstokens" target="_blank">https://t.me/nftfanstokens</a>
+    </div>
+
+    <div class="usernames" id="usernames">
+      Press button to load usernames
+    </div>
+
+    <!-- Tweet preview/output -->
+    <div class="promo" id="tweetBox" style="display:none;"></div>
+
+    <div>
+      <button onclick="getUsernames()" class="btn primary"><span class="material-icons">refresh</span>Get Usernames</button>
+      <button onclick="copyAll()" class="btn"><span class="material-icons">content_copy</span>Copy Tweet</button>
+      <button onclick="shareOnX()" class="btn"><span class="material-icons">share</span>Share on X</button>
+    </div>
+
+    <div class="msg loading" id="loading" style="display:none;">Loading from Firebase…</div>
+    <div class="msg error" id="error"></div>
+    <div class="msg copied" id="copied" style="display:none;">Copied to clipboard!</div>
+
+    <a href="https://x.com/i/communities/1648665563332263936" target="_blank" class="community-btn">
+      Post Tweet in NFTFANS X Community
+    </a>
+  </div>
+
+</body>
+</html>
