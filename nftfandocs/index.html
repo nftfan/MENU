@@ -371,24 +371,24 @@
       }).join('');
   }
 
+  function parseNumberString(str) {
+    return str.split('.').map(part => parseInt(part, 10));
+  }
   function compareNumberString(a, b) {
-    if (!a.number) return 1;
-    if (!b.number) return -1;
-    const pa = a.number.split('.').map(Number);
-    const pb = b.number.split('.').map(Number);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const va = pa[i] !== undefined ? pa[i] : 0;
-      const vb = pb[i] !== undefined ? pb[i] : 0;
-      if (va !== vb) return va - vb;
+    const aParts = parseNumberString(a.number);
+    const bParts = parseNumberString(b.number);
+    const minLen = Math.min(aParts.length, bParts.length);
+    for (let i = 0; i < minLen; i++) {
+      if (aParts[i] !== bParts[i]) return aParts[i] - bParts[i];
     }
-    return 0;
+    return aParts.length - bParts.length;
   }
 
   function renderDocs(snapshot) {
     sidebarList.innerHTML = "";
     const data = snapshot.val();
 
-    // Filter: ONLY docs with label === "DOC" (case-insensitive, trimmed)
+    // Only docs with label === "DOC" (case-insensitive, trimmed) and number fields
     let docsArr = [];
     if (data) {
       docsArr = Object.entries(data)
@@ -396,10 +396,12 @@
         .filter(doc =>
           typeof doc.label === "string" &&
           doc.label.trim().toUpperCase() === "DOC" &&
+          typeof doc.number === "string" && doc.number.trim() !== "" &&
           typeof doc.title === "string" && doc.title.trim() !== "" &&
           typeof doc.imageUrl === "string" && doc.imageUrl.trim() !== "" &&
           typeof doc.description === "string" && doc.description.trim() !== ""
-        );
+        )
+        .sort(compareNumberString); // 1.1, 1.2, 2, 2.1 etc ascending
     }
 
     if (docsArr.length === 0) {
@@ -409,11 +411,8 @@
       docsEmpty.style.display = "none";
     }
 
-    // Sort by number if present
-    docsArr = docsArr.sort(compareNumberString);
-
-    // Sidebar (latest at top)
-    docsArr.slice().reverse().forEach((doc, idx, arrRev) => {
+    // Sidebar (top to bottom: 1.1 first, then 1.2, 2, ...)
+    docsArr.forEach((doc, idx) => {
       const li = document.createElement('li');
       li.className = idx === 0 ? 'active' : '';
       li.dataset.docId = doc.id;
@@ -422,14 +421,14 @@
       sidebarList.appendChild(li);
     });
 
-    // Show the first (latest) doc
-    showDoc(docsArr[docsArr.length - 1]);
+    // Show the first doc (top of list, i.e. 1.1 minimum)
+    showDoc(docsArr[0]);
 
-    Array.from(sidebarList.children).forEach((li, i, arr) => {
+    Array.from(sidebarList.children).forEach((li, i) => {
       li.addEventListener('click', () => {
         Array.from(sidebarList.children).forEach(l => l.classList.remove('active'));
         li.classList.add('active');
-        showDoc(docsArr[arr.length-1-i]);
+        showDoc(docsArr[i]);
       });
     });
   }
