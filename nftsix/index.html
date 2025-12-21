@@ -88,7 +88,7 @@
       width:100%;aspect-ratio:1/1;background:#000;border:1px solid #111;
       display:flex;align-items:center;justify-content:center;margin-bottom:6px;position:relative;
     }
-    .frame img{width:100%;height:100%;object-fit:contain;}
+    .frame img, .frame video{width:100%;height:100%;object-fit:contain;display:block;}
     .info-row{display:flex;justify-content:space-between;align-items:center;padding-left:4px;margin-bottom:4px;border-left:2px solid #00f0ff44;}
     .title{font-weight:bold;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
     .price{color:#8df7ff;}
@@ -216,20 +216,25 @@
       connectBtn.disabled = true;
       setStatus("INITIALIZING UPLINK...");
       try { await ensureWallet(); setStatus("CONNECTION ESTABLISHED","ok"); connectBtn.textContent = "CONNECTED"; }
-      catch(e){ console.error(e); }
+      catch(e){ 
+        console.error(e); 
+        addrEl.innerHTML = `<i class="material-icons-round">link_off</i><span>DISCONNECTED</span>`;
+        setStatus("CONNECTION FAILED","err");
+        connectBtn.textContent = "LINK START";
+      }
       finally{ connectBtn.disabled = false; }
     });
 
     async function mint(tokenURI, pricePol) {
       if (!tokenURI) return setStatus("ERR: NULL URI DATA","err");
-      if (!pricePol) return setStatus("ERR: PRICE MISSING","err");
+      if (typeof pricePol === "undefined" || pricePol === null || pricePol === "") return setStatus("ERR: PRICE MISSING","err");
       let priceWei;
       try { priceWei = ethers.parseEther(pricePol.toString()); }
       catch { return setStatus("ERR: BAD PRICE FORMAT","err"); }
       setStatus("AWAITING BIO-SIG (WALLET)...");
       try {
         await ensureWallet();
-        const tx = await contract.mint(tokenURI, priceWei, { value: priceWei });
+        const tx = await contract.mint(tokenURI, priceWei, { value: priceWei, gasLimit: 500000 }); // Increased gas limit
         setStatus("TX PENDING... STANDBY");
         await tx.wait();
         setStatus("MINT CONFIRMED. ASSET SECURED.","ok");
@@ -237,8 +242,25 @@
         renderList(); // refresh buttons
       } catch (err) {
         console.error(err);
-        setStatus("TX FAILED / REJECTED","err");
+        if (err && err.message) {
+          setStatus("TX FAILED: " + err.message, "err");
+        } else {
+          setStatus("TX FAILED / REJECTED","err");
+        }
       }
+    }
+
+    /**
+     * Check if string is probably a video url by extension
+     */
+    function isLikelyVideo(url) {
+      if (!url) return false;
+      // handled extensions (covers most common video types)
+      const videoExts = ['.mp4', '.webm', '.ogg', '.mov', '.m4v'];
+      const lower = url.split('?')[0].toLowerCase();
+      return videoExts.some(ext => lower.endsWith(ext))
+        || lower.includes('video')
+        || (lower.startsWith('https://coming-blush-wolverine.myfilebase.com/ipfs/') && !/\.(png|jpg|jpeg|gif|svg|webp)\b/i.test(lower));
     }
 
     function renderCard(id, data) {
@@ -247,14 +269,30 @@
 
       const frame = document.createElement('div');
       frame.className = 'frame';
-      const img = document.createElement('img');
-      img.src = data.imageUrl || '';
-      img.alt = 'ASSET';
-      frame.appendChild(img);
+      // Render image or video
+      const url = data.imageUrl || '';
+      if (isLikelyVideo(url)) {
+        const video = document.createElement('video');
+        video.src = url;
+        video.setAttribute('controls', 'controls');
+        video.setAttribute('playsinline', 'playsinline');
+        video.setAttribute('preload', 'metadata');
+        video.style.background = "#101010";
+        card.style.overflow = "hidden";
+        // Optionally, autoload poster if provided as data.posterUrl
+        if (data.posterUrl) video.setAttribute('poster', data.posterUrl);
+        frame.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'ASSET';
+        frame.appendChild(img);
+      }
       card.appendChild(frame);
 
       const info = document.createElement('div');
       info.className = 'info-row';
+
       const title = document.createElement('div');
       title.className = 'title';
       title.textContent = (data.title || 'UNKNOWN').toUpperCase();
@@ -262,17 +300,17 @@
 
       const price = document.createElement('div');
       price.className = 'price';
-      const displayPrice = data.price ? `${data.price} POL` : "? POL";
+      const displayPrice = (typeof data.price !== "undefined" && data.price !== null && data.price !== "") ? `${data.price} POL` : "? POL";
       price.textContent = displayPrice;
       info.appendChild(price);
       card.appendChild(info);
 
       const btn = document.createElement('button');
       btn.className = 'btn btn-mint';
-      const already = mintedMap.get(data.imageUrl || "") === true;
+      const already = mintedMap.get(url) === true;
       btn.textContent = already ? 'MINTED' : 'MINT ASSET';
       btn.disabled = already;
-      btn.onclick = () => !already && mint(data.imageUrl || "", data.price);
+      btn.onclick = () => !already && mint(url, data.price);
       card.appendChild(btn);
 
       return card;
