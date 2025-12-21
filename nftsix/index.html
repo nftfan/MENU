@@ -215,7 +215,11 @@
     connectBtn.addEventListener('click', async () => {
       connectBtn.disabled = true;
       setStatus("INITIALIZING UPLINK...");
-      try { await ensureWallet(); setStatus("CONNECTION ESTABLISHED","ok"); connectBtn.textContent = "CONNECTED"; }
+      try { 
+        await ensureWallet(); 
+        setStatus("CONNECTION ESTABLISHED","ok"); 
+        connectBtn.textContent = "CONNECTED"; 
+      }
       catch(e){ 
         console.error(e); 
         addrEl.innerHTML = `<i class="material-icons-round">link_off</i><span>DISCONNECTED</span>`;
@@ -225,37 +229,73 @@
       finally{ connectBtn.disabled = false; }
     });
 
+    // Updated mint function to prevent "unknown transaction" and provide readable errors
     async function mint(tokenURI, pricePol) {
-      if (!tokenURI) return setStatus("ERR: NULL URI DATA","err");
-      if (typeof pricePol === "undefined" || pricePol === null || pricePol === "") return setStatus("ERR: PRICE MISSING","err");
+      // Defensive check for arguments
+      if (!tokenURI) {
+        setStatus("ERR: NULL URI DATA", "err");
+        return;
+      }
+      if (typeof pricePol === "undefined" || pricePol === null || pricePol === "" || isNaN(Number(pricePol)) || Number(pricePol) <= 0) {
+        setStatus("ERR: MISSING OR BAD PRICE", "err");
+        return;
+      }
+
+      setStatus("CHECKING NFT MINT STATUS...");
+      try {
+        const minted = await readContract.isMintedURI(tokenURI);
+        if (minted) {
+          setStatus("ALREADY MINTED", "err");
+          mintedMap.set(tokenURI, true);
+          renderList();
+          return;
+        }
+      } catch (e) {
+        setStatus("ERR: COULD NOT VERIFY NFT STATUS", "err");
+        return;
+      }
+
       let priceWei;
-      try { priceWei = ethers.parseEther(pricePol.toString()); }
-      catch { return setStatus("ERR: BAD PRICE FORMAT","err"); }
-      setStatus("AWAITING BIO-SIG (WALLET)...");
+      try {
+        priceWei = ethers.parseEther(pricePol.toString());
+      } catch (e) {
+        setStatus("ERR: BAD PRICE FORMAT", "err");
+        return;
+      }
+
+      setStatus("AWAITING WALLET SIGNATURE...");
       try {
         await ensureWallet();
-        const tx = await contract.mint(tokenURI, priceWei, { value: priceWei, gasLimit: 500000 }); // Increased gas limit
+        if (!signer) throw new Error("Signer missing from Web3");
+
+        // Defensive: always connect contract to signer
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        // Estimate gas
+        let gasLimit = 400000;
+        try {
+          gasLimit = await contract.mint.estimateGas(tokenURI, priceWei, { value: priceWei });
+          gasLimit = Math.floor(Number(gasLimit) * 1.25);
+        } catch (e) {}
+
+        const tx = await contract.mint(tokenURI, priceWei, { value: priceWei, gasLimit });
         setStatus("TX PENDING... STANDBY");
         await tx.wait();
-        setStatus("MINT CONFIRMED. ASSET SECURED.","ok");
+        setStatus("MINT CONFIRMED. ASSET SECURED.", "ok");
         mintedMap.set(tokenURI, true);
-        renderList(); // refresh buttons
+        renderList();
       } catch (err) {
-        console.error(err);
-        if (err && err.message) {
-          setStatus("TX FAILED: " + err.message, "err");
-        } else {
-          setStatus("TX FAILED / REJECTED","err");
-        }
+        // Enhanced readable error feedback
+        console.error("Mint error:", err);
+        let errorMsg = err?.info?.error?.message || err?.error?.message || err?.message || "TX FAILED / REJECTED";
+        if (errorMsg.includes("Minted")) errorMsg = "NFT ALREADY MINTED";
+        setStatus(errorMsg, "err");
       }
     }
 
-    /**
-     * Check if string is probably a video url by extension
-     */
+    // Helper to detect if url is a video
     function isLikelyVideo(url) {
       if (!url) return false;
-      // handled extensions (covers most common video types)
       const videoExts = ['.mp4', '.webm', '.ogg', '.mov', '.m4v'];
       const lower = url.split('?')[0].toLowerCase();
       return videoExts.some(ext => lower.endsWith(ext))
@@ -269,7 +309,6 @@
 
       const frame = document.createElement('div');
       frame.className = 'frame';
-      // Render image or video
       const url = data.imageUrl || '';
       if (isLikelyVideo(url)) {
         const video = document.createElement('video');
@@ -279,7 +318,6 @@
         video.setAttribute('preload', 'metadata');
         video.style.background = "#101010";
         card.style.overflow = "hidden";
-        // Optionally, autoload poster if provided as data.posterUrl
         if (data.posterUrl) video.setAttribute('poster', data.posterUrl);
         frame.appendChild(video);
       } else {
@@ -310,7 +348,7 @@
       const already = mintedMap.get(url) === true;
       btn.textContent = already ? 'MINTED' : 'MINT ASSET';
       btn.disabled = already;
-      btn.onclick = () => !already && mint(url, data.price);
+      btn.onclick = () => !already && mint(url, String(data.price));
       card.appendChild(btn);
 
       return card;
