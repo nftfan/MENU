@@ -44,7 +44,7 @@
       background:#06070a;
     }
 
-    /* Bottom panel with sleek title, table, color control, and buttons */
+    /* Bottom panel with sleek title, color control, buttons, and table */
     .panel{
       box-sizing:border-box;
       width:100%;
@@ -134,6 +134,30 @@
       -webkit-tap-highlight-color:transparent;
     }
 
+    /* Controls ABOVE the table */
+    .controls{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+    }
+    .btn{
+      flex:1 1 0%;
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:10px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#11131a;
+      color:#e8f6ff;
+      font-size:12px;font-weight:800;
+      cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#001015;
+      border:1px solid transparent;
+    }
+    .btn .material-icons{font-size:18px;line-height:1;}
+
     .latest{
       margin-top:12px;
       border:1px solid var(--border);
@@ -174,7 +198,7 @@
     .dot{
       width:6px;height:6px;border-radius:50%;
       flex:0 0 auto;
-      border:1px solid #17d9b6;
+      border:1px solid transparent;
     }
     .nameText{
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -184,29 +208,6 @@
       color:#b8d1ea;
       font-size:11px;
     }
-
-    .controls{
-      margin-top:10px;
-      display:flex;
-      gap:10px;
-    }
-    .btn{
-      flex:1 1 0%;
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      padding:10px 10px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      background:#11131a;
-      color:#e8f6ff;
-      font-size:12px;font-weight:800;
-      cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
-    }
-    .btn.primary{
-      background:linear-gradient(135deg, var(--accent), var(--accent2));
-      color:#001015;
-      border:1px solid transparent;
-    }
-    .btn .material-icons{font-size:18px;line-height:1;}
 
     .toast{
       margin-top:10px;
@@ -238,7 +239,7 @@
       box-shadow:none;
     }
     .agent-label .name{font-weight:900;color:#e5f3ff;}
-    .agent-label .country{color:var(--sub);font-size:8px;}
+    .agent-label .country{color:#8eaccb;font-size:8px;}
     .agent-label .flag{margin-right:4px;}
     .labels-hidden .leaflet-tooltip{display:none !important;}
   </style>
@@ -248,7 +249,7 @@
   <!-- Top: Map (half screen) -->
   <div id="map" role="application" aria-label="World map of NFT FANS agents"></div>
 
-  <!-- Bottom: Sleek title, color control, latest table, and buttons under the map -->
+  <!-- Bottom: Sleek title, color control, buttons ABOVE table, and table -->
   <section class="panel">
     <div class="bar">
       <div class="brand">
@@ -269,6 +270,19 @@
       </button>
     </div>
 
+    <!-- Buttons ABOVE the table -->
+    <div class="controls" aria-label="Actions">
+      <button id="btnJoin" class="btn primary">
+        <span class="material-icons" aria-hidden="true">group_add</span>
+        Join
+      </button>
+      <button id="btnLocate" class="btn" title="Go to my location" aria-label="Go to my location">
+        <span class="material-icons" aria-hidden="true">my_location</span>
+        My Location
+      </button>
+    </div>
+
+    <!-- Latest agents table -->
     <div class="latest" aria-label="Latest agents">
       <div class="latest-header">Latest agents</div>
       <table aria-describedby="Latest agents joining and their country">
@@ -282,17 +296,6 @@
           <!-- rows injected -->
         </tbody>
       </table>
-    </div>
-
-    <div class="controls" aria-label="Actions">
-      <button id="btnJoin" class="btn primary">
-        <span class="material-icons" aria-hidden="true">group_add</span>
-        Join
-      </button>
-      <button id="btnLocate" class="btn" title="Go to my location" aria-label="Go to my location">
-        <span class="material-icons" aria-hidden="true">my_location</span>
-        My Location
-      </button>
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -355,6 +358,13 @@
     map.setView([20, 0], 2);
     window.addEventListener('resize', () => map.invalidateSize(), { passive: true });
 
+    // Create a dedicated pane for lines so they render behind markers
+    map.createPane('linesPane');
+    map.getPane('linesPane').style.zIndex = 399;
+
+    // Group to manage connection lines
+    const linesGroup = L.layerGroup().addTo(map);
+
     // UI helpers
     const toastEl = document.getElementById('toast');
     function toast(msg, ms = 2800) {
@@ -401,10 +411,10 @@
       if(markers.has(key)){
         const rec = markers.get(key);
         rec.dot.setLatLng(pos);
-        rec.dot.setStyle({ color, fillColor: color });
+        rec.dot.setStyle({ color, fillColor: color, opacity: 0.9, fillOpacity: 0.95 });
         if(rec.dot.getTooltip()) rec.dot.setTooltipContent(html);
         rec.circle.setLatLng(pos);
-        rec.circle.setStyle({ color, fillColor: color });
+        rec.circle.setStyle({ color, fillColor: color, opacity: 0.6, fillOpacity: 0.08 });
       } else {
         const dot = L.circleMarker(pos, {
           radius: DOT_RADIUS,
@@ -443,20 +453,68 @@
       }
     }
 
-    // Live sync agents on map and latest table
+    // Store for all agents (for connection lines)
+    const agentsStore = new Map(); // key -> {lat,lng,color,createdAt,updatedAt,displayName,countryName,countryCode}
+
+    function upsertStore(key, data){
+      if(!data || typeof data.lat !== "number" || typeof data.lng !== "number") return;
+      agentsStore.set(key, {
+        lat: data.lat,
+        lng: data.lng,
+        color: data.color || DEFAULT_COLOR,
+        createdAt: data.createdAt || 0,
+        updatedAt: data.updatedAt || 0,
+        displayName: data.displayName || "NFT FANS AGENT",
+        countryName: data.countryName || "Unknown",
+        countryCode: data.countryCode || ""
+      });
+      recomputeLines();
+    }
+    function removeFromStore(key){
+      agentsStore.delete(key);
+      recomputeLines();
+    }
+
+    // Connect each dot to the next one, line colored by previous dot's color
+    function recomputeLines(){
+      linesGroup.clearLayers();
+      const arr = Array.from(agentsStore.values())
+        .sort((a,b) => (a.createdAt || a.updatedAt || 0) - (b.createdAt || b.updatedAt || 0));
+      for(let i=0; i < arr.length - 1; i++){
+        const a = arr[i];
+        const b = arr[i+1];
+        const line = L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
+          color: a.color || DEFAULT_COLOR,
+          weight: 2,
+          opacity: 0.7,
+          pane: 'linesPane'
+        });
+        line.addTo(linesGroup);
+      }
+    }
+
+    // Live sync agents on map, table, and lines
     onChildAdded(agentsRef, (snap) => {
       const key = snap.key, data = snap.val();
-      if(data && typeof data.lat === "number" && typeof data.lng === "number") upsertMarker(key, data);
+      if(data && typeof data.lat === "number" && typeof data.lng === "number"){
+        upsertMarker(key, data);
+        upsertStore(key, data);
+      }
       upsertLatest(key, data);
     });
     onChildChanged(agentsRef, (snap) => {
       const key = snap.key, data = snap.val();
-      if(data && typeof data.lat === "number" && typeof data.lng === "number") upsertMarker(key, data);
+      if(data && typeof data.lat === "number" && typeof data.lng === "number"){
+        upsertMarker(key, data);
+        upsertStore(key, data);
+      }
       upsertLatest(key, data);
     });
     onChildRemoved(agentsRef, (snap) => {
-      removeMarker(snap.key);
-      removeLatest(snap.key);
+      const key = snap.key;
+      removeMarker(key);
+      removeLatest(key);
+      removeFromStore(key);
     });
 
     // Geo helpers and proximity rule (no new joins within 50m)
@@ -508,7 +566,7 @@
       return { countryName: data.countryName || "Unknown", countryCode: data.countryCode || "" };
     }
 
-    // Buttons
+    // Buttons and color handling
     const btnJoin = document.getElementById('btnJoin');
     const btnLocate = document.getElementById('btnLocate');
     const colorPicker = document.getElementById('colorPicker');
@@ -674,17 +732,24 @@
       }).join("");
     }
 
-    // Initial fetch of latest (by createdAt)
-    (async function initLatest(){
+    // Initial fetch of latest (by createdAt) and populate store for lines
+    (async function initData(){
       try{
-        const qLatest = query(agentsRef, orderByChild("createdAt"), limitToLast(20));
-        const snap = await get(qLatest);
+        const snap = await get(agentsRef);
         snap.forEach(child => {
-          latestMap.set(child.key, child.val());
+          const data = child.val();
+          if(data){
+            upsertStore(child.key, data);
+            upsertLatest(child.key, data);
+            if(typeof data.lat === "number" && typeof data.lng === "number"){
+              upsertMarker(child.key, data);
+            }
+          }
         });
         renderLatest();
+        recomputeLines();
       }catch(e){
-        console.warn("Failed to load latest agents", e);
+        console.warn("Failed to load agents", e);
       }
     })();
 
