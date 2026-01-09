@@ -27,8 +27,6 @@
       --border:rgba(160,210,255,0.25);
       --panel:#0f1218;
       --label:#0e1018;
-      --dot:#00ffd5;
-      --neon:#23ffd5;
     }
     html,body{
       height:100%;
@@ -46,7 +44,7 @@
       background:#06070a;
     }
 
-    /* Bottom panel with sleek title, table, and buttons */
+    /* Bottom panel with sleek title, table, color control, and buttons */
     .panel{
       box-sizing:border-box;
       width:100%;
@@ -90,42 +88,52 @@
       white-space:nowrap;
     }
 
-    .controls{
+    /* Color picker row */
+    .colorRow{
       margin-top:10px;
       display:flex;
+      align-items:center;
       gap:10px;
     }
-    .btn{
-      flex:1 1 0%;
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      padding:10px 10px;
+    .colorPickerWrap{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:6px 8px;
+      background:#0c0f16;
+      flex:1 1 auto;
+    }
+    .colorLabel{
+      font-size:11px;
+      color:#9fb9d4;
+    }
+    #colorPicker{
+      width:36px;
+      height:24px;
+      padding:0;
+      border:1px solid var(--border);
+      border-radius:6px;
+      background:#0c0f16;
+      cursor:pointer;
+    }
+    .btnMini{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 10px;
       border-radius:10px;
       border:1px solid var(--border);
       background:#11131a;
       color:#e8f6ff;
-      font-size:12px;font-weight:800;
-      text-decoration:none;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
-    }
-    .btn.primary{
-      background:linear-gradient(135deg, var(--accent), var(--accent2));
-      color:#001015;
-      border:1px solid transparent;
-    }
-    .btn .material-icons{font-size:18px;line-height:1;}
-
-    .toast{
-      margin-top:10px;
-      background:var(--label);
-      color:#e6f7ff;
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:8px 10px;
       font-size:12px;
-      display:none;
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
     }
-    .toast.show{display:block;}
 
-    /* Latest agents table */
     .latest{
       margin-top:12px;
       border:1px solid var(--border);
@@ -165,9 +173,8 @@
     }
     .dot{
       width:6px;height:6px;border-radius:50%;
-      background:var(--neon);
-      border:1px solid #17d9b6;
       flex:0 0 auto;
+      border:1px solid #17d9b6;
     }
     .nameText{
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -178,20 +185,45 @@
       font-size:11px;
     }
 
-    /* Leaflet dark UI, no shadows */
-    .leaflet-container{background:#06070a;}
-    .leaflet-control-attribution,
-    .leaflet-control-scale{
-      background:rgba(10,12,18,0.6) !important;
-      color:#9fb9d4 !important;
+    .controls{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+    }
+    .btn{
+      flex:1 1 0%;
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:10px 10px;
+      border-radius:10px;
       border:1px solid var(--border);
-      border-radius:8px;
-      padding:2px 6px;
+      background:#11131a;
+      color:#e8f6ff;
+      font-size:12px;font-weight:800;
+      cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
     }
-    .leaflet-control-zoom a{
-      background:#0f1218;color:#cfeaff;border:1px solid var(--border);
-      box-shadow:none;
+    .btn.primary{
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#001015;
+      border:1px solid transparent;
     }
+    .btn .material-icons{font-size:18px;line-height:1;}
+
+    .toast{
+      margin-top:10px;
+      background:var(--label);
+      color:#e6f7ff;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      display:none;
+    }
+    .toast.show{display:block;}
+
+    /* Leaflet dark UI: remove watermark and zoom buttons */
+    .leaflet-container{background:#06070a;}
+    .leaflet-control-attribution{ display:none !important; } /* hide watermark */
+    .leaflet-control-zoom{ display:none !important; }        /* hide zoom buttons */
 
     /* Micro labels (max 8px) + hide at low zoom */
     .agent-label{
@@ -216,7 +248,7 @@
   <!-- Top: Map (half screen) -->
   <div id="map" role="application" aria-label="World map of NFT FANS agents"></div>
 
-  <!-- Bottom: Sleek title, latest table, and buttons under the map -->
+  <!-- Bottom: Sleek title, color control, latest table, and buttons under the map -->
   <section class="panel">
     <div class="bar">
       <div class="brand">
@@ -224,6 +256,17 @@
         <div class="title">NFT FANS WORLD</div>
       </div>
       <div class="hint">Join the map — be an Agent</div>
+    </div>
+
+    <div class="colorRow">
+      <div class="colorPickerWrap">
+        <span class="colorLabel">Dot & Agent area color</span>
+        <input type="color" id="colorPicker" value="#23ffd5" aria-label="Choose dot color" />
+      </div>
+      <button id="btnApplyColor" class="btnMini" title="Apply color to my agent">
+        <span class="material-icons" aria-hidden="true" style="font-size:18px;">palette</span>
+        Apply
+      </button>
     </div>
 
     <div class="latest" aria-label="Latest agents">
@@ -288,10 +331,13 @@
     const agentsRef = ref(db, "agents");
     const counterRef = ref(db, "counters/agents");
 
-    // Map setup: dark, no wrap (map shows only once)
+    const DEFAULT_COLOR = "#23ffd5";
+
+    // Map setup: dark, no wrap (map shows only once), remove watermark & zoom buttons
     const worldBounds = L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180));
     const map = L.map('map', {
-      zoomControl: true,
+      zoomControl: false,        // hide zoom buttons
+      attributionControl: false, // hide bottom-right watermark
       minZoom: 2,
       maxZoom: 19,
       maxBounds: worldBounds,
@@ -301,9 +347,6 @@
     const tiles = L.tileLayer(
       "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
       {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-          'contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
         noWrap: true,
         bounds: worldBounds
@@ -347,25 +390,28 @@
     map.on('zoomend', refreshLabelVisibility);
     refreshLabelVisibility();
 
-    // Markers and Agent area (50m circle)
+    // Markers and Agent area (50m circle), both use agent.color
     const DOT_RADIUS = 3;
     const markers = new Map(); // key -> { dot, circle }
     function upsertMarker(key, agent){
       const pos = [agent.lat, agent.lng];
       const html = buildLabel(agent);
+      const color = agent.color || DEFAULT_COLOR;
 
       if(markers.has(key)){
         const rec = markers.get(key);
         rec.dot.setLatLng(pos);
+        rec.dot.setStyle({ color, fillColor: color });
         if(rec.dot.getTooltip()) rec.dot.setTooltipContent(html);
         rec.circle.setLatLng(pos);
+        rec.circle.setStyle({ color, fillColor: color });
       } else {
         const dot = L.circleMarker(pos, {
           radius: DOT_RADIUS,
-          color: "#23ffd5",
+          color: color,
           weight: 1,
           opacity: 0.9,
-          fillColor: "#00ffd5",
+          fillColor: color,
           fillOpacity: 0.95
         }).addTo(map);
 
@@ -378,10 +424,10 @@
 
         const circle = L.circle(pos, {
           radius: 50,              // 50 meters
-          color: "#23ffd5",
+          color: color,
           weight: 1,
           opacity: 0.6,
-          fillColor: "#00ffd5",
+          fillColor: color,
           fillOpacity: 0.08
         }).addTo(map);
 
@@ -397,7 +443,7 @@
       }
     }
 
-    // Live sync agents on map
+    // Live sync agents on map and latest table
     onChildAdded(agentsRef, (snap) => {
       const key = snap.key, data = snap.val();
       if(data && typeof data.lat === "number" && typeof data.lng === "number") upsertMarker(key, data);
@@ -413,7 +459,7 @@
       removeLatest(snap.key);
     });
 
-    // Geo helpers
+    // Geo helpers and proximity rule (no new joins within 50m)
     function getCurrentPosition(options = { enableHighAccuracy:true, timeout:15000, maximumAge:0 }){
       return new Promise((resolve, reject) => {
         if(!navigator.geolocation){ reject(new Error("Geolocation not supported")); return; }
@@ -465,6 +511,33 @@
     // Buttons
     const btnJoin = document.getElementById('btnJoin');
     const btnLocate = document.getElementById('btnLocate');
+    const colorPicker = document.getElementById('colorPicker');
+    const btnApplyColor = document.getElementById('btnApplyColor');
+
+    // Load preferred color
+    const savedColor = localStorage.getItem("nftFansColor");
+    if(savedColor) colorPicker.value = savedColor;
+    colorPicker.addEventListener('input', () => {
+      localStorage.setItem("nftFansColor", colorPicker.value);
+    });
+
+    btnApplyColor.addEventListener('click', async () => {
+      const key = localStorage.getItem("nftFansAgentKey");
+      const color = colorPicker.value || DEFAULT_COLOR;
+      localStorage.setItem("nftFansColor", color);
+
+      if(!key){
+        toast("Color saved locally. Join to publish your color.");
+        return;
+      }
+      try{
+        await update(child(agentsRef, key), { color, updatedAt: serverTimestamp() });
+        toast("Dot color updated.");
+      }catch(e){
+        console.error(e);
+        toast("Failed to update color.");
+      }
+    });
 
     btnLocate.addEventListener('click', async () => {
       try{
@@ -501,6 +574,8 @@
         let country = { countryName: "Unknown", countryCode: "" };
         try{ country = await reverseGeocodeCountry(lat, lng); }catch{}
 
+        const color = colorPicker.value || DEFAULT_COLOR;
+
         let agentKey = existingKey;
         let displayName, seqNumber;
 
@@ -519,11 +594,13 @@
             seq: seqNumber,
             countryName: country.countryName,
             countryCode: country.countryCode,
+            color,
             lat, lng,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
           localStorage.setItem("nftFansAgentKey", agentKey);
+          localStorage.setItem("nftFansColor", color);
           toast("Welcome, Agent! You are on the map.");
         } else {
           // Update existing agent (allowed even if near others)
@@ -538,9 +615,11 @@
             seq: seqNumber,
             countryName: country.countryName,
             countryCode: country.countryCode,
+            color,
             lat, lng,
             updatedAt: serverTimestamp()
           });
+          localStorage.setItem("nftFansColor", color);
           toast("Location updated.");
         }
 
@@ -557,9 +636,7 @@
     const latestBody = document.getElementById('latestBody');
     const latestMap = new Map(); // key -> data
 
-    function flagEmoji(cc){
-      return countryCodeToEmoji(cc);
-    }
+    function flagEmoji(cc){ return countryCodeToEmoji(cc); }
 
     function upsertLatest(key, data){
       if(!data) return;
@@ -580,11 +657,12 @@
         const f = flagEmoji(a.countryCode || "");
         const name = a.displayName || "NFT FANS AGENT";
         const country = a.countryName || "Unknown";
+        const color = a.color || DEFAULT_COLOR;
         return `
           <tr>
             <td>
               <div class="agent-cell">
-                <span class="dot" aria-hidden="true"></span>
+                <span class="dot" aria-hidden="true" style="background:${color}; border-color:${color};"></span>
                 <span class="nameText">${name}</span>
               </div>
             </td>
