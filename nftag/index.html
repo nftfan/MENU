@@ -475,21 +475,69 @@
       recomputeLines();
     }
 
-    // Connect each dot to the next one, line colored by previous dot's color
+    // ---------- Non-crossing connections via Euclidean Minimum Spanning Tree (Prim's algorithm) ----------
+    // MST is planar (no edges cross), so drawing MST edges guarantees no line cuts another line.
     function recomputeLines(){
       linesGroup.clearLayers();
-      const arr = Array.from(agentsStore.values())
-        .sort((a,b) => (a.createdAt || a.updatedAt || 0) - (b.createdAt || b.updatedAt || 0));
-      for(let i=0; i < arr.length - 1; i++){
-        const a = arr[i];
-        const b = arr[i+1];
-        const line = L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
-          color: a.color || DEFAULT_COLOR,
-          weight: 2,
-          opacity: 0.7,
-          pane: 'linesPane'
-        });
-        line.addTo(linesGroup);
+      const nodes = Array.from(agentsStore.entries()).map(([key, v]) => ({
+        key, lat: v.lat, lng: v.lng, color: v.color
+      }));
+
+      const n = nodes.length;
+      if(n < 2) return;
+
+      // Prim's algorithm on squared Euclidean distance in lat/lng space
+      const inMST = Array(n).fill(false);
+      const minCost = Array(n).fill(Infinity);
+      const parent = Array(n).fill(-1);
+
+      // Start from node 0
+      minCost[0] = 0;
+
+      function dist2(i, j){
+        const dx = nodes[i].lat - nodes[j].lat;
+        const dy = nodes[i].lng - nodes[j].lng;
+        return dx*dx + dy*dy;
+      }
+
+      for(let k = 0; k < n; k++){
+        // pick the non-MST node with minimum cost
+        let u = -1, best = Infinity;
+        for(let i = 0; i < n; i++){
+          if(!inMST[i] && minCost[i] < best){
+            best = minCost[i];
+            u = i;
+          }
+        }
+        if(u === -1) break; // disconnected safeguard
+        inMST[u] = true;
+
+        // update costs for neighbors
+        for(let v = 0; v < n; v++){
+          if(!inMST[v]){
+            const d2 = dist2(u, v);
+            if(d2 < minCost[v]){
+              minCost[v] = d2;
+              parent[v] = u;
+            }
+          }
+        }
+      }
+
+      // Draw MST edges
+      for(let v = 0; v < n; v++){
+        const u = parent[v];
+        if(u !== -1){
+          const a = nodes[u];
+          const b = nodes[v];
+          const line = L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
+            color: a.color || DEFAULT_COLOR, // color by source node (parent)
+            weight: 2,
+            opacity: 0.7,
+            pane: 'linesPane'
+          });
+          line.addTo(linesGroup);
+        }
       }
     }
 
@@ -732,7 +780,7 @@
       }).join("");
     }
 
-    // Initial fetch of latest (by createdAt) and populate store for lines
+    // Initial fetch of agents and populate store/markers
     (async function initData(){
       try{
         const snap = await get(agentsRef);
