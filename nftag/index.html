@@ -158,19 +158,53 @@
     }
     .btn .material-icons{font-size:18px;line-height:1;}
 
-    .latest{
+    .list-container{
       margin-top:12px;
       border:1px solid var(--border);
       border-radius:10px;
       overflow:hidden;
+      display:flex;
+      flex-direction:column;
     }
-    .latest-header{
-      padding:6px 8px;
-      font-size:10px;
-      color:var(--sub);
+    /* Tab Headers */
+    .tabs{
+      display:flex;
       background:#0c0f16;
       border-bottom:1px solid var(--border);
     }
+    .tab-btn{
+      flex:1;
+      padding:8px;
+      font-size:10px;
+      color:var(--sub);
+      text-align:center;
+      cursor:pointer;
+      font-weight:700;
+      background:transparent;
+      border:none;
+      border-bottom:2px solid transparent;
+    }
+    .tab-btn.active{
+      color:var(--accent);
+      border-bottom-color:var(--accent);
+      background:rgba(0,229,255,0.05);
+    }
+
+    /* Tab Content Areas */
+    .tab-content{
+      display:none;
+    }
+    .tab-content.active{
+      display:block;
+    }
+
+    /* Grand total row style */
+    .grand-total-row td {
+        font-weight: 800;
+        color: var(--accent);
+        border-top: 2px solid var(--border);
+    }
+
     table{
       width:100%;
       border-collapse:collapse;
@@ -282,20 +316,45 @@
       </button>
     </div>
 
-    <!-- Latest agents table -->
-    <div class="latest" aria-label="Latest agents">
-      <div class="latest-header">Latest agents</div>
-      <table aria-describedby="Latest agents joining and their country">
-        <thead>
-          <tr>
-            <th style="width:58%">Agent</th>
-            <th style="width:42%">Country</th>
-          </tr>
-        </thead>
-        <tbody id="latestBody">
-          <!-- rows injected -->
-        </tbody>
-      </table>
+    <!-- Tabbed List Container -->
+    <div class="list-container" aria-label="Agents lists">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="latest">Latest Agents</button>
+        <button class="tab-btn" data-tab="country">By Country</button>
+      </div>
+
+      <!-- Tab 1: Latest Agents -->
+      <div id="tab-latest" class="tab-content active">
+        <table aria-describedby="Latest agents joining and their country">
+            <thead>
+            <tr>
+                <th style="width:58%">Agent</th>
+                <th style="width:42%">Country</th>
+            </tr>
+            </thead>
+            <tbody id="latestBody">
+            <!-- rows injected -->
+            </tbody>
+        </table>
+      </div>
+
+      <!-- Tab 2: By Country -->
+      <div id="tab-country" class="tab-content">
+        <table aria-describedby="Agents grouped by country">
+            <thead>
+            <tr>
+                <th style="width:70%">Country</th>
+                <th style="width:30%; text-align:right;">Users</th>
+            </tr>
+            </thead>
+            <tbody id="countryBody">
+            <!-- rows injected -->
+            </tbody>
+            <tfoot id="countryFoot">
+                <!-- Grand total injected here -->
+            </tfoot>
+        </table>
+      </div>
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -469,10 +528,12 @@
         countryCode: data.countryCode || ""
       });
       recomputeLines();
+      renderCountryStats(); // Refresh stats whenever data updates
     }
     function removeFromStore(key){
       agentsStore.delete(key);
       recomputeLines();
+      renderCountryStats(); // Refresh stats whenever data updates
     }
 
     // ---------- Non-crossing connections via Euclidean Minimum Spanning Tree (Prim's algorithm) ----------
@@ -738,6 +799,23 @@
       }
     });
 
+    // ========== Tabs Handling ==========
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // remove active from all
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+
+        // add active to clicked
+        btn.classList.add('active');
+        const tabId = `tab-${btn.dataset.tab}`;
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
     // ========== Latest agents (table) ==========
     const latestBody = document.getElementById('latestBody');
     const latestMap = new Map(); // key -> data
@@ -748,10 +826,13 @@
       if(!data) return;
       latestMap.set(key, data);
       renderLatest();
+      // Also update country stats when new data comes in
+      renderCountryStats();
     }
     function removeLatest(key){
       latestMap.delete(key);
       renderLatest();
+      renderCountryStats();
     }
     function renderLatest(limit = 10){
       const arr = Array.from(latestMap.entries())
@@ -780,6 +861,60 @@
       }).join("");
     }
 
+    // ========== Country Stats (table) ==========
+    const countryBody = document.getElementById('countryBody');
+    const countryFoot = document.getElementById('countryFoot');
+
+    function renderCountryStats(){
+        // 1. Group by country code
+        const stats = {};
+        const allAgents = Array.from(latestMap.values());
+        
+        allAgents.forEach(agent => {
+            const cc = agent.countryCode || "XX";
+            const cName = agent.countryName || "Unknown";
+            
+            if(!stats[cc]){
+                stats[cc] = { 
+                    count: 0, 
+                    name: cName,
+                    code: cc 
+                };
+            }
+            stats[cc].count++;
+        });
+
+        // 2. Convert to array and sort by count desc
+        const sortedStats = Object.values(stats).sort((a,b) => b.count - a.count);
+
+        // 3. Render Body
+        countryBody.innerHTML = sortedStats.map(s => {
+            const f = flagEmoji(s.code === "XX" ? "" : s.code);
+            return `
+                <tr>
+                    <td>
+                        <div class="countryText" style="font-size:12px;">
+                            <span style="font-size:14px; margin-right:6px;">${f}</span>
+                            <span class="nameText">${s.name}</span>
+                        </div>
+                    </td>
+                    <td style="text-align:right;">
+                        <span style="font-weight:700;">[ ${s.count} ]</span>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        // 4. Render Footer (Grand Total)
+        const grandTotal = allAgents.length;
+        countryFoot.innerHTML = `
+            <tr class="grand-total-row">
+                <td>GRAND TOTAL</td>
+                <td style="text-align:right;">[ ${grandTotal} ]</td>
+            </tr>
+        `;
+    }
+
     // Initial fetch of agents and populate store/markers
     (async function initData(){
       try{
@@ -795,6 +930,7 @@
           }
         });
         renderLatest();
+        renderCountryStats();
         recomputeLines();
       }catch(e){
         console.warn("Failed to load agents", e);
