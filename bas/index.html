@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Crypto Buy/Sell Tracker</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="https://i.postimg.cc/zDV2Qwhc/image.png" type="image/png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Personal Delivery">
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/zDV2Qwhc/image.png">
+  <link rel="apple-touch-startup-image" href="https://i.postimg.cc/zDV2Qwhc/image.png">
+  <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <meta name="theme-color" content="#121212" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #121212;
+        --surface: #1e1e1e;
+        --text: #e0e0e0;
+        --muted: #9e9e9e;
+        --border: #333;
+        --buy: #00c853;
+        --sell: #ff1744;
+        --accent: #2979ff;
+        
+        /* Profit/Loss Colors */
+        --profit-border: #00c853;
+        --profit-bg: rgba(0, 200, 83, 0.08);
+        --loss-border: #ff1744;
+        --loss-bg: rgba(255, 23, 68, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0; background: var(--bg); color: var(--text);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        font-size: 10px; -webkit-text-size-adjust: 100%; overflow-x: hidden;
+      }
+      header, footer { padding: 12px; text-align: center; }
+      h1 { margin: 6px 0 0; font-size: 1.4rem; font-weight: 600; }
+      main { max-width: 480px; margin: 0 auto; padding: 12px; }
+
+      /* Price Bar */
+      .price-bar {
+        background: #161616; border-radius: 10px; border: 1px solid var(--border);
+        margin: 0 auto 16px auto; padding: 10px 12px; display: flex; justify-content: space-between;
+        align-items: center; gap: 10px; max-width: 480px;
+      }
+      .price-left { display: inline-flex; align-items: center; gap: 8px; }
+      .price-bar-label { color: var(--accent); font-weight: bold; font-size: 12px; }
+      .price-bar-value { color: var(--text); font-size: 16px; font-weight: bold; }
+      .price-bar-currency { font-size: 12px; color: var(--muted); }
+      .pol-change { font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
+      .pol-change.up { color: var(--profit-border); }
+      .pol-change.down { color: var(--loss-border); }
+      .pol-change.flat { color: var(--muted); }
+
+      /* Forms & Cards */
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+      .field { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+      label { color: var(--muted); font-size: 1rem; }
+      input {
+        width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: #161616; color: var(--text); font-size: 16px; outline: none;
+      }
+      input:focus { border-color: var(--accent); }
+      .hint { grid-column: 2 / 3; color: var(--muted); font-size: .9rem; margin-top: 2px; }
+      .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border: none; border-radius: 10px;
+        color: #fff; background: #2a2a2a; cursor: pointer; font-size: 16px;
+      }
+      .btn.buy { background: var(--buy); }
+      .btn.sell { background: var(--sell); }
+      .btn.subtle { background: #2a2a2a; color: var(--text); }
+      .btn:active { transform: scale(0.98); }
+
+      /* Entries List */
+      .list-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+      .baseline { color: var(--muted); font-size: .9rem; }
+      .cards-list { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+      .entry-card {
+        position: relative;
+        width: 100%; background: #181818; 
+        border: 1px solid var(--border); border-radius: 12px;
+        padding: 12px; display: grid; grid-template-rows: auto auto auto; gap: 8px; overflow: hidden;
+        transition: all 0.3s ease;
+      }
+      /* Profit/Loss Styling */
+      .entry-card.profit {
+        border-color: var(--profit-border);
+        background: var(--profit-bg);
+        box-shadow: 0 0 10px rgba(0, 200, 83, 0.1);
+      }
+      .entry-card.loss {
+        border-color: var(--loss-border);
+        background: var(--loss-bg);
+        box-shadow: 0 0 10px rgba(255, 23, 68, 0.1);
+      }
+
+      .entry-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+      .status-dot.buy { background: var(--buy); }
+      .status-dot.sell { background: var(--sell); }
+      .entry-coin { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12px; }
+      .entry-type { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+      .entry-main { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+      .price-line { font-size: 16px; font-weight: 700; letter-spacing: .2px; }
+      .live-price { font-size: 11px; color: var(--muted); margin-left: 6px; }
+      .change-pill {
+        display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+        background: #151515; font-size: 12px; font-weight: 600; white-space: nowrap;
+      }
+      .change-pill.positive { color: var(--profit-border); border-color: rgba(0,200,83,0.5); }
+      .change-pill.negative { color: var(--loss-border); border-color: rgba(255,23,68,0.5); }
+      .change-pill.neutral { color: var(--muted); }
+      .change-pill .material-icons { font-size: 16px; line-height: 1; }
+
+      .entry-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+      .meta-left { display: grid; gap: 2px; }
+      .icon-btn {
+        display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+        border-radius: 10px; border: 1px solid var(--border); background: #1a1a1a; color: var(--text); cursor: pointer;
+      }
+
+      .toast {
+        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+        background: #222; color: #fff; padding: 8px 12px; border-radius: 8px;
+        border: 1px solid var(--border); font-size: 12px; z-index: 9999; display: none;
+      }
+      .toast.show { display: block; }
+    </style>
+  </head>
+  <body>
+    <header><h1>Crypto Buy/Sell Tracker</h1></header>
+
+    <div class="price-bar" aria-live="polite">
+      <div class="price-left">
+        <span class="price-bar-label">POL Price:</span>
+        <span class="price-bar-value" id="pol-price">$—</span>
+        <span class="price-bar-currency">USD</span>
+      </div>
+      <div id="pol-change" class="pol-change flat">
+        <span class="material-icons" aria-hidden="true">trending_flat</span>
+        —
+      </div>
+    </div>
+
+    <main>
+      <section class="card">
+        <form id="entryForm" autocomplete="on">
+          <div class="field">
+            <label for="coin">Coin</label>
+            <input id="coin" name="coin" type="text" inputmode="text" placeholder="POL" required />
+          </div>
+          <div class="field">
+            <label for="price">Entry Price</label>
+            <input id="price" name="price" type="number" inputmode="decimal" step="any" placeholder="1.2345" required />
+          </div>
+          <div class="field">
+            <label for="dateTime">Date & Time</label>
+            <input id="dateTime" name="dateTime" type="datetime-local" required />
+            <small class="hint">Select any previous date/time.</small>
+          </div>
+          <div class="actions">
+            <button type="button" id="buyBtn" class="btn buy"><span class="material-icons" aria-hidden="true">shopping_cart</span>Buy</button>
+            <button type="button" id="sellBtn" class="btn sell"><span class="material-icons" aria-hidden="true">sell</span>Sell</button>
+            <button type="button" id="resetBtn" class="btn subtle"><span class="material-icons" aria-hidden="true">restart_alt</span>Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="list-header">
+          <h2>Entries</h2>
+          <div class="baseline" id="baselineInfo">Live-based change</div>
+          <button id="refreshBtn" class="btn subtle"><span class="material-icons" aria-hidden="true">refresh</span>Refresh</button>
+        </div>
+        <div id="entriesCards" class="cards-list" aria-live="polite" aria-label="Buy/Sell Entries"></div>
+      </section>
+    </main>
+
+    <footer><small>Green dot = Buy, Red dot = Sell</small></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+      import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+        authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+        databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+        projectId: "tokentransfer-4a9b3",
+        storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+        messagingSenderId: "205455490321",
+        appId: "1:205455490321:web:9919f5dde059316c9320b0",
+        measurementId: "G-Y6CVEDL9XH"
+      };
+
+      // --- Utilities ---
+      const toastEl = document.getElementById('toast');
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 3000);
+      }
+      function normalizeCoin(c) {
+        c = (c || '').trim().toUpperCase();
+        if (c === 'MATIC' || c === 'POLYGON') return 'POL';
+        return c;
+      }
+      function formatDate(ts) {
+        if (!ts) return '—';
+        return new Date(ts).toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      }
+      function computeElapsed(ts) {
+        if (!ts) return '';
+        const now = Date.now();
+        let diff = now - ts;
+        if (diff < 0) diff = 0;
+        const dayMs = 24*60*60*1000, hourMs = 60*60*1000;
+        const days = Math.floor(diff/dayMs);
+        const hours = Math.floor((diff%dayMs)/hourMs);
+        return `${days}d ${hours}h`;
+      }
+      function parseLocalDateTime(value) {
+        const [datePart, timePart] = (value || '').split('T');
+        if (!datePart || !timePart) return null;
+        const [y, m, d] = datePart.split('-').map(Number);
+        const [hh, mm] = timePart.split(':').map(Number);
+        return new Date(y, (m - 1), d, hh, mm, 0, 0).getTime();
+      }
+      function setDefaultLocalNow() {
+        const now = new Date();
+        const tzOffsetMs = now.getTimezoneOffset() * 60000;
+        const localISO = new Date(now - tzOffsetMs).toISOString().slice(0, 16);
+        document.getElementById('dateTime').value = localISO;
+      }
+
+      // --- Init Firebase ---
+      let app, db;
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+      } catch (err) {
+        console.error("Firebase init error", err);
+        showToast("Error connecting to database");
+      }
+
+      const CURRENT_LOGIN = 'usmanunimib';
+      const entriesRef = ref(db, `users/${CURRENT_LOGIN}/entries`);
+
+      // --- DOM Elements ---
+      const coinInput = document.getElementById('coin');
+      const priceInput = document.getElementById('price');
+      const dateTimeInput = document.getElementById('dateTime');
+      const buyBtn = document.getElementById('buyBtn');
+      const sellBtn = document.getElementById('sellBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const entriesCards = document.getElementById('entriesCards');
+
+      setDefaultLocalNow();
+
+      // --- Rendering ---
+      function createEntryCard(item) {
+        const coin = normalizeCoin(item.coin);
+        const card = document.createElement('div');
+        card.className = 'entry-card';
+        card.dataset.timestamp = String(item.timestamp || 0);
+        card.dataset.coin = coin;
+
+        // Top Row: Dot + Coin + Type
+        const top = document.createElement('div');
+        top.className = 'entry-top';
+        const leftTop = document.createElement('div');
+        leftTop.className = 'entry-coin';
+        const dot = document.createElement('span');
+        dot.className = `status-dot ${item.type === 'sell' ? 'sell' : 'buy'}`;
+        const coinLabel = document.createElement('span');
+        coinLabel.className = 'symbol';
+        coinLabel.textContent = coin;
+        leftTop.appendChild(dot);
+        leftTop.appendChild(coinLabel);
+        const typeTxt = document.createElement('div');
+        typeTxt.className = 'entry-type';
+        typeTxt.textContent = item.type === 'sell' ? 'SELL' : 'BUY';
+        top.appendChild(leftTop);
+        top.appendChild(typeTxt);
+
+        // Main Row: Price + Change Pill
+        const main = document.createElement('div');
+        main.className = 'entry-main';
+        const priceLine = document.createElement('div');
+        priceLine.className = 'price-line';
+        priceLine.innerHTML = `Entry $<span class="price-val">${Number(item.price)}</span><span class="live-price"></span>`;
+        const changePill = document.createElement('div');
+        changePill.className = 'change-pill neutral';
+        changePill.innerHTML = `<span class="material-icons">trending_flat</span><span class="change-val">—</span>`;
+        main.appendChild(priceLine);
+        main.appendChild(changePill);
+
+        // Meta Row: Date + Delete
+        const meta = document.createElement('div');
+        meta.className = 'entry-meta';
+        const metaLeft = document.createElement('div');
+        metaLeft.className = 'meta-left';
+        const metaDate = document.createElement('div');
+        metaDate.className = 'meta-date';
+        metaDate.textContent = formatDate(item.timestamp);
+        const metaElapsed = document.createElement('div');
+        metaElapsed.className = 'meta-elapsed';
+        metaElapsed.textContent = computeElapsed(item.timestamp);
+        metaLeft.appendChild(metaDate);
+        metaLeft.appendChild(metaElapsed);
+
+        const actions = document.createElement('div');
+        actions.className = 'entry-actions';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn';
+        delBtn.innerHTML = '<span class="material-icons">delete</span>';
+        delBtn.onclick = () => deleteEntry(item.key);
+        actions.appendChild(delBtn);
+
+        meta.appendChild(metaLeft);
+        meta.appendChild(actions);
+
+        card.appendChild(top);
+        card.appendChild(main);
+        card.appendChild(meta);
+        return card;
+      }
+
+      let latestSnapshot = null;
+
+      function renderEntries(snapshot) {
+        latestSnapshot = snapshot;
+        entriesCards.innerHTML = '';
+        if (!snapshot || !snapshot.exists()) return;
+
+        const items = [];
+        snapshot.forEach(child => {
+          // Robustly handle each child, ensuring we have an object
+          const val = child.val();
+          if (val && typeof val === 'object') {
+            items.push({ key: child.key, ...val });
+          }
+        });
+
+        // Client-side sort: newest (highest timestamp) first
+        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        items.forEach(item => {
+          try {
+            const card = createEntryCard(item);
+            entriesCards.appendChild(card);
+          } catch(e) {
+            console.warn("Skipping corrupt entry", e);
+          }
+        });
+        
+        // Immediate update of colors
+        updateEntryChangesRealtime();
+      }
+
+      // --- Database Listener (No Query Filtering) ---
+      onValue(entriesRef, (snapshot) => {
+        renderEntries(snapshot);
+      }, (error) => {
+        console.error("DB Error:", error);
+        showToast("DB Permission Denied");
+      });
+
+      // --- Add/Delete ---
+      async function addEntry(type) {
+        const coin = normalizeCoin(coinInput.value);
+        const price = parseFloat(priceInput.value);
+        const ts = parseLocalDateTime(dateTimeInput.value);
+        if (!coin || !isFinite(price) || !ts) {
+          showToast('Invalid input'); return;
+        }
+        const entry = { coin, price, type, timestamp: ts, createdAt: Date.now() };
+        try {
+          await push(entriesRef, entry);
+          showToast(`Added ${coin} ${type}`);
+          coinInput.value = ''; priceInput.value = ''; setDefaultLocalNow();
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to add entry');
+        }
+      }
+
+      async function deleteEntry(key) {
+        if (!confirm('Delete entry?')) return;
+        try {
+          await remove(ref(db, `users/${CURRENT_LOGIN}/entries/${key}`));
+          showToast('Deleted');
+        } catch (err) {
+          showToast('Delete failed');
+        }
+      }
+
+      // --- Live Price & Updates ---
+      let polPriceUSD = null;
+      async function fetchPOLPrice() {
+        try {
+          const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=POLUSDT', {cache: 'no-store'});
+          const data = await res.json();
+          polPriceUSD = parseFloat(data.price);
+          document.getElementById('pol-price').textContent = `$${polPriceUSD.toFixed(4)}`;
+          updateEntryChangesRealtime();
+        } catch(e) { console.log("Price fetch err", e); }
+      }
+
+      function updateEntryChangesRealtime() {
+        const cards = document.querySelectorAll('.entry-card');
+        cards.forEach(card => {
+          const coin = card.dataset.coin;
+          const entryPrice = parseFloat(card.querySelector('.price-val').textContent);
+          // Only supports POL live price for now
+          const currentPrice = (coin === 'POL') ? polPriceUSD : null;
+          
+          const pill = card.querySelector('.change-pill');
+          const liveSpan = card.querySelector('.live-price');
+
+          // Reset Classes
+          card.classList.remove('profit', 'loss');
+
+          if (currentPrice && entryPrice) {
+             liveSpan.textContent = ` (live: $${currentPrice.toFixed(4)})`;
+             const pct = ((currentPrice - entryPrice) / entryPrice) * 100;
+             const isProfit = pct > 0;
+             const isLoss = pct < 0;
+             
+             // Update Pill
+             pill.className = `change-pill ${isProfit ? 'positive' : (isLoss ? 'negative' : 'neutral')}`;
+             pill.innerHTML = `<span class="material-icons">${isProfit ? 'trending_up' : (isLoss ? 'trending_down' : 'trending_flat')}</span> ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+
+             // Update Card Background/Border (Green for profit)
+             if (isProfit) card.classList.add('profit');
+             if (isLoss) card.classList.add('loss');
+
+          } else {
+            liveSpan.textContent = '';
+          }
+          
+          // Update Time
+          const ts = Number(card.dataset.timestamp);
+          const elapsed = card.querySelector('.meta-elapsed');
+          if (elapsed) elapsed.textContent = computeElapsed(ts);
+        });
+      }
+
+      // --- Events ---
+      buyBtn.onclick = () => addEntry('buy');
+      sellBtn.onclick = () => addEntry('sell');
+      resetBtn.onclick = () => { coinInput.value=''; priceInput.value=''; setDefaultLocalNow(); };
+      refreshBtn.onclick = () => renderEntries(latestSnapshot);
+
+      setInterval(updateEntryChangesRealtime, 60000);
+      fetchPOLPrice();
+      setInterval(fetchPOLPrice, 3000);
+    </script>
+  </body>
+</html>
