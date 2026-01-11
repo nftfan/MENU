@@ -1,472 +1,517 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Crypto Buy/Sell Tracker</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="icon" href="https://i.postimg.cc/zDV2Qwhc/image.png" type="image/png">
+<head>
+  <meta charset="UTF-8">
+  <title>MATIC Bank + Trades</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="https://raw.githubusercontent.com/nftfan/delivery/main/Untitled%20design%20(22).png" type="image/png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Personal Delivery">
-  <link rel="apple-touch-icon" href="https://i.postimg.cc/zDV2Qwhc/image.png">
-  <link rel="apple-touch-startup-image" href="https://i.postimg.cc/zDV2Qwhc/image.png">
-  <link rel="manifest" href="https://raw.githubusercontent.com/nftfan/delivery/main/d2.json">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-    <meta name="theme-color" content="#121212" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <!-- Firebase SDKs (Compat version for simple HTML usage) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  
+  <style>
+    html, body {
+      background: #fff;
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      font-size: 10px;
+      color: #222;
+      min-height: 100vh;
+    }
+    .wrapper {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 10px 0 60px 0;
+    }
 
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #121212;
-        --surface: #1e1e1e;
-        --text: #e0e0e0;
-        --muted: #9e9e9e;
-        --border: #333;
-        --buy: #00c853;
-        --sell: #ff1744;
-        --accent: #2979ff;
-        
-        /* Profit/Loss Colors */
-        --profit-border: #00c853;
-        --profit-bg: rgba(0, 200, 83, 0.08);
-        --loss-border: #ff1744;
-        --loss-bg: rgba(255, 23, 68, 0.08);
-      }
+    /* --- Existing Styles --- */
+    .price-bar {
+      background: #eefdf2;
+      border-radius: 10px;
+      border: 1px solid #daefdd;
+      margin: 10px 10px 18px 10px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .price-bar-label { color: #0d8a43; font-weight: bold; }
+    .price-bar-value { color: #222; font-size: 16px; font-weight: bold; margin-left: 8px; }
+    
+    .total-card {
+      background: #f8f7ff;
+      border-radius: 10px;
+      border: 1px solid #ececec;
+      margin: 10px 10px 22px 10px;
+      padding: 18px 14px 15px 14px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .total-label { font-size: 10px; font-weight: bold; color: #888; margin-bottom: 7px; }
+    .total-sum { font-size: 18px; font-weight: bold; color: #7a3cff; }
+    .total-usd { font-size: 13px; color: #0d8a43; font-weight: bold; margin-top: 4px; }
+    
+    .refresh-btn {
+      font-size: 10px; padding: 7px 18px; border-radius: 15px; border: 1px solid #ececec;
+      background: #f4f0ff; color: #7a3cff; font-weight: bold; margin: 0 10px 12px 10px;
+      cursor: pointer; display: inline-block; align-self: flex-end;
+    }
 
-      * { box-sizing: border-box; }
-      html, body {
-        margin: 0; padding: 0; background: var(--bg); color: var(--text);
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        font-size: 10px; -webkit-text-size-adjust: 100%; overflow-x: hidden;
-      }
-      header, footer { padding: 12px; text-align: center; }
-      h1 { margin: 6px 0 0; font-size: 1.4rem; font-weight: 600; }
-      main { max-width: 480px; margin: 0 auto; padding: 12px; }
+    .section-label { font-weight: bold; margin: 25px 0 8px 16px; font-size: 12px; color: #444; }
+    
+    .account-card {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      border: 1px solid #ececec; border-radius: 9px; background: #fff;
+      margin: 0 10px 12px 10px; padding: 14px 14px 10px 14px; min-height: 48px;
+    }
+    .account-info { flex: 1; min-width: 0; }
+    .account-title { font-weight: bold; font-size: 10px; margin-bottom: 2px; color: #222; }
+    .account-iban, .account-owner { font-size: 10px; color: #999; line-height: 1.5; }
+    .account-balance { font-size: 12px; font-weight: bold; color: #7a3cff; margin-left: 10px; white-space: nowrap; }
+    .account-balance-usd { font-size: 11px; color: #0d8a43; margin-left: 10px; }
 
-      /* Price Bar */
-      .price-bar {
-        background: #161616; border-radius: 10px; border: 1px solid var(--border);
-        margin: 0 auto 16px auto; padding: 10px 12px; display: flex; justify-content: space-between;
-        align-items: center; gap: 10px; max-width: 480px;
-      }
-      .price-left { display: inline-flex; align-items: center; gap: 8px; }
-      .price-bar-label { color: var(--accent); font-weight: bold; font-size: 12px; }
-      .price-bar-value { color: var(--text); font-size: 16px; font-weight: bold; }
-      .price-bar-currency { font-size: 12px; color: var(--muted); }
-      .pol-change { font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
-      .pol-change.up { color: var(--profit-border); }
-      .pol-change.down { color: var(--loss-border); }
-      .pol-change.flat { color: var(--muted); }
+    .loading-spinner {
+      display: inline-block; width: 12px; height: 12px; border: 1px solid #bbb;
+      border-radius: 50%; border-top-color: #7a3cff; animation: spin 0.8s linear infinite; margin-left: 3px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-      /* Forms & Cards */
-      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
-      .field { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
-      label { color: var(--muted); font-size: 1rem; }
-      input {
-        width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
-        background: #161616; color: var(--text); font-size: 16px; outline: none;
-      }
-      input:focus { border-color: var(--accent); }
-      .hint { grid-column: 2 / 3; color: var(--muted); font-size: .9rem; margin-top: 2px; }
-      .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap; }
-      .btn {
-        display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border: none; border-radius: 10px;
-        color: #fff; background: #2a2a2a; cursor: pointer; font-size: 16px;
-      }
-      .btn.buy { background: var(--buy); }
-      .btn.sell { background: var(--sell); }
-      .btn.subtle { background: #2a2a2a; color: var(--text); }
-      .btn:active { transform: scale(0.98); }
+    /* --- NEW TRADES SECTION STYLES --- */
+    .trades-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 30px 16px 15px 16px;
+    }
+    .add-trade-btn {
+      background: #222; color: #fff; border: none; border-radius: 20px;
+      padding: 8px 20px; font-size: 11px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.1s;
+    }
+    .add-trade-btn:active { transform: scale(0.96); }
 
-      /* Entries List */
-      .list-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-      .baseline { color: var(--muted); font-size: .9rem; }
-      .cards-list { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    /* Trade Card Styles */
+    .trade-card {
+      background: #fff; border-radius: 12px; margin: 0 10px 12px 10px;
+      padding: 15px; position: relative; display: flex; align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s ease;
+    }
+    
+    /* Type specific styling */
+    .trade-card.type-buy { border: 1px solid #27ae60; border-left: 5px solid #27ae60; }
+    .trade-card.type-sell { border: 1px solid #e74c3c; border-left: 5px solid #e74c3c; }
 
-      .entry-card {
-        position: relative;
-        width: 100%; background: #181818; 
-        border: 1px solid var(--border); border-radius: 12px;
-        padding: 12px; display: grid; grid-template-rows: auto auto auto; gap: 8px; overflow: hidden;
-        transition: all 0.3s ease;
-      }
-      /* Profit/Loss Styling */
-      .entry-card.profit {
-        border-color: var(--profit-border);
-        background: var(--profit-bg);
-        box-shadow: 0 0 10px rgba(0, 200, 83, 0.1);
-      }
-      .entry-card.loss {
-        border-color: var(--loss-border);
-        background: var(--loss-bg);
-        box-shadow: 0 0 10px rgba(255, 23, 68, 0.1);
-      }
+    .trade-dot {
+      width: 8px; height: 8px; border-radius: 50%; margin-right: 12px; flex-shrink: 0;
+    }
+    .type-buy .trade-dot { background-color: #27ae60; box-shadow: 0 0 6px #27ae60; }
+    .type-sell .trade-dot { background-color: #e74c3c; box-shadow: 0 0 6px #e74c3c; }
 
-      .entry-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-      .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-      .status-dot.buy { background: var(--buy); }
-      .status-dot.sell { background: var(--sell); }
-      .entry-coin { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12px; }
-      .entry-type { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .trade-main { flex: 1; }
+    .trade-coin { font-size: 14px; font-weight: 800; color: #222; margin-bottom: 2px; text-transform: uppercase;}
+    .trade-entry { font-size: 11px; color: #666; }
+    .trade-time { font-size: 9px; color: #aaa; margin-top: 4px; font-weight: 500;}
 
-      .entry-main { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
-      .price-line { font-size: 16px; font-weight: 700; letter-spacing: .2px; }
-      .live-price { font-size: 11px; color: var(--muted); margin-left: 6px; }
-      .change-pill {
-        display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
-        background: #151515; font-size: 12px; font-weight: 600; white-space: nowrap;
-      }
-      .change-pill.positive { color: var(--profit-border); border-color: rgba(0,200,83,0.5); }
-      .change-pill.negative { color: var(--loss-border); border-color: rgba(255,23,68,0.5); }
-      .change-pill.neutral { color: var(--muted); }
-      .change-pill .material-icons { font-size: 16px; line-height: 1; }
+    .trade-stats { text-align: right; }
+    .trade-change { font-size: 14px; font-weight: bold; display: block; margin-bottom: 2px; }
+    .trade-change.up { color: #27ae60; }
+    .trade-change.down { color: #e74c3c; }
+    .trade-current { font-size: 10px; color: #888; }
 
-      .entry-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
-      .meta-left { display: grid; gap: 2px; }
-      .icon-btn {
-        display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
-        border-radius: 10px; border: 1px solid var(--border); background: #1a1a1a; color: var(--text); cursor: pointer;
-      }
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); z-index: 999; display: none;
+      justify-content: center; align-items: flex-end; /* Bottom sheet on mobile */
+    }
+    .modal-overlay.open { display: flex; }
+    
+    .modal-content {
+      background: #fff; width: 100%; max-width: 480px;
+      border-radius: 20px 20px 0 0; padding: 25px;
+      box-sizing: border-box; animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-      .toast {
-        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
-        background: #222; color: #fff; padding: 8px 12px; border-radius: 8px;
-        border: 1px solid var(--border); font-size: 12px; z-index: 9999; display: none;
-      }
-      .toast.show { display: block; }
-    </style>
-  </head>
-  <body>
-    <header><h1>Crypto Buy/Sell Tracker</h1></header>
+    .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #222; }
+    
+    .form-group { margin-bottom: 15px; }
+    .form-label { display: block; font-size: 11px; font-weight: bold; color: #666; margin-bottom: 6px; }
+    .form-input {
+      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; box-sizing: border-box; outline: none;
+    }
+    .form-input:focus { border-color: #7a3cff; }
 
-    <div class="price-bar" aria-live="polite">
-      <div class="price-left">
-        <span class="price-bar-label">POL Price:</span>
-        <span class="price-bar-value" id="pol-price">$—</span>
-        <span class="price-bar-currency">USD</span>
+    /* Buy/Sell Toggles */
+    .type-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+    .type-opt {
+      flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      text-align: center; font-weight: bold; font-size: 12px; cursor: pointer;
+      transition: 0.2s;
+    }
+    .type-opt.selected-buy { background: #eefdf2; border-color: #27ae60; color: #27ae60; }
+    .type-opt.selected-sell { background: #feefee; border-color: #e74c3c; color: #e74c3c; }
+
+    .submit-btn {
+      width: 100%; background: #7a3cff; color: #fff; border: none; padding: 14px;
+      border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer;
+    }
+    .close-modal { margin-top: 15px; text-align: center; color: #888; font-size: 12px; cursor: pointer; }
+    
+    @media (min-width: 481px) {
+      .modal-overlay { align-items: center; }
+      .modal-content { border-radius: 20px; margin: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Header: POL Price -->
+    <div class="price-bar">
+      <span class="price-bar-label">POL Price (USD):</span>
+      <span class="price-bar-value" id="pol-price">Loading...</span>
+      <span style="font-size:12px;color:#444;margin-left:8px;">USD</span>
+    </div>
+
+    <!-- Total Balance -->
+    <div class="total-card">
+      <div class="total-label">Total balance</div>
+      <div class="total-sum" id="total-sum"><span class="loading-spinner"></span></div>
+      <div class="total-usd" id="total-sum-usd"><span class="loading-spinner"></span></div>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshAllBalances()">⟳ Refresh</button>
+
+    <!-- Wallets -->
+    <div class="section-label">Payment accounts</div>
+    <div class="account-card" id="account-1">
+      <div class="account-info">
+        <div class="account-title">NFTFAN SALE</div>
+        <div class="account-iban">0xaf2d...12e8</div>
+        <div class="account-owner">Trading</div>
       </div>
-      <div id="pol-change" class="pol-change flat">
-        <span class="material-icons" aria-hidden="true">trending_flat</span>
-        —
+      <div>
+        <div class="account-balance positive" id="balance-1"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-1-usd"><span class="loading-spinner"></span></div>
       </div>
     </div>
 
-    <main>
-      <section class="card">
-        <form id="entryForm" autocomplete="on">
-          <div class="field">
-            <label for="coin">Coin</label>
-            <input id="coin" name="coin" type="text" inputmode="text" placeholder="POL" required />
-          </div>
-          <div class="field">
-            <label for="price">Entry Price</label>
-            <input id="price" name="price" type="number" inputmode="decimal" step="any" placeholder="1.2345" required />
-          </div>
-          <div class="field">
-            <label for="dateTime">Date & Time</label>
-            <input id="dateTime" name="dateTime" type="datetime-local" required />
-            <small class="hint">Select any previous date/time.</small>
-          </div>
-          <div class="actions">
-            <button type="button" id="buyBtn" class="btn buy"><span class="material-icons" aria-hidden="true">shopping_cart</span>Buy</button>
-            <button type="button" id="sellBtn" class="btn sell"><span class="material-icons" aria-hidden="true">sell</span>Sell</button>
-            <button type="button" id="resetBtn" class="btn subtle"><span class="material-icons" aria-hidden="true">restart_alt</span>Reset</button>
-          </div>
-        </form>
-      </section>
+    <div class="account-card" id="account-2">
+      <div class="account-info">
+        <div class="account-title">POLDOG SALE</div>
+        <div class="account-iban">0xB1A3...7D54</div>
+        <div class="account-owner">Investment</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-2"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-2-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
 
-      <section class="card">
-        <div class="list-header">
-          <h2>Entries</h2>
-          <div class="baseline" id="baselineInfo">Live-based change</div>
-          <button id="refreshBtn" class="btn subtle"><span class="material-icons" aria-hidden="true">refresh</span>Refresh</button>
-        </div>
-        <div id="entriesCards" class="cards-list" aria-live="polite" aria-label="Buy/Sell Entries"></div>
-      </section>
-    </main>
+    <div class="section-label">Savings accounts</div>
+    <div class="account-card" id="account-0">
+      <div class="account-info">
+        <div class="account-title">MY WALLET</div>
+        <div class="account-iban">0x92d5...27Ba</div>
+        <div class="account-owner">Personal</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-0"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-0-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
 
-    <footer><small>Green dot = Buy, Red dot = Sell</small></footer>
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div class="account-card" id="account-3">
+      <div class="account-info">
+        <div class="account-title">SAVINGS 2</div>
+        <div class="account-iban">0x2dbA...144F1</div>
+        <div class="account-owner">Personal</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-3"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-3-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
 
-    <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-      import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
+    <!-- NEW PHOTONFT WALLET -->
+    <div class="account-card" id="account-4">
+      <div class="account-info">
+        <div class="account-title">PHOTONFT</div>
+        <div class="account-iban">0xb7d9...E2CC</div>
+        <div class="account-owner">NFTs</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-4"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-4-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
-        authDomain: "tokentransfer-4a9b3.firebaseapp.com",
-        databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
-        projectId: "tokentransfer-4a9b3",
-        storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
-        messagingSenderId: "205455490321",
-        appId: "1:205455490321:web:9919f5dde059316c9320b0",
-        measurementId: "G-Y6CVEDL9XH"
-      };
+    <!-- TRADES SECTION -->
+    <div class="trades-header">
+      <div style="font-weight:bold; font-size:16px;">My Trades</div>
+      <button class="add-trade-btn" onclick="openModal()">+ Add Trade</button>
+    </div>
+    
+    <div id="trades-container">
+      <!-- Trades will be injected here -->
+      <div style="text-align:center; color:#999; font-size:12px; margin-top:20px;">Loading trades...</div>
+    </div>
 
-      // --- Utilities ---
-      const toastEl = document.getElementById('toast');
-      function showToast(msg) {
-        toastEl.textContent = msg;
-        toastEl.classList.add('show');
-        setTimeout(() => toastEl.classList.remove('show'), 3000);
-      }
-      function normalizeCoin(c) {
-        c = (c || '').trim().toUpperCase();
-        if (c === 'MATIC' || c === 'POLYGON') return 'POL';
-        return c;
-      }
-      function formatDate(ts) {
-        if (!ts) return '—';
-        return new Date(ts).toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-      }
-      function computeElapsed(ts) {
-        if (!ts) return '';
-        const now = Date.now();
-        let diff = now - ts;
-        if (diff < 0) diff = 0;
-        const dayMs = 24*60*60*1000, hourMs = 60*60*1000;
-        const days = Math.floor(diff/dayMs);
-        const hours = Math.floor((diff%dayMs)/hourMs);
-        return `${days}d ${hours}h`;
-      }
-      function parseLocalDateTime(value) {
-        const [datePart, timePart] = (value || '').split('T');
-        if (!datePart || !timePart) return null;
-        const [y, m, d] = datePart.split('-').map(Number);
-        const [hh, mm] = timePart.split(':').map(Number);
-        return new Date(y, (m - 1), d, hh, mm, 0, 0).getTime();
-      }
-      function setDefaultLocalNow() {
-        const now = new Date();
-        const tzOffsetMs = now.getTimezoneOffset() * 60000;
-        const localISO = new Date(now - tzOffsetMs).toISOString().slice(0, 16);
-        document.getElementById('dateTime').value = localISO;
-      }
+  </div>
 
-      // --- Init Firebase ---
-      let app, db;
+  <!-- MODAL -->
+  <div class="modal-overlay" id="tradeModal">
+    <div class="modal-content">
+      <div class="modal-title">New Trade Entry</div>
+      
+      <div class="type-selector">
+        <div class="type-opt selected-buy" id="opt-buy" onclick="selectType('buy')">BUY</div>
+        <div class="type-opt" id="opt-sell" onclick="selectType('sell')">SELL</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Coin Symbol (e.g. BTC, POL, ETH)</label>
+        <input type="text" id="t-coin" class="form-input" placeholder="BTC">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Entry Price ($)</label>
+        <input type="number" id="t-price" class="form-input" placeholder="0.00" step="any">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date & Time</label>
+        <input type="datetime-local" id="t-date" class="form-input">
+      </div>
+
+      <button class="submit-btn" onclick="submitTrade()">Add Trade</button>
+      <div class="close-modal" onclick="closeModal()">Cancel</div>
+    </div>
+  </div>
+
+  <script>
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // --- WALLET LOGIC ---
+    const POLYGON_RPC = "https://polygon-rpc.com/";
+    const WALLETS = [
+      { address: "0x92d550cdBc234211957Bd1B579d962c885A127Ba", idx: 0 },
+      { address: "0xaf2d132c8773bca3821c24ecf64e844e202a12e8", idx: 1 },
+      { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", idx: 2 },
+      { address: "0x2dbA27e3ab39F662c1Df9CBdC4dBD526107144F1", idx: 3 },
+      { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", idx: 4 } // Photonft
+    ];
+    // Display order: Payment(1,2), Savings(0,3), Photo(4)
+    const DISPLAY_ORDER = [1, 2, 0, 3, 4];
+    let polPriceUSD = null;
+
+    async function fetchPOLPrice() {
       try {
-        app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-      } catch (err) {
-        console.error("Firebase init error", err);
-        showToast("Error connecting to database");
+        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=POLUSDT');
+        const data = await response.json();
+        polPriceUSD = parseFloat(data.price);
+        document.getElementById('pol-price').innerText = "$" + polPriceUSD.toFixed(4);
+      } catch (error) {
+        document.getElementById('pol-price').innerText = 'Err';
       }
+    }
 
-      const CURRENT_LOGIN = 'usmanunimib';
-      const entriesRef = ref(db, `users/${CURRENT_LOGIN}/entries`);
-
-      // --- DOM Elements ---
-      const coinInput = document.getElementById('coin');
-      const priceInput = document.getElementById('price');
-      const dateTimeInput = document.getElementById('dateTime');
-      const buyBtn = document.getElementById('buyBtn');
-      const sellBtn = document.getElementById('sellBtn');
-      const resetBtn = document.getElementById('resetBtn');
-      const refreshBtn = document.getElementById('refreshBtn');
-      const entriesCards = document.getElementById('entriesCards');
-
-      setDefaultLocalNow();
-
-      // --- Rendering ---
-      function createEntryCard(item) {
-        const coin = normalizeCoin(item.coin);
-        const card = document.createElement('div');
-        card.className = 'entry-card';
-        card.dataset.timestamp = String(item.timestamp || 0);
-        card.dataset.coin = coin;
-
-        // Top Row: Dot + Coin + Type
-        const top = document.createElement('div');
-        top.className = 'entry-top';
-        const leftTop = document.createElement('div');
-        leftTop.className = 'entry-coin';
-        const dot = document.createElement('span');
-        dot.className = `status-dot ${item.type === 'sell' ? 'sell' : 'buy'}`;
-        const coinLabel = document.createElement('span');
-        coinLabel.className = 'symbol';
-        coinLabel.textContent = coin;
-        leftTop.appendChild(dot);
-        leftTop.appendChild(coinLabel);
-        const typeTxt = document.createElement('div');
-        typeTxt.className = 'entry-type';
-        typeTxt.textContent = item.type === 'sell' ? 'SELL' : 'BUY';
-        top.appendChild(leftTop);
-        top.appendChild(typeTxt);
-
-        // Main Row: Price + Change Pill
-        const main = document.createElement('div');
-        main.className = 'entry-main';
-        const priceLine = document.createElement('div');
-        priceLine.className = 'price-line';
-        priceLine.innerHTML = `Entry $<span class="price-val">${Number(item.price)}</span><span class="live-price"></span>`;
-        const changePill = document.createElement('div');
-        changePill.className = 'change-pill neutral';
-        changePill.innerHTML = `<span class="material-icons">trending_flat</span><span class="change-val">—</span>`;
-        main.appendChild(priceLine);
-        main.appendChild(changePill);
-
-        // Meta Row: Date + Delete
-        const meta = document.createElement('div');
-        meta.className = 'entry-meta';
-        const metaLeft = document.createElement('div');
-        metaLeft.className = 'meta-left';
-        const metaDate = document.createElement('div');
-        metaDate.className = 'meta-date';
-        metaDate.textContent = formatDate(item.timestamp);
-        const metaElapsed = document.createElement('div');
-        metaElapsed.className = 'meta-elapsed';
-        metaElapsed.textContent = computeElapsed(item.timestamp);
-        metaLeft.appendChild(metaDate);
-        metaLeft.appendChild(metaElapsed);
-
-        const actions = document.createElement('div');
-        actions.className = 'entry-actions';
-        const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn';
-        delBtn.innerHTML = '<span class="material-icons">delete</span>';
-        delBtn.onclick = () => deleteEntry(item.key);
-        actions.appendChild(delBtn);
-
-        meta.appendChild(metaLeft);
-        meta.appendChild(actions);
-
-        card.appendChild(top);
-        card.appendChild(main);
-        card.appendChild(meta);
-        return card;
-      }
-
-      let latestSnapshot = null;
-
-      function renderEntries(snapshot) {
-        latestSnapshot = snapshot;
-        entriesCards.innerHTML = '';
-        if (!snapshot || !snapshot.exists()) return;
-
-        const items = [];
-        snapshot.forEach(child => {
-          // Robustly handle each child, ensuring we have an object
-          const val = child.val();
-          if (val && typeof val === 'object') {
-            items.push({ key: child.key, ...val });
-          }
-        });
-
-        // Client-side sort: newest (highest timestamp) first
-        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        items.forEach(item => {
-          try {
-            const card = createEntryCard(item);
-            entriesCards.appendChild(card);
-          } catch(e) {
-            console.warn("Skipping corrupt entry", e);
-          }
-        });
+    async function fetchAndShowBalance(wallet) {
+      const idx = wallet.idx;
+      try {
+        const web3 = new Web3(POLYGON_RPC);
+        const balanceWei = await web3.eth.getBalance(wallet.address);
+        const balance = web3.utils.fromWei(balanceWei, "ether");
+        const formatted = parseFloat(balance).toLocaleString(undefined, {maximumFractionDigits: 4});
         
-        // Immediate update of colors
-        updateEntryChangesRealtime();
+        document.getElementById("balance-" + idx).textContent = "+ " + formatted + " MATIC";
+        
+        if (polPriceUSD != null) {
+          const usdVal = (parseFloat(balance) * polPriceUSD);
+          document.getElementById("balance-" + idx + "-usd").textContent = "≈ $" + usdVal.toLocaleString(undefined, {maximumFractionDigits: 2});
+        }
+        return parseFloat(balance);
+      } catch (err) {
+        document.getElementById("balance-" + idx).innerText = "--";
+        return 0;
+      }
+    }
+
+    async function refreshAllBalances() {
+      const btn = document.getElementById("refresh-btn");
+      if (btn) btn.textContent = "Updating...";
+      
+      let sum = 0;
+      for (let i = 0; i < DISPLAY_ORDER.length; i++) {
+        const idx = DISPLAY_ORDER[i];
+        const balance = await fetchAndShowBalance(WALLETS.find(w => w.idx === idx));
+        sum += balance;
+      }
+      
+      document.getElementById("total-sum").textContent = "+ " + sum.toLocaleString(undefined, {maximumFractionDigits: 4}) + " MATIC";
+      if (polPriceUSD != null) {
+        const totalUsd = (sum * polPriceUSD);
+        document.getElementById("total-sum-usd").textContent = "≈ $" + totalUsd.toLocaleString(undefined, {maximumFractionDigits: 2});
+      }
+      if (btn) btn.textContent = "⟳ Refresh";
+    }
+
+    // --- TRADES LOGIC ---
+    let currentTradeType = 'buy';
+    
+    function openModal() {
+      document.getElementById('tradeModal').classList.add('open');
+      // Set default time to now
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('t-date').value = now.toISOString().slice(0,16);
+    }
+    
+    function closeModal() {
+      document.getElementById('tradeModal').classList.remove('open');
+    }
+
+    function selectType(type) {
+      currentTradeType = type;
+      if(type === 'buy') {
+        document.getElementById('opt-buy').classList.add('selected-buy');
+        document.getElementById('opt-sell').classList.remove('selected-sell');
+        document.getElementById('opt-buy').style.background = "#eefdf2";
+        document.getElementById('opt-sell').style.background = "#fff";
+      } else {
+        document.getElementById('opt-buy').classList.remove('selected-buy');
+        document.getElementById('opt-sell').classList.add('selected-sell');
+        document.getElementById('opt-buy').style.background = "#fff";
+        document.getElementById('opt-sell').style.background = "#feefee";
+      }
+    }
+
+    function submitTrade() {
+      const coin = document.getElementById('t-coin').value.toUpperCase().trim();
+      const price = parseFloat(document.getElementById('t-price').value);
+      const dateStr = document.getElementById('t-date').value;
+      
+      if(!coin || !price || !dateStr) {
+        alert("Please fill all fields");
+        return;
       }
 
-      // --- Database Listener (No Query Filtering) ---
-      onValue(entriesRef, (snapshot) => {
-        renderEntries(snapshot);
-      }, (error) => {
-        console.error("DB Error:", error);
-        showToast("DB Permission Denied");
+      const timestamp = new Date(dateStr).getTime();
+      
+      // Save to Firebase
+      const newTradeRef = database.ref('trades').push();
+      newTradeRef.set({
+        coin: coin,
+        entryPrice: price,
+        timestamp: timestamp,
+        type: currentTradeType
       });
+      
+      closeModal();
+      // Clear fields
+      document.getElementById('t-coin').value = "";
+      document.getElementById('t-price').value = "";
+    }
 
-      // --- Add/Delete ---
-      async function addEntry(type) {
-        const coin = normalizeCoin(coinInput.value);
-        const price = parseFloat(priceInput.value);
-        const ts = parseLocalDateTime(dateTimeInput.value);
-        if (!coin || !isFinite(price) || !ts) {
-          showToast('Invalid input'); return;
-        }
-        const entry = { coin, price, type, timestamp: ts, createdAt: Date.now() };
-        try {
-          await push(entriesRef, entry);
-          showToast(`Added ${coin} ${type}`);
-          coinInput.value = ''; priceInput.value = ''; setDefaultLocalNow();
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to add entry');
-        }
+    function timeAgo(prevDate) {
+      const diff = Number(new Date()) - prevDate;
+      const minute = 60 * 1000;
+      const hour = minute * 60;
+      const day = hour * 24;
+      
+      const days = Math.floor(diff / day);
+      const hours = Math.floor((diff % day) / hour);
+      
+      if (days > 0) return `${days}d ${hours}h ago`;
+      if (hours > 0) return `${hours} hours ago`;
+      return "Just now";
+    }
+
+    // Listen for Trades Data
+    database.ref('trades').on('value', (snapshot) => {
+      const container = document.getElementById('trades-container');
+      container.innerHTML = "";
+      const data = snapshot.val();
+      
+      if(!data) {
+        container.innerHTML = "<div style='text-align:center;color:#ccc;font-size:12px;margin-top:20px'>No trades yet</div>";
+        return;
       }
 
-      async function deleteEntry(key) {
-        if (!confirm('Delete entry?')) return;
-        try {
-          await remove(ref(db, `users/${CURRENT_LOGIN}/entries/${key}`));
-          showToast('Deleted');
-        } catch (err) {
-          showToast('Delete failed');
-        }
-      }
+      // Convert object to array and reverse (newest top)
+      const trades = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
+      
+      trades.forEach(async (trade) => {
+        // Create basic card first
+        const div = document.createElement('div');
+        div.className = `trade-card type-${trade.type}`;
+        
+        div.innerHTML = `
+          <div class="trade-dot"></div>
+          <div class="trade-main">
+            <div class="trade-coin">${trade.coin}</div>
+            <div class="trade-entry">Entry: $${trade.entryPrice}</div>
+            <div class="trade-time">${timeAgo(trade.timestamp)}</div>
+          </div>
+          <div class="trade-stats" id="stats-${trade.coin}-${trade.timestamp}">
+            <div class="trade-change">...</div>
+            <div class="trade-current">Loading...</div>
+          </div>
+        `;
+        container.appendChild(div);
 
-      // --- Live Price & Updates ---
-      let polPriceUSD = null;
-      async function fetchPOLPrice() {
+        // Fetch live price for this coin
         try {
-          const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=POLUSDT', {cache: 'no-store'});
-          const data = await res.json();
-          polPriceUSD = parseFloat(data.price);
-          document.getElementById('pol-price').textContent = `$${polPriceUSD.toFixed(4)}`;
-          updateEntryChangesRealtime();
-        } catch(e) { console.log("Price fetch err", e); }
-      }
-
-      function updateEntryChangesRealtime() {
-        const cards = document.querySelectorAll('.entry-card');
-        cards.forEach(card => {
-          const coin = card.dataset.coin;
-          const entryPrice = parseFloat(card.querySelector('.price-val').textContent);
-          // Only supports POL live price for now
-          const currentPrice = (coin === 'POL') ? polPriceUSD : null;
+          // Assume USDT pair for simplicity
+          const symbol = trade.coin === 'POL' ? 'POLUSDT' : trade.coin + 'USDT';
+          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+          const resData = await response.json();
+          const currentPrice = parseFloat(resData.price);
           
-          const pill = card.querySelector('.change-pill');
-          const liveSpan = card.querySelector('.live-price');
-
-          // Reset Classes
-          card.classList.remove('profit', 'loss');
-
-          if (currentPrice && entryPrice) {
-             liveSpan.textContent = ` (live: $${currentPrice.toFixed(4)})`;
-             const pct = ((currentPrice - entryPrice) / entryPrice) * 100;
-             const isProfit = pct > 0;
-             const isLoss = pct < 0;
-             
-             // Update Pill
-             pill.className = `change-pill ${isProfit ? 'positive' : (isLoss ? 'negative' : 'neutral')}`;
-             pill.innerHTML = `<span class="material-icons">${isProfit ? 'trending_up' : (isLoss ? 'trending_down' : 'trending_flat')}</span> ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
-
-             // Update Card Background/Border (Green for profit)
-             if (isProfit) card.classList.add('profit');
-             if (isLoss) card.classList.add('loss');
-
-          } else {
-            liveSpan.textContent = '';
+          const change = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+          const isProfit = change >= 0;
+          const sign = isProfit ? "+" : "";
+          const colorClass = isProfit ? "up" : "down";
+          
+          // Update the stats div
+          const statsDiv = document.getElementById(`stats-${trade.coin}-${trade.timestamp}`);
+          if(statsDiv) {
+            statsDiv.innerHTML = `
+              <div class="trade-change ${colorClass}">${sign}${change.toFixed(2)}%</div>
+              <div class="trade-current">Curr: $${currentPrice.toLocaleString()}</div>
+            `;
           }
-          
-          // Update Time
-          const ts = Number(card.dataset.timestamp);
-          const elapsed = card.querySelector('.meta-elapsed');
-          if (elapsed) elapsed.textContent = computeElapsed(ts);
-        });
-      }
+        } catch(e) {
+          // If pair not found or error
+          const statsDiv = document.getElementById(`stats-${trade.coin}-${trade.timestamp}`);
+          if(statsDiv) statsDiv.innerHTML = `<div class="trade-current" style="color:red">Price Error</div>`;
+        }
+      });
+    });
 
-      // --- Events ---
-      buyBtn.onclick = () => addEntry('buy');
-      sellBtn.onclick = () => addEntry('sell');
-      resetBtn.onclick = () => { coinInput.value=''; priceInput.value=''; setDefaultLocalNow(); };
-      refreshBtn.onclick = () => renderEntries(latestSnapshot);
-
-      setInterval(updateEntryChangesRealtime, 60000);
-      fetchPOLPrice();
+    // --- INITIALIZATION ---
+    window.addEventListener("DOMContentLoaded", () => {
+      fetchPOLPrice().then(refreshAllBalances);
       setInterval(fetchPOLPrice, 3000);
-    </script>
-  </body>
+      setInterval(refreshAllBalances, 30000);
+    });
+  </script>
+</body>
 </html>
