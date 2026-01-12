@@ -14,9 +14,27 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
+/* Reset & Base Styles */
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Inter',system-ui,sans-serif; background:#000; color:#eaeaea; line-height:1.7; padding:20px; }
 .container { max-width:900px; margin:0 auto; position: relative; }
+
+/* Status Badge (Locked/Unlocked) */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+.status-badge.locked { background: #d32f2f; color: #fff; border: 1px solid #ff5252; }
+.status-badge.unlocked { background: #2e7d32; color: #fff; border: 1px solid #4caf50; }
+
+/* Header */
 .article-header { margin-bottom:32px; border-bottom:1px solid #222; padding-bottom:20px; }
 .article-title { font-size:2.2rem; font-weight:700; color:#fff; margin-bottom:10px; }
 .article-meta { font-size:0.9rem; color:#888; }
@@ -28,25 +46,10 @@ body { font-family:'Inter',system-ui,sans-serif; background:#000; color:#eaeaea;
 .key-takeaways li { margin-bottom:8px; font-size:1.05rem; color:#ddd; }
 .key-takeaways li::before { font-family:'Material Icons'; content:'insights'; margin-right:8px; color:#aaa; vertical-align:middle; }
 
-/* Image (Always Visible) */
+/* Image */
 .article-image { width:100%; max-width:820px; margin:30px auto; display:block; border-radius:6px; }
 
-/* Locked Content Styling */
-#locked-content { display: none; } 
-.blur-overlay {
-    position: relative;
-    overflow: hidden;
-}
-.blur-overlay::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 80%);
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* Paywall Box */
+/* Paywall UI */
 #paywall-ui {
     border: 1px solid #333;
     background: #111;
@@ -67,35 +70,49 @@ body { font-family:'Inter',system-ui,sans-serif; background:#000; color:#eaeaea;
     border-radius: 50px;
     cursor: pointer;
     font-weight: 600;
-    transition: background 0.3s;
+    transition: background 0.3s, transform 0.1s;
     display: inline-flex;
     align-items: center;
     gap: 8px;
 }
-.btn-primary:hover { background: #6f3cc4; }
-.btn-primary:disabled { background: #444; cursor: not-allowed; opacity: 0.7; }
+.btn-primary:hover { background: #6f3cc4; transform: translateY(-2px); }
+.btn-primary:disabled { background: #444; cursor: not-allowed; opacity: 0.7; transform: none; }
 
-/* Article Content */
+/* Status Messages in Paywall */
+#status-msg { margin-top: 15px; font-size: 0.95rem; min-height: 24px; font-weight: 500; }
+.text-error { color: #ff5252; }
+.text-success { color: #69f0ae; }
+.loader { display:inline-block; width:14px; height:14px; border:2px solid #fff; border-radius:50%; border-top-color:transparent; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Main Content (Hidden initially) */
+#locked-content { display: none; } 
 .article-content p { margin-bottom:22px; font-size:1.1rem; color:#ddd; }
 .article-content h2 { font-size:1.6rem; margin:40px 0 16px; font-weight:600; color:#fff; }
 .highlight { color:#fff; font-weight:600; }
+
 .share-box { margin:40px 0; display:flex; gap:12px; flex-wrap:wrap; }
 .share-btn { background:#111; border:1px solid #333; color:#eaeaea; padding:10px 16px; font-size:0.9rem; cursor:pointer; border-radius:4px; }
 .share-btn:hover { background:#1a1a1a; border-color:#555; }
 .airdrop-note { margin:40px 0; padding:16px; background:#000; border:1px solid #555; border-radius:6px; color:#ddd; font-size:1.05rem; text-align:center; }
 .footer { border-top:1px solid #222; margin-top:50px; padding-top:20px; text-align:center; color:#777; font-size:0.9rem; }
 
-/* Status Messages */
-#status-msg { margin-top: 15px; font-size: 0.95rem; min-height: 24px; }
-.text-error { color: #ff5555; }
-.text-success { color: #55ff55; }
-.loader { display:inline-block; width:16px; height:16px; border:2px solid #fff; border-radius:50%; border-top-color:transparent; animation:spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Responsive */
+@media (max-width: 600px) {
+  .article-title { font-size: 1.8rem; }
+  .paywall-ui { padding: 30px 15px; }
+}
 </style>
 </head>
 
 <body>
 <div class="container">
+
+    <!-- Status Badge -->
+    <div id="lock-status" class="status-badge locked">
+        <span class="material-icons" style="font-size:12px; vertical-align:middle; margin-right:4px;">lock</span>
+        Article Locked
+    </div>
 
     <header class="article-header">
         <h1 class="article-title">X Launches Smart Cashtags</h1>
@@ -177,7 +194,7 @@ body { font-family:'Inter',system-ui,sans-serif; background:#000; color:#eaeaea;
 // --- Configuration ---
 const RECEIVER_ADDRESS = "0x92d550cdbc234211957bd1b579d962c885a127ba";
 const PAYMENT_AMOUNT_POL = "1.0";
-const POLYGON_CHAIN_ID_HEX = "0x89"; // Chain ID 137
+const POLYGON_CHAIN_ID_HEX = "0x89"; // Chain ID 137 (Mainnet)
 
 // --- Firebase Config ---
 const firebaseConfig = {
@@ -192,7 +209,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 
 // --- UI Elements ---
@@ -201,6 +220,7 @@ const payBtn = document.getElementById("pay-btn");
 const statusMsg = document.getElementById("status-msg");
 const paywallUi = document.getElementById("paywall-ui");
 const lockedContent = document.getElementById("locked-content");
+const lockBadge = document.getElementById("lock-status");
 
 let provider, signer, userAddress;
 
@@ -218,7 +238,10 @@ async function connectWallet() {
     }
 
     try {
-        setStatus("<span class='loader'></span> Connecting...", "normal");
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = "<span class='loader'></span> Connecting...";
+        setStatus("", ""); // Clear previous messages
+
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
@@ -230,7 +253,9 @@ async function connectWallet() {
 
     } catch (error) {
         console.error(error);
-        setStatus("Connection failed: " + error.message, "error");
+        connectBtn.disabled = false;
+        connectBtn.innerText = "Connect Wallet";
+        setStatus("Connection failed. Please try again.", "error");
     }
 }
 
@@ -238,11 +263,15 @@ async function connectWallet() {
 async function checkNetworkAndSwitch() {
     const network = await provider.getNetwork();
     if (network.chainId !== 137) { // 137 is Polygon Mainnet
+        setStatus("Switching to Polygon Network...", "normal");
         try {
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
             });
+            // Re-initialize provider after switch to ensure correct chain context
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
         } catch (switchError) {
             // This error code indicates that the chain has not been added to MetaMask.
             if (switchError.code === 4902) {
@@ -257,11 +286,15 @@ async function checkNetworkAndSwitch() {
                             blockExplorerUrls: ['https://polygonscan.com/']
                         }],
                     });
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
                 } catch (addError) {
                     setStatus("Could not switch to Polygon network.", "error");
+                    throw addError;
                 }
             } else {
                 setStatus("Please switch to Polygon network manually.", "error");
+                throw switchError;
             }
         }
     }
@@ -285,7 +318,7 @@ async function checkPaymentStatus(address) {
         }
     }).catch((error) => {
         console.error("DB Error", error);
-        setStatus("Database check failed.", "error");
+        setStatus("Database check failed. Please refresh.", "error");
     });
 }
 
@@ -303,7 +336,9 @@ async function payToUnlock() {
         });
 
         setStatus("Transaction sent. Waiting for confirmation...", "normal");
-        await tx.wait(); // Wait for 1 block confirmation
+        
+        // Wait for 1 block confirmation
+        await tx.wait(); 
 
         // --- Step 5: Save to Firebase ---
         const safeAddress = userAddress.toLowerCase();
@@ -318,7 +353,16 @@ async function payToUnlock() {
     } catch (error) {
         console.error(error);
         payBtn.disabled = false;
-        setStatus("Payment failed or rejected.", "error");
+        payBtn.innerText = "Retry Payment"; // Change button text
+        
+        // Specific error handling
+        if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+             setStatus("Transaction rejected. Please try again.", "error");
+        } else if (error.code === 'INSUFFICIENT_FUNDS') {
+             setStatus("Insufficient POL balance. Please top up and try again.", "error");
+        } else {
+             setStatus("Payment failed. Please try again.", "error");
+        }
     }
 }
 
@@ -326,7 +370,14 @@ async function payToUnlock() {
 function unlockContent() {
     paywallUi.style.display = "none";
     lockedContent.style.display = "block";
-    setStatus("", "");
+    
+    // Update Badge
+    lockBadge.innerHTML = '<span class="material-icons" style="font-size:12px; vertical-align:middle; margin-right:4px;">lock_open</span> Article Unlocked';
+    lockBadge.classList.remove('locked');
+    lockBadge.classList.add('unlocked');
+
+    // Smooth scroll to content
+    lockedContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // --- Existing Sharing Logic ---
