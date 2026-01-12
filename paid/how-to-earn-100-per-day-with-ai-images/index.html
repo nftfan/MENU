@@ -13,7 +13,7 @@
 <meta name="author" content="NFT FANS TOKEN">
 <link rel="canonical" href="https://nftfanstoken.com/paid/how-to-earn-100-per-day-with-ai-images">
 
-<!-- ===== OPEN GRAPH (FACEBOOK / LINKEDIN) ===== -->
+<!-- ===== OPEN GRAPH ===== -->
 <meta property="og:type" content="article">
 <meta property="og:title" content="How to Earn $100 Per Day with AI Images">
 <meta property="og:description" content="Practical Web3 guide to earning $100/day using AI-generated images. Unlock for 5 POL.">
@@ -29,10 +29,6 @@
 <meta name="twitter:site" content="@nftfanstoken">
 <meta name="twitter:creator" content="@nftfanstoken">
 
-<!-- ===== WEB3 PAYWALL SIGNAL ===== -->
-<meta name="web3:price" content="5 POL">
-<meta name="web3:type" content="paid-article">
-
 <!-- External Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -42,112 +38,351 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,sans-serif;background:#000;color:#eaeaea;line-height:1.7;padding:20px}
-.container{max-width:900px;margin:0 auto}
+/* --- RESET & BASE --- */
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,sans-serif; background:#000; color:#eaeaea; line-height:1.7; padding:20px; }
+.container { max-width:900px; margin:0 auto; position: relative; }
 
-.status-badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:.75rem;font-weight:700;margin-bottom:15px}
-.locked{background:#d32f2f;color:#fff}
-.unlocked{background:#2e7d32;color:#fff}
+/* --- STATUS BADGE --- */
+.status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 4px;
+    font-size: 0.8rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 20px; transition: all 0.3s ease;
+}
+.status-badge.locked { background: rgba(211, 47, 47, 0.15); color: #ff5252; border: 1px solid #ff5252; }
+.status-badge.unlocked { background: rgba(46, 125, 50, 0.15); color: #69f0ae; border: 1px solid #4caf50; }
 
-.article-title{font-size:2.2rem;font-weight:700;margin-bottom:10px}
-.article-meta{color:#888;font-size:.9rem}
+/* --- HEADER --- */
+.article-header { margin-bottom:30px; border-bottom:1px solid #222; padding-bottom:20px; }
+.article-title { font-size:2.4rem; font-weight:700; color:#fff; margin-bottom:10px; line-height: 1.2; }
+.article-meta { font-size:0.95rem; color:#888; }
 
-.key-takeaways{border:1px solid #555;padding:18px;border-radius:6px;margin:30px 0}
-.key-takeaways li{margin-bottom:8px}
+/* --- IMAGE --- */
+.article-image { width:100%; max-width:100%; border-radius:8px; margin:20px 0 40px; display:block; border: 1px solid #333; }
 
-.article-image{width:100%;border-radius:6px;margin:30px 0}
+/* --- PAYWALL BOX --- */
+#paywall-ui {
+    border: 1px solid #333; background: #111;
+    border-radius: 12px; padding: 50px 20px;
+    text-align: center; margin: 40px 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.paywall-title { font-size: 1.5rem; color: #fff; margin-bottom: 12px; font-weight: 700; }
+.paywall-desc { color: #aaa; margin-bottom: 25px; font-size: 1.05rem; }
 
-#paywall-ui{border:1px solid #333;background:#111;border-radius:8px;padding:40px 20px;text-align:center;margin:40px 0}
-.btn-primary{background:#8247e5;color:#fff;border:none;padding:14px 28px;border-radius:50px;font-size:1.1rem;cursor:pointer}
-.btn-primary:hover{background:#6f3cc4}
+/* --- BUTTONS --- */
+.btn-primary {
+    background: #8247e5; /* Polygon Purple */
+    color: white; border: none;
+    padding: 14px 32px; font-size: 1.05rem;
+    border-radius: 50px; cursor: pointer;
+    font-weight: 600; transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: #6f3cc4; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(130, 71, 229, 0.3); }
+.btn-primary:disabled { background: #444; cursor: not-allowed; opacity: 0.7; transform: none; box-shadow: none; }
 
-#locked-content{display:none}
-.article-content p{margin-bottom:22px;font-size:1.1rem}
+/* --- LOCKED CONTENT --- */
+#locked-content { display: none; animation: fadeIn 0.8s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.share-btn{border:1px solid #333;background:#111;color:#fff;padding:10px 16px;border-radius:4px;cursor:pointer}
+.article-content h2 { font-size:1.6rem; margin:40px 0 16px; font-weight:600; color:#fff; }
+.article-content p { margin-bottom:22px; font-size:1.1rem; color:#ccc; }
+.highlight { color:#fff; font-weight:600; }
 
-.footer{border-top:1px solid #222;margin-top:40px;padding-top:20px;text-align:center;color:#777}
+/* --- STATUS MESSAGES --- */
+#status-msg { margin-top: 20px; font-size: 0.95rem; min-height: 24px; font-weight: 500; }
+.text-error { color: #ff5252; }
+.text-success { color: #69f0ae; }
+.loader { display:inline-block; width:16px; height:16px; border:2px solid #fff; border-radius:50%; border-top-color:transparent; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- FOOTER & SHARE --- */
+.share-box { margin:50px 0; display:flex; gap:12px; flex-wrap:wrap; }
+.share-btn { background:#111; border:1px solid #333; color:#eaeaea; padding:10px 20px; font-size:0.95rem; cursor:pointer; border-radius:6px; transition: background 0.2s; }
+.share-btn:hover { background:#222; border-color:#555; }
+
+.footer { border-top:1px solid #222; margin-top:60px; padding-top:30px; text-align:center; color:#666; font-size:0.9rem; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .article-title { font-size: 1.8rem; }
+  .paywall-ui { padding: 30px 15px; }
+}
 </style>
 </head>
 
 <body>
 <div class="container">
 
-<div id="lock-status" class="status-badge locked">🔒 Article Locked</div>
+    <!-- Status Badge -->
+    <div id="lock-status" class="status-badge locked">
+        <span class="material-icons" style="font-size:14px;">lock</span>
+        Article Locked
+    </div>
 
-<h1 class="article-title">How to Earn $100 Per Day with AI Images</h1>
-<div class="article-meta">Premium Web3 Guide · Price: 5 POL</div>
+    <!-- Header -->
+    <header class="article-header">
+        <h1 class="article-title">How to Earn $100 Per Day with AI Images</h1>
+        <div class="article-meta">Premium Web3 Guide · Price: 5 POL · Author: NFT Fans Token</div>
+    </header>
 
-<img src="https://i.postimg.cc/Z52VMN10/image.png" class="article-image" alt="Earn money with AI images">
+    <img src="https://i.postimg.cc/Z52VMN10/image.png" alt="Earn money with AI images" class="article-image">
 
-<div id="paywall-ui">
-  <h3>Unlock Full Article</h3>
-  <p>Pay <strong>5 POL</strong> to access this Web3 article</p>
-  <button class="btn-primary" onclick="connectWallet()">Connect Wallet</button>
-  <button class="btn-primary" id="pay-btn" onclick="payToUnlock()" style="display:none">Pay 5 POL</button>
-  <div id="status-msg"></div>
-</div>
+    <!-- Paywall UI -->
+    <div id="paywall-ui">
+        <h3 class="paywall-title">Unlock Full Strategy</h3>
+        <p class="paywall-desc">Pay <strong>5 POL</strong> to access this exclusive guide. Payment is one-time only.</p>
+        
+        <button id="connect-btn" class="btn-primary" onclick="connectWallet()">
+            <span class="material-icons">account_balance_wallet</span> Connect Wallet
+        </button>
+        
+        <button id="pay-btn" class="btn-primary" style="display:none;" onclick="payToUnlock()">
+            <span class="material-icons">paid</span> Pay 5 POL to Unlock
+        </button>
 
-<main id="locked-content" class="article-content">
-<p>AI-generated images are no longer just art — they are income engines. Creators worldwide earn daily by selling visuals, packs, and services powered by AI.</p>
+        <div id="status-msg"></div>
+    </div>
 
-<h2>1. Sell AI Stock Images</h2>
-<p>Upload AI images to platforms like Adobe Stock, Shutterstock, and Wirestock. Each download earns royalties.</p>
+    <!-- Locked Content -->
+    <main id="locked-content" class="article-content">
+        <p>AI-generated images are no longer just art — they are income engines. Creators worldwide earn daily by selling visuals, packs, and services powered by AI. Here is exactly how to do it.</p>
 
-<h2>2. Freelance AI Image Services</h2>
-<p>Offer avatar creation, branding visuals, or AI illustrations on Fiverr and Upwork.</p>
+        <h2>1. Sell AI Stock Images</h2>
+        <p>Upload high-quality, generic AI images to platforms like <span class="highlight">Adobe Stock, Shutterstock, and Wirestock</span>. Focus on "business concepts," "futuristic technology," and "background textures." Each download earns royalties forever.</p>
 
-<h2>3. Print-on-Demand Products</h2>
-<p>Turn AI art into t-shirts, posters, mugs, and phone cases via Etsy or Shopify.</p>
+        <h2>2. Freelance AI Image Services</h2>
+        <p>Offer specific services on Fiverr and Upwork. Popular niches include: "I will create a consistent AI character for your brand," "I will generate AI concept art for your game," or "I will create custom coloring book pages."</p>
 
-<h2>4. Sell Image Packs</h2>
-<p>Bundle themed AI visuals and sell them on Gumroad or Creative Market.</p>
+        <h2>3. Print-on-Demand Products</h2>
+        <p>Use Midjourney or Stable Diffusion to create unique designs. Upload them to Printful or Printify and sync with an Etsy store. Sell t-shirts, mugs, and phone cases without holding inventory.</p>
 
-<h2>5. Bundle with Branding</h2>
-<p>Offer AI visuals combined with social media branding for higher-value clients.</p>
+        <h2>4. Sell Image Prompts & Packs</h2>
+        <p>If you are a prompt engineer, sell your prompts on <span class="highlight">PromptBase</span>. Alternatively, generate 100+ images around a theme (e.g., "Cyberpunk Cities") and sell them as a texture pack on Gumroad or ArtStation.</p>
 
-<div class="share-box">
-<button class="share-btn" onclick="shareOnX()">Share on X</button>
-<button class="share-btn" onclick="copyLink()">Copy Link</button>
-</div>
+        <h2>5. Bundle with Branding</h2>
+        <p>Approach small businesses and offer a full visual rebrand. Use AI to generate logo concepts, social media banners, and marketing materials in a fraction of the time it takes manually.</p>
 
-<p><strong>Bonus:</strong> Share this article on X to claim <strong>10 Billion $NFTFAN tokens</strong>.</p>
-</main>
+        <div class="share-box">
+            <button class="share-btn" onclick="shareOnX()">Share on X</button>
+            <button class="share-btn" onclick="copyLink()">Copy Link</button>
+        </div>
 
-<div class="footer">© 2026 NFT FANS TOKEN</div>
+        <p style="margin-top:20px; font-size:0.9rem; color:#888; text-align:center;">
+            <strong>Bonus:</strong> Share this article on X to claim <strong>10 Billion $NFTFAN tokens</strong>.
+        </p>
+    </main>
+
+    <div class="footer">
+        © 2026 NFT FANS TOKEN · Web3 Powered
+    </div>
+
 </div>
 
 <script>
-const RECEIVER_ADDRESS="0x92d550cdbc234211957bd1b579d962c885a127ba";
-const PAYMENT_AMOUNT="5";
+// --- CONFIGURATION ---
+const RECEIVER_ADDRESS = "0x92d550cdbc234211957bd1b579d962c885a127ba";
+const PAYMENT_AMOUNT_POL = "5.0"; // Updated to 5 POL
+const POLYGON_CHAIN_ID_HEX = "0x89"; // Chain ID 137 (Polygon Mainnet)
 
-async function connectWallet(){
- if(!window.ethereum){alert("Install MetaMask");return;}
- const provider=new ethers.providers.Web3Provider(window.ethereum);
- await provider.send("eth_requestAccounts",[]);
- document.getElementById("pay-btn").style.display="inline-block";
+// --- FIREBASE CONFIG ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+    projectId: "tokentransfer-4a9b3",
+    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+    messagingSenderId: "205455490321",
+    appId: "1:205455490321:web:9919f5dde059316c9320b0",
+    measurementId: "G-Y6CVEDL9XH"
+};
+
+// Initialize Firebase safely
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// --- UI ELEMENTS ---
+const connectBtn = document.getElementById("connect-btn");
+const payBtn = document.getElementById("pay-btn");
+const statusMsg = document.getElementById("status-msg");
+const paywallUi = document.getElementById("paywall-ui");
+const lockedContent = document.getElementById("locked-content");
+const lockBadge = document.getElementById("lock-status");
+
+let provider, signer, userAddress;
+
+// --- UTILS ---
+function setStatus(msg, type = "") {
+    statusMsg.innerHTML = msg;
+    statusMsg.className = type === "error" ? "text-error" : type === "success" ? "text-success" : "";
 }
 
-async function payToUnlock(){
- const provider=new ethers.providers.Web3Provider(window.ethereum);
- const signer=provider.getSigner();
- await signer.sendTransaction({to:RECEIVER_ADDRESS,value:ethers.utils.parseEther(PAYMENT_AMOUNT)});
- document.getElementById("paywall-ui").style.display="none";
- document.getElementById("locked-content").style.display="block";
- document.getElementById("lock-status").className="status-badge unlocked";
- document.getElementById("lock-status").innerText="🔓 Article Unlocked";
+// --- MAIN LOGIC ---
+
+async function connectWallet() {
+    if (!window.ethereum) {
+        setStatus("MetaMask is not installed. Please install it to continue.", "error");
+        return;
+    }
+
+    try {
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = "<span class='loader'></span> Connecting...";
+        setStatus("", "");
+
+        // Initialize Ethers
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        setStatus("Wallet Connected", "success");
+        
+        // Sequence: Network Check -> Payment Check
+        await checkNetworkAndSwitch();
+        await checkPaymentStatus(userAddress);
+
+    } catch (error) {
+        console.error(error);
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<span class="material-icons">account_balance_wallet</span> Connect Wallet';
+        setStatus("Connection failed. Please try again.", "error");
+    }
 }
 
-function shareOnX(){
- const url="https://nftfanstoken.com/paid/how-to-earn-100-per-day-with-ai-images";
- const text="How to Earn $100 Per Day with AI Images\n\nWeb3 premium article 🔓";
- window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+async function checkNetworkAndSwitch() {
+    const network = await provider.getNetwork();
+    if (network.chainId !== 137) { // 137 = Polygon Mainnet
+        setStatus("Switching to Polygon Network...", "normal");
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
+            });
+            // Re-init provider after switch
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: POLYGON_CHAIN_ID_HEX,
+                            chainName: 'Polygon Mainnet',
+                            nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+                            rpcUrls: ['https://polygon-rpc.com/'],
+                            blockExplorerUrls: ['https://polygonscan.com/']
+                        }],
+                    });
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                } catch (addError) {
+                    setStatus("Could not switch to Polygon network.", "error");
+                    throw addError;
+                }
+            } else {
+                setStatus("Please switch to Polygon network manually.", "error");
+                throw switchError;
+            }
+        }
+    }
 }
 
-function copyLink(){
- navigator.clipboard.writeText("https://nftfanstoken.com/paid/how-to-earn-100-per-day-with-ai-images");
- alert("Link copied");
+async function checkPaymentStatus(address) {
+    const safeAddress = address.toLowerCase();
+    const articleId = "ai-images-100"; // Unique ID for this specific article
+    const userRef = db.ref('paid_users/' + safeAddress + '/' + articleId);
+    
+    setStatus("Checking access permissions...", "normal");
+
+    userRef.once('value').then((snapshot) => {
+        if (snapshot.exists() && snapshot.val().paid === true) {
+            unlockContent();
+        } else {
+            // User hasn't paid yet
+            connectBtn.style.display = "none";
+            payBtn.style.display = "inline-flex";
+            setStatus("", ""); // Clear status
+        }
+    }).catch((error) => {
+        console.error("DB Error", error);
+        // Fallback: Show pay button if DB check fails
+        connectBtn.style.display = "none";
+        payBtn.style.display = "inline-flex";
+    });
+}
+
+async function payToUnlock() {
+    if (!signer) return;
+
+    try {
+        setStatus("<span class='loader'></span> Processing transaction...", "normal");
+        payBtn.disabled = true;
+
+        const tx = await signer.sendTransaction({
+            to: RECEIVER_ADDRESS,
+            value: ethers.utils.parseEther(PAYMENT_AMOUNT_POL)
+        });
+
+        setStatus("Transaction sent. Waiting for confirmation...", "normal");
+        await tx.wait(); // Wait for 1 block
+
+        // Save to Firebase
+        const safeAddress = userAddress.toLowerCase();
+        const articleId = "ai-images-100";
+        
+        await db.ref('paid_users/' + safeAddress + '/' + articleId).set({
+            paid: true,
+            timestamp: Date.now(),
+            txHash: tx.hash,
+            amount: PAYMENT_AMOUNT_POL
+        });
+
+        unlockContent();
+
+    } catch (error) {
+        console.error(error);
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<span class="material-icons">replay</span> Retry Payment';
+        
+        if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+             setStatus("Transaction rejected. Please try again.", "error");
+        } else if (error.code === 'INSUFFICIENT_FUNDS') {
+             setStatus("Insufficient POL balance for gas + price.", "error");
+        } else {
+             setStatus("Payment failed. Please try again.", "error");
+        }
+    }
+}
+
+function unlockContent() {
+    paywallUi.style.display = "none";
+    lockedContent.style.display = "block";
+    
+    // Update Badge
+    lockBadge.innerHTML = '<span class="material-icons" style="font-size:14px;">lock_open</span> Article Unlocked';
+    lockBadge.className = "status-badge unlocked";
+
+    // Smooth scroll
+    lockedContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// --- SHARE FUNCTIONS ---
+function shareOnX() {
+  const url = encodeURIComponent("https://nftfanstoken.com/paid/how-to-earn-100-per-day-with-ai-images");
+  const text = encodeURIComponent("How to Earn $100 Per Day with AI Images 🤖💰\n\nJust unlocked this Web3 guide! #NFTFANS #AIArt");
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+}
+
+function copyLink() {
+  navigator.clipboard.writeText("https://nftfanstoken.com/paid/how-to-earn-100-per-day-with-ai-images");
+  alert("Link copied to clipboard!");
 }
 </script>
 
