@@ -8,10 +8,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+
   <!-- Firebase SDKs (Compat version for simple HTML usage) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  
+
   <style>
     html, body {
       background: #fff;
@@ -28,7 +29,6 @@
       padding: 10px 0 60px 0;
     }
 
-    /* --- Existing Styles --- */
     .price-bar {
       background: #eefdf2;
       border-radius: 10px;
@@ -42,7 +42,7 @@
     }
     .price-bar-label { color: #0d8a43; font-weight: bold; }
     .price-bar-value { color: #222; font-size: 16px; font-weight: bold; margin-left: 8px; }
-    
+
     .total-card {
       background: #f8f7ff;
       border-radius: 10px;
@@ -57,7 +57,7 @@
     .total-label { font-size: 10px; font-weight: bold; color: #888; margin-bottom: 7px; }
     .total-sum { font-size: 18px; font-weight: bold; color: #7a3cff; }
     .total-usd { font-size: 13px; color: #0d8a43; font-weight: bold; margin-top: 4px; }
-    
+
     .refresh-btn {
       font-size: 10px; padding: 7px 18px; border-radius: 15px; border: 1px solid #ececec;
       background: #f4f0ff; color: #7a3cff; font-weight: bold; margin: 0 10px 12px 10px;
@@ -65,7 +65,7 @@
     }
 
     .section-label { font-weight: bold; margin: 25px 0 8px 16px; font-size: 12px; color: #444; }
-    
+
     .account-card {
       display: flex; justify-content: space-between; align-items: flex-start;
       border: 1px solid #ececec; border-radius: 9px; background: #fff;
@@ -83,7 +83,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- NEW TRADES SECTION STYLES --- */
+    /* --- TRADES SECTION STYLES --- */
     .trades-header {
       display: flex; justify-content: space-between; align-items: center;
       margin: 30px 16px 15px 16px;
@@ -95,14 +95,19 @@
     }
     .add-trade-btn:active { transform: scale(0.96); }
 
-    /* Trade Card Styles */
     .trade-card {
-      background: #fff; border-radius: 12px; margin: 0 10px 12px 10px;
-      padding: 15px; position: relative; display: flex; align-items: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s ease;
+      background: #fff;
+      border-radius: 12px;
+      margin: 0 10px 12px 10px;
+      padding: 15px;
+      padding-right: 56px; /* reserve space for Del button */
+      position: relative;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      transition: all 0.3s ease;
     }
-    
-    /* Type specific styling */
+
     .trade-card.type-buy { border: 1px solid #27ae60; border-left: 5px solid #27ae60; }
     .trade-card.type-sell { border: 1px solid #e74c3c; border-left: 5px solid #e74c3c; }
 
@@ -117,20 +122,41 @@
     .trade-entry { font-size: 11px; color: #666; }
     .trade-time { font-size: 9px; color: #aaa; margin-top: 4px; font-weight: 500;}
 
-    .trade-stats { text-align: right; }
+    .trade-stats {
+      text-align: right;
+      min-width: 110px;
+    }
     .trade-change { font-size: 14px; font-weight: bold; display: block; margin-bottom: 2px; }
     .trade-change.up { color: #27ae60; }
     .trade-change.down { color: #e74c3c; }
     .trade-current { font-size: 10px; color: #888; }
 
+    /* Delete button */
+    .trade-delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      border: 1px solid #eee;
+      background: #fff;
+      color: #e74c3c;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 4px 7px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .trade-delete-btn:active { transform: scale(0.96); }
+
     /* Modal Styles */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); z-index: 999; display: none;
-      justify-content: center; align-items: flex-end; /* Bottom sheet on mobile */
+      justify-content: center; align-items: flex-end;
     }
     .modal-overlay.open { display: flex; }
-    
+
     .modal-content {
       background: #fff; width: 100%; max-width: 480px;
       border-radius: 20px 20px 0 0; padding: 25px;
@@ -139,7 +165,7 @@
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #222; }
-    
+
     .form-group { margin-bottom: 15px; }
     .form-label { display: block; font-size: 11px; font-weight: bold; color: #666; margin-bottom: 6px; }
     .form-input {
@@ -148,7 +174,6 @@
     }
     .form-input:focus { border-color: #7a3cff; }
 
-    /* Buy/Sell Toggles */
     .type-selector { display: flex; gap: 10px; margin-bottom: 20px; }
     .type-opt {
       flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
@@ -163,7 +188,7 @@
       border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer;
     }
     .close-modal { margin-top: 15px; text-align: center; color: #888; font-size: 12px; cursor: pointer; }
-    
+
     @media (min-width: 481px) {
       .modal-overlay { align-items: center; }
       .modal-content { border-radius: 20px; margin: 20px; }
@@ -238,7 +263,7 @@
       </div>
     </div>
 
-    <!-- NEW PHOTONFT WALLET -->
+    <!-- PHOTONFT WALLET -->
     <div class="account-card" id="account-4">
       <div class="account-info">
         <div class="account-title">PHOTONFT</div>
@@ -251,24 +276,48 @@
       </div>
     </div>
 
+    <!-- NEW FANI WALLET -->
+    <div class="account-card" id="account-5">
+      <div class="account-info">
+        <div class="account-title">FANI</div>
+        <div class="account-iban">0xacc7...02c6</div>
+        <div class="account-owner">Personal</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-5"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-5-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+
+    <!-- NEW NFTSIX WALLET -->
+    <div class="account-card" id="account-6">
+      <div class="account-info">
+        <div class="account-title">NFTSIX</div>
+        <div class="account-iban">0xe220...74e0</div>
+        <div class="account-owner">Personal</div>
+      </div>
+      <div>
+        <div class="account-balance positive" id="balance-6"><span class="loading-spinner"></span></div>
+        <div class="account-balance-usd" id="balance-6-usd"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+
     <!-- TRADES SECTION -->
     <div class="trades-header">
       <div style="font-weight:bold; font-size:16px;">My Trades</div>
       <button class="add-trade-btn" onclick="openModal()">+ Add Trade</button>
     </div>
-    
+
     <div id="trades-container">
-      <!-- Trades will be injected here -->
       <div style="text-align:center; color:#999; font-size:12px; margin-top:20px;">Loading trades...</div>
     </div>
-
   </div>
 
   <!-- MODAL -->
   <div class="modal-overlay" id="tradeModal">
     <div class="modal-content">
       <div class="modal-title">New Trade Entry</div>
-      
+
       <div class="type-selector">
         <div class="type-opt selected-buy" id="opt-buy" onclick="selectType('buy')">BUY</div>
         <div class="type-opt" id="opt-sell" onclick="selectType('sell')">SELL</div>
@@ -316,10 +365,14 @@
       { address: "0xaf2d132c8773bca3821c24ecf64e844e202a12e8", idx: 1 },
       { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", idx: 2 },
       { address: "0x2dbA27e3ab39F662c1Df9CBdC4dBD526107144F1", idx: 3 },
-      { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", idx: 4 } // Photonft
+      { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", idx: 4 }, // Photonft
+      { address: "0xacc774D2B05606ad22bDe0f53c256D20f83202c6", idx: 5 }, // FANI
+      { address: "0xe220Bc80B77769407d127A195920D527200674e0", idx: 6 }  // NFTSIX
     ];
-    // Display order: Payment(1,2), Savings(0,3), Photo(4)
-    const DISPLAY_ORDER = [1, 2, 0, 3, 4];
+
+    // Display order
+    const DISPLAY_ORDER = [1, 2, 0, 3, 4, 5, 6];
+
     let polPriceUSD = null;
 
     async function fetchPOLPrice() {
@@ -340,9 +393,9 @@
         const balanceWei = await web3.eth.getBalance(wallet.address);
         const balance = web3.utils.fromWei(balanceWei, "ether");
         const formatted = parseFloat(balance).toLocaleString(undefined, {maximumFractionDigits: 4});
-        
+
         document.getElementById("balance-" + idx).textContent = "+ " + formatted + " MATIC";
-        
+
         if (polPriceUSD != null) {
           const usdVal = (parseFloat(balance) * polPriceUSD);
           document.getElementById("balance-" + idx + "-usd").textContent = "≈ $" + usdVal.toLocaleString(undefined, {maximumFractionDigits: 2});
@@ -350,6 +403,8 @@
         return parseFloat(balance);
       } catch (err) {
         document.getElementById("balance-" + idx).innerText = "--";
+        const usdEl = document.getElementById("balance-" + idx + "-usd");
+        if (usdEl) usdEl.innerText = "";
         return 0;
       }
     }
@@ -357,14 +412,16 @@
     async function refreshAllBalances() {
       const btn = document.getElementById("refresh-btn");
       if (btn) btn.textContent = "Updating...";
-      
+
       let sum = 0;
       for (let i = 0; i < DISPLAY_ORDER.length; i++) {
         const idx = DISPLAY_ORDER[i];
-        const balance = await fetchAndShowBalance(WALLETS.find(w => w.idx === idx));
+        const wallet = WALLETS.find(w => w.idx === idx);
+        if (!wallet) continue;
+        const balance = await fetchAndShowBalance(wallet);
         sum += balance;
       }
-      
+
       document.getElementById("total-sum").textContent = "+ " + sum.toLocaleString(undefined, {maximumFractionDigits: 4}) + " MATIC";
       if (polPriceUSD != null) {
         const totalUsd = (sum * polPriceUSD);
@@ -375,15 +432,15 @@
 
     // --- TRADES LOGIC ---
     let currentTradeType = 'buy';
-    
+
     function openModal() {
       document.getElementById('tradeModal').classList.add('open');
-      // Set default time to now
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       document.getElementById('t-date').value = now.toISOString().slice(0,16);
+      selectType(currentTradeType);
     }
-    
+
     function closeModal() {
       document.getElementById('tradeModal').classList.remove('open');
     }
@@ -407,15 +464,14 @@
       const coin = document.getElementById('t-coin').value.toUpperCase().trim();
       const price = parseFloat(document.getElementById('t-price').value);
       const dateStr = document.getElementById('t-date').value;
-      
+
       if(!coin || !price || !dateStr) {
         alert("Please fill all fields");
         return;
       }
 
       const timestamp = new Date(dateStr).getTime();
-      
-      // Save to Firebase
+
       const newTradeRef = database.ref('trades').push();
       newTradeRef.set({
         coin: coin,
@@ -423,9 +479,8 @@
         timestamp: timestamp,
         type: currentTradeType
       });
-      
+
       closeModal();
-      // Clear fields
       document.getElementById('t-coin').value = "";
       document.getElementById('t-price').value = "";
     }
@@ -435,10 +490,10 @@
       const minute = 60 * 1000;
       const hour = minute * 60;
       const day = hour * 24;
-      
+
       const days = Math.floor(diff / day);
       const hours = Math.floor((diff % day) / hour);
-      
+
       if (days > 0) return `${days}d ${hours}h ago`;
       if (hours > 0) return `${hours} hours ago`;
       return "Just now";
@@ -449,49 +504,56 @@
       const container = document.getElementById('trades-container');
       container.innerHTML = "";
       const data = snapshot.val();
-      
+
       if(!data) {
         container.innerHTML = "<div style='text-align:center;color:#ccc;font-size:12px;margin-top:20px'>No trades yet</div>";
         return;
       }
 
-      // Convert object to array and reverse (newest top)
-      const trades = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
-      
+      const trades = Object.entries(data)
+        .map(([key, trade]) => ({ key, ...trade }))
+        .sort((a,b) => b.timestamp - a.timestamp);
+
       trades.forEach(async (trade) => {
-        // Create basic card first
         const div = document.createElement('div');
         div.className = `trade-card type-${trade.type}`;
-        
+
         div.innerHTML = `
+          <button class="trade-delete-btn" title="Delete">Del</button>
+
           <div class="trade-dot"></div>
           <div class="trade-main">
             <div class="trade-coin">${trade.coin}</div>
             <div class="trade-entry">Entry: $${trade.entryPrice}</div>
             <div class="trade-time">${timeAgo(trade.timestamp)}</div>
           </div>
-          <div class="trade-stats" id="stats-${trade.coin}-${trade.timestamp}">
+          <div class="trade-stats" id="stats-${trade.key}">
             <div class="trade-change">...</div>
             <div class="trade-current">Loading...</div>
           </div>
         `;
+
+        div.querySelector(".trade-delete-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          if(confirm("Delete this trade?")) {
+            database.ref(`trades/${trade.key}`).remove();
+          }
+        });
+
         container.appendChild(div);
 
-        // Fetch live price for this coin
         try {
-          // Assume USDT pair for simplicity
           const symbol = trade.coin === 'POL' ? 'POLUSDT' : trade.coin + 'USDT';
           const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
           const resData = await response.json();
           const currentPrice = parseFloat(resData.price);
-          
+
           const change = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
           const isProfit = change >= 0;
           const sign = isProfit ? "+" : "";
           const colorClass = isProfit ? "up" : "down";
-          
-          // Update the stats div
-          const statsDiv = document.getElementById(`stats-${trade.coin}-${trade.timestamp}`);
+
+          const statsDiv = document.getElementById(`stats-${trade.key}`);
           if(statsDiv) {
             statsDiv.innerHTML = `
               <div class="trade-change ${colorClass}">${sign}${change.toFixed(2)}%</div>
@@ -499,8 +561,7 @@
             `;
           }
         } catch(e) {
-          // If pair not found or error
-          const statsDiv = document.getElementById(`stats-${trade.coin}-${trade.timestamp}`);
+          const statsDiv = document.getElementById(`stats-${trade.key}`);
           if(statsDiv) statsDiv.innerHTML = `<div class="trade-current" style="color:red">Price Error</div>`;
         }
       });
