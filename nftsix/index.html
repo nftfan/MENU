@@ -948,34 +948,206 @@
       });
     }
 
-    function renderList() {
+    // ----------------------------
+    // LAZY LOAD ON SCROLL (added)
+    // ----------------------------
+    const PAGE_SIZE = 12;
+    let visibleCount = 0;
+    let renderedSortedKeys = "";
+    let isLoadingMore = false;
+    let autoCheckInFlight = 0;
+
+    function getSortedEntries() {
+      return sortEntries(currentEntries, sortSelect.value);
+    }
+
+    function computeSortedKeys(entries) {
+      // Unique-enough signature so we can detect changes and re-render safely
+      return entries.map(([id, d]) => `${id}:${d?.createdAt || 0}:${(d?.imageUrl || "").trim()}`).join("|");
+    }
+
+    function ensureSkeletonIfEmpty() {
+      if (!gridEl.childElementCount) {
+        const sk = document.createElement("div");
+        sk.className = "skeleton fade-in";
+        sk.textContent = "Loading collection…";
+        gridEl.appendChild(sk);
+      }
+    }
+
+    function clearGridAndResetPaging() {
       gridEl.innerHTML = "";
-      const sorted = sortEntries(currentEntries, sortSelect.value);
+      visibleCount = 0;
+      renderedSortedKeys = "";
+      isLoadingMore = false;
+    }
+
+    async function updateMintedStatusesForUris(uris) {
+      const uniqueUris = Array.from(new Set(uris.filter(Boolean)));
+      const toCheck = uniqueUris.filter(u => !mintedMap.has(u)); // only new ones
+      if (!toCheck.length) return;
+
+      const batchSize = 20;
+      autoCheckInFlight++;
+      try {
+        for (let i = 0; i < toCheck.length; i += batchSize) {
+          const batch = toCheck.slice(i, i + batchSize);
+          const results = await Promise.all(
+            batch.map(uri => readContract.isMintedURI(uri).then(v => [uri, !!v]).catch(() => [uri, false]))
+          );
+          results.forEach(([uri, val]) => mintedMap.set(uri, val));
+        }
+      } finally {
+        autoCheckInFlight = Math.max(0, autoCheckInFlight - 1);
+      }
+    }
+
+    function renderNextPage() {
+      const sorted = getSortedEntries();
+      const sig = computeSortedKeys(sorted);
+
+      // If dataset or sort mode changed, rebuild list from scratch
+      if (sig !== renderedSortedKeys) {
+        gridEl.innerHTML = "";
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+      }
 
       if (!sorted.length) {
+        gridEl.innerHTML = "";
         const empty = document.createElement("div");
         empty.className = "skeleton fade-in";
         empty.textContent = "No NFTs found in database.";
         gridEl.appendChild(empty);
         return;
       }
-      sorted.forEach(([id, data]) => gridEl.appendChild(renderCard(id, data)));
+
+      const start = visibleCount;
+      const end = Math.min(sorted.length, visibleCount + PAGE_SIZE);
+
+      if (start === 0) {
+        // remove initial skeleton if present
+        gridEl.innerHTML = "";
+      }
+
+      for (let i = start; i < end; i++) {
+        const [id, data] = sorted[i];
+        gridEl.appendChild(renderCard(id, data));
+      }
+
+      visibleCount = end;
+    }
+
+    async function loadMoreIfNeeded(force = false) {
+      if (isLoadingMore) return;
+      const sorted = getSortedEntries();
+      if (!sorted.length) return;
+      if (!force && visibleCount >= sorted.length) return;
+
+      isLoadingMore = true;
+      try {
+        // Determine next page URIs to pre-check mint status (so buttons are correct)
+        const start = visibleCount;
+        const end = Math.min(sorted.length, visibleCount + PAGE_SIZE);
+        const nextUris = [];
+        for (let i = start; i < end; i++) {
+          const uri = (sorted[i]?.[1]?.imageUrl || "").trim();
+          if (uri) nextUris.push(uri);
+        }
+
+        // Pre-check mint status for the next page only
+        if (nextUris.length) {
+          await updateMintedStatusesForUris(nextUris);
+        }
+
+        renderNextPage();
+      } catch (e) {
+        console.warn(e);
+        // Do not break UI if checks fail; still render
+        renderNextPage();
+      } finally {
+        isLoadingMore = false;
+      }
+    }
+
+    function nearBottom() {
+      const threshold = 650; // px before bottom
+      return (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - threshold);
+    }
+
+    function installScrollLoader() {
+      let ticking = false;
+
+      window.addEventListener("scroll", () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(async () => {
+          ticking = false;
+          if (nearBottom()) await loadMoreIfNeeded(false);
+        });
+      }, { passive: true });
+
+      window.addEventListener("resize", () => {
+        // In case viewport changes and we suddenly have room for more items
+        if (nearBottom()) loadMoreIfNeeded(false);
+      }, { passive: true });
+    }
+
+    // Replaces old renderList behavior with lazy rendering.
+    function renderList() {
+      // Keep same public function name (used by mint flow), but only
+      // re-render what's needed quickly and avoid loading all items at once.
+      const sorted = getSortedEntries();
+      const sig = computeSortedKeys(sorted);
+
+      if (!sorted.length) {
+        gridEl.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "skeleton fade-in";
+        empty.textContent = "No NFTs found in database.";
+        gridEl.appendChild(empty);
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+        return;
+      }
+
+      // If sort mode changed or dataset changed, reset and render first page
+      if (sig !== renderedSortedKeys) {
+        gridEl.innerHTML = "";
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+        ensureSkeletonIfEmpty();
+        // Load first page immediately
+        loadMoreIfNeeded(true);
+        return;
+      }
+
+      // Otherwise, just refresh currently visible cards (for minted/minting UI)
+      // by rebuilding visible portion only (fast).
+      const keep = visibleCount || PAGE_SIZE;
+      gridEl.innerHTML = "";
+      const end = Math.min(sorted.length, keep);
+      for (let i = 0; i < end; i++) {
+        const [id, data] = sorted[i];
+        gridEl.appendChild(renderCard(id, data));
+      }
+      visibleCount = end;
     }
 
     async function updateMintedStatuses(entries) {
-      const uris = entries
+      // Keep function name, but do not check entire dataset anymore.
+      // We'll check only what's needed per page (plus initial page).
+      const sorted = sortEntries(entries, sortSelect.value);
+      const initialUris = sorted
+        .slice(0, PAGE_SIZE)
         .map(([_, d]) => (d?.imageUrl || "").trim())
         .filter(Boolean);
 
-      const batchSize = 20;
-      for (let i = 0; i < uris.length; i += batchSize) {
-        const batch = uris.slice(i, i + batchSize);
-        const results = await Promise.all(
-          batch.map(uri => readContract.isMintedURI(uri).then(v => [uri, !!v]).catch(() => [uri, false]))
-        );
-        results.forEach(([uri, val]) => mintedMap.set(uri, val));
-      }
+      await updateMintedStatusesForUris(initialUris);
     }
+    // ----------------------------
+    // END LAZY LOAD ON SCROLL
+    // ----------------------------
 
     async function refreshMintedCount() {
       try {
@@ -1003,7 +1175,15 @@
       }
     });
 
-    sortSelect.addEventListener("change", renderList);
+    sortSelect.addEventListener("change", () => {
+      // Reset paging & render first page for new sort
+      gridEl.innerHTML = "";
+      visibleCount = 0;
+      renderedSortedKeys = "";
+      renderList();
+      // If the page is short, attempt to fill
+      if (nearBottom()) loadMoreIfNeeded(false);
+    });
 
     db.ref("nfts").orderByChild("createdAt").on("value", async (snapshot) => {
       const val = snapshot.val();
@@ -1015,6 +1195,9 @@
         initFakeMarketStats(0);
         refreshMintedCount();
         setStatus("Database is empty.", "");
+        // Reset lazy state
+        visibleCount = 0;
+        renderedSortedKeys = "";
         return;
       }
 
@@ -1023,9 +1206,19 @@
 
       setStatus("Syncing…", "");
       try { await updateMintedStatuses(currentEntries); } catch (e) { console.warn(e); }
+
+      // Reset paging and render first page only
+      gridEl.innerHTML = "";
+      visibleCount = 0;
+      renderedSortedKeys = "";
+      ensureSkeletonIfEmpty();
+
       renderList();
       await refreshMintedCount();
       setStatus(`Loaded ${currentEntries.length} items.`, "ok");
+
+      // If screen is tall and we are already near bottom, load more automatically once
+      if (nearBottom()) loadMoreIfNeeded(false);
     }, (err) => {
       console.error(err);
       setStatus("Database read error.", "err");
@@ -1033,6 +1226,7 @@
 
     (async function boot(){
       installWalletListeners();
+      installScrollLoader(); // lazy load trigger
       setWalletUI(false);
 
       setInterval(animateFakeVolume, 1300);
