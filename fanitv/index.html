@@ -13,8 +13,6 @@
       --bg1:#0a0a14;
       --txt:#eaf0ff;
       --muted:#a9b2d6;
-      --neon1:#7c3aed;
-      --neon2:#06b6d4;
       --shadow: 0 18px 50px rgba(0,0,0,.55);
     }
     *{box-sizing:border-box}
@@ -83,12 +81,18 @@
       white-space: nowrap;
     }
     .btn:hover{ transform: translateY(-1px); border-color: rgba(124,58,237,.55); background: rgba(15,18,36,.72); }
-    .btn:active{ transform: translateY(0px) scale(.99); }
-    .btn .material-icons{ font-size:18px; opacity:.95 }
+
+    /* very small wallet connect button */
+    .wallet-btn{
+      padding: 6px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      gap:6px;
+    }
 
     .wrap{ width: min(520px, 100%); display:flex; flex-direction:column; align-items:center; gap: 8px; }
 
-    /* 20% smaller than your previous 320px card => 256px */
+    /* 20% smaller than 320px => 256px */
     .video-card{
       width: min(256px, 100%);
       border-radius: 16px;
@@ -131,9 +135,10 @@
     .dot{ width:6px;height:6px;background:white;border-radius:50%;}
     @keyframes pulse { 0%{opacity:1} 50%{opacity:.65} 100%{opacity:1} }
 
+    /* watch time text (no icon) */
     .title{
       position:absolute; top:8px; right:8px;
-      font-size: 10px; font-weight: 900; letter-spacing:.45px;
+      font-size: 10px; font-weight: 900; letter-spacing:.35px;
       color: white;
       padding: 4px 7px;
       border-radius: 10px;
@@ -141,6 +146,7 @@
       border:1px solid rgba(255,255,255,.10);
       text-shadow: 0 0 10px rgba(0,0,0,.65);
       z-index: 10;
+      text-align:right;
     }
 
     .meta{
@@ -178,32 +184,18 @@
       width: 100%;
     }
 
-    footer{ margin-top: 10px; color: rgba(255,255,255,.55); font-size: 11px; text-align:center; }
-
-    .toast{
-      position: fixed;
-      left: 50%;
-      bottom: 12px;
-      transform: translateX(-50%);
-      width: min(520px, calc(100% - 20px));
-      padding: 9px 10px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(10,12,24,.72);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-      color: var(--txt);
+    .wallet-stats{
+      width: min(256px, 100%);
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
       display:none;
-      gap:10px;
-      align-items:flex-start;
-      animation: toastIn .18s ease-out;
-      z-index: 999;
+      text-align:center;
+      line-height: 1.35;
     }
-    @keyframes toastIn { from{opacity:0; transform: translateX(-50%) translateY(8px)} to{opacity:1; transform: translateX(-50%) translateY(0)} }
-    .toast.show{ display:flex; }
-    .toast .material-icons{ font-size: 18px; color: #7CFF9B; margin-top:2px; }
-    .toast .t-title{ font-weight: 950; font-size: 12px; }
-    .toast .t-sub{ color: var(--muted); font-size: 11px; margin-top:2px; line-height:1.35; }
+    .wallet-stats b{ color: var(--txt); }
+
+    footer{ margin-top: 10px; color: rgba(255,255,255,.55); font-size: 11px; text-align:center; }
   </style>
 </head>
 
@@ -213,16 +205,18 @@
       <div class="logo"></div>
       <div class="text">
         <b>FANI TV LIVE</b>
-        <small>Random playlist</small>
+        <small></small>
       </div>
     </div>
+
+    <button id="connectBtn" class="btn wallet-btn">Connect</button>
   </div>
 
   <div class="wrap">
     <div class="video-card">
       <div class="video-container">
         <div class="live-badge"><span class="dot"></span>LIVE</div>
-        <div class="title">FANI TV LIVE</div>
+        <div class="title" id="watchTitle">Watch: 00:00</div>
         <video id="player" autoplay muted playsinline></video>
       </div>
 
@@ -238,31 +232,61 @@
         </button>
       </div>
     </div>
+
+    <div id="walletStats" class="wallet-stats">
+      Wallet: <b id="walletAddr">-</b><br/>
+      $NFTFAN TOKENS earned: <b id="earnedTokens">0</b>
+    </div>
   </div>
 
   <footer>© NFTFANS TOKEN 2026</footer>
 
-  <div id="toast" class="toast">
-    <span id="toastIcon" class="material-icons">check_circle</span>
-    <div>
-      <div id="toastTitle" class="t-title">Done</div>
-      <div id="toastSub" class="t-sub">...</div>
-    </div>
-  </div>
-
 <script type="module">
-  // Your GitHub RAW URL (correct format)
+  /* =========================
+     PLAYLIST FROM GITHUB TXT
+     ========================= */
   const PLAYLIST_URL = "https://raw.githubusercontent.com/nftfan/MENU/main/fanitv/fanilive.txt";
 
+  /* =========================
+     FIREBASE (Realtime Database)
+     ========================= */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+    projectId: "tokentransfer-4a9b3",
+    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+    messagingSenderId: "205455490321",
+    appId: "1:205455490321:web:9919f5dde059316c9320b0",
+    measurementId: "G-Y6CVEDL9XH"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  /* =========================
+     ELEMENTS
+     ========================= */
   const player = document.getElementById("player");
   const statusEl = document.getElementById("statusText");
   const viewerEl = document.getElementById("viewerCount");
   const soundBtn = document.getElementById("soundBtn");
   const soundIcon = document.getElementById("soundIcon");
+  const watchTitle = document.getElementById("watchTitle");
+
+  const connectBtn = document.getElementById("connectBtn");
+  const walletStats = document.getElementById("walletStats");
+  const walletAddrEl = document.getElementById("walletAddr");
+  const earnedTokensEl = document.getElementById("earnedTokens");
 
   function setStatus(msg){ statusEl.textContent = msg || ""; }
 
-  /* ---------- Random playlist per app open ---------- */
+  /* =========================
+     PLAYLIST
+     ========================= */
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -283,13 +307,11 @@
   async function loadPlaylistFromTextFile(url){
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`Failed to load fanilive.txt (${res.status})`);
-
     const text = await res.text();
     const lines = text
       .split(/\r?\n/)
       .map(l => l.trim())
       .filter(l => l && !l.startsWith("#"));
-
     return Array.from(new Set(lines.map(fixDoublePrefix)));
   }
 
@@ -298,23 +320,19 @@
 
   async function playNext() {
     if (!videos.length) return;
-
     const url = videos[index];
     index = (index + 1) % videos.length;
 
     player.src = url;
     player.load();
 
-    try {
-      await player.play();
-    } catch {
-      setStatus("Tap to play");
-    }
+    try { await player.play(); }
+    catch { setStatus("Tap to play"); }
   }
 
   player.addEventListener("ended", () => playNext());
 
-  async function init(){
+  async function initPlaylist(){
     setStatus("Loading...");
     try{
       const list = await loadPlaylistFromTextFile(PLAYLIST_URL);
@@ -332,9 +350,9 @@
     }
   }
 
-  init();
-
-  /* ---------- Sound (voice) ---------- */
+  /* =========================
+     SOUND
+     ========================= */
   function updateSoundIcon(){
     soundIcon.textContent = player.muted ? "volume_off" : "volume_up";
   }
@@ -357,26 +375,160 @@
     }
   });
 
-  // First tap anywhere starts playback (if blocked) and enables sound
   let unlocked = false;
   document.body.addEventListener("click", async () => {
     if (!videos.length) return;
-
     try { await player.play(); } catch {}
-
     if (!unlocked) {
       unlocked = true;
       await enableSound();
     }
   }, { passive: true });
 
-  /* ---------- Viewer counter (cosmetic) ---------- */
+  /* =========================
+     VIEWERS (COSMETIC)
+     ========================= */
   let viewers = Math.floor(Math.random() * 500) + 100;
   setInterval(() => {
     viewers += Math.floor(Math.random() * 20 - 10);
     if (viewers < 50) viewers = 50;
     viewerEl.textContent = `${viewers} viewers`;
   }, 1500);
+
+  /* =========================
+     WATCH TIME + "TOKENS" (COSMETIC)
+     - counts only when video is playing and tab is visible
+     ========================= */
+  function formatMMSS(totalSeconds){
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  }
+
+  const TOKENS_PER_SECOND = 100; // cosmetic counter stored in DB
+
+  let watchSeconds = 0;
+  let earnedTokens = 0;
+
+  function updateWatchTitle(){
+    watchTitle.textContent = `Watch: ${formatMMSS(watchSeconds)}`;
+  }
+  function updateEarnedUI(){
+    earnedTokensEl.textContent = String(earnedTokens);
+  }
+
+  function isWatching(){
+    return !document.hidden && !player.paused && !player.ended && player.readyState >= 2;
+  }
+
+  setInterval(() => {
+    if (!isWatching()) return;
+    watchSeconds += 1;
+    earnedTokens += TOKENS_PER_SECOND;
+    updateWatchTitle();
+    updateEarnedUI();
+    scheduleSave();
+  }, 1000);
+
+  updateWatchTitle();
+  updateEarnedUI();
+
+  /* =========================
+     WALLET + FIREBASE SAVE/LOAD
+     ========================= */
+  let currentAccount = null;
+  let saveTimer = null;
+
+  function shortAddr(a){ return a ? (a.slice(0,6) + "…" + a.slice(-4)) : ""; }
+
+  async function ensureWallet(){
+    if (!window.ethereum) throw new Error("Wallet not found (install MetaMask).");
+  }
+
+  function userPath(address){
+    return `faniLiveUsers/${String(address).toLowerCase()}`;
+  }
+
+  async function loadUserStats(address){
+    const snap = await get(ref(db, userPath(address)));
+    if (!snap.exists()) return { watchSeconds: 0, earnedTokens: 0 };
+    const v = snap.val() || {};
+    return {
+      watchSeconds: Number(v.watchSeconds || 0),
+      earnedTokens: Number(v.earnedTokens || 0),
+    };
+  }
+
+  async function saveUserStatsNow(){
+    if (!currentAccount) return;
+    await update(ref(db, userPath(currentAccount)), {
+      wallet: String(currentAccount).toLowerCase(),
+      watchSeconds,
+      earnedTokens,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  function scheduleSave(){
+    if (!currentAccount) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveUserStatsNow().catch(console.error);
+    }, 1200);
+  }
+
+  async function connectWallet(){
+    await ensureWallet();
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    currentAccount = accounts?.[0] || null;
+    if (!currentAccount) return;
+
+    connectBtn.textContent = shortAddr(currentAccount);
+    walletStats.style.display = "block";
+    walletAddrEl.textContent = shortAddr(currentAccount);
+
+    // load and display previous saved values
+    const prior = await loadUserStats(currentAccount);
+    watchSeconds = prior.watchSeconds;
+    earnedTokens = prior.earnedTokens;
+    updateWatchTitle();
+    updateEarnedUI();
+
+    // create/update record immediately
+    scheduleSave();
+  }
+
+  connectBtn.addEventListener("click", () => {
+    connectWallet().catch(err => {
+      console.error(err);
+      setStatus(err?.message || "Failed to connect wallet");
+    });
+  });
+
+  if (window.ethereum?.on) {
+    window.ethereum.on("accountsChanged", async (accs) => {
+      currentAccount = accs?.[0] || null;
+      connectBtn.textContent = currentAccount ? shortAddr(currentAccount) : "Connect";
+      walletStats.style.display = currentAccount ? "block" : "none";
+      if (currentAccount) {
+        walletAddrEl.textContent = shortAddr(currentAccount);
+        const prior = await loadUserStats(currentAccount).catch(() => null);
+        if (prior) {
+          watchSeconds = prior.watchSeconds;
+          earnedTokens = prior.earnedTokens;
+          updateWatchTitle();
+          updateEarnedUI();
+        }
+      }
+    });
+  }
+
+  window.addEventListener("beforeunload", () => {
+    if (currentAccount) saveUserStatsNow().catch(()=>{});
+  });
+
+  /* start */
+  initPlaylist();
 </script>
 </body>
 </html>
