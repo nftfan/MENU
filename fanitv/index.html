@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FANI TV LIVE</title>
 <style>
   body {
@@ -17,9 +17,9 @@
 
   .video-container {
     position: relative;
-    width: calc(50% - 20px); /* 50% smaller */
+    width: calc(50% - 20px);
     max-width: 180px;
-    aspect-ratio: 9/16; /* vertical format */
+    aspect-ratio: 9/16;
     overflow: hidden;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.6);
@@ -32,6 +32,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    background: black;
   }
 
   .live-badge {
@@ -43,7 +44,7 @@
     padding: 3px 6px;
     border-radius: 3px;
     font-weight: bold;
-    font-size: 11px; /* smaller LIVE badge */
+    font-size: 11px;
     display: flex;
     align-items: center;
     gap: 3px;
@@ -70,7 +71,7 @@
     top: 6px;
     right: 6px;
     color: white;
-    font-size: 10px; /* smaller title */
+    font-size: 10px;
     font-weight: bold;
     text-shadow: 0 0 4px rgba(0,0,0,0.8);
     z-index: 10;
@@ -82,6 +83,15 @@
     font-size: 12px;
     margin: 6px 0;
     font-weight: bold;
+  }
+
+  /* keep status but don't show playlist position text */
+  .status {
+    color: #bbb;
+    text-align: center;
+    font-size: 11px;
+    margin: 2px 0 6px;
+    min-height: 14px;
   }
 
   footer {
@@ -103,42 +113,124 @@
 </div>
 
 <div class="viewers" id="viewerCount">👀 0 viewers</div>
+<div class="status" id="statusText"></div>
 
 <footer>© NFTFANS TOKEN 2026</footer>
 
-<script>
-const videos = [
-  "https://api.telegram.org/file/bot8579009006:AAHaqW1BqlF04mSJxQl20cU4XKshISK0jpw/videos/file_0.MP4",
-  "https://api.telegram.org/file/bot8579009006:AAHaqW1BqlF04mSJxQl20cU4XKshISK0jpw/videos/file_1.MP4",
-  "https://api.telegram.org/file/bot8579009006:AAHaqW1BqlF04mSJxQl20cU4XKshISK0jpw/videos/file_2.MP4",
-  "https://api.telegram.org/file/bot8579009006:AAHaqW1BqlF04mSJxQl20cU4XKshISK0jpw/videos/file_3.MP4"
-];
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, query, orderByChild, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-let index = 0;
-const player = document.getElementById("player");
-const viewerElem = document.getElementById("viewerCount");
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+    projectId: "tokentransfer-4a9b3",
+    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+    messagingSenderId: "205455490321",
+    appId: "1:205455490321:web:9919f5dde059316c9320b0",
+    measurementId: "G-Y6CVEDL9XH"
+  };
 
-// Play next video continuously
-function playNext() {
-  player.src = videos[index];
-  player.load();
-  player.play();
-  index = (index + 1) % videos.length;
-}
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-player.addEventListener("ended", playNext);
+  const VIDEO_PATH = "videoUrls";
 
-// Start first video
-playNext();
+  const player = document.getElementById("player");
+  const viewerElem = document.getElementById("viewerCount");
+  const statusEl = document.getElementById("statusText");
 
-// Fake viewer counter
-let viewers = Math.floor(Math.random() * 500) + 100; // start 100-600
-function updateViewers() {
-  viewers += Math.floor(Math.random() * 20 - 10); // small fluctuation
-  if(viewers < 50) viewers = 50;
-  viewerElem.textContent = `👀 ${viewers} viewers`;
-}
-setInterval(updateViewers, 1500);
+  let videos = [];
+  let index = 0;
+
+  // Only show important messages (loading/errors). No "Playing 2/6" messages.
+  function setStatus(msg) {
+    statusEl.textContent = msg || "";
+  }
+
+  function fixDoublePrefix(url) {
+    const marker = "https://api.telegram.org/file/bot";
+    const first = url.indexOf(marker);
+    if (first === -1) return url;
+    const second = url.indexOf(marker, first + marker.length);
+    if (second === -1) return url;
+    return url.slice(second);
+  }
+
+  function playNext() {
+    if (!videos.length) {
+      setStatus("No videos available.");
+      return;
+    }
+
+    const url = videos[index];
+    index = (index + 1) % videos.length;
+
+    player.src = url;
+    player.load();
+
+    const p = player.play();
+    if (p && typeof p.catch === "function") {
+      p.catch(() => setStatus("Tap to start"));
+    }
+
+    // Clear any previous non-error status
+    setStatus("");
+  }
+
+  player.addEventListener("ended", playNext);
+
+  function subscribeToVideos() {
+    setStatus("Loading...");
+
+    const q = query(ref(db, VIDEO_PATH), orderByChild("createdAt"));
+    onValue(q, (snap) => {
+      const list = [];
+      snap.forEach(child => {
+        const val = child.val();
+        if (val && typeof val.url === "string" && val.url.trim()) {
+          list.push(val.url.trim());
+        }
+      });
+
+      const deduped = Array.from(new Set(list.map(fixDoublePrefix)));
+      videos = deduped;
+
+      if (!videos.length) {
+        setStatus("No videos found.");
+        return;
+      }
+
+      if (index >= videos.length) index = 0;
+
+      // Start playback if not started yet
+      if (player.paused || !player.src) playNext();
+      else setStatus(""); // don't show "playlist updated"
+    }, (err) => {
+      console.error(err);
+      setStatus("Failed to load videos.");
+    });
+  }
+
+  subscribeToVideos();
+
+  // Fake viewer counter
+  let viewers = Math.floor(Math.random() * 500) + 100;
+  function updateViewers() {
+    viewers += Math.floor(Math.random() * 20 - 10);
+    if (viewers < 50) viewers = 50;
+    viewerElem.textContent = `👀 ${viewers} viewers`;
+  }
+  setInterval(updateViewers, 1500);
+
+  // Click/tap fallback
+  document.body.addEventListener("click", () => {
+    if (player.paused && videos.length) {
+      setStatus("");
+      playNext();
+    }
+  }, { passive: true });
 </script>
 
 </body>
