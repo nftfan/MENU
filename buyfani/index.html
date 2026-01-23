@@ -349,7 +349,7 @@
     .card{
       border: 1px solid var(--stroke);
       border-radius: var(--radius2);
-      background: rgba(255,255,255,.78);
+      background: #e9729a;
       overflow:hidden;
       min-width: 0;
       box-shadow: 0 12px 26px rgba(15,23,42,.06);
@@ -948,34 +948,176 @@
       });
     }
 
-    function renderList() {
-      gridEl.innerHTML = "";
-      const sorted = sortEntries(currentEntries, sortSelect.value);
+    // ----------------------------
+    // LAZY LOAD ON SCROLL (added)
+    // Loads 4 NFTs per page (better for mobile)
+    // ----------------------------
+    const PAGE_SIZE = 4;
+    let visibleCount = 0;
+    let renderedSortedKeys = "";
+    let isLoadingMore = false;
 
-      if (!sorted.length) {
-        const empty = document.createElement("div");
-        empty.className = "skeleton fade-in";
-        empty.textContent = "No NFTs found in database.";
-        gridEl.appendChild(empty);
-        return;
-      }
-      sorted.forEach(([id, data]) => gridEl.appendChild(renderCard(id, data)));
+    function getSortedEntries() {
+      return sortEntries(currentEntries, sortSelect.value);
     }
 
-    async function updateMintedStatuses(entries) {
-      const uris = entries
-        .map(([_, d]) => (d?.imageUrl || "").trim())
-        .filter(Boolean);
+    function computeSortedKeys(entries) {
+      return entries.map(([id, d]) => `${id}:${d?.createdAt || 0}:${(d?.imageUrl || "").trim()}`).join("|");
+    }
+
+    function nearBottom() {
+      // smaller threshold helps mobile load earlier
+      const threshold = 900; // px before bottom
+      return (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - threshold);
+    }
+
+    async function updateMintedStatusesForUris(uris) {
+      const uniqueUris = Array.from(new Set(uris.filter(Boolean)));
+      const toCheck = uniqueUris.filter(u => !mintedMap.has(u)); // only new ones
+      if (!toCheck.length) return;
 
       const batchSize = 20;
-      for (let i = 0; i < uris.length; i += batchSize) {
-        const batch = uris.slice(i, i + batchSize);
+      for (let i = 0; i < toCheck.length; i += batchSize) {
+        const batch = toCheck.slice(i, i + batchSize);
         const results = await Promise.all(
           batch.map(uri => readContract.isMintedURI(uri).then(v => [uri, !!v]).catch(() => [uri, false]))
         );
         results.forEach(([uri, val]) => mintedMap.set(uri, val));
       }
     }
+
+    function renderNextPage() {
+      const sorted = getSortedEntries();
+      const sig = computeSortedKeys(sorted);
+
+      if (sig !== renderedSortedKeys) {
+        gridEl.innerHTML = "";
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+      }
+
+      if (!sorted.length) {
+        gridEl.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "skeleton fade-in";
+        empty.textContent = "No NFTs found in database.";
+        gridEl.appendChild(empty);
+        return;
+      }
+
+      const start = visibleCount;
+      const end = Math.min(sorted.length, visibleCount + PAGE_SIZE);
+
+      if (start === 0) {
+        gridEl.innerHTML = "";
+      }
+
+      for (let i = start; i < end; i++) {
+        const [id, data] = sorted[i];
+        gridEl.appendChild(renderCard(id, data));
+      }
+
+      visibleCount = end;
+    }
+
+    async function loadMoreIfNeeded(force = false) {
+      if (isLoadingMore) return;
+      const sorted = getSortedEntries();
+      if (!sorted.length) return;
+      if (!force && visibleCount >= sorted.length) return;
+
+      isLoadingMore = true;
+      try {
+        const start = visibleCount;
+        const end = Math.min(sorted.length, visibleCount + PAGE_SIZE);
+
+        const nextUris = [];
+        for (let i = start; i < end; i++) {
+          const uri = (sorted[i]?.[1]?.imageUrl || "").trim();
+          if (uri) nextUris.push(uri);
+        }
+
+        // Pre-check mint status only for the next 4 items
+        if (nextUris.length) {
+          await updateMintedStatusesForUris(nextUris);
+        }
+
+        renderNextPage();
+      } catch (e) {
+        console.warn(e);
+        // Still render even if status checks fail
+        renderNextPage();
+      } finally {
+        isLoadingMore = false;
+      }
+    }
+
+    function installScrollLoader() {
+      let ticking = false;
+
+      window.addEventListener("scroll", () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(async () => {
+          ticking = false;
+          if (nearBottom()) await loadMoreIfNeeded(false);
+        });
+      }, { passive: true });
+
+      window.addEventListener("resize", () => {
+        if (nearBottom()) loadMoreIfNeeded(false);
+      }, { passive: true });
+    }
+
+    // Keep same function name used by the rest of the app, but lazy render.
+    function renderList() {
+      const sorted = getSortedEntries();
+      const sig = computeSortedKeys(sorted);
+
+      if (!sorted.length) {
+        gridEl.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "skeleton fade-in";
+        empty.textContent = "No NFTs found in database.";
+        gridEl.appendChild(empty);
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+        return;
+      }
+
+      // If dataset/sort changed, reset and load first page
+      if (sig !== renderedSortedKeys) {
+        gridEl.innerHTML = `<div class="skeleton">Loading collection…</div>`;
+        visibleCount = 0;
+        renderedSortedKeys = sig;
+        loadMoreIfNeeded(true);
+        return;
+      }
+
+      // Otherwise, refresh only visible portion (for minted/minting button state changes)
+      const keep = visibleCount || PAGE_SIZE;
+      gridEl.innerHTML = "";
+      const end = Math.min(sorted.length, keep);
+      for (let i = 0; i < end; i++) {
+        const [id, data] = sorted[i];
+        gridEl.appendChild(renderCard(id, data));
+      }
+      visibleCount = end;
+    }
+
+    async function updateMintedStatuses(entries) {
+      // Keep function name, but only check first page for speed.
+      const sorted = sortEntries(entries, sortSelect.value);
+      const initialUris = sorted
+        .slice(0, PAGE_SIZE)
+        .map(([_, d]) => (d?.imageUrl || "").trim())
+        .filter(Boolean);
+
+      await updateMintedStatusesForUris(initialUris);
+    }
+    // ----------------------------
+    // END LAZY LOAD ON SCROLL
+    // ----------------------------
 
     async function refreshMintedCount() {
       try {
@@ -1003,7 +1145,14 @@
       }
     });
 
-    sortSelect.addEventListener("change", renderList);
+    sortSelect.addEventListener("change", () => {
+      // Reset paging on sort change
+      gridEl.innerHTML = `<div class="skeleton">Loading collection…</div>`;
+      visibleCount = 0;
+      renderedSortedKeys = "";
+      renderList();
+      if (nearBottom()) loadMoreIfNeeded(false);
+    });
 
     // FIX: load from the same folder your admin page writes to: "faninfts"
     db.ref("faninfts").orderByChild("createdAt").on("value", async (snapshot) => {
@@ -1016,6 +1165,8 @@
         initFakeMarketStats(0);
         refreshMintedCount();
         setStatus("Database is empty.", "");
+        visibleCount = 0;
+        renderedSortedKeys = "";
         return;
       }
 
@@ -1024,9 +1175,18 @@
 
       setStatus("Syncing…", "");
       try { await updateMintedStatuses(currentEntries); } catch (e) { console.warn(e); }
+
+      // Reset paging and render only first 4 items quickly
+      gridEl.innerHTML = `<div class="skeleton">Loading collection…</div>`;
+      visibleCount = 0;
+      renderedSortedKeys = "";
       renderList();
+
       await refreshMintedCount();
       setStatus(`Loaded ${currentEntries.length} items.`, "ok");
+
+      // If screen is tall / already near bottom, auto-fill a bit
+      if (nearBottom()) loadMoreIfNeeded(false);
     }, (err) => {
       console.error(err);
       setStatus("Database read error.", "err");
@@ -1034,6 +1194,7 @@
 
     (async function boot(){
       installWalletListeners();
+      installScrollLoader(); // lazy-load trigger
       setWalletUI(false);
 
       setInterval(animateFakeVolume, 1300);
