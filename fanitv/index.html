@@ -1,123 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FANI TV LIVE</title>
-<style>
-  body {
-    margin: 0;
-    background: black;
-    font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FANI TV LIVE</title>
 
-  .video-container {
-    position: relative;
-    width: calc(50% - 20px);
-    max-width: 180px;
-    aspect-ratio: 9/16;
-    overflow: hidden;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-    background: black;
-    margin: 10px auto 0 auto;
-    flex-shrink: 0;
-  }
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: black;
-  }
+  <style>
+    :root{
+      --bg0:#05050a;
+      --bg1:#0a0a14;
+      --card:#0f1224cc;
+      --stroke:#2a2f55;
+      --txt:#eaf0ff;
+      --muted:#a9b2d6;
+      --neon1:#7c3aed;
+      --neon2:#06b6d4;
+      --neon3:#22c55e;
+      --danger:#ff3b3b;
+      --gold:#f5c542;
+      --shadow: 0 20px 60px rgba(0,0,0,.55);
+    }
 
-  .live-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    background: red;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    font-weight: bold;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    box-shadow: 0 0 4px rgba(255,0,0,0.7);
-    animation: pulse 1.5s infinite;
-    z-index: 10;
-  }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--txt);
+      background:
+        radial-gradient(1000px 500px at 15% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 520px at 80% 20%, rgba(6,182,212,.25), transparent 60%),
+        radial-gradient(800px 460px at 40% 95%, rgba(34,197,94,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding: 10px 12px 18px;
+    }
 
-  .dot {
-    width: 5px;
-    height: 5px;
-    background: white;
-    border-radius: 50%;
-  }
+    /* Top bar */
+    .topbar{
+      width: min(980px, 100%);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 10px 8px 8px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+    }
+    .brand .logo{
+      width:34px;height:34px;border-radius:12px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 45%),
+        linear-gradient(135deg, rgba(124,58,237,1), rgba(6,182,212,1));
+      box-shadow: 0 10px 30px rgba(124,58,237,.25);
+      position:relative;
+      overflow:hidden;
+    }
+    .brand .logo::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      transform: rotate(25deg);
+      animation: shine 3.6s infinite;
+    }
+    @keyframes shine {
+      0% { transform: translateX(-50%) rotate(25deg); }
+      55% { transform: translateX(120%) rotate(25deg); }
+      100% { transform: translateX(120%) rotate(25deg); }
+    }
+    .brand .text b{display:block; letter-spacing:.6px}
+    .brand .text small{display:block; color:var(--muted); margin-top:2px}
 
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
-  }
+    /* Connect button */
+    .btn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,24,.55);
+      backdrop-filter: blur(10px);
+      color: var(--txt);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .2s ease, background .2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .btn:hover{ transform: translateY(-1px); border-color: rgba(124,58,237,.55); background: rgba(15,18,36,.72); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn .material-icons{ font-size:18px; opacity:.95 }
 
-  .title {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    text-shadow: 0 0 4px rgba(0,0,0,0.8);
-    z-index: 10;
-  }
+    .pill{
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      background: rgba(0,0,0,.15);
+    }
 
-  .viewers {
-    color: #0f0;
-    text-align: center;
-    font-size: 12px;
-    margin: 6px 0;
-    font-weight: bold;
-  }
+    /* Main card */
+    .wrap{
+      width: min(980px, 100%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 10px;
+    }
 
-  /* keep status but don't show playlist position text */
-  .status {
-    color: #bbb;
-    text-align: center;
-    font-size: 11px;
-    margin: 2px 0 6px;
-    min-height: 14px;
-  }
+    .video-card{
+      width: min(420px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(15,18,36,.78), rgba(10,12,24,.55));
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .video-card::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(800px 240px at 10% 10%, rgba(124,58,237,.25), transparent 55%),
+                  radial-gradient(900px 260px at 90% 10%, rgba(6,182,212,.18), transparent 55%);
+      pointer-events:none;
+    }
 
-  footer {
-    text-align: center;
-    color: #aaa;
-    font-size: 12px;
-    margin-top: 4px;
-    padding: 8px 0;
-    flex-shrink: 0;
-  }
-</style>
+    .video-container{
+      position:relative;
+      width: 100%;
+      aspect-ratio: 9/16;
+      overflow:hidden;
+      border-radius: 14px;
+      background:black;
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 14px 35px rgba(0,0,0,.45);
+      transform: translateZ(0);
+    }
+
+    video{ width:100%; height:100%; object-fit:cover; background:black; }
+
+    .live-badge{
+      position:absolute;
+      top:10px; left:10px;
+      background: rgba(255,0,0,.9);
+      color:white;
+      padding: 5px 8px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 11px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      box-shadow: 0 0 22px rgba(255,0,0,.35);
+      animation: pulse 1.6s infinite;
+      z-index: 10;
+    }
+    .dot{ width:6px;height:6px;background:white;border-radius:50%;}
+    @keyframes pulse { 0%{opacity:1} 50%{opacity:.65} 100%{opacity:1} }
+
+    .title{
+      position:absolute;
+      top:10px; right:10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing:.5px;
+      color: white;
+      padding: 5px 8px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.10);
+      text-shadow: 0 0 10px rgba(0,0,0,.65);
+      z-index: 10;
+    }
+
+    .meta{
+      margin-top: 10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .viewers{
+      color:#7CFF9B;
+      font-weight: 800;
+      font-size: 13px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .status{
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 16px;
+      text-align:right;
+      flex:1;
+    }
+
+    /* Gift button */
+    .gift-row{
+      margin-top: 10px;
+      display:flex;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .gift-btn{
+      flex:1;
+      justify-content:center;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(6,182,212,.8));
+      box-shadow: 0 18px 40px rgba(124,58,237,.22);
+      font-weight: 900;
+      letter-spacing: .4px;
+    }
+    .gift-btn:hover{
+      border-color: rgba(255,255,255,.22);
+      transform: translateY(-1px);
+      filter: saturate(1.1);
+    }
+
+    .ghost-btn{
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(10,12,24,.35);
+      justify-content:center;
+      min-width: 56px;
+    }
+
+    /* Gift panel */
+    .sheet{
+      width: min(420px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,24,.55);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      transform-origin: top center;
+      animation: sheetIn .22s ease-out;
+    }
+    @keyframes sheetIn { from { transform: translateY(-6px) scale(.985); opacity: .0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+    .sheet-head{
+      padding: 12px 12px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sheet-head b{ font-size: 13px; letter-spacing:.4px }
+    .sheet-head small{ color: var(--muted) }
+
+    .gift-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px;
+    }
+    .gift{
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(120px 80px at 20% 20%, rgba(255,255,255,.10), transparent 60%),
+        linear-gradient(180deg, rgba(15,18,36,.85), rgba(10,12,24,.55));
+      padding: 12px;
+      cursor:pointer;
+      transition: transform .14s ease, border-color .2s ease, filter .2s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .gift:hover{
+      transform: translateY(-2px);
+      border-color: rgba(6,182,212,.45);
+      filter: saturate(1.15);
+    }
+    .gift:active{ transform: translateY(0) scale(.99); }
+
+    .gift .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .gift .icon{
+      width: 40px; height: 40px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(135deg, rgba(245,197,66,.95), rgba(124,58,237,.6));
+      box-shadow: 0 12px 25px rgba(245,197,66,.18);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .gift .icon .material-icons{ font-size: 20px; color:#0b0b12; }
+    .gift .name{ font-weight: 900; letter-spacing:.2px; }
+    .gift .price{
+      font-weight: 900;
+      color: #dbe6ff;
+      margin-top: 6px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .gift .price small{ color: var(--muted); font-weight: 700 }
+
+    .footnote{
+      padding: 0 12px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height:1.35;
+    }
+    .addr{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      word-break: break-all;
+      color:#cfe2ff;
+    }
+
+    footer{
+      margin-top: 12px;
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+      text-align:center;
+    }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      width: min(520px, calc(100% - 24px));
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,24,.70);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      color: var(--txt);
+      display:none;
+      gap:10px;
+      align-items:flex-start;
+      animation: toastIn .2s ease-out;
+      z-index: 999;
+    }
+    @keyframes toastIn { from{opacity:0; transform: translateX(-50%) translateY(8px)} to{opacity:1; transform: translateX(-50%) translateY(0)} }
+    .toast.show{ display:flex; }
+    .toast .material-icons{ font-size: 18px; color: #7CFF9B; margin-top:2px; }
+    .toast .t-title{ font-weight: 900; }
+    .toast .t-sub{ color: var(--muted); font-size: 12px; margin-top:2px; line-height:1.35; }
+  </style>
 </head>
+
 <body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="text">
+        <b>FANI TV LIVE</b>
+        <small>Firebase playlist • Web3 gifts</small>
+      </div>
+    </div>
 
-<div class="video-container">
-  <div class="live-badge"><div class="dot"></div>LIVE</div>
-  <div class="title">FANI TV LIVE</div>
-  <video id="player" autoplay muted playsinline></video>
-</div>
+    <!-- Connect wallet button (top right) -->
+    <button id="connectBtn" class="btn">
+      <span class="material-icons">account_balance_wallet</span>
+      <span id="connectLabel">Connect</span>
+    </button>
+  </div>
 
-<div class="viewers" id="viewerCount">👀 0 viewers</div>
-<div class="status" id="statusText"></div>
+  <div class="wrap">
+    <div class="video-card">
+      <div class="video-container">
+        <div class="live-badge"><span class="dot"></span>LIVE</div>
+        <div class="title">FANI TV LIVE</div>
+        <video id="player" autoplay muted playsinline></video>
+      </div>
 
-<footer>© NFTFANS TOKEN 2026</footer>
+      <div class="meta">
+        <div class="viewers"><span class="material-icons" style="font-size:18px">visibility</span><span id="viewerCount">0 viewers</span></div>
+        <div class="status" id="statusText"></div>
+      </div>
+
+      <div class="gift-row">
+        <button id="giftBtn" class="btn gift-btn">
+          <span class="material-icons">redeem</span>
+          Send Gift
+        </button>
+        <button id="muteBtn" class="btn ghost-btn" title="Mute/Unmute">
+          <span id="muteIcon" class="material-icons">volume_off</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="giftSheet" class="sheet" style="display:none;">
+      <div class="sheet-head">
+        <div>
+          <b>Send a Gift (POL)</b><br/>
+          <small>Choose amount • Confirm in wallet</small>
+        </div>
+        <button id="closeGifts" class="btn" style="padding:8px 10px;border-radius:12px;">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="gift-grid" id="giftGrid"></div>
+
+      <div class="footnote">
+        Gifts send POL to:<br/>
+        <span class="addr">0x92d550cdbc234211957bd1b579d962c885a127ba</span><br/>
+        <small>Tip: You must be on Polygon network in your wallet.</small>
+      </div>
+    </div>
+  </div>
+
+  <footer>© NFTFANS TOKEN 2026</footer>
+
+  <div id="toast" class="toast">
+    <span id="toastIcon" class="material-icons">check_circle</span>
+    <div>
+      <div id="toastTitle" class="t-title">Done</div>
+      <div id="toastSub" class="t-sub">...</div>
+    </div>
+  </div>
 
 <script type="module">
+  /* ---------------- Firebase video playlist ---------------- */
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import { getDatabase, ref, query, orderByChild, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
@@ -132,22 +456,20 @@
     measurementId: "G-Y6CVEDL9XH"
   };
 
+  const VIDEO_PATH = "videoUrls";
+  const RECEIVER = "0x92d550cdbc234211957bd1b579d962c885a127ba";
+
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  const VIDEO_PATH = "videoUrls";
-
   const player = document.getElementById("player");
-  const viewerElem = document.getElementById("viewerCount");
   const statusEl = document.getElementById("statusText");
+  const viewerEl = document.getElementById("viewerCount");
+
+  function setStatus(msg){ statusEl.textContent = msg || ""; }
 
   let videos = [];
   let index = 0;
-
-  // Only show important messages (loading/errors). No "Playing 2/6" messages.
-  function setStatus(msg) {
-    statusEl.textContent = msg || "";
-  }
 
   function fixDoublePrefix(url) {
     const marker = "https://api.telegram.org/file/bot";
@@ -159,54 +481,36 @@
   }
 
   function playNext() {
-    if (!videos.length) {
-      setStatus("No videos available.");
-      return;
-    }
-
+    if (!videos.length) return;
     const url = videos[index];
     index = (index + 1) % videos.length;
 
     player.src = url;
     player.load();
-
     const p = player.play();
-    if (p && typeof p.catch === "function") {
-      p.catch(() => setStatus("Tap to start"));
-    }
-
-    // Clear any previous non-error status
-    setStatus("");
+    if (p?.catch) p.catch(() => setStatus("Tap to start"));
+    else setStatus("");
   }
 
   player.addEventListener("ended", playNext);
 
   function subscribeToVideos() {
-    setStatus("Loading...");
-
+    setStatus("Loading stream...");
     const q = query(ref(db, VIDEO_PATH), orderByChild("createdAt"));
+
     onValue(q, (snap) => {
       const list = [];
       snap.forEach(child => {
-        const val = child.val();
-        if (val && typeof val.url === "string" && val.url.trim()) {
-          list.push(val.url.trim());
-        }
+        const v = child.val();
+        if (v?.url && typeof v.url === "string") list.push(v.url.trim());
       });
 
-      const deduped = Array.from(new Set(list.map(fixDoublePrefix)));
-      videos = deduped;
-
-      if (!videos.length) {
-        setStatus("No videos found.");
-        return;
-      }
+      videos = Array.from(new Set(list.map(fixDoublePrefix)));
+      if (!videos.length) { setStatus("No videos found."); return; }
 
       if (index >= videos.length) index = 0;
-
-      // Start playback if not started yet
       if (player.paused || !player.src) playNext();
-      else setStatus(""); // don't show "playlist updated"
+      setStatus("");
     }, (err) => {
       console.error(err);
       setStatus("Failed to load videos.");
@@ -215,23 +519,212 @@
 
   subscribeToVideos();
 
-  // Fake viewer counter
+  // Viewer counter (cosmetic)
   let viewers = Math.floor(Math.random() * 500) + 100;
-  function updateViewers() {
+  setInterval(() => {
     viewers += Math.floor(Math.random() * 20 - 10);
     if (viewers < 50) viewers = 50;
-    viewerElem.textContent = `👀 ${viewers} viewers`;
-  }
-  setInterval(updateViewers, 1500);
+    viewerEl.textContent = `${viewers} viewers`;
+  }, 1500);
 
-  // Click/tap fallback
+  /* ---------------- UI: mute toggle ---------------- */
+  const muteBtn = document.getElementById("muteBtn");
+  const muteIcon = document.getElementById("muteIcon");
+  muteBtn.addEventListener("click", () => {
+    player.muted = !player.muted;
+    muteIcon.textContent = player.muted ? "volume_off" : "volume_up";
+  });
+
   document.body.addEventListener("click", () => {
-    if (player.paused && videos.length) {
-      setStatus("");
-      playNext();
-    }
+    if (player.paused && videos.length) playNext();
   }, { passive: true });
-</script>
 
+  /* ---------------- Toast helper ---------------- */
+  const toast = document.getElementById("toast");
+  const toastIcon = document.getElementById("toastIcon");
+  const toastTitle = document.getElementById("toastTitle");
+  const toastSub = document.getElementById("toastSub");
+  let toastTimer = null;
+
+  function showToast({ icon="check_circle", title="Done", sub="" }){
+    toastIcon.textContent = icon;
+    toastTitle.textContent = title;
+    toastSub.textContent = sub;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 4200);
+  }
+
+  /* ---------------- Web3 (MetaMask / EIP-1193) ----------------
+     Uses window.ethereum directly (no external libs).
+     Sends native POL on Polygon chain.
+  ------------------------------------------------------------ */
+
+  const connectBtn = document.getElementById("connectBtn");
+  const connectLabel = document.getElementById("connectLabel");
+
+  let currentAccount = null;
+
+  function shortAddr(a){
+    if (!a) return "";
+    return a.slice(0,6) + "…" + a.slice(-4);
+  }
+
+  async function ensureWallet(){
+    if (!window.ethereum) {
+      showToast({
+        icon: "error",
+        title: "Wallet not found",
+        sub: "Install MetaMask (or a Web3 wallet) to send gifts."
+      });
+      throw new Error("No wallet");
+    }
+  }
+
+  async function connectWallet(){
+    await ensureWallet();
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    currentAccount = accounts?.[0] || null;
+
+    if (currentAccount) {
+      connectLabel.textContent = shortAddr(currentAccount);
+      showToast({ icon:"check_circle", title:"Connected", sub: shortAddr(currentAccount) });
+    }
+  }
+
+  // Polygon mainnet chainId = 0x89
+  async function ensurePolygon(){
+    await ensureWallet();
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+
+    if (chainId === "0x89") return true;
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x89" }]
+      });
+      return true;
+    } catch (err) {
+      // If chain not added, try add
+      if (err && (err.code === 4902 || (""+err.message).toLowerCase().includes("unrecognized chain"))) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x89",
+            chainName: "Polygon Mainnet",
+            nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+            rpcUrls: ["https://polygon-rpc.com/"],
+            blockExplorerUrls: ["https://polygonscan.com/"]
+          }]
+        });
+        return true;
+      }
+      throw err;
+    }
+  }
+
+  async function sendPol(amountPol){
+    await ensureWallet();
+    if (!currentAccount) await connectWallet();
+    await ensurePolygon();
+
+    // amountPol is like "1", "5", "10"
+    // convert to wei hex (18 decimals) using BigInt
+    function toWeiHex(pol){
+      const s = String(pol);
+      const [whole, fracRaw=""] = s.split(".");
+      const frac = (fracRaw + "0".repeat(18)).slice(0,18);
+      const wei = BigInt(whole || "0") * 10n**18n + BigInt(frac || "0");
+      return "0x" + wei.toString(16);
+    }
+
+    const value = toWeiHex(amountPol);
+
+    showToast({ icon:"hourglass_top", title:"Confirm in wallet", sub:`Sending ${amountPol} POL…` });
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: currentAccount,
+        to: RECEIVER,
+        value
+      }]
+    });
+
+    showToast({
+      icon: "rocket_launch",
+      title: "Gift sent",
+      sub: `Tx: ${txHash}`
+    });
+  }
+
+  connectBtn.addEventListener("click", connectWallet);
+
+  if (window.ethereum?.on) {
+    window.ethereum.on("accountsChanged", (accs) => {
+      currentAccount = accs?.[0] || null;
+      connectLabel.textContent = currentAccount ? shortAddr(currentAccount) : "Connect";
+    });
+    window.ethereum.on("chainChanged", () => {
+      // keep UI stable; user may switch back/forth
+    });
+  }
+
+  /* ---------------- Gift UI ---------------- */
+  const giftBtn = document.getElementById("giftBtn");
+  const giftSheet = document.getElementById("giftSheet");
+  const closeGifts = document.getElementById("closeGifts");
+  const giftGrid = document.getElementById("giftGrid");
+
+  const gifts = [
+    { pol: "1",  name: "Spark", icon: "auto_awesome" },
+    { pol: "5",  name: "Hype",  icon: "local_fire_department" },
+    { pol: "10", name: "Crown", icon: "emoji_events" },
+    { pol: "25", name: "Diamond", icon: "diamond" },
+    { pol: "50", name: "Legend", icon: "workspace_premium" },
+  ];
+
+  function openGifts(){
+    giftSheet.style.display = "block";
+    giftSheet.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  function closeSheet(){
+    giftSheet.style.display = "none";
+  }
+
+  giftBtn.addEventListener("click", openGifts);
+  closeGifts.addEventListener("click", closeSheet);
+
+  giftGrid.innerHTML = gifts.map(g => `
+    <div class="gift" data-pol="${g.pol}">
+      <div class="row">
+        <div class="icon"><span class="material-icons">${g.icon}</span></div>
+        <div style="text-align:right">
+          <div class="name">${g.name}</div>
+          <div class="price"><span class="material-icons" style="font-size:16px;color:var(--gold)">paid</span>${g.pol} <small>POL</small></div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  giftGrid.addEventListener("click", async (e) => {
+    const card = e.target.closest(".gift");
+    if (!card) return;
+    const amount = card.getAttribute("data-pol");
+
+    try {
+      await sendPol(amount);
+    } catch (err) {
+      console.error(err);
+      const msg = (err?.message || "").toLowerCase();
+      if (msg.includes("user rejected")) {
+        showToast({ icon:"info", title:"Cancelled", sub:"Transaction was rejected in wallet." });
+      } else {
+        showToast({ icon:"error", title:"Failed", sub: err?.message || "Transaction failed." });
+      }
+    }
+  });
+</script>
 </body>
 </html>
