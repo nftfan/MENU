@@ -254,15 +254,6 @@
 
   function setStatus(msg){ statusEl.textContent = msg || ""; }
 
-  /* playlist */
-  function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  }
-
   function fixDoublePrefix(url) {
     const marker = "https://api.telegram.org/file/bot";
     const first = url.indexOf(marker);
@@ -281,6 +272,27 @@
       .map(l => l.trim())
       .filter(l => l && !l.startsWith("#"));
     return Array.from(new Set(lines.map(fixDoublePrefix)));
+  }
+
+  // Shuffle playlist (Fisher–Yates)
+  function shuffle(array) {
+    const a = array.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Extra-random start index using crypto if available
+  function randomIndex(maxExclusive){
+    if (maxExclusive <= 0) return 0;
+    if (window.crypto?.getRandomValues) {
+      const buf = new Uint32Array(1);
+      window.crypto.getRandomValues(buf);
+      return buf[0] % maxExclusive;
+    }
+    return Math.floor(Math.random() * maxExclusive);
   }
 
   let videos = [];
@@ -323,9 +335,14 @@
         setStatus("No videos found.");
         return;
       }
+
+      // VERY RANDOM:
+      // 1) shuffle whole playlist
+      // 2) start from a random item
       videos = shuffle(list);
-      index = 0;
-      await playAt(0);
+      index = randomIndex(videos.length);
+
+      await playAt(index);
     }catch(err){
       console.error(err);
       setStatus("Failed to load playlist.");
