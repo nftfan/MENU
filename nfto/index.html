@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NFT O – Balance Checker</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 40px;
+    }
+    button {
+      padding: 12px 20px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    ul {
+      margin-top: 20px;
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #1e293b;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+    .collection {
+      opacity: 0.8;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>NFT O</h1>
+  <p class="collection">ERC-1155 Collection on Polygon</p>
+
+  <button onclick="connectWallet()">Connect Wallet</button>
+
+  <p id="wallet"></p>
+
+  <ul id="balances"></ul>
+
+  <script>
+    const nftAddress = "0x35049d172e22883546B9E99e6C2c08267163Ceac";
+
+    const abi = [
+      "function balanceOfBatch(address[] accounts, uint256[] ids) view returns (uint256[])"
+    ];
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("MetaMask not found");
+        return;
+      }
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const walletAddress = await signer.getAddress();
+
+      document.getElementById("wallet").innerText =
+        "Connected Wallet: " + walletAddress;
+
+      const nft = new ethers.Contract(nftAddress, abi, provider);
+
+      const accounts = [
+        walletAddress,
+        walletAddress,
+        walletAddress,
+        walletAddress
+      ];
+
+      const ids = [1, 2, 3, 4];
+
+      const balances = await nft.balanceOfBatch(accounts, ids);
+
+      const list = document.getElementById("balances");
+      list.innerHTML = "";
+
+      ids.forEach((id, index) => {
+        const li = document.createElement("li");
+        li.innerText = `NFT O — Token ID ${id}: ${balances[index].toString()}`;
+        list.appendChild(li);
+      });
+    }
+  </script>
+
+</body>
+</html>
