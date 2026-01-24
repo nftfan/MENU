@@ -14,6 +14,12 @@
       --bg1:#0a0a14;
       --txt:#eaf0ff;
       --shadow: 0 18px 50px rgba(0,0,0,.55);
+      --ok:#7CFF9B;
+      --warn:#ffd166;
+      --bad:#ff6b6b;
+      --accent:#7c3aed;
+      --card: rgba(10,12,24,.40);
+      --card2: rgba(15,18,36,.55);
     }
     *{box-sizing:border-box}
     body{
@@ -42,7 +48,7 @@
     .title-left{
       display:flex;
       flex-direction:column;
-      gap:2px;
+      gap:4px;
       user-select:none;
       min-width: 0;
     }
@@ -54,6 +60,9 @@
       white-space: nowrap;
       overflow:hidden;
       text-overflow: ellipsis;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
     .title-left .stats{
       font-size: 7px;
@@ -64,10 +73,19 @@
       gap:8px;
       flex-wrap:wrap;
       line-height: 1.2;
+      align-items:center;
     }
     .title-left .stats span b{
       color: rgba(255,255,255,.92);
       font-weight: 950;
+    }
+
+    .right-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
 
     .btn{
@@ -85,8 +103,30 @@
       font-size: 11px;
       line-height: 1;
       white-space: nowrap;
+      gap:8px;
     }
     .btn:hover{ transform: translateY(-1px); border-color: rgba(124,58,237,.55); background: rgba(15,18,36,.55); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .35px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(10,12,24,.35);
+      white-space: nowrap;
+      max-width: 220px;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .pill.ok{ border-color: rgba(124,255,155,.25); background: rgba(124,255,155,.10); color: rgba(220,255,235,.96); }
+    .pill.warn{ border-color: rgba(255,209,102,.28); background: rgba(255,209,102,.10); color: rgba(255,243,214,.96); }
+    .pill.bad{ border-color: rgba(255,107,107,.30); background: rgba(255,107,107,.10); color: rgba(255,225,225,.96); }
 
     .wrap{ width: min(520px, 100%); display:flex; flex-direction:column; align-items:center; gap: 8px; }
 
@@ -183,6 +223,41 @@
       font-size: 20px;
       line-height: 1;
     }
+    .ghost-btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .paywall{
+      margin-top: 8px;
+      width: min(300px, 100%);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,24,.35);
+      padding: 10px;
+      box-shadow: 0 12px 28px rgba(0,0,0,.25);
+      display:none;
+    }
+    .paywall h3{
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .4px;
+    }
+    .paywall p{
+      margin: 0 0 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,.72);
+      line-height: 1.3;
+    }
+    .paywall .row{
+      display:flex;
+      gap:8px;
+    }
+    .paywall .row .btn{
+      width: 100%;
+      justify-content:center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(15,18,36,.50);
+    }
 
     footer{ margin-top: 10px; color: rgba(255,255,255,.55); font-size: 11px; text-align:center; }
   </style>
@@ -191,13 +266,24 @@
 <body>
   <div class="topbar">
     <div class="title-left">
-      <div class="name">FANI TV LIVE</div>
+      <div class="name">
+        FANI TV LIVE
+        <span id="subBadge" class="pill ok" style="display:none">SUBSCRIBED</span>
+        <span id="trialBadge" class="pill warn" style="display:none">FREE TRIAL</span>
+      </div>
       <div class="stats">
         <span>WATCH <b id="watchStat">00:00</b></span>
+        <span id="subStat" style="display:none">TIME LEFT <b id="subLeft">—</b></span>
       </div>
     </div>
 
-    <button id="resetBtn" class="btn" title="Reset watch time">Reset</button>
+    <div class="right-actions">
+      <button id="connectBtn" class="btn" title="Connect wallet">
+        <span class="material-icons" aria-hidden="true" style="font-size:18px">account_balance_wallet</span>
+        <span id="connectLabel">Connect</span>
+      </button>
+      <button id="resetBtn" class="btn" title="Reset watch time">Reset</button>
+    </div>
   </div>
 
   <div class="wrap">
@@ -216,234 +302,556 @@
       </div>
 
       <div class="controls-row">
-        <!-- previous -->
         <button id="prevBtn" class="ghost-btn" title="Previous" aria-label="Previous">
           <span class="material-icons" aria-hidden="true">skip_previous</span>
         </button>
-
-        <!-- next -->
         <button id="nextBtn" class="ghost-btn" title="Next" aria-label="Next">
           <span class="material-icons" aria-hidden="true">skip_next</span>
         </button>
-
-        <!-- sound -->
         <button id="soundBtn" class="ghost-btn" title="Sound" aria-label="Sound">
           <span class="material-icons" id="soundIcon" aria-hidden="true">volume_off</span>
         </button>
       </div>
     </div>
+
+    <div id="paywall" class="paywall">
+      <h3>Subscription required</h3>
+      <p>
+        Your free 2 minutes are finished. Subscribe for <b>1 week</b> access for <b>10 POL</b> on Polygon.
+      </p>
+      <div class="row">
+        <button id="subscribeBtn" class="btn">
+          <span class="material-icons" aria-hidden="true" style="font-size:18px">lock_open</span>
+          <span>Pay 10 POL</span>
+        </button>
+      </div>
+      <p id="payHint" style="margin-top:8px; font-size:10px; opacity:.75"></p>
+    </div>
   </div>
 
   <footer>© NFTFANS TOKEN 2026</footer>
 
-<script type="module">
-  const PLAYLIST_URL = "https://raw.githubusercontent.com/nftfan/MENU/main/fanitv/fanilive.txt";
+  <!-- Firebase (v9 modular) -->
+  <script type="module">
+    /***********************
+     * 1) App + Playlist
+     ***********************/
+    const PLAYLIST_URL = "https://raw.githubusercontent.com/nftfan/MENU/main/fanitv/fanilive.txt";
 
-  const player = document.getElementById("player");
-  const statusEl = document.getElementById("statusText");
-  const viewerEl = document.getElementById("viewerCount");
+    const player = document.getElementById("player");
+    const statusEl = document.getElementById("statusText");
+    const viewerEl = document.getElementById("viewerCount");
 
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
 
-  const soundBtn = document.getElementById("soundBtn");
-  const soundIcon = document.getElementById("soundIcon");
+    const soundBtn = document.getElementById("soundBtn");
+    const soundIcon = document.getElementById("soundIcon");
 
-  const watchStat = document.getElementById("watchStat");
-  const resetBtn = document.getElementById("resetBtn");
+    const watchStat = document.getElementById("watchStat");
+    const resetBtn = document.getElementById("resetBtn");
 
-  function setStatus(msg){ statusEl.textContent = msg || ""; }
+    const connectBtn = document.getElementById("connectBtn");
+    const connectLabel = document.getElementById("connectLabel");
 
-  function fixDoublePrefix(url) {
-    const marker = "https://api.telegram.org/file/bot";
-    const first = url.indexOf(marker);
-    if (first === -1) return url;
-    const second = url.indexOf(marker, first + marker.length);
-    if (second === -1) return url;
-    return url.slice(second);
-  }
+    const paywallEl = document.getElementById("paywall");
+    const subscribeBtn = document.getElementById("subscribeBtn");
+    const payHint = document.getElementById("payHint");
 
-  async function loadPlaylistFromTextFile(url){
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to load fanilive.txt (${res.status})`);
-    const text = await res.text();
-    const lines = text
-      .split(/\r?\n/)
-      .map(l => l.trim())
-      .filter(l => l && !l.startsWith("#"));
-    return Array.from(new Set(lines.map(fixDoublePrefix)));
-  }
+    const subBadge = document.getElementById("subBadge");
+    const trialBadge = document.getElementById("trialBadge");
+    const subStat = document.getElementById("subStat");
+    const subLeftEl = document.getElementById("subLeft");
 
-  // Shuffle playlist (Fisher–Yates)
-  function shuffle(array) {
-    const a = array.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+    function setStatus(msg){ statusEl.textContent = msg || ""; }
+
+    function fixDoublePrefix(url) {
+      const marker = "https://api.telegram.org/file/bot";
+      const first = url.indexOf(marker);
+      if (first === -1) return url;
+      const second = url.indexOf(marker, first + marker.length);
+      if (second === -1) return url;
+      return url.slice(second);
     }
-    return a;
-  }
 
-  // Extra-random start index using crypto if available
-  function randomIndex(maxExclusive){
-    if (maxExclusive <= 0) return 0;
-    if (window.crypto?.getRandomValues) {
-      const buf = new Uint32Array(1);
-      window.crypto.getRandomValues(buf);
-      return buf[0] % maxExclusive;
+    async function loadPlaylistFromTextFile(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Failed to load fanilive.txt (${res.status})`);
+      const text = await res.text();
+      const lines = text
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith("#"));
+      return Array.from(new Set(lines.map(fixDoublePrefix)));
     }
-    return Math.floor(Math.random() * maxExclusive);
-  }
 
-  let videos = [];
-  let index = 0;
-
-  async function playAt(i) {
-    if (!videos.length) return;
-
-    index = ((i % videos.length) + videos.length) % videos.length; // safe modulo
-    const url = videos[index];
-
-    player.src = url;
-    player.load();
-
-    try {
-      await player.play();
-      setStatus(player.muted ? "Tap for sound" : "");
-    } catch {
-      setStatus("Tap to play");
+    // Shuffle playlist (Fisher–Yates)
+    function shuffle(array) {
+      const a = array.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
     }
-  }
 
-  async function playNext() {
-    if (!videos.length) return;
-    await playAt(index + 1);
-  }
+    // Extra-random start index using crypto if available
+    function randomIndex(maxExclusive){
+      if (maxExclusive <= 0) return 0;
+      if (window.crypto?.getRandomValues) {
+        const buf = new Uint32Array(1);
+        window.crypto.getRandomValues(buf);
+        return buf[0] % maxExclusive;
+      }
+      return Math.floor(Math.random() * maxExclusive);
+    }
 
-  async function playPrev() {
-    if (!videos.length) return;
-    await playAt(index - 1);
-  }
+    let videos = [];
+    let index = 0;
 
-  player.addEventListener("ended", () => playNext());
+    async function playAt(i) {
+      if (!videos.length) return;
 
-  async function initPlaylist(){
-    setStatus("Loading...");
-    try{
-      const list = await loadPlaylistFromTextFile(PLAYLIST_URL);
-      if (!list.length){
-        setStatus("No videos found.");
+      index = ((i % videos.length) + videos.length) % videos.length;
+      const url = videos[index];
+
+      player.src = url;
+      player.load();
+
+      try {
+        await player.play();
+        setStatus(player.muted ? "Tap for sound" : "");
+      } catch {
+        setStatus("Tap to play");
+      }
+    }
+
+    async function playNext() { if (videos.length) await playAt(index + 1); }
+    async function playPrev() { if (videos.length) await playAt(index - 1); }
+    player.addEventListener("ended", () => playNext());
+
+    async function initPlaylist(){
+      setStatus("Loading...");
+      try{
+        const list = await loadPlaylistFromTextFile(PLAYLIST_URL);
+        if (!list.length){
+          setStatus("No videos found.");
+          return;
+        }
+        videos = shuffle(list);
+        index = randomIndex(videos.length);
+        await playAt(index);
+      }catch(err){
+        console.error(err);
+        setStatus("Failed to load playlist.");
+      }
+    }
+
+    prevBtn.addEventListener("click", async (e) => { e.stopPropagation(); await playPrev(); });
+    nextBtn.addEventListener("click", async (e) => { e.stopPropagation(); await playNext(); });
+
+    function updateSoundUI(){ soundIcon.textContent = player.muted ? "volume_off" : "volume_up"; }
+    updateSoundUI();
+
+    async function enableSound(){
+      player.muted = false;
+      updateSoundUI();
+      setStatus("");
+      try { await player.play(); } catch {}
+    }
+
+    soundBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (player.muted) await enableSound();
+      else {
+        player.muted = true;
+        updateSoundUI();
+        setStatus("Tap for sound");
+      }
+    });
+
+    let unlocked = false;
+    document.body.addEventListener("click", async () => {
+      if (!videos.length) return;
+      try { await player.play(); } catch {}
+      if (!unlocked) {
+        unlocked = true;
+        await enableSound();
+      }
+    }, { passive: true });
+
+    /* viewers (cosmetic) */
+    let viewers = Math.floor(Math.random() * 500) + 100;
+    setInterval(() => {
+      viewers += Math.floor(Math.random() * 20 - 10);
+      if (viewers < 50) viewers = 50;
+      viewerEl.textContent = `${viewers} viewers`;
+    }, 1500);
+
+    /***********************
+     * 2) Watch time + Paywall rules
+     * - First 2 minutes free (after wallet connect)
+     * - Then require subscription (1 week) to keep watching
+     ***********************/
+    function formatMMSS(totalSeconds){
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    }
+    function formatDHMS(ms){
+      if (ms <= 0) return "00:00:00";
+      const totalSec = Math.floor(ms / 1000);
+      const d = Math.floor(totalSec / 86400);
+      const h = Math.floor((totalSec % 86400) / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (d > 0) return `${d}d ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+      return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    }
+
+    const STORAGE_WATCH = "fani_live_watch_seconds";
+    let watchSeconds = Number(localStorage.getItem(STORAGE_WATCH) || 0);
+    function updateWatchUI(){ watchStat.textContent = formatMMSS(watchSeconds); }
+    updateWatchUI();
+
+    function isWatching(){
+      return !document.hidden && !player.paused && !player.ended && player.readyState >= 2;
+    }
+    function saveWatchSeconds(){ localStorage.setItem(STORAGE_WATCH, String(watchSeconds)); }
+
+    resetBtn.addEventListener("click", () => {
+      watchSeconds = 0;
+      updateWatchUI();
+      saveWatchSeconds();
+      setStatus("Watch time reset");
+      setTimeout(() => setStatus(""), 900);
+    });
+
+    /***********************
+     * 3) Web3 + Polygon payment
+     ***********************/
+    const RECEIVER = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+    const PRICE_POL = "10"; // 10 POL
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const FREE_TRIAL_SECONDS = 2 * 60;
+
+    // Polygon mainnet
+    const POLYGON = {
+      chainId: "0x89", // 137
+      chainName: "Polygon Mainnet",
+      nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+      rpcUrls: ["https://polygon-rpc.com/"],
+      blockExplorerUrls: ["https://polygonscan.com/"]
+    };
+
+    let walletAddress = "";
+    let subscriptionEndsAtMs = 0; // from Firebase
+    let paywallActive = false;
+
+    function shortAddr(a){
+      if (!a) return "";
+      return a.slice(0,6) + "…" + a.slice(-4);
+    }
+
+    function setButtonsEnabled(enabled){
+      prevBtn.disabled = !enabled;
+      nextBtn.disabled = !enabled;
+      soundBtn.disabled = !enabled;
+    }
+
+    function showPaywall(show){
+      paywallEl.style.display = show ? "block" : "none";
+      paywallActive = show;
+      if (show) {
+        setStatus("Subscribe to continue");
+        // pause + mute for safety
+        try { player.pause(); } catch {}
+        player.muted = true;
+        updateSoundUI();
+        setButtonsEnabled(false);
+      } else {
+        setButtonsEnabled(true);
+        setStatus("");
+      }
+    }
+
+    function nowMs(){ return Date.now(); }
+
+    function hasActiveSubscription(){
+      return subscriptionEndsAtMs && subscriptionEndsAtMs > nowMs();
+    }
+
+    function updateBadges(){
+      if (hasActiveSubscription()){
+        subBadge.style.display = "inline-flex";
+        trialBadge.style.display = "none";
+        subStat.style.display = "inline";
+        const left = subscriptionEndsAtMs - nowMs();
+        subLeftEl.textContent = formatDHMS(left);
+      } else {
+        subBadge.style.display = "none";
+        subStat.style.display = "none";
+        subLeftEl.textContent = "—";
+        // show trial badge only when wallet connected and still within free window
+        if (walletAddress && watchSeconds < FREE_TRIAL_SECONDS) trialBadge.style.display = "inline-flex";
+        else trialBadge.style.display = "none";
+      }
+    }
+
+    // Gate: user must connect wallet to start free trial
+    function canWatch(){
+      if (!walletAddress) return false;
+      if (hasActiveSubscription()) return true;
+      return watchSeconds < FREE_TRIAL_SECONDS;
+    }
+
+    function enforceGate(){
+      if (!walletAddress){
+        showPaywall(true);
+        payHint.textContent = "Connect your wallet to start the free 2-minute watch time.";
+        return;
+      }
+      if (hasActiveSubscription()){
+        showPaywall(false);
+        payHint.textContent = "";
+        return;
+      }
+      if (watchSeconds < FREE_TRIAL_SECONDS){
+        showPaywall(false);
+        payHint.textContent = "";
+        return;
+      }
+      showPaywall(true);
+      payHint.textContent = "Pay once to unlock 1 week access on this device + wallet.";
+    }
+
+    async function ensureProvider(){
+      if (!window.ethereum) throw new Error("No wallet found. Install MetaMask or a Web3 wallet.");
+      return window.ethereum;
+    }
+
+    async function switchToPolygon(){
+      const ethereum = await ensureProvider();
+      try {
+        await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: POLYGON.chainId }] });
+      } catch (err) {
+        // 4902 = chain not added
+        if (err?.code === 4902) {
+          await ethereum.request({ method: "wallet_addEthereumChain", params: [POLYGON] });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // Minimal ETH transfer (POL is native gas currency on Polygon)
+    // Use BigInt to create wei value from decimal string
+    function parseEtherToWei(amountStr){
+      // supports "10" or "10.5" etc (up to 18 decimals)
+      const [whole, frac = ""] = String(amountStr).trim().split(".");
+      const fracPadded = (frac + "0".repeat(18)).slice(0,18);
+      const weiStr = (whole.replace(/^0+/, "") || "0") + fracPadded;
+      return BigInt(weiStr);
+    }
+
+    async function connectWallet(){
+      const ethereum = await ensureProvider();
+      const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+      if (!accounts?.length) throw new Error("No accounts returned");
+      walletAddress = accounts[0];
+      connectLabel.textContent = shortAddr(walletAddress);
+
+      // auto switch to Polygon
+      await switchToPolygon();
+
+      // refresh subscription state from Firebase
+      await loadSubscriptionFromFirebase();
+      updateBadges();
+      enforceGate();
+    }
+
+    /***********************
+     * 4) Firebase (records)
+     * - Store subscriptions by wallet in RTDB:
+     *   /subscriptions/<walletLower> : { wallet, subscriptionEndsAtMs, lastPaymentTx, updatedAtMs }
+     * - Store payments logs:
+     *   /payments/<walletLower>/<txHash> : { wallet, txHash, amountPol, createdAtMs, receiver }
+     ***********************/
+    // Firebase config (provided)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+
+    // IMPORTANT: these are CDN ESM imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, get, set, update, serverTimestamp, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getDatabase(fbApp);
+
+    function wkey(){ return (walletAddress || "").toLowerCase(); }
+
+    async function loadSubscriptionFromFirebase(){
+      if (!walletAddress) return;
+      const snap = await get(ref(db, `subscriptions/${wkey()}`));
+      if (snap.exists()){
+        const data = snap.val();
+        subscriptionEndsAtMs = Number(data.subscriptionEndsAtMs || 0);
+      } else {
+        subscriptionEndsAtMs = 0;
+      }
+    }
+
+    async function savePaymentAndSubscription({ txHash }){
+      const k = wkey();
+      const ends = Math.max(subscriptionEndsAtMs || 0, nowMs()) + ONE_WEEK_MS; // extend if already subscribed
+      subscriptionEndsAtMs = ends;
+
+      // Write subscription
+      await set(ref(db, `subscriptions/${k}`), {
+        wallet: walletAddress,
+        subscriptionEndsAtMs: ends,
+        lastPaymentTx: txHash,
+        receiver: RECEIVER,
+        updatedAtMs: Date.now()
+      });
+
+      // Write payment log
+      await set(ref(db, `payments/${k}/${txHash}`), {
+        wallet: walletAddress,
+        txHash,
+        amountPol: PRICE_POL,
+        receiver: RECEIVER,
+        createdAtMs: Date.now()
+      });
+    }
+
+    /***********************
+     * 5) Subscribe flow
+     ***********************/
+    async function subscribe(){
+      if (!walletAddress) {
+        setStatus("Connect wallet first");
         return;
       }
 
-      // VERY RANDOM:
-      // 1) shuffle whole playlist
-      // 2) start from a random item
-      videos = shuffle(list);
-      index = randomIndex(videos.length);
+      subscribeBtn.disabled = true;
+      subscribeBtn.style.opacity = ".8";
+      setStatus("Preparing payment...");
 
-      await playAt(index);
-    }catch(err){
-      console.error(err);
-      setStatus("Failed to load playlist.");
+      try{
+        await switchToPolygon();
+
+        const ethereum = await ensureProvider();
+        const valueWei = parseEtherToWei(PRICE_POL);
+
+        // Send POL (native) transfer
+        const txHash = await ethereum.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: walletAddress,
+            to: RECEIVER,
+            value: "0x" + valueWei.toString(16)
+          }]
+        });
+
+        setStatus("Payment sent. Saving subscription...");
+
+        await savePaymentAndSubscription({ txHash });
+
+        updateBadges();
+        enforceGate();
+        setStatus("Subscribed ✅");
+        setTimeout(() => setStatus(""), 1200);
+
+        // Try resume
+        try { await player.play(); } catch {}
+      }catch(err){
+        console.error(err);
+        setStatus(err?.message || "Payment failed");
+      }finally{
+        subscribeBtn.disabled = false;
+        subscribeBtn.style.opacity = "1";
+      }
     }
-  }
 
-  /* prev/next buttons */
-  prevBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await playPrev();
-  });
+    /***********************
+     * 6) UI events + timers
+     ***********************/
+    connectBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try{
+        await connectWallet();
+      }catch(err){
+        console.error(err);
+        setStatus(err?.message || "Failed to connect wallet");
+      }
+    });
 
-  nextBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await playNext();
-  });
+    subscribeBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await subscribe();
+    });
 
-  /* sound */
-  function updateSoundUI(){
-    soundIcon.textContent = player.muted ? "volume_off" : "volume_up";
-  }
-  updateSoundUI();
-
-  async function enableSound(){
-    player.muted = false;
-    updateSoundUI();
-    setStatus("");
-    try { await player.play(); } catch {}
-  }
-
-  soundBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    if (player.muted) await enableSound();
-    else {
-      player.muted = true;
-      updateSoundUI();
-      setStatus("Tap for sound");
+    // keep in sync when user changes account/network
+    if (window.ethereum?.on){
+      window.ethereum.on("accountsChanged", async (accounts) => {
+        walletAddress = accounts?.[0] || "";
+        connectLabel.textContent = walletAddress ? shortAddr(walletAddress) : "Connect";
+        subscriptionEndsAtMs = 0;
+        if (walletAddress) await loadSubscriptionFromFirebase();
+        updateBadges();
+        enforceGate();
+      });
+      window.ethereum.on("chainChanged", async () => {
+        // user changed chain manually; we will enforce polygon on actions
+        await loadSubscriptionFromFirebase().catch(()=>{});
+        updateBadges();
+        enforceGate();
+      });
     }
-  });
 
-  let unlocked = false;
-  document.body.addEventListener("click", async () => {
-    if (!videos.length) return;
-    try { await player.play(); } catch {}
-    if (!unlocked) {
-      unlocked = true;
-      await enableSound();
-    }
-  }, { passive: true });
+    // Watch-time counter (only counts while allowed to watch)
+    setInterval(() => {
+      if (!isWatching()) return;
+      if (!canWatch()){
+        enforceGate();
+        return;
+      }
+      watchSeconds += 1;
+      updateWatchUI();
+      saveWatchSeconds();
 
-  /* viewers (cosmetic) */
-  let viewers = Math.floor(Math.random() * 500) + 100;
-  setInterval(() => {
-    viewers += Math.floor(Math.random() * 20 - 10);
-    if (viewers < 50) viewers = 50;
-    viewerEl.textContent = `${viewers} viewers`;
-  }, 1500);
+      // if trial ended while playing (no subscription), stop
+      if (!hasActiveSubscription() && watchSeconds >= FREE_TRIAL_SECONDS){
+        enforceGate();
+      }
+    }, 1000);
 
-  /* watch time only (saved locally) */
-  function formatMMSS(totalSeconds){
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
-  }
+    // Subscription countdown display
+    setInterval(() => {
+      updateBadges();
+    }, 1000);
 
-  const STORAGE_KEY = "fani_live_watch_seconds";
-  let watchSeconds = Number(localStorage.getItem(STORAGE_KEY) || 0);
+    window.addEventListener("beforeunload", () => { saveWatchSeconds(); });
 
-  function updateStats(){
-    watchStat.textContent = formatMMSS(watchSeconds);
-  }
-  updateStats();
+    // Initial state
+    connectLabel.textContent = "Connect";
+    setButtonsEnabled(true);
+    updateBadges();
 
-  function isWatching(){
-    return !document.hidden && !player.paused && !player.ended && player.readyState >= 2;
-  }
+    // Start playlist
+    await initPlaylist();
 
-  function saveWatchSeconds(){
-    localStorage.setItem(STORAGE_KEY, String(watchSeconds));
-  }
-
-  resetBtn.addEventListener("click", () => {
-    watchSeconds = 0;
-    updateStats();
-    saveWatchSeconds();
-    setStatus("Watch time reset");
-    setTimeout(() => setStatus(""), 900);
-  });
-
-  setInterval(() => {
-    if (!isWatching()) return;
-    watchSeconds += 1;
-    updateStats();
-    saveWatchSeconds();
-  }, 1000);
-
-  window.addEventListener("beforeunload", () => {
-    saveWatchSeconds();
-  });
-
-  initPlaylist();
-</script>
+    // Start with gate closed until wallet connect
+    enforceGate();
+  </script>
 </body>
 </html>
