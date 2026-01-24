@@ -179,10 +179,56 @@
       align-items:center;
       justify-content:center;
       gap:8px;
+      position: relative;
+      overflow: hidden;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
     }
     .ghost-btn .material-icons{
       font-size: 20px;
       line-height: 1;
+    }
+
+    /* like/dislike animation */
+    @keyframes pop {
+      0%   { transform: scale(.85); }
+      45%  { transform: scale(1.18); }
+      100% { transform: scale(1.00); }
+    }
+    @keyframes burst {
+      0%   { transform: translate(-50%, -50%) scale(.25); opacity: .0; }
+      20%  { opacity: .95; }
+      100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
+    }
+    .ghost-btn.pulse .material-icons{ animation: pop .26s ease-out; }
+
+    .burst{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width: 90px;
+      height: 90px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      pointer-events:none;
+      opacity:0;
+      filter: blur(.0px);
+    }
+    .burst.like{
+      background: radial-gradient(circle, rgba(124,58,237,.55), rgba(124,58,237,.0) 60%);
+    }
+    .burst.dislike{
+      background: radial-gradient(circle, rgba(239,68,68,.55), rgba(239,68,68,.0) 60%);
+    }
+    .ghost-btn.bursting .burst{ animation: burst .42s ease-out; }
+
+    .ghost-btn.selected.like{
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 1px rgba(124,58,237,.15) inset;
+    }
+    .ghost-btn.selected.dislike{
+      border-color: rgba(239,68,68,.55);
+      box-shadow: 0 0 0 1px rgba(239,68,68,.15) inset;
     }
 
     footer{ margin-top: 10px; color: rgba(255,255,255,.55); font-size: 11px; text-align:center; }
@@ -195,12 +241,10 @@
       <div class="name">FANI TV LIVE</div>
       <div class="stats">
         <span>WATCH <b id="watchStat">00:00</b></span>
-        <span class="sep">•</span>
-        <span>$NFTFAN <b id="tokenStat">0</b></span>
       </div>
     </div>
 
-    <button id="connectBtn" class="btn">Connect</button>
+    <button id="resetBtn" class="btn" title="Reset watch time">Reset</button>
   </div>
 
   <div class="wrap">
@@ -219,9 +263,21 @@
       </div>
 
       <div class="controls-row">
-        <!-- sound: ICON ONLY -->
+        <!-- like -->
+        <button id="likeBtn" class="ghost-btn" title="Like" aria-label="Like">
+          <span class="burst like" aria-hidden="true"></span>
+          <span class="material-icons" aria-hidden="true">thumb_up</span>
+        </button>
+
+        <!-- dislike -->
+        <button id="dislikeBtn" class="ghost-btn" title="Dislike" aria-label="Dislike">
+          <span class="burst dislike" aria-hidden="true"></span>
+          <span class="material-icons" aria-hidden="true">thumb_down</span>
+        </button>
+
+        <!-- sound -->
         <button id="soundBtn" class="ghost-btn" title="Sound" aria-label="Sound">
-          <span id="soundIcon" class="material-icons" aria-hidden="true">volume_off</span>
+          <span class="material-icons" id="soundIcon" aria-hidden="true">volume_off</span>
         </button>
       </div>
     </div>
@@ -232,23 +288,6 @@
 <script type="module">
   const PLAYLIST_URL = "https://raw.githubusercontent.com/nftfan/MENU/main/fanitv/fanilive.txt";
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
-    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
-    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
-    projectId: "tokentransfer-4a9b3",
-    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
-    messagingSenderId: "205455490321",
-    appId: "1:205455490321:web:9919f5dde059316c9320b0",
-    measurementId: "G-Y6CVEDL9XH"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
   const player = document.getElementById("player");
   const statusEl = document.getElementById("statusText");
   const viewerEl = document.getElementById("viewerCount");
@@ -256,10 +295,11 @@
   const soundBtn = document.getElementById("soundBtn");
   const soundIcon = document.getElementById("soundIcon");
 
-  const watchStat = document.getElementById("watchStat");
-  const tokenStat = document.getElementById("tokenStat");
+  const likeBtn = document.getElementById("likeBtn");
+  const dislikeBtn = document.getElementById("dislikeBtn");
 
-  const connectBtn = document.getElementById("connectBtn");
+  const watchStat = document.getElementById("watchStat");
+  const resetBtn = document.getElementById("resetBtn");
 
   function setStatus(msg){ statusEl.textContent = msg || ""; }
 
@@ -327,7 +367,7 @@
     }
   }
 
-  /* sound (icon only) */
+  /* sound */
   function updateSoundUI(){
     soundIcon.textContent = player.muted ? "volume_off" : "volume_up";
   }
@@ -360,6 +400,52 @@
     }
   }, { passive: true });
 
+  /* like/dislike with animation */
+  function animateBtn(btn){
+    btn.classList.remove("pulse", "bursting");
+    // reflow to restart animation
+    void btn.offsetWidth;
+    btn.classList.add("pulse", "bursting");
+    setTimeout(() => btn.classList.remove("pulse", "bursting"), 480);
+  }
+
+  function setReaction(kind){ // "like" | "dislike" | null
+    likeBtn.classList.remove("selected", "like");
+    dislikeBtn.classList.remove("selected", "dislike");
+
+    if (kind === "like") {
+      likeBtn.classList.add("selected", "like");
+      animateBtn(likeBtn);
+    } else if (kind === "dislike") {
+      dislikeBtn.classList.add("selected", "dislike");
+      animateBtn(dislikeBtn);
+    }
+  }
+
+  likeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // toggle like
+    const isSelected = likeBtn.classList.contains("selected");
+    if (isSelected) {
+      likeBtn.classList.remove("selected", "like");
+      animateBtn(likeBtn);
+      return;
+    }
+    setReaction("like");
+  });
+
+  dislikeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // toggle dislike
+    const isSelected = dislikeBtn.classList.contains("selected");
+    if (isSelected) {
+      dislikeBtn.classList.remove("selected", "dislike");
+      animateBtn(dislikeBtn);
+      return;
+    }
+    setReaction("dislike");
+  });
+
   /* viewers (cosmetic) */
   let viewers = Math.floor(Math.random() * 500) + 100;
   setInterval(() => {
@@ -368,20 +454,19 @@
     viewerEl.textContent = `${viewers} viewers`;
   }, 1500);
 
-  /* watch + tokens (cosmetic) */
+  /* watch time only (saved locally) */
   function formatMMSS(totalSeconds){
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
     return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
   }
 
-  const TOKENS_PER_SECOND = 100;
-  let watchSeconds = 0;
-  let earnedTokens = 0;
+  const STORAGE_KEY = "fani_live_watch_seconds";
+
+  let watchSeconds = Number(localStorage.getItem(STORAGE_KEY) || 0);
 
   function updateStats(){
     watchStat.textContent = formatMMSS(watchSeconds);
-    tokenStat.textContent = String(earnedTokens);
   }
   updateStats();
 
@@ -389,96 +474,27 @@
     return !document.hidden && !player.paused && !player.ended && player.readyState >= 2;
   }
 
-  /* wallet + firebase save/load */
-  let currentAccount = null;
-  let saveTimer = null;
-
-  function shortAddr(a){ return a ? (a.slice(0,6) + "…" + a.slice(-4)) : ""; }
-
-  async function ensureWallet(){
-    if (!window.ethereum) throw new Error("Wallet not found (install MetaMask).");
+  function saveWatchSeconds(){
+    localStorage.setItem(STORAGE_KEY, String(watchSeconds));
   }
 
-  function userPath(address){
-    return `faniLiveUsers/${String(address).toLowerCase()}`;
-  }
-
-  async function loadUserStats(address){
-    const snap = await get(ref(db, userPath(address)));
-    if (!snap.exists()) return { watchSeconds: 0, earnedTokens: 0 };
-    const v = snap.val() || {};
-    return {
-      watchSeconds: Number(v.watchSeconds || 0),
-      earnedTokens: Number(v.earnedTokens || 0),
-    };
-  }
-
-  async function saveUserStatsNow(){
-    if (!currentAccount) return;
-    await update(ref(db, userPath(currentAccount)), {
-      wallet: String(currentAccount).toLowerCase(),
-      watchSeconds,
-      earnedTokens,
-      updatedAt: serverTimestamp()
-    });
-  }
-
-  function scheduleSave(){
-    if (!currentAccount) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveUserStatsNow().catch(console.error);
-    }, 1200);
-  }
-
-  async function connectWallet(){
-    await ensureWallet();
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    currentAccount = accounts?.[0] || null;
-    if (!currentAccount) return;
-
-    connectBtn.textContent = shortAddr(currentAccount);
-
-    const prior = await loadUserStats(currentAccount);
-    watchSeconds = prior.watchSeconds;
-    earnedTokens = prior.earnedTokens;
+  resetBtn.addEventListener("click", () => {
+    watchSeconds = 0;
     updateStats();
-
-    scheduleSave();
-  }
-
-  connectBtn.addEventListener("click", () => {
-    connectWallet().catch(err => {
-      console.error(err);
-      setStatus(err?.message || "Failed to connect wallet");
-    });
+    saveWatchSeconds();
+    setStatus("Watch time reset");
+    setTimeout(() => setStatus(""), 900);
   });
-
-  if (window.ethereum?.on) {
-    window.ethereum.on("accountsChanged", async (accs) => {
-      currentAccount = accs?.[0] || null;
-      connectBtn.textContent = currentAccount ? shortAddr(currentAccount) : "Connect";
-      if (currentAccount) {
-        const prior = await loadUserStats(currentAccount).catch(() => null);
-        if (prior) {
-          watchSeconds = prior.watchSeconds;
-          earnedTokens = prior.earnedTokens;
-          updateStats();
-        }
-      }
-    });
-  }
 
   setInterval(() => {
     if (!isWatching()) return;
     watchSeconds += 1;
-    earnedTokens += TOKENS_PER_SECOND;
     updateStats();
-    scheduleSave();
+    saveWatchSeconds();
   }, 1000);
 
   window.addEventListener("beforeunload", () => {
-    if (currentAccount) saveUserStatsNow().catch(()=>{});
+    saveWatchSeconds();
   });
 
   initPlaylist();
