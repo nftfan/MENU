@@ -13,7 +13,6 @@
       --bg0:#05050a;
       --bg1:#0a0a14;
       --txt:#eaf0ff;
-      --muted:#a9b2d6;
       --shadow: 0 18px 50px rgba(0,0,0,.55);
     }
     *{box-sizing:border-box}
@@ -32,7 +31,6 @@
       padding: 8px 10px 14px;
     }
 
-    /* sleek top bar */
     .topbar{
       width: min(520px, 100%);
       display:flex;
@@ -71,7 +69,6 @@
       color: rgba(255,255,255,.92);
       font-weight: 950;
     }
-    .sep{ opacity:.35; }
 
     .btn{
       border:1px solid rgba(255,255,255,.10);
@@ -179,56 +176,12 @@
       align-items:center;
       justify-content:center;
       gap:8px;
-      position: relative;
-      overflow: hidden;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
     }
     .ghost-btn .material-icons{
       font-size: 20px;
       line-height: 1;
-    }
-
-    /* like/dislike animation */
-    @keyframes pop {
-      0%   { transform: scale(.85); }
-      45%  { transform: scale(1.18); }
-      100% { transform: scale(1.00); }
-    }
-    @keyframes burst {
-      0%   { transform: translate(-50%, -50%) scale(.25); opacity: .0; }
-      20%  { opacity: .95; }
-      100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
-    }
-    .ghost-btn.pulse .material-icons{ animation: pop .26s ease-out; }
-
-    .burst{
-      position:absolute;
-      left:50%;
-      top:50%;
-      width: 90px;
-      height: 90px;
-      transform: translate(-50%, -50%);
-      border-radius: 999px;
-      pointer-events:none;
-      opacity:0;
-      filter: blur(.0px);
-    }
-    .burst.like{
-      background: radial-gradient(circle, rgba(124,58,237,.55), rgba(124,58,237,.0) 60%);
-    }
-    .burst.dislike{
-      background: radial-gradient(circle, rgba(239,68,68,.55), rgba(239,68,68,.0) 60%);
-    }
-    .ghost-btn.bursting .burst{ animation: burst .42s ease-out; }
-
-    .ghost-btn.selected.like{
-      border-color: rgba(124,58,237,.55);
-      box-shadow: 0 0 0 1px rgba(124,58,237,.15) inset;
-    }
-    .ghost-btn.selected.dislike{
-      border-color: rgba(239,68,68,.55);
-      box-shadow: 0 0 0 1px rgba(239,68,68,.15) inset;
     }
 
     footer{ margin-top: 10px; color: rgba(255,255,255,.55); font-size: 11px; text-align:center; }
@@ -263,16 +216,14 @@
       </div>
 
       <div class="controls-row">
-        <!-- like -->
-        <button id="likeBtn" class="ghost-btn" title="Like" aria-label="Like">
-          <span class="burst like" aria-hidden="true"></span>
-          <span class="material-icons" aria-hidden="true">thumb_up</span>
+        <!-- previous -->
+        <button id="prevBtn" class="ghost-btn" title="Previous" aria-label="Previous">
+          <span class="material-icons" aria-hidden="true">skip_previous</span>
         </button>
 
-        <!-- dislike -->
-        <button id="dislikeBtn" class="ghost-btn" title="Dislike" aria-label="Dislike">
-          <span class="burst dislike" aria-hidden="true"></span>
-          <span class="material-icons" aria-hidden="true">thumb_down</span>
+        <!-- next -->
+        <button id="nextBtn" class="ghost-btn" title="Next" aria-label="Next">
+          <span class="material-icons" aria-hidden="true">skip_next</span>
         </button>
 
         <!-- sound -->
@@ -292,11 +243,11 @@
   const statusEl = document.getElementById("statusText");
   const viewerEl = document.getElementById("viewerCount");
 
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
   const soundBtn = document.getElementById("soundBtn");
   const soundIcon = document.getElementById("soundIcon");
-
-  const likeBtn = document.getElementById("likeBtn");
-  const dislikeBtn = document.getElementById("dislikeBtn");
 
   const watchStat = document.getElementById("watchStat");
   const resetBtn = document.getElementById("resetBtn");
@@ -335,16 +286,31 @@
   let videos = [];
   let index = 0;
 
-  async function playNext() {
+  async function playAt(i) {
     if (!videos.length) return;
+
+    index = ((i % videos.length) + videos.length) % videos.length; // safe modulo
     const url = videos[index];
-    index = (index + 1) % videos.length;
 
     player.src = url;
     player.load();
 
-    try { await player.play(); }
-    catch { setStatus("Tap to play"); }
+    try {
+      await player.play();
+      setStatus(player.muted ? "Tap for sound" : "");
+    } catch {
+      setStatus("Tap to play");
+    }
+  }
+
+  async function playNext() {
+    if (!videos.length) return;
+    await playAt(index + 1);
+  }
+
+  async function playPrev() {
+    if (!videos.length) return;
+    await playAt(index - 1);
   }
 
   player.addEventListener("ended", () => playNext());
@@ -359,13 +325,23 @@
       }
       videos = shuffle(list);
       index = 0;
-      await playNext();
-      setStatus("Tap for sound");
+      await playAt(0);
     }catch(err){
       console.error(err);
       setStatus("Failed to load playlist.");
     }
   }
+
+  /* prev/next buttons */
+  prevBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await playPrev();
+  });
+
+  nextBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await playNext();
+  });
 
   /* sound */
   function updateSoundUI(){
@@ -400,52 +376,6 @@
     }
   }, { passive: true });
 
-  /* like/dislike with animation */
-  function animateBtn(btn){
-    btn.classList.remove("pulse", "bursting");
-    // reflow to restart animation
-    void btn.offsetWidth;
-    btn.classList.add("pulse", "bursting");
-    setTimeout(() => btn.classList.remove("pulse", "bursting"), 480);
-  }
-
-  function setReaction(kind){ // "like" | "dislike" | null
-    likeBtn.classList.remove("selected", "like");
-    dislikeBtn.classList.remove("selected", "dislike");
-
-    if (kind === "like") {
-      likeBtn.classList.add("selected", "like");
-      animateBtn(likeBtn);
-    } else if (kind === "dislike") {
-      dislikeBtn.classList.add("selected", "dislike");
-      animateBtn(dislikeBtn);
-    }
-  }
-
-  likeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    // toggle like
-    const isSelected = likeBtn.classList.contains("selected");
-    if (isSelected) {
-      likeBtn.classList.remove("selected", "like");
-      animateBtn(likeBtn);
-      return;
-    }
-    setReaction("like");
-  });
-
-  dislikeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    // toggle dislike
-    const isSelected = dislikeBtn.classList.contains("selected");
-    if (isSelected) {
-      dislikeBtn.classList.remove("selected", "dislike");
-      animateBtn(dislikeBtn);
-      return;
-    }
-    setReaction("dislike");
-  });
-
   /* viewers (cosmetic) */
   let viewers = Math.floor(Math.random() * 500) + 100;
   setInterval(() => {
@@ -462,7 +392,6 @@
   }
 
   const STORAGE_KEY = "fani_live_watch_seconds";
-
   let watchSeconds = Number(localStorage.getItem(STORAGE_KEY) || 0);
 
   function updateStats(){
