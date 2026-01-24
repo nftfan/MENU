@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phantom Wallet + SOL Balance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Solana Web3 -->
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .card {
+      background: #020617;
+      padding: 22px;
+      border-radius: 12px;
+      width: 330px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      background: #7c3aed;
+      color: white;
+    }
+    button.disconnect {
+      background: #dc2626;
+    }
+    .info {
+      margin-top: 12px;
+      font-size: 13px;
+      word-break: break-all;
+      color: #a5b4fc;
+    }
+    .balance {
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #22c55e;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h2>Phantom Wallet</h2>
+
+    <button id="connectBtn">Connect Wallet</button>
+    <button id="disconnectBtn" class="disconnect" style="display:none">
+      Disconnect
+    </button>
+
+    <div class="info" id="walletAddress"></div>
+    <div class="balance" id="solBalance"></div>
+  </div>
+
+<script>
+  const connectBtn = document.getElementById("connectBtn");
+  const disconnectBtn = document.getElementById("disconnectBtn");
+  const walletAddressDiv = document.getElementById("walletAddress");
+  const solBalanceDiv = document.getElementById("solBalance");
+
+  let provider = null;
+  let connection = new solanaWeb3.Connection(
+    solanaWeb3.clusterApiUrl("mainnet-beta"),
+    "confirmed"
+  );
+
+  function getPhantomProvider() {
+    if ("solana" in window) {
+      const provider = window.solana;
+      if (provider.isPhantom) return provider;
+    }
+    return null;
+  }
+
+  async function getSolBalance(publicKey) {
+    const balanceLamports = await connection.getBalance(publicKey);
+    const balanceSOL = balanceLamports / solanaWeb3.LAMPORTS_PER_SOL;
+    solBalanceDiv.innerText = `Balance: ${balanceSOL.toFixed(4)} SOL`;
+  }
+
+  async function connectWallet() {
+    provider = getPhantomProvider();
+
+    if (!provider) {
+      alert("Phantom wallet not found!");
+      window.open("https://phantom.app/", "_blank");
+      return;
+    }
+
+    try {
+      const resp = await provider.connect();
+      const publicKey = resp.publicKey;
+
+      walletAddressDiv.innerText =
+        "Wallet:\n" + publicKey.toString();
+
+      await getSolBalance(publicKey);
+
+      connectBtn.style.display = "none";
+      disconnectBtn.style.display = "block";
+    } catch (err) {
+      console.error("Wallet connection failed", err);
+    }
+  }
+
+  async function disconnectWallet() {
+    if (provider) {
+      await provider.disconnect();
+      walletAddressDiv.innerText = "";
+      solBalanceDiv.innerText = "";
+      connectBtn.style.display = "block";
+      disconnectBtn.style.display = "none";
+    }
+  }
+
+  connectBtn.addEventListener("click", connectWallet);
+  disconnectBtn.addEventListener("click", disconnectWallet);
+
+  // Auto-connect if already trusted
+  window.addEventListener("load", async () => {
+    provider = getPhantomProvider();
+    if (!provider) return;
+
+    try {
+      const resp = await provider.connect({ onlyIfTrusted: true });
+      const publicKey = resp.publicKey;
+
+      walletAddressDiv.innerText =
+        "Wallet:\n" + publicKey.toString();
+
+      await getSolBalance(publicKey);
+
+      connectBtn.style.display = "none";
+      disconnectBtn.style.display = "block";
+    } catch (e) {
+      // not connected yet
+    }
+  });
+</script>
+</body>
+</html>
