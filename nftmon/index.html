@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -487,7 +488,7 @@
         </div>
       </div>
       <div class="title-right">
-        <a class="pill" href="https://monad.socialscan.io/address/0xb6c9ec7492d3dd90e5c2dc615787fe7aa60bfea7" target="_blank" rel="noreferrer" style="text-decoration:none;">
+        <a class="pill" href="https://monadscan.com/address/0xb6c9ec7492d3dd90e5c2dc615787fe7aa60bfea7" target="_blank" rel="noreferrer" style="text-decoration:none;">
           <i class="material-icons-round">open_in_new</i>
           <small>SCAN</small><b>CONTRACT</b>
         </a>
@@ -576,7 +577,9 @@
 
     const CONTRACT_ADDRESS = "0xb6C9ec7492D3DD90E5C2dc615787fE7AA60BFEa7";
     const EXPECTED_CHAIN_ID = 143;
-    const READ_RPC = "https://monad-mainnet.infura.io";
+
+    // --- Monad public RPC as per official docs ---
+    const READ_RPC = "https://rpc.monad.xyz"; 
 
     const ABI = [
       "function mint(string tokenURI, uint256 priceWei) payable",
@@ -589,7 +592,7 @@
       chainName: "Monad Mainnet",
       nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
       rpcUrls: [READ_RPC],
-      blockExplorerUrls: ["https://monad.socialscan.io"]
+      blockExplorerUrls: ["https://monadvision.com"]
     };
 
     const app = firebase.apps?.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
@@ -613,7 +616,6 @@
     const sortSelect = document.getElementById("sortSelect");
     const statusWrap = document.getElementById("status");
     const statusMsg = document.getElementById("statusMsg");
-
     const fakeVolEl = document.getElementById("fakeVol");
     const fakeFloorEl = document.getElementById("fakeFloor");
     const fakeHoldersEl = document.getElementById("fakeHolders");
@@ -628,9 +630,7 @@
       if (icon) icon.textContent = kind === "ok" ? "check_circle" : kind === "err" ? "error" : "bolt";
       statusMsg.textContent = message;
     }
-
     function shorten(addr) { return addr ? addr.slice(0, 6) + "…" + addr.slice(-4) : "—"; }
-
     function setWalletUI(connected) {
       const chipIcon = document.querySelector("#addrChip i");
       if (connected && userAddress) {
@@ -641,7 +641,6 @@
         addrText.textContent = "Disconnected";
       }
     }
-
     function isLikelyVideo(url) {
       if (!url) return false;
       const videoExts = [".mp4", ".webm", ".ogg", ".mov", ".m4v"];
@@ -650,39 +649,33 @@
         || lower.includes("video")
         || (lower.startsWith("https://coming-blush-wolverine.myfilebase.com/ipfs/") && !/\.(png|jpg|jpeg|gif|svg|webp)\b/i.test(lower));
     }
-
     function fmtNum(n, dp=2) {
       const x = Number(n);
       if (!Number.isFinite(x)) return (0).toFixed(dp);
       return x.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
-
     function seedFromString(str) {
       let h = 2166136261;
       for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
       return (h >>> 0);
     }
-
     function initFakeMarketStats(itemsCount) {
       const seed = seedFromString(CONTRACT_ADDRESS + ":" + itemsCount);
       const baseVol = 1200 + (seed % 8000);
       const baseFloor = 0.08 + ((seed % 240) / 1000);
       const holders = Math.max(42, Math.floor(itemsCount * 0.62) + (seed % 180));
       const pct = ((seed % 260) / 10) - 6;
-
       fakeVolEl.textContent = fmtNum(baseVol, 2);
       fakeFloorEl.textContent = fmtNum(baseFloor, 3);
       fakeHoldersEl.textContent = holders.toLocaleString();
       fakeItemsEl.textContent = (itemsCount || 0).toLocaleString();
       fake24hEl.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%";
     }
-
     function animateFakeVolume() {
       const current = Number(String(fakeVolEl.textContent).replace(/,/g, "")) || 0;
       const drift = (Math.sin(Date.now() / 8000) * 0.9) + (Math.sin(Date.now() / 19000) * 0.6);
       fakeVolEl.textContent = fmtNum(Math.max(0, current + drift), 2);
     }
-
     async function switchToMonad() {
       if (!window.ethereum) throw new Error("No wallet found");
       try {
@@ -695,28 +688,22 @@
         }
       }
     }
-
     async function connectWallet() {
       if (!window.ethereum) { setStatus("No Web3 wallet found.", "err"); throw new Error("No wallet"); }
-
       await switchToMonad();
-
       provider = new ethers.BrowserProvider(window.ethereum, "any");
       const network = await provider.getNetwork();
       if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
         setStatus("Wrong network. Switch to Monad Mainnet.", "err");
         throw new Error("Wrong network");
       }
-
       const accounts = await provider.send("eth_requestAccounts", []);
       signer = await provider.getSigner();
       userAddress = accounts[0];
-
       contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
       setWalletUI(true);
       return userAddress;
     }
-
     function installWalletListeners() {
       if (!window.ethereum) return;
       window.ethereum.on?.("accountsChanged", (accounts) => {
@@ -729,19 +716,16 @@
         setTimeout(() => window.location.reload(), 350);
       });
     }
-
     function normalizePriceMon(priceMon) {
       const n = Number(priceMon);
       if (!Number.isFinite(n) || n <= 0) return null;
       return String(priceMon);
     }
-
     function isReceiptSuccess(receipt) {
       if (!receipt) return false;
       const s = receipt.status;
       return s === 1 || s === "1" || s === 1n;
     }
-
     async function confirmMintByState(tokenURI) {
       try {
         const minted = await readContract.isMintedURI(tokenURI);
@@ -750,21 +734,17 @@
         return false;
       }
     }
-
     async function mint(tokenURI, priceMon) {
       const priceStr = normalizePriceMon(priceMon);
       if (!tokenURI || !priceStr) { setStatus("Missing URI or price.", "err"); return; }
-
       if (mintingSet.has(tokenURI)) return;
       mintingSet.add(tokenURI);
       renderList();
-
       try {
         if (mintedMap.get(tokenURI) === true) {
           setStatus("Already minted.", "err");
           return;
         }
-
         setStatus("Checking mint status…", "");
         const mintedAlready = await readContract.isMintedURI(tokenURI);
         if (mintedAlready) {
@@ -773,22 +753,17 @@
           renderList();
           return;
         }
-
         setStatus("Connecting wallet…", "");
         await connectWallet();
-
         const priceWei = ethers.parseEther(priceStr);
-
         setStatus("Confirm in wallet…", "");
         let gasLimit = 400000n;
         try {
           const est = await contract.mint.estimateGas(tokenURI, priceWei, { value: priceWei });
           gasLimit = (est * 125n) / 100n;
         } catch (_) {}
-
         const tx = await contract.mint(tokenURI, priceWei, { value: priceWei, gasLimit });
         setStatus(`TX sent… ${tx.hash.slice(0, 10)}…`, "");
-
         let receipt = null;
         try {
           receipt = await tx.wait();
@@ -805,7 +780,6 @@
           setStatus("Confirmation pending. Check your wallet activity or try refresh.", "");
           return;
         }
-
         if (!isReceiptSuccess(receipt)) {
           const okByState = await confirmMintByState(tokenURI);
           if (okByState) {
@@ -818,7 +792,6 @@
           setStatus("Confirmation pending. Check Monadscan or your wallet.", "");
           return;
         }
-
         mintedMap.set(tokenURI, true);
         setStatus("Mint confirmed.", "ok");
         renderList();
@@ -836,14 +809,11 @@
         renderList();
       }
     }
-
     function renderCard(id, data) {
       const card = document.createElement("div");
       card.className = "card fade-in";
-
       const media = document.createElement("div");
       media.className = "media";
-
       const url = (data?.imageUrl || "").trim();
       if (isLikelyVideo(url)) {
         const video = document.createElement("video");
@@ -861,34 +831,26 @@
         img.alt = (data?.title || "Asset");
         media.appendChild(img);
       }
-
       const body = document.createElement("div");
       body.className = "body";
-
       const row = document.createElement("div");
       row.className = "row";
-
       const title = document.createElement("div");
       title.className = "title";
       title.textContent = (data?.title || "Unknown").toUpperCase();
-
       const price = document.createElement("div");
       price.className = "price";
       const displayPrice = (data?.price !== null && typeof data?.price !== "undefined" && data?.price !== "")
         ? `${data.price} MON`
         : "—";
       price.innerHTML = `<i class="material-icons-round">token</i><span>${displayPrice}</span>`;
-
       row.appendChild(title);
       row.appendChild(price);
-
       const btn = document.createElement("button");
       btn.className = "btn btn-primary mint";
-
       const already = mintedMap.get(url) === true;
       const minting = mintingSet.has(url);
       if (already) btn.classList.add("minted");
-
       btn.disabled = already || minting || !url;
       btn.innerHTML = already
         ? `<i class="material-icons-round">verified</i><span>Minted</span>`
@@ -896,34 +858,26 @@
           ? `<i class="material-icons-round">hourglass_top</i><span>Minting…</span>`
           : `<i class="material-icons-round">shopping_bag</i><span>Mint</span>`;
       btn.onclick = () => mint(url, String(data?.price ?? ""));
-
       body.appendChild(row);
       body.appendChild(btn);
-
       card.appendChild(media);
       card.appendChild(body);
       return card;
     }
-
     function sortEntries(entries, mode) {
       return entries.slice().sort((a, b) => {
         const da = a[1]?.createdAt || 0, dbb = b[1]?.createdAt || 0;
         const pa = parseFloat(a[1]?.price || "0"), pb = parseFloat(b[1]?.price || "0");
         switch (mode) {
-          case "date_asc": return da - dbb;
-          case "price_desc": return pb - pa;
-          case "price_asc": return pa - pb;
-          case "date_desc":
-          default: return dbb - da;
+          case "date_asc": return da - dbb; case "price_desc": return pb - pa; case "price_asc": return pa - pb;
+          case "date_desc": default: return dbb - da;
         }
       });
     }
-
     const PAGE_SIZE = 4;
     let visibleCount = 0;
     let renderedSortedKeys = "";
     let isLoadingMore = false;
-
     function getSortedEntries() { return sortEntries(currentEntries, sortSelect.value); }
     function computeSortedKeys(entries) {
       return entries.map(([id, d]) => `${id}:${d?.createdAt || 0}:${(d?.imageUrl || "").trim()}`).join("|");
@@ -961,7 +915,6 @@
         gridEl.appendChild(empty);
         return;
       }
-
       const start = visibleCount;
       const end = Math.min(sorted.length, visibleCount + PAGE_SIZE);
       if (start === 0) { gridEl.innerHTML = ""; }
@@ -976,7 +929,6 @@
       const sorted = getSortedEntries();
       if (!sorted.length) return;
       if (!force && visibleCount >= sorted.length) return;
-
       isLoadingMore = true;
       try {
         const start = visibleCount;
@@ -1046,7 +998,6 @@
         .slice(0, PAGE_SIZE)
         .map(([_, d]) => (d?.imageUrl || "").trim())
         .filter(Boolean);
-
       await updateMintedStatusesForUris(initialUris);
     }
     async function refreshMintedCount() {
@@ -1058,8 +1009,7 @@
       }
     }
 
-    scanLinkEl.href = `https://monad.socialscan.io/address/${CONTRACT_ADDRESS.toLowerCase()}`;
-
+    scanLinkEl.href = `https://monadscan.com/address/${CONTRACT_ADDRESS.toLowerCase()}`;
     connectBtn.addEventListener("click", async () => {
       connectBtn.disabled = true;
       setStatus("Connecting…", "");
@@ -1074,7 +1024,6 @@
         connectBtn.disabled = false;
       }
     });
-
     sortSelect.addEventListener("change", () => {
       gridEl.innerHTML = `<div class="skeleton">Loading collection…</div>`;
       visibleCount = 0;
