@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NFT FANS 2026 – Withdraw MON</title>
+  <style>
+    :root { --bg:#050505; --panel:#0f1729; --text:#eaf2ff; --muted:#8ea0c9; --accent:#fcee0a; --accent2:#00f0ff; --err:#ff4f7a; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; padding:16px; min-height:100vh;
+      background: radial-gradient(circle at 20% 20%, rgba(252,238,10,0.1), transparent 32%),
+                  radial-gradient(circle at 80% 0%, rgba(0,240,255,0.12), transparent 32%),
+                  var(--bg);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      display: flex; justify-content: center;
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+    h1 { margin:0 0 6px; font-size:18px; letter-spacing:0.4px; }
+    p { margin:0 0 12px; color: var(--muted); font-size:13px; }
+    label { display:block; margin:10px 0 6px; font-weight:700; font-size:13px; }
+    input {
+      width:100%; padding:10px 12px; border-radius:10px;
+      border:1px solid rgba(255,255,255,0.08);
+      background:#0b1221; color:var(--text);
+      font-size:14px; outline:none;
+    }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+    .pill { padding:6px 10px; border-radius:999px; background:#0b1221; color:var(--muted); font-size:12px; border:1px solid rgba(255,255,255,0.1); }
+    button {
+      padding:11px 14px; border-radius:10px; border:none; cursor:pointer;
+      font-weight:800; font-size:14px; color:#050505;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      box-shadow: 0 12px 32px rgba(0,240,255,0.25);
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+    button:active { transform: translateY(1px); box-shadow: 0 8px 22px rgba(0,240,255,0.18); }
+    button:disabled { opacity:0.6; cursor:not-allowed; box-shadow:none; }
+    .status { margin-top:10px; min-height:18px; font-size:13px; color:var(--muted); }
+    .status.ok { color:#8df7c4; }
+    .status.err { color:var(--err); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Withdraw MON</h1>
+    <p>Owner-only. Sends contract balance to the address below on Monad (chain 143).</p>
+
+    <label>Destination address</label>
+    <input id="to" type="text" placeholder="0x..." autocomplete="off" />
+
+    <div class="row">
+      <div id="addr" class="pill">Not connected</div>
+      <div id="bal" class="pill">Balance: …</div>
+      <button id="connectBtn">Connect</button>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <button id="withdrawBtn" style="flex:1;">Withdraw</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script>
+    // --- Monad Mainnet contract parameters ---
+    const CONTRACT_ADDRESS = "0xb6C9ec7492D3DD90E5C2dc615787fE7AA60BFEa7";
+    const EXPECTED_CHAIN_ID = 143; // Monad
+    const ABI = [
+      "function withdraw(address payable to) external",
+      "function owner() view returns (address)"
+    ];
+
+    let provider, signer, contract, userAddress;
+
+    const toEl = document.getElementById('to');
+    const addrEl = document.getElementById('addr');
+    const balEl = document.getElementById('bal');
+    const statusEl = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const withdrawBtn = document.getElementById('withdrawBtn');
+
+    function setStatus(msg, cls="") {
+      statusEl.className = `status ${cls}`;
+      statusEl.textContent = msg;
+    }
+    function shorten(a){ return a ? a.slice(0,6)+"…"+a.slice(-4) : ""; }
+    async function refreshBalance(pvdr) {
+      try {
+        const bal = await pvdr.getBalance(CONTRACT_ADDRESS);
+        balEl.textContent = "Balance: " + ethers.formatEther(bal) + " MON";
+      } catch (e) {
+        balEl.textContent = "Balance: n/a";
+      }
+    }
+    async function ensureWallet() {
+      if (!window.ethereum) throw new Error("No wallet");
+      provider = new ethers.BrowserProvider(window.ethereum, "any");
+      const net = await provider.getNetwork();
+      if (Number(net.chainId) !== EXPECTED_CHAIN_ID) throw new Error("Wrong network");
+      const accounts = await provider.send("eth_requestAccounts", []);
+      signer = await provider.getSigner();
+      userAddress = accounts[0];
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      addrEl.textContent = shorten(userAddress);
+      await refreshBalance(provider);
+      // optional owner check
+      try {
+        const owner = await contract.owner();
+        if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+          setStatus("Connected wallet is not the owner.", "err");
+        }
+      } catch {}
+    }
+
+    connectBtn.onclick = async () => {
+      connectBtn.disabled = true;
+      setStatus("Connecting...");
+      try { await ensureWallet(); setStatus("Connected", "ok"); }
+      catch (e) { setStatus(e.message || "Connect failed", "err"); }
+      finally { connectBtn.disabled = false; }
+    };
+
+    withdrawBtn.onclick = async () => {
+      const to = toEl.value.trim();
+      if (!to) return setStatus("Enter destination address.", "err");
+      withdrawBtn.disabled = true;
+      setStatus("Awaiting wallet confirmation...");
+      try {
+        await ensureWallet();
+        const tx = await contract.withdraw(to);
+        setStatus("Withdrawing... waiting for confirmation.");
+        await tx.wait();
+        setStatus("Withdraw successful.", "ok");
+        await refreshBalance(provider);
+      } catch (e) {
+        setStatus(e.reason || e.message || "Withdraw failed", "err");
+      } finally {
+        withdrawBtn.disabled = false;
+      }
+    };
+
+    // initial read-only balance via Monad public RPC
+    (async () => {
+      const rp = new ethers.JsonRpcProvider("https://rpc.monad.xyz");
+      await refreshBalance(rp);
+    })();
+  </script>
+</body>
+</html>
