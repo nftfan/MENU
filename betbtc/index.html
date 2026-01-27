@@ -10,129 +10,26 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-:root {
-  --neon:#00ffff;
-  --pink:#ff2fdc;
-  --yellow:#FCD535;
-  --bg:radial-gradient(circle at top,#0b1030,#05070d);
-  --card:rgba(20,25,45,0.85);
-  --green:#2eff9a;
-  --red:#ff4d6d;
+:root{
+ --neon:#00ffff;--pink:#ff2fdc;--green:#2eff9a;--red:#ff4d6d;
 }
-
-body{
-  margin:0;
-  padding:10px;
-  background:var(--bg);
-  font-family:Roboto,Arial;
-  color:#EAECEF;
-}
-
-.container{
-  max-width:380px;
-  margin:auto;
-  background:var(--card);
-  border-radius:18px;
-  padding:20px;
-  border:1px solid rgba(0,255,255,0.2);
-  box-shadow:0 0 30px rgba(0,255,255,0.15);
-}
-
-h1{
-  text-align:center;
-  font-size:1.2rem;
-  text-shadow:0 0 12px var(--neon);
-}
-
-.btn{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:6px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.btn-connect{
-  background:linear-gradient(135deg,var(--neon),var(--pink));
-  color:#000;
-}
-
-.btn-up{background:var(--green);color:#000;margin-bottom:8px;}
-.btn-down{background:var(--red);color:#000;}
-.btn-disabled{opacity:.3;pointer-events:none;}
-.selected{outline:2px solid #fff;}
-
-.banner{
-  margin:12px 0;
-  border-radius:10px;
-  overflow:hidden;
-  border:1px solid rgba(0,255,255,.3);
-  box-shadow:0 0 18px rgba(0,255,255,.3);
-}
-.banner img{width:100%;display:block;}
-
-.stats{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin:12px 0;
-}
-
-.card{
-  background:rgba(0,0,0,.35);
-  padding:10px;
-  border-radius:8px;
-  text-align:center;
-  border:1px solid rgba(0,255,255,.15);
-}
-
-.label{font-size:9px;color:#aaa;}
-.value{font-size:14px;font-weight:bold;}
-
-#btc-price{
-  text-align:center;
-  font-size:26px;
-  color:var(--yellow);
-  margin:8px 0;
-}
-
-#timer{text-align:center;font-size:18px;color:var(--neon);}
-
-.live-box{
-  display:flex;
-  justify-content:space-between;
-  margin-top:8px;
-  font-size:12px;
-}
-
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.85);
-  align-items:center;
-  justify-content:center;
-  z-index:999;
-}
-
-.modal-content{
-  background:var(--card);
-  padding:24px;
-  border-radius:16px;
-  text-align:center;
-  border:1px solid var(--neon);
-}
-
-.lb-item{
-  display:flex;
-  justify-content:space-between;
-  background:#111;
-  padding:8px;
-  border-radius:6px;
-  margin-bottom:4px;
-  font-size:11px;
-}
+body{background:#05070d;color:#fff;font-family:Arial;margin:0;padding:10px}
+.container{max-width:380px;margin:auto;background:#0b1020;border-radius:18px;padding:20px;border:1px solid rgba(0,255,255,.3)}
+h1{text-align:center;text-shadow:0 0 10px var(--neon)}
+.btn{width:100%;padding:12px;font-weight:bold;border:none;border-radius:6px;cursor:pointer}
+.btn-connect{background:linear-gradient(135deg,var(--neon),var(--pink));color:#000}
+.btn-up{background:var(--green);margin-bottom:8px}
+.btn-down{background:var(--red)}
+.btn-disabled{opacity:.3;pointer-events:none}
+.banner img{width:100%;border-radius:10px;margin:10px 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#111;padding:10px;border-radius:8px;text-align:center}
+#btc-price{text-align:center;font-size:26px;color:#fcd535}
+#timer{text-align:center;font-size:20px;color:var(--neon)}
+.live{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);align-items:center;justify-content:center}
+.modal-content{background:#0b1020;padding:25px;border-radius:16px;text-align:center;border:1px solid var(--neon)}
+.paywall{display:none;background:rgba(0,0,0,.9);position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;text-align:center}
 </style>
 </head>
 
@@ -142,129 +39,148 @@ h1{
 <h1>BTC PREDICTOR PRO</h1>
 
 <div id="auth-section">
-  <button id="connectBtn" class="btn btn-connect">CONNECT WALLET</button>
-
-  <!-- BANNER -->
-  <div class="banner">
-    <img src="https://i.postimg.cc/59CPJw8g/image.png">
-  </div>
+<button id="connectBtn" class="btn btn-connect">CONNECT WALLET</button>
+<div class="banner">
+<img src="https://i.postimg.cc/59CPJw8g/image.png">
+</div>
 </div>
 
-<div id="app-content" style="display:none">
+<div id="app-content" style="display:none;position:relative">
+
+<div id="paywall" class="paywall">
+<h2 style="color:#fcd535">LIMIT REACHED</h2>
+<p>Pay <b>1 POL</b> to play 3 more rounds</p>
+<button class="btn btn-connect" onclick="payToPlay()">PAY 1 POL</button>
+</div>
 
 <div class="stats">
-  <div class="card">
-    <div class="label">Balance (USD)</div>
-    <div id="balanceUSD" class="value">$100.00</div>
-  </div>
-  <div class="card">
-    <div class="label">Reward (NFTFAN)</div>
-    <div id="rewardNFTFAN" class="value" style="color:var(--neon)">100M</div>
-  </div>
+<div class="card"><div>Balance</div><b id="balanceUSD">$100.00</b></div>
+<div class="card"><div>Rounds</div><b id="roundsTxt">0 / 3</b></div>
 </div>
 
 <div id="btc-price">Loading...</div>
 <canvas id="btcChart" height="80"></canvas>
 
-<div class="live-box">
-  <div>ENTRY: <span id="entryLive">--</span></div>
-  <div>PNL: <span id="pnlLive">0.00</span></div>
+<div class="live">
+<div>ENTRY: <span id="entryLive">--</span></div>
+<div>PNL: <span id="pnlLive">0.00</span></div>
 </div>
 
 <div id="timer"></div>
 
-<div id="controls" style="margin-top:10px">
-  <button class="btn btn-up" onclick="selectDir('UP')">UP</button>
-  <button class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
-  <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:8px" onclick="startBet()">CONFIRM BET</button>
+<div id="controls">
+<button class="btn btn-up" onclick="selectDir('UP')">UP</button>
+<button class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
+<button id="startBtn" class="btn btn-connect btn-disabled" onclick="startBet()">CONFIRM</button>
 </div>
+
 </div>
 </div>
 
 <div id="resultModal" class="modal">
 <div class="modal-content">
-  <h2 id="resTitle"></h2>
-  <div id="resPnL" style="font-size:32px;margin:10px 0"></div>
-  <button class="btn btn-connect" onclick="closeModal()">CONTINUE</button>
+<h2 id="resTitle"></h2>
+<div id="resPnL" style="font-size:34px;margin:10px 0"></div>
+<button class="btn btn-connect" onclick="closeModal()">CONTINUE</button>
 </div>
 </div>
 
 <script>
-let userWallet,currentBalance=100,btcPrice=0,entryPrice=0,selected=null,gameState="IDLE";
-let pnlInterval;
+const ADMIN="0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+let wallet,btcPrice=0,entryPrice=0,selected=null,rounds=0,balance=100,game="IDLE",pnlInt;
 
-connectBtn.onclick=async()=>{
-  const acc=await ethereum.request({method:'eth_requestAccounts'});
-  userWallet=acc[0];
-  auth-section.style.display="none";
-  app-content.style.display="block";
+// FIXED CONNECT
+document.getElementById("connectBtn").onclick=async()=>{
+ if(!window.ethereum)return alert("Install MetaMask");
+ const acc=await ethereum.request({method:"eth_requestAccounts"});
+ wallet=acc[0];
+ document.getElementById("auth-section").style.display="none";
+ document.getElementById("app-content").style.display="block";
 };
 
+// PRICE
 async function getPrice(){
-  const r=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-  const d=await r.json();
-  btcPrice=parseFloat(d.price);
-  btc-price.textContent="$"+btcPrice.toLocaleString();
+ const r=await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+ const d=await r.json();
+ btcPrice=parseFloat(d.price);
+ document.getElementById("btc-price").textContent="$"+btcPrice.toLocaleString();
 }
 setInterval(getPrice,2000);
 
+// GAME
 function selectDir(d){
-  if(gameState!=="IDLE")return;
-  selected=d;
-  startBtn.classList.remove('btn-disabled');
+ if(game!=="IDLE")return;
+ selected=d;
+ document.getElementById("startBtn").classList.remove("btn-disabled");
 }
 
 function startBet(){
-  gameState="ACTIVE";
-  entryPrice=btcPrice;
-  entryLive.textContent="$"+entryPrice.toLocaleString();
-  controls.style.display="none";
+ if(rounds>=3){
+  document.getElementById("paywall").style.display="flex";
+  return;
+ }
+ game="ACTIVE";
+ entryPrice=btcPrice;
+ document.getElementById("entryLive").textContent="$"+entryPrice.toLocaleString();
+ document.getElementById("controls").style.display="none";
 
-  let sec=60;
-  pnlInterval=setInterval(()=>{
-    let pnl=selected==="UP"?btcPrice-entryPrice:entryPrice-btcPrice;
-    pnlLive.textContent=(pnl>=0?"+":"-")+"$"+Math.abs(pnl).toFixed(2);
-    pnlLive.style.color=pnl>=0?"var(--green)":"var(--red)";
-  },1000);
+ let sec=60;
+ pnlInt=setInterval(()=>{
+  let pnl=selected==="UP"?btcPrice-entryPrice:entryPrice-btcPrice;
+  document.getElementById("pnlLive").textContent=pnl.toFixed(2);
+  document.getElementById("pnlLive").style.color=pnl>=0?"var(--green)":"var(--red)";
+ },1000);
 
-  const t=setInterval(()=>{
-    timer.textContent=sec--+"s";
-    if(sec<0){clearInterval(t);endBet();}
-  },1000);
+ const t=setInterval(()=>{
+  document.getElementById("timer").textContent=sec--+"s";
+  if(sec<0){clearInterval(t);endBet();}
+ },1000);
 }
 
 function endBet(){
-  clearInterval(pnlInterval);
-  let pnl=selected==="UP"?btcPrice-entryPrice:entryPrice-btcPrice;
-  currentBalance+=pnl;
-  balanceUSD.textContent="$"+currentBalance.toFixed(2);
-  rewardNFTFAN.textContent=Math.floor(currentBalance)+"M";
+ clearInterval(pnlInt);
+ let pnl=selected==="UP"?btcPrice-entryPrice:entryPrice-btcPrice;
+ balance+=pnl;
+ rounds++;
 
-  resTitle.textContent=pnl>=0?"WINNER":"LOSE";
-  resPnL.textContent=(pnl>=0?"+":"-")+"$"+Math.abs(pnl).toFixed(2);
-  resPnL.style.color=pnl>=0?"var(--green)":"var(--red)";
-  resultModal.style.display="flex";
-  if(pnl>=0)confetti({particleCount:120,spread:70});
+ document.getElementById("balanceUSD").textContent="$"+balance.toFixed(2);
+ document.getElementById("roundsTxt").textContent=rounds+" / 3";
+
+ document.getElementById("resTitle").textContent=pnl>=0?"YOU WIN":"YOU LOSE";
+ document.getElementById("resPnL").textContent=(pnl>=0?"+":"")+pnl.toFixed(2);
+ document.getElementById("resPnL").style.color=pnl>=0?"var(--green)":"var(--red)";
+ document.getElementById("resultModal").style.display="flex";
+
+ if(pnl>=0)confetti({particleCount:180,spread:80});
 }
 
 function closeModal(){
-  resultModal.style.display="none";
-  controls.style.display="block";
-  timer.textContent="";
-  pnlLive.textContent="0.00";
-  gameState="IDLE";
-  selected=null;
-  startBtn.classList.add('btn-disabled');
+ document.getElementById("resultModal").style.display="none";
+ document.getElementById("controls").style.display="block";
+ document.getElementById("timer").textContent="";
+ document.getElementById("startBtn").classList.add("btn-disabled");
+ game="IDLE";selected=null;
 }
 
-const ctx=document.getElementById('btcChart').getContext('2d');
+async function payToPlay(){
+ const provider=new ethers.providers.Web3Provider(window.ethereum);
+ const signer=provider.getSigner();
+ const tx=await signer.sendTransaction({
+  to:ADMIN,
+  value:ethers.utils.parseEther("1")
+ });
+ await tx.wait();
+ rounds=0;
+ document.getElementById("roundsTxt").textContent="0 / 3";
+ document.getElementById("paywall").style.display="none";
+}
+
+// CHART
+const ctx=document.getElementById("btcChart").getContext("2d");
 let hist=[];
-new Chart(ctx,{
- type:'line',
- data:{labels:new Array(20).fill(''),datasets:[{data:hist,borderColor:'#00ffff',tension:.4,pointRadius:0}]},
- options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
-});
-setInterval(()=>{hist.push(btcPrice);if(hist.length>20)hist.shift();},3000);
+new Chart(ctx,{type:"line",data:{labels:new Array(20),datasets:[{data:hist,borderColor:"#00ffff",pointRadius:0}]},
+options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+setInterval(()=>{hist.push(btcPrice);if(hist.length>20)hist.shift()},3000);
 </script>
 
 </body>
