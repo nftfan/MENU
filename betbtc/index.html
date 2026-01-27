@@ -2,62 +2,61 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Leaderboard & Faucet</title>
+<title>BTC 60s - Trade & Earn</title>
 <meta name="viewport" content="width=420">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
-body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:10px; }
-.container { max-width: 380px; margin: auto; background: #181A20; border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; }
+    :root { --yellow: #FCD535; --bg: #0B0E11; --card: #181A20; --green: #2ebd85; --red: #f6465d; }
+    body { font-family: 'Roboto', sans-serif; background: var(--bg); color: #EAECEF; margin:0; padding:10px; }
+    .container { max-width: 380px; margin: auto; background: var(--card); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #333; }
+    .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #848E9C; font-weight: bold; font-size: 12px; }
+    .tab.active { color: var(--yellow); border-bottom: 2px solid var(--yellow); }
 
-/* Tabs */
-.tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #333; }
-.tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #848E9C; font-weight: bold; font-size: 12px; }
-.tab.active { color: #FCD535; border-bottom: 2px solid #FCD535; }
+    /* UI Components */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .stat-card { background: #2B2F36; padding: 10px; border-radius: 8px; text-align: center; }
+    .stat-label { font-size: 9px; color: #848E9C; text-transform: uppercase; }
+    .stat-value { font-size: 14px; font-weight: bold; display: block; margin-top: 3px; }
+    
+    #btc-price { font-size: 28px; font-weight: bold; text-align: center; color: var(--yellow); margin: 5px 0; }
+    #timer { text-align: center; font-size: 20px; color: #70a1ff; font-weight: bold; height: 24px; }
 
-/* Stats */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-.stat-card { background: #2B2F36; padding: 10px; border-radius: 8px; text-align: center; }
-.stat-label { font-size: 9px; color: #848E9C; text-transform: uppercase; }
-.stat-value { font-size: 14px; font-weight: bold; display: block; margin-top: 3px; }
+    /* Buttons */
+    .btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
+    .btn-connect { background: var(--yellow); color: #000; }
+    .btn-up { background: var(--green); color: white; margin-bottom: 8px; }
+    .btn-down { background: var(--red); color: white; }
+    .btn-disabled { opacity: 0.3; pointer-events: none; }
+    .selected { outline: 2px solid white; transform: scale(0.98); }
 
-/* Game Elements */
-.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
-.comp-item { flex: 1; text-align: center; }
-.comp-label { font-size: 10px; color: #848E9C; display: block; }
-.comp-val { font-size: 12px; font-weight: bold; font-family: monospace; }
-
-/* Buttons */
-.btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
-.btn-connect { background: #FCD535; color: #000; }
-.btn-up { background: #2ebd85; color: white; margin-bottom: 8px; }
-.btn-down { background: #f6465d; color: white; }
-.btn-disabled { opacity: 0.3; pointer-events: none; }
-.selected { outline: 2px solid #fff; transform: scale(0.98); }
-
-#faucetBtn { background: #3b5998; color: white; margin-top: 10px; display: none; }
-#btc-price { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; color: #FCD535; }
-#timer { text-align: center; font-size: 18px; color: #70a1ff; font-weight: bold; }
-
-/* Leaderboard */
-#leaderboard-list { list-style: none; padding: 0; margin-top: 10px; }
-.lb-item { display: flex; justify-content: space-between; padding: 8px; background: #2b2f36; margin-bottom: 4px; border-radius: 4px; font-size: 11px; }
-.lb-rank { color: #FCD535; font-weight: bold; width: 20px; }
-.lb-wallet { color: #848E9C; font-family: monospace; }
-
-.reward-info { font-size: 10px; color: #848E9C; background: #1e2329; padding: 10px; border-radius: 8px; margin-top: 15px; border-left: 3px solid #FCD535; }
+    /* Paywall Overlay */
+    #payWall { display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:100; flex-direction:column; justify-content:center; align-items:center; padding:30px; text-align:center; }
+    
+    /* Modal */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; }
+    .modal-content { background: var(--card); padding: 30px; border-radius: 16px; text-align:center; border: 2px solid var(--yellow); width: 260px; }
+    
+    /* Leaderboard */
+    .lb-item { display: flex; justify-content: space-between; padding: 8px; background: #2b2f36; margin-bottom: 4px; border-radius: 4px; font-size: 11px; }
+    
+    .faucet-area { margin-top: 10px; text-align: center; display: none; }
+    .game-count { font-size: 10px; color: var(--yellow); text-align: center; margin-bottom: 5px; }
 </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>BTC TRADER PRO</h1>
+    <h1 style="text-align:center; font-size: 1.2rem;">BTC PREDICTOR PRO</h1>
     
     <div id="auth-section">
-        <button id="connectBtn" class="btn btn-connect">CONNECT WALLET TO START</button>
+        <button id="connectBtn" class="btn btn-connect">CONNECT WALLET</button>
     </div>
 
     <div id="app-content" style="display:none;">
@@ -67,45 +66,54 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
         </div>
 
         <div id="view-trade">
+            <div id="payWall">
+                <h2 style="color:var(--yellow)">LIMIT REACHED</h2>
+                <p>You've used your 3 free rounds.<br>Pay 1 $POL to unlock 3 more.</p>
+                <button class="btn btn-connect" onclick="payToPlay()">PAY 1 $POL</button>
+            </div>
+
+            <div class="game-count" id="roundDisplay">Rounds: 0 / 3</div>
+
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">Balance</span>
+                    <span class="stat-label">Balance (USD)</span>
                     <span id="balanceUSD" class="stat-value">$100.00</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Est. Reward</span>
+                    <span class="stat-label">Reward (NFTFAN)</span>
                     <span id="rewardNFTFAN" class="stat-value" style="color:#00ffcc">100M</span>
                 </div>
             </div>
 
-            <div id="btc-price">--.---</div>
+            <div id="btc-price">Loading...</div>
             <canvas id="btcChart" width="340" height="80"></canvas>
 
-            <div id="comparison" class="comparison-bar" style="display:none;">
-                <div class="comp-item"><span class="comp-label">Entry</span><span id="entryPrice" class="comp-val">--</span></div>
-                <div class="comp-item"><span class="comp-label">Live</span><span id="livePrice" class="comp-val">--</span></div>
-                <div class="comp-item"><span class="comp-label">PnL</span><span id="liveDiff" class="comp-val">--</span></div>
-            </div>
-
             <div id="timer"></div>
-            <button id="faucetBtn" class="btn" onclick="claimFaucet()">Claim $10 Faucet</button>
 
             <div id="controls">
                 <button id="upBtn" class="btn btn-up" onclick="selectDir('UP')">UP</button>
                 <button id="downBtn" class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
-                <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:10px;" onclick="startBet()">CONFIRM POSITION</button>
+                <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:10px;" onclick="startBet()">CONFIRM BET</button>
+            </div>
+
+            <div id="faucetArea" class="faucet-area">
+                <p style="font-size:10px; color:var(--red)">Balance Empty!</p>
+                <button class="btn" style="background:#3b5998; color:white;" onclick="claimFaucet()">Claim $10 Faucet</button>
             </div>
         </div>
 
         <div id="view-leader" style="display:none;">
-            <div style="text-align:center; font-size:11px; margin-bottom:10px; color:#848E9C;">Top Traders by Balance</div>
             <div id="leaderboard-list">Loading...</div>
         </div>
     </div>
+</div>
 
-    <div class="reward-info">
-        <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. <br>
-        If balance hits $0, claim the daily faucet for $10.
+<div id="resultModal" class="modal">
+    <div class="modal-content">
+        <h2 id="resTitle">ROUND END</h2>
+        <div id="resPnL" style="font-size:32px; font-weight:bold; margin:10px 0;">$0.00</div>
+        <p style="font-size:11px; color:#848E9C;">Your balance has been updated.</p>
+        <button class="btn btn-connect" onclick="closeModal()">CONTINUE</button>
     </div>
 </div>
 
@@ -126,93 +134,54 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const ADMIN = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
 
-let userWallet = null;
-let currentBalance = 100.00;
-let btcPrice = 0;
-let gameState = "IDLE";
-let selectedDirection = null;
-let entryPrice = 0;
+let userWallet, currentBalance = 100, rounds = 0, btcPrice = 0, entryPrice = 0;
+let gameState = "IDLE", selected = null;
 
-// --- WALLET & AUTH ---
+// --- AUTH ---
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        userWallet = accounts[0].toLowerCase();
+        const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userWallet = accs[0].toLowerCase();
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
-        initUser();
-    } else { alert("Install MetaMask"); }
+        syncData();
+    }
 };
 
-function initUser() {
-    db.ref('users/' + userWallet).on('value', (snap) => {
-        if (snap.exists()) {
-            currentBalance = snap.val().balance;
-        } else {
-            db.ref('users/' + userWallet).set({ balance: 100.0, wallet: userWallet });
-        }
+function syncData() {
+    db.ref('users/' + userWallet).on('value', snap => {
+        const data = snap.val() || { balance: 100, rounds: 0, wallet: userWallet };
+        currentBalance = data.balance;
+        rounds = data.rounds || 0;
         updateUI();
     });
 }
 
 function updateUI() {
     document.getElementById('balanceUSD').textContent = `$${currentBalance.toFixed(2)}`;
-    document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(1)}M`;
-    document.getElementById('faucetBtn').style.display = (currentBalance <= 0) ? 'block' : 'none';
+    document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(0)}M`;
+    document.getElementById('roundDisplay').textContent = `Rounds: ${rounds} / 3`;
+    document.getElementById('payWall').style.display = rounds >= 3 ? 'flex' : 'none';
+    document.getElementById('faucetArea').style.display = currentBalance <= 0 ? 'block' : 'none';
 }
 
-function claimFaucet() {
-    currentBalance = 10.00;
-    db.ref('users/' + userWallet).update({ balance: currentBalance });
+// --- PRICE ---
+async function getPrice() {
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+    const d = await r.json();
+    btcPrice = parseFloat(d.price);
+    document.getElementById('btc-price').textContent = `$${btcPrice.toLocaleString()}`;
 }
-
-// --- TAB SYSTEM ---
-function switchTab(tab) {
-    document.getElementById('view-trade').style.display = tab === 'trade' ? 'block' : 'none';
-    document.getElementById('view-leader').style.display = tab === 'leader' ? 'block' : 'none';
-    document.getElementById('tab-trade').className = "tab" + (tab === 'trade' ? ' active' : '');
-    document.getElementById('tab-leader').className = "tab" + (tab === 'leader' ? ' active' : '');
-    if (tab === 'leader') loadLeaderboard();
-}
-
-function loadLeaderboard() {
-    db.ref('users').orderByChild('balance').limitToLast(10).once('value', (snap) => {
-        let list = document.getElementById('leaderboard-list');
-        list.innerHTML = "";
-        let items = [];
-        snap.forEach(child => { items.push(child.val()); });
-        items.reverse().forEach((u, i) => {
-            list.innerHTML += `<div class="lb-item">
-                <span><span class="lb-rank">#${i+1}</span> <span class="lb-wallet">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</span></span>
-                <span style="font-weight:bold">$${u.balance.toFixed(2)}</span>
-            </div>`;
-        });
-    });
-}
+setInterval(getPrice, 2000);
 
 // --- GAMEPLAY ---
-async function fetchPrice() {
-    const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-    const data = await res.json();
-    btcPrice = parseFloat(data.price);
-    document.getElementById('btc-price').textContent = `$${btcPrice.toLocaleString()}`;
-    
-    if (gameState === "ACTIVE") {
-        document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
-        let diff = btcPrice - entryPrice;
-        let pnl = selectedDirection === "UP" ? diff : -diff;
-        document.getElementById('liveDiff').textContent = (pnl >= 0 ? "+" : "") + pnl.toFixed(2);
-        document.getElementById('liveDiff').style.color = pnl >= 0 ? "#2ebd85" : "#f6465d";
-    }
-}
-setInterval(fetchPrice, 2000);
-
-function selectDir(dir) {
+function selectDir(d) {
     if (gameState !== "IDLE") return;
-    selectedDirection = dir;
-    document.getElementById('upBtn').className = "btn btn-up" + (dir === 'UP' ? ' selected' : '');
-    document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
+    selected = d;
+    document.getElementById('upBtn').className = "btn btn-up" + (d=='UP'?' selected':'');
+    document.getElementById('downBtn').className = "btn btn-down" + (d=='DOWN'?' selected':'');
     document.getElementById('startBtn').classList.remove('btn-disabled');
 }
 
@@ -220,52 +189,83 @@ function startBet() {
     gameState = "ACTIVE";
     entryPrice = btcPrice;
     document.getElementById('controls').style.display = 'none';
-    document.getElementById('comparison').style.display = 'flex';
-    document.getElementById('entryPrice').textContent = `$${entryPrice.toFixed(2)}`;
-    
-    let time = 60;
-    let intv = setInterval(() => {
-        time--;
-        document.getElementById('timer').textContent = time + "s";
-        if (time <= 0) {
-            clearInterval(intv);
-            endBet();
-        }
+    let sec = 60;
+    const itv = setInterval(() => {
+        document.getElementById('timer').textContent = `${sec--}s`;
+        if (sec < 0) { clearInterval(itv); endBet(); }
     }, 1000);
 }
 
 function endBet() {
-    let pnl = selectedDirection === "UP" ? (btcPrice - entryPrice) : (entryPrice - btcPrice);
+    let pnl = selected === "UP" ? (btcPrice - entryPrice) : (entryPrice - btcPrice);
     currentBalance += pnl;
     if (currentBalance < 0) currentBalance = 0;
+    rounds++;
+
+    db.ref('users/' + userWallet).update({ balance: currentBalance, rounds: rounds });
     
-    db.ref('users/' + userWallet).update({ balance: currentBalance });
-    
-    setTimeout(() => {
-        gameState = "IDLE";
-        document.getElementById('controls').style.display = 'block';
-        document.getElementById('comparison').style.display = 'none';
-        document.getElementById('timer').textContent = "";
-        document.getElementById('startBtn').classList.add('btn-disabled');
-        selectedDirection = null;
-        document.getElementById('upBtn').className = "btn btn-up";
-        document.getElementById('downBtn').className = "btn btn-down";
-    }, 4000);
+    // Animation Logic
+    const modal = document.getElementById('resultModal');
+    const pnlTxt = document.getElementById('resPnL');
+    pnlTxt.textContent = (pnl >= 0 ? "+$" : "-$") + Math.abs(pnl).toFixed(2);
+    pnlTxt.style.color = pnl >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById('resTitle').textContent = pnl >= 0 ? "WINNER!" : "LOSE";
+    modal.style.display = "flex";
+
+    if (pnl >= 0) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 }
 
-// --- CHART ---
+function closeModal() {
+    document.getElementById('resultModal').style.display = "none";
+    document.getElementById('controls').style.display = 'block';
+    document.getElementById('timer').textContent = "";
+    document.getElementById('startBtn').classList.add('btn-disabled');
+    gameState = "IDLE";
+    selected = null;
+}
+
+// --- UTILS ---
+async function payToPlay() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tx = await signer.sendTransaction({ to: ADMIN, value: ethers.utils.parseEther("1.0") });
+        await tx.wait();
+        db.ref('users/' + userWallet).update({ rounds: 0 });
+    } catch(e) { alert("Payment Failed"); }
+}
+
+function claimFaucet() {
+    db.ref('users/' + userWallet).update({ balance: 10.0 });
+}
+
+function switchTab(t) {
+    document.getElementById('view-trade').style.display = t=='trade'?'block':'none';
+    document.getElementById('view-leader').style.display = t=='leader'?'block':'none';
+    document.getElementById('tab-trade').classList.toggle('active', t=='trade');
+    document.getElementById('tab-leader').classList.toggle('active', t=='leader');
+    if(t=='leader') {
+        db.ref('users').orderByChild('balance').limitToLast(10).once('value', s => {
+            let h = "";
+            let arr = []; s.forEach(c => arr.push(c.val()));
+            arr.reverse().forEach((u, i) => {
+                h += `<div class="lb-item"><span>#${i+1} ${u.wallet.slice(0,6)}...</span><b>$${u.balance.toFixed(2)}</b></div>`;
+            });
+            document.getElementById('leaderboard-list').innerHTML = h;
+        });
+    }
+}
+
+// Chart
 const ctx = document.getElementById('btcChart').getContext('2d');
-let history = [];
+let hist = [];
 const chart = new Chart(ctx, {
     type: 'line',
-    data: { labels: new Array(20).fill(''), datasets: [{ data: history, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+    data: { labels: new Array(20).fill(''), datasets: [{ data: hist, borderColor: '#FCD535', tension: 0.4, pointRadius: 0 }] },
     options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } }
 });
-setInterval(() => {
-    history.push(btcPrice);
-    if(history.length > 20) history.shift();
-    chart.update();
-}, 3000);
+setInterval(() => { hist.push(btcPrice); if(hist.length>20) hist.shift(); chart.update(); }, 3000);
+
 </script>
 </body>
 </html>
