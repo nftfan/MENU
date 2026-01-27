@@ -1,628 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>BTC Price Prediction App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <!-- Ethers (for MetaMask connectivity) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-  <style>
-   html, body {
-      background: #121212;
-      color: #fff;
-      margin: 0; padding: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      font-size: 10px;
-      letter-spacing: 0.02em;
-    }
-    #container {
-      max-width: 380px;
-      background: #17191d;
-      border-radius: 8px;
-      margin: 8vw auto 0 auto;
-      padding: 0 2vw 2vw 2vw;
-      box-shadow: 0 2px 16px #0007;
-    }
-    #wallet {
-      padding: 2px 0 2px 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
-    #connect-btn {
-      font-size: 10px;
-      padding: 4px 14px 4px 12px;
-      background: linear-gradient(90deg, #4912f7 20%, #21d4fd 100%);
-      border: none;
-      border-radius: 4px;
-      color: #fff;
-      min-width: 72px;
-      cursor: pointer;
-      margin-right: 14px;
-      transition: background .1s;
-    }
-    #connect-btn:hover {
-      background: linear-gradient(90deg, #163bc1 10%, #27e1f8 100%);
-    }
-    #addr {
-      color: #ffbb33;
-      font-size: 10px;
-      letter-spacing: 0.01em;
-    }
-    #balance-bar {
-      margin-top: 3px;
-      margin-bottom: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
-    #balance-bar span {
-      margin-right: 6px;
-    }
-    #recover {
-      color: #3bead2 !important;
-      cursor: pointer;
-      background: #271c28;
-      border-radius: 3px;
-      padding: 1px 4px;
-    }
-    #recover:hover {
-      filter: brightness(1.25);
-      text-decoration: underline;
-    }
-    #reload-addr {
-      font-family: monospace;
-      color: #d38bff;
-    }
-    #main {
-      padding: 4px 1vw 1vw 1vw;
-      border-radius: 5px;
-      background: #111927;
-      min-height: 300px;
-      margin-bottom: 4vw;
-      margin-top: 6px;
-      box-shadow: 0 0.5vw 2vw #000b;
-    }
-    #btc-price {
-      background: #212b36;
-      color: #ffd160;
-      border: 1px solid #272b21;
-      border-radius: 2px;
-      font-weight: bold;
-      padding: 2px 4px;
-      letter-spacing: .01em;
-    }
-    #graph {
-      width: 98%;
-      max-width: 350px;
-      height: 160px !important;
-      margin: 8px 0 4px 0;
-      background: #161616;
-      border-radius: 6px;
-      box-shadow: 0 1px 7px #0005;
-      display: block;
-    }
-    #game-controls {
-      text-align: center;
-      margin: 8px 0 8px 0;
-    }
-    #game-controls button {
-      font-size: 10px;
-      width: 68px;
-      margin: 2px 12px 2px 0;
-      padding: 4px 0;
-      border-radius: 4px;
-      border: 1px solid #262626;
-      background: #1d2227;
-      color: #aaffc7;
-      font-weight: bold;
-      box-shadow: 0 1px 6px #012b0736;
-      cursor: pointer;
-      transition: background .12s, color .12s;
-    }
-    #game-controls button#predict-up { background: #323ea1; color: #9cfff2;}
-    #game-controls button#predict-up:hover { background: #247be9; color: #fff;}
-    #game-controls button#predict-down { background: #421727; color: #ff99e0;}
-    #game-controls button#predict-down:hover { background: #c13c70; color: #fff;}
-    #game-controls button:disabled {
-      opacity: 0.38; background: #17191d; color: #aaa; cursor: not-allowed;
-    }
-    #timer {
-      color: #fff8ae;
-      background: #191a1a;
-      font-weight: bold;
-      display: block;
-      margin: 8px 0 1px 0;
-      font-size: 9.1px;
-      padding: 2px 12px;
-      text-align: center;
-      border-radius: 16px;
-      border: 1px solid #2a2621;
-      width: max-content;
-    }
-    #tabs {
-      margin-top: 14px;
-      display: flex;
-      gap: 5px;
-      border-bottom: 1px solid #232e39;
-      padding-bottom: 2px;
-      padding-left: 1vw;
-    }
-    .tab-btn {
-      background: #22252d;
-      color: #b8bbec;
-      border: 1px solid #262626;
-      border-bottom: none;
-      border-radius: 3px 3px 0 0;
-      font-size: 10px;
-      padding: 4px 9px;
-      cursor: pointer;
-      margin: 0 2px 0 0;
-      transition: all .15s;
-    }
-    .tab-btn.selected, .tab-btn:hover {
-      background: #292e39; color: #ff9e63;
-      border: 1.3px solid #aee4ea;
-    }
-    .tab-page {
-      padding: 6px 6px 12px 6px;
-      background: #141a1e;
-      border-radius: 0 0 6px 6px;
-      min-height: 20px;
-    }
-    .hide { display: none !important; }
-    #trades,
-    #leaderboard {
-      font-size: 10px;
-      max-height: 70px;
-      min-height: 20px;
-      overflow-y: auto;
-      background: #181818;
-      border-radius: 3px;
-      margin: 2px 0 10px 0;
-      padding: 2px;
-      box-shadow: 0 0.3vw 1vw #0007;
-    }
-    h4 { margin: 2px 0 1px 0; color: #5acfff; letter-spacing: 0.03em; font-size: 10px; }
-    table {
-      width: 100%;
-      font-size: 10px;
-      border-collapse: collapse;
-      background: #151a22;
-      color: #fcfcfc;
-    }
-    th, td {
-      border-bottom: 1px solid #23232f;
-      padding: 2px 3px;
-      text-align: center;
-      letter-spacing: 0.01em;
-    }
-    tr:hover { background: #292952;}
-    td {font-family: 'Menlo', 'Consolas', 'monospace';}
-    th {
-      background: #181818;
-      color: #ffd580;
-      font-weight: bold;
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar {
-      width: 5px;
-      background: #232943;
-      border-radius: 2px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #313959;
-      border-radius: 2px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>BTC Pro: Leaderboard & Faucet</title>
+<meta name="viewport" content="width=420">
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<style>
+body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:10px; }
+.container { max-width: 380px; margin: auto; background: #181A20; border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #333; }
+.tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #848E9C; font-weight: bold; font-size: 12px; }
+.tab.active { color: #FCD535; border-bottom: 2px solid #FCD535; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+.stat-card { background: #2B2F36; padding: 10px; border-radius: 8px; text-align: center; }
+.stat-label { font-size: 9px; color: #848E9C; text-transform: uppercase; }
+.stat-value { font-size: 14px; font-weight: bold; display: block; margin-top: 3px; }
+
+/* Game Elements */
+.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
+.comp-item { flex: 1; text-align: center; }
+.comp-label { font-size: 10px; color: #848E9C; display: block; }
+.comp-val { font-size: 12px; font-weight: bold; font-family: monospace; }
+
+/* Buttons */
+.btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
+.btn-connect { background: #FCD535; color: #000; }
+.btn-up { background: #2ebd85; color: white; margin-bottom: 8px; }
+.btn-down { background: #f6465d; color: white; }
+.btn-disabled { opacity: 0.3; pointer-events: none; }
+.selected { outline: 2px solid #fff; transform: scale(0.98); }
+
+#faucetBtn { background: #3b5998; color: white; margin-top: 10px; display: none; }
+#btc-price { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; color: #FCD535; }
+#timer { text-align: center; font-size: 18px; color: #70a1ff; font-weight: bold; }
+
+/* Leaderboard */
+#leaderboard-list { list-style: none; padding: 0; margin-top: 10px; }
+.lb-item { display: flex; justify-content: space-between; padding: 8px; background: #2b2f36; margin-bottom: 4px; border-radius: 4px; font-size: 11px; }
+.lb-rank { color: #FCD535; font-weight: bold; width: 20px; }
+.lb-wallet { color: #848E9C; font-family: monospace; }
+
+.reward-info { font-size: 10px; color: #848E9C; background: #1e2329; padding: 10px; border-radius: 8px; margin-top: 15px; border-left: 3px solid #FCD535; }
+</style>
 </head>
 <body>
-  <div id="container">
-    <div id="wallet">
-      <button id="connect-btn">Connect Wallet</button>
-      <span id="addr"></span>
+
+<div class="container">
+    <h1>BTC TRADER PRO</h1>
+    
+    <div id="auth-section">
+        <button id="connectBtn" class="btn btn-connect">CONNECT WALLET TO START</button>
     </div>
-    <div id="balance-bar">
-      <span>Balance: $<span id="balance"></span></span>
-      <span id="recover" class="hide">Balance is negative. Send 1 POL to <span id="reload-addr" style="font-size:10px;">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</span> for +$100</span>
+
+    <div id="app-content" style="display:none;">
+        <div class="tabs">
+            <div id="tab-trade" class="tab active" onclick="switchTab('trade')">TRADE</div>
+            <div id="tab-leader" class="tab" onclick="switchTab('leader')">LEADERBOARD</div>
+        </div>
+
+        <div id="view-trade">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Balance</span>
+                    <span id="balanceUSD" class="stat-value">$100.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Est. Reward</span>
+                    <span id="rewardNFTFAN" class="stat-value" style="color:#00ffcc">100M</span>
+                </div>
+            </div>
+
+            <div id="btc-price">--.---</div>
+            <canvas id="btcChart" width="340" height="80"></canvas>
+
+            <div id="comparison" class="comparison-bar" style="display:none;">
+                <div class="comp-item"><span class="comp-label">Entry</span><span id="entryPrice" class="comp-val">--</span></div>
+                <div class="comp-item"><span class="comp-label">Live</span><span id="livePrice" class="comp-val">--</span></div>
+                <div class="comp-item"><span class="comp-label">PnL</span><span id="liveDiff" class="comp-val">--</span></div>
+            </div>
+
+            <div id="timer"></div>
+            <button id="faucetBtn" class="btn" onclick="claimFaucet()">Claim $10 Faucet</button>
+
+            <div id="controls">
+                <button id="upBtn" class="btn btn-up" onclick="selectDir('UP')">UP</button>
+                <button id="downBtn" class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
+                <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:10px;" onclick="startBet()">CONFIRM POSITION</button>
+            </div>
+        </div>
+
+        <div id="view-leader" style="display:none;">
+            <div style="text-align:center; font-size:11px; margin-bottom:10px; color:#848E9C;">Top Traders by Balance</div>
+            <div id="leaderboard-list">Loading...</div>
+        </div>
     </div>
-    <div id="main">
-      <div>BTC Price: <span id="btc-price"></span> USD</div>
-      <canvas id="graph"></canvas>
-      <div id="game-controls">
-        <button id="predict-up">UP</button>
-        <button id="predict-down">DOWN</button>
-      </div>
-      <div id="timer" class="hide"></div>
-      <div id="tabs">
-        <button class="tab-btn selected" data-tab="entry">ENTRY PRICE</button>
-        <button class="tab-btn" data-tab="live">LIVE PRICE</button>
-        <button class="tab-btn" data-tab="pnl">PNL</button>
-      </div>
-      <div id="tab-pages">
-        <div id="entry" class="tab-page">-</div>
-        <div id="live" class="tab-page hide">-</div>
-        <div id="pnl" class="tab-page hide">-</div>
-      </div>
-      <div>
-        <h4 style="margin:2px 0 0 0">My Trades</h4>
-        <div id="trades"></div>
-      </div>
-      <div>
-        <h4 style="margin:2px 0 0 0">Leaderboard</h4>
-        <div id="leaderboard"></div>
-      </div>
+
+    <div class="reward-info">
+        <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. <br>
+        If balance hits $0, claim the daily faucet for $10.
     </div>
-  </div>
-  <script>
-    // -- Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
-      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
-      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
-      projectId: "tokentransfer-4a9b3",
-      storageBucket: "tokentransfer-4a9b3.appspot.com",
-      messagingSenderId: "205455490321",
-      appId: "1:205455490321:web:9919f5dde059316c9320b0",
-      measurementId: "G-Y6CVEDL9XH"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+</div>
 
-    // -- App state vars
-    let walletAddr = "";
-    let provider = null;
-    let signer = null;
-    let balance = 100;
-    let trades = [];
-    let leaderboard = {};
-    let prediction = null; // {side, entry, start, status, id}
-    let timerInterval = null;
-    let chart, chartData=[], chartLabels=[];
-    let showingTab = "entry";
-    const POLY_CHAINID = "0x89";
-    const RELOAD_ADDR = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
-    let entryLineId = null; // For Chart.js annotation
-    let lastPrice = 0;
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    // -- Elements
-    const connectBtn = document.getElementById('connect-btn');
-    const addrSpan = document.getElementById('addr');
-    const balanceSpan = document.getElementById('balance');
-    const mainDiv = document.getElementById('main');
-    const reloadEl = document.getElementById('recover');
-    const btcPriceEl = document.getElementById('btc-price');
-    const tradesDiv = document.getElementById('trades');
-    const leaderboardDiv = document.getElementById('leaderboard');
-    const predictUpBtn = document.getElementById('predict-up');
-    const predictDownBtn = document.getElementById('predict-down');
-    const timerDiv = document.getElementById('timer');
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabs = [
-      {elem: document.getElementById('entry'), key:"entry"},
-      {elem: document.getElementById('live'), key:"live"},
-      {elem: document.getElementById('pnl'), key:"pnl"}
-    ];
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+    projectId: "tokentransfer-4a9b3",
+    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+    messagingSenderId: "205455490321",
+    appId: "1:205455490321:web:9919f5dde059316c9320b0",
+    measurementId: "G-Y6CVEDL9XH"
+};
 
-    // -- Util
-    function truncateAddress(addr) { return addr.slice(0,6)+"..."+addr.slice(-4);}
-    function randId() {return Math.random().toString(36).substring(2,9);}
-    function nowSec() {return Math.floor(Date.now()/1000);}
-    function fmtUsd(n) {return (+n).toFixed(2);}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    // -- Charts
-    function initChart() {
-      const ctx = document.getElementById('graph').getContext('2d');
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: 'BTC',
-              data: [],
-              borderColor: '#0af',
-              borderWidth: 2,
-              tension: 0.3,
-              pointRadius: 0,
-              pointBackgroundColor: '#0af',
-              pointBorderWidth: 0,
-              fill: false
-            },
-            {
-              label: 'Current Price Dot',
-              data: [],
-              pointRadius: 6,
-              pointBackgroundColor: '#fff',
-              pointBorderColor: '#0af',
-              borderWidth: 0,
-              showLine: false, // just the dot
-              fill: false,
-              order: 2
-            },
-            {
-              label: 'Entry Price Line',
-              data: [],
-              borderColor: 'rgba(255,255,0,0.8)',
-              borderWidth: 2,
-              borderDash: [4,4],
-              pointRadius: 0,
-              fill: false,
-              hidden: true,
-              spanGaps: true
-            }
-          ]
-        },
-        options: {
-          elements: {
-            line: { borderJoinStyle: 'miter' }
-          },
-          scales: {
-            x: {
-              display: false
-            },
-            y: {
-              display: true,
-              ticks: {
-                color: "#aaa",
-                font: { size: 9 },
-                callback: function(value) { return value.toFixed(2); }
-              },
-              grid: { color: "#212b36" }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  return ctx.dataset.label + ": $" + ctx.parsed.y;
-                }
-              }
-            }
-          }
+let userWallet = null;
+let currentBalance = 100.00;
+let btcPrice = 0;
+let gameState = "IDLE";
+let selectedDirection = null;
+let entryPrice = 0;
+
+// --- WALLET & AUTH ---
+document.getElementById('connectBtn').onclick = async () => {
+    if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userWallet = accounts[0].toLowerCase();
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        initUser();
+    } else { alert("Install MetaMask"); }
+};
+
+function initUser() {
+    db.ref('users/' + userWallet).on('value', (snap) => {
+        if (snap.exists()) {
+            currentBalance = snap.val().balance;
+        } else {
+            db.ref('users/' + userWallet).set({ balance: 100.0, wallet: userWallet });
         }
-      });
-    }
-    function updateChart(price) {
-      const maxPts = 60;
-      chartLabels.push('');
-      chartData.push(price);
-      // Crop data to 60 points
-      if (chartData.length > maxPts) { chartLabels.shift(); chartData.shift();}
-      chart.data.labels = chartLabels;
-      chart.data.datasets[0].data = chartData;
-      // Show last point dot
-      if (chartData.length) {
-        let lastIdx = chartData.length-1;
-        chart.data.datasets[1].data = Array.from({length:chartData.length}).fill(null);
-        chart.data.datasets[1].data[lastIdx] = chartData[lastIdx];
-      } else {
-        chart.data.datasets[1].data = [];
-      }
-      // Entry line, if applicable
-      if (prediction && prediction.entry) {
-        chart.data.datasets[2].hidden = false;
-        chart.data.datasets[2].data = chartData.map(()=>prediction.entry);
-      } else {
-        chart.data.datasets[2].hidden = true;
-        chart.data.datasets[2].data = [];
-      }
-      chart.update();
-    }
+        updateUI();
+    });
+}
 
-    // -- Binance Price
-    async function fetchPrice(){
-      try {
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=BTCUSD`);
-        const data = await res.json();
-        lastPrice = +data.price;
-        btcPriceEl.textContent = fmtUsd(lastPrice);
-        updateChart(lastPrice);
-        tabs.find(t=>t.key=='live').elem.textContent = lastPrice;
-      } catch (e) {}
-    }
-    setInterval(fetchPrice, 2000); // refresh every 2 seconds
-    fetchPrice();
+function updateUI() {
+    document.getElementById('balanceUSD').textContent = `$${currentBalance.toFixed(2)}`;
+    document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(1)}M`;
+    document.getElementById('faucetBtn').style.display = (currentBalance <= 0) ? 'block' : 'none';
+}
 
-    // -- Wallet
-    async function connectWallet() {
-      if (!window.ethereum) return alert('Install MetaMask');
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send('eth_requestAccounts', []);
-      signer = provider.getSigner();
-      walletAddr = await signer.getAddress();
-      addrSpan.textContent = truncateAddress(walletAddr);
-      connectBtn.style.display = 'none';
-      await switchToPolygon();
-      checkOrInitUser();
-    }
-    async function switchToPolygon(){
-      // Set network to Polygon Mainnet if not already
-      try {
-        let net = await provider.getNetwork();
-        if (net.chainId !== 137) {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: POLY_CHAINID}],
-          });
-        }
-      } catch (e) {
-        // Polygon add
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: POLY_CHAINID,
-            chainName: 'Polygon Mainnet',
-            nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-            rpcUrls: ['https://polygon-rpc.com'],
-            blockExplorerUrls: ['https://polygonscan.com/'],
-          }],
+function claimFaucet() {
+    currentBalance = 10.00;
+    db.ref('users/' + userWallet).update({ balance: currentBalance });
+}
+
+// --- TAB SYSTEM ---
+function switchTab(tab) {
+    document.getElementById('view-trade').style.display = tab === 'trade' ? 'block' : 'none';
+    document.getElementById('view-leader').style.display = tab === 'leader' ? 'block' : 'none';
+    document.getElementById('tab-trade').className = "tab" + (tab === 'trade' ? ' active' : '');
+    document.getElementById('tab-leader').className = "tab" + (tab === 'leader' ? ' active' : '');
+    if (tab === 'leader') loadLeaderboard();
+}
+
+function loadLeaderboard() {
+    db.ref('users').orderByChild('balance').limitToLast(10).once('value', (snap) => {
+        let list = document.getElementById('leaderboard-list');
+        list.innerHTML = "";
+        let items = [];
+        snap.forEach(child => { items.push(child.val()); });
+        items.reverse().forEach((u, i) => {
+            list.innerHTML += `<div class="lb-item">
+                <span><span class="lb-rank">#${i+1}</span> <span class="lb-wallet">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</span></span>
+                <span style="font-weight:bold">$${u.balance.toFixed(2)}</span>
+            </div>`;
         });
-      }
-    }
-
-    // -- User
-    async function checkOrInitUser() {
-      const snapshot = await db.ref(`users/${walletAddr}`).once('value');
-      if(!snapshot.exists()){
-        await db.ref(`users/${walletAddr}`).set({ balance: 100 });
-        balance = 100;
-      } else {
-        balance = snapshot.val().balance || 0;
-      }
-      updateBalanceUI();
-      loadMyTrades();
-      mainDiv.style.display = '';
-      fetchLeaderboard();
-    }
-    async function setBalance(val){
-      balance = val;
-      await db.ref(`users/${walletAddr}`).update({ balance:balance });
-      updateBalanceUI();
-    }
-    function updateBalanceUI(){
-      balanceSpan.textContent = fmtUsd(balance);
-      reloadEl.classList.toggle('hide', balance>=0);
-      predictUpBtn.disabled = predictDownBtn.disabled = (balance<1 || prediction!==null);
-    }
-
-    // -- Recover balance if user sent 1 MATIC to the address
-    async function checkMaticSent(){
-      // Since we can't check programmatically from client, simulate with a button user can click ;)
-      // (Prod: Replace with backend/graph API for address TX monitoring)
-      if (!walletAddr) return;
-      await setBalance(100);
-      updateBalanceUI();
-      alert("Balance reloaded to $100 after 1 POL payment simulation!");
-    }
-    reloadEl.onclick = checkMaticSent;
-
-    // -- Tabs
-    tabBtns.forEach(btn=>{
-      btn.onclick = ()=>{
-        tabBtns.forEach(b=>b.classList.remove('selected'));
-        btn.classList.add('selected');
-        tabs.forEach(t=>t.elem.classList.toggle('hide', t.key!=btn.dataset.tab));
-        showingTab = btn.dataset.tab;
-      }
     });
+}
 
-    // --- Prediction
-    function resetPredictionUI() {
-      prediction = null;
-      predictUpBtn.disabled = predictDownBtn.disabled = (balance<1);
-      timerDiv.classList.add('hide');
-      tabs.find(t=>t.key=='entry').elem.textContent = "-";
-      tabs.find(t=>t.key=='pnl').elem.textContent = "-";
-      // Hide entry line on chart
-      chart.data.datasets[2].hidden = true;
-      chart.update();
+// --- GAMEPLAY ---
+async function fetchPrice() {
+    const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+    const data = await res.json();
+    btcPrice = parseFloat(data.price);
+    document.getElementById('btc-price').textContent = `$${btcPrice.toLocaleString()}`;
+    
+    if (gameState === "ACTIVE") {
+        document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
+        let diff = btcPrice - entryPrice;
+        let pnl = selectedDirection === "UP" ? diff : -diff;
+        document.getElementById('liveDiff').textContent = (pnl >= 0 ? "+" : "") + pnl.toFixed(2);
+        document.getElementById('liveDiff').style.color = pnl >= 0 ? "#2ebd85" : "#f6465d";
     }
-    // Game: prediction
-    async function placePrediction(side){
-      if (!walletAddr || balance<1) return;
-      const entry = lastPrice;
-      const id = randId();
-      prediction = { id, side, entry, start:nowSec(), status:'PENDING', bet:1 };
-      tabs.find(t=>t.key=='entry').elem.textContent = fmtUsd(entry);
-      predictUpBtn.disabled = predictDownBtn.disabled = true;
-      // Show entry line
-      chart.data.datasets[2].hidden = false;
-      chart.data.datasets[2].data = chartData.length? chartData.map(()=>entry): []; // extend
-      chart.update();
-      // 60s timer
-      timerDiv.classList.remove('hide');
-      let secsLeft = 60;
-      timerDiv.textContent = "Time: " + secsLeft + "s";
-      if(timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(async ()=>{
-        secsLeft--;
-        timerDiv.textContent = "Time: "+secsLeft+"s";
-        tabs.find(t=>t.key=='live').elem.textContent = lastPrice;
-        if(secsLeft<=0){
-          clearInterval(timerInterval);
-          timerDiv.classList.add('hide');
-          await resolvePrediction();
-        } else if (prediction) {
-          // keep updating the yellow entry line as graph window moves
-          chart.data.datasets[2].hidden = false;
-          chart.data.datasets[2].data = chartData.length? chartData.map(()=>prediction.entry): [];
-          chart.update();
+}
+setInterval(fetchPrice, 2000);
+
+function selectDir(dir) {
+    if (gameState !== "IDLE") return;
+    selectedDirection = dir;
+    document.getElementById('upBtn').className = "btn btn-up" + (dir === 'UP' ? ' selected' : '');
+    document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
+    document.getElementById('startBtn').classList.remove('btn-disabled');
+}
+
+function startBet() {
+    gameState = "ACTIVE";
+    entryPrice = btcPrice;
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('comparison').style.display = 'flex';
+    document.getElementById('entryPrice').textContent = `$${entryPrice.toFixed(2)}`;
+    
+    let time = 60;
+    let intv = setInterval(() => {
+        time--;
+        document.getElementById('timer').textContent = time + "s";
+        if (time <= 0) {
+            clearInterval(intv);
+            endBet();
         }
-      }, 1000);
-    }
-    async function resolvePrediction() {
-      if(!prediction) return;
-      const result = lastPrice > prediction.entry ? 'UP' : (lastPrice < prediction.entry ? 'DOWN' : 'DRAW');
-      let pnl = 0;
-      if (result === 'DRAW') pnl = 0;
-      else if (prediction.side === result) pnl = +prediction.bet;
-      else pnl = -prediction.bet;
-      prediction.status='COMPLETE';
-      prediction.exit = lastPrice;
-      prediction.pnl=pnl;
-      prediction.ts = nowSec();
-      tabs.find(t=>t.key=='pnl').elem.textContent = pnl == 0 ? '0' : (pnl > 0 ? 'WIN $' : 'LOSS $')+Math.abs(pnl);
-      await db.ref(`trades/${walletAddr}/${prediction.id}`).set({
-        ...prediction
-      });
-      await setBalance(balance + pnl);
-      await db.ref(`users/${walletAddr}`).update({ lastTrade: prediction.ts, balance: balance });
-      resetPredictionUI();
-      loadMyTrades();
-      fetchLeaderboard();
-    }
-    // -- Bet buttons
-    predictUpBtn.onclick = ()=>placePrediction('UP');
-    predictDownBtn.onclick = ()=>placePrediction('DOWN');
-    // -- Show my trades
-    async function loadMyTrades(){
-      if (!walletAddr) return;
-      const snap = await db.ref(`trades/${walletAddr}`).limitToLast(10).once('value');
-      let _t = [];
-      snap.forEach(child=>_t.push(child.val()));
-      trades = _t.sort((a,b)=>b.ts-a.ts);
-      let html = "<table><tr><th>Side</th><th>Entry</th><th>Exit</th><th>PNL</th></tr>";
-      for (let t of trades) {
-        if (t.status!=='COMPLETE') continue;
-        html += `<tr>
-          <td>${t.side}</td>
-          <td>${fmtUsd(t.entry)}</td>
-          <td>${fmtUsd(t.exit)}</td>
-          <td style="color:${t.pnl > 0 ? '#0f0' : (t.pnl == 0 ? '#ff0':'#f00')}">${t.pnl>0?'+':''}${t.pnl}</td>
-        </tr>`;
-      }
-      html += "</table>";
-      tradesDiv.innerHTML = html;
-    }
-    // -- Leaderboard
-    async function fetchLeaderboard(){
-      const snap = await db.ref('users').orderByChild('balance').limitToLast(10).once('value');
-      let arr = [];
-      snap.forEach(child=>{
-        arr.push({addr:child.key, ...child.val()});
-      });
-      arr.sort((a,b)=>b.balance-a.balance);
-      let html = "<table><tr><th>Addr</th><th>Balance</th></tr>";
-      arr.forEach(e=>{
-        html += `<tr><td>${truncateAddress(e.addr)}</td><td>${fmtUsd(e.balance||0)}</td></tr>`;
-      });
-      html+="</table>";
-      leaderboardDiv.innerHTML = html;
-    }
-    // -- Main
-    connectBtn.onclick = connectWallet;
-    // -- Chart startup
-    window.addEventListener('DOMContentLoaded',()=>{
-      initChart();
-      updateBalanceUI();
-    });
-  </script>
+    }, 1000);
+}
+
+function endBet() {
+    let pnl = selectedDirection === "UP" ? (btcPrice - entryPrice) : (entryPrice - btcPrice);
+    currentBalance += pnl;
+    if (currentBalance < 0) currentBalance = 0;
+    
+    db.ref('users/' + userWallet).update({ balance: currentBalance });
+    
+    setTimeout(() => {
+        gameState = "IDLE";
+        document.getElementById('controls').style.display = 'block';
+        document.getElementById('comparison').style.display = 'none';
+        document.getElementById('timer').textContent = "";
+        document.getElementById('startBtn').classList.add('btn-disabled');
+        selectedDirection = null;
+        document.getElementById('upBtn').className = "btn btn-up";
+        document.getElementById('downBtn').className = "btn btn-down";
+    }, 4000);
+}
+
+// --- CHART ---
+const ctx = document.getElementById('btcChart').getContext('2d');
+let history = [];
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: new Array(20).fill(''), datasets: [{ data: history, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+    options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } }
+});
+setInterval(() => {
+    history.push(btcPrice);
+    if(history.length > 20) history.shift();
+    chart.update();
+}, 3000);
+</script>
 </body>
 </html>
