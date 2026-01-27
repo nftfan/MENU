@@ -32,8 +32,9 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 /* Buttons */
 .btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
 .btn-connect { background: #FCD535; color: #000; }
-.btn-up { background: #2ebd85; color: white; margin-bottom: 8px; }
-.btn-down { background: #f6465d; color: white; }
+.btn-row { display: flex; gap: 8px; width:100%; margin-bottom:8px;}
+.btn-up { background: #2ebd85; color: white; width: 50%; }
+.btn-down { background: #f6465d; color: white; width: 50%; }
 .btn-disabled { opacity: 0.3; pointer-events: none; }
 .selected { outline: 2px solid #fff; transform: scale(0.98); }
 #faucetBtn { background: #3b5998; color: white; margin-top: 10px; display: none; }
@@ -91,15 +92,18 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
             <div id="timer"></div>
             <button id="faucetBtn" class="btn" onclick="claimFaucet()">Claim $10 Faucet</button>
             <div id="controls">
-                <button id="upBtn" class="btn btn-up" onclick="selectDir('UP')">UP</button>
-                <button id="downBtn" class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
+                <div class="btn-row">
+                    <button id="upBtn" class="btn btn-up" onclick="selectDir('UP')">UP</button>
+                    <button id="downBtn" class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
+                </div>
                 <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:10px;" onclick="startBet()">CONFIRM POSITION</button>
             </div>
-            <div class="bet-history-title">Your Previous Bets</div>
+            <div class="bet-history-title">Recent Bets by All Users</div>
             <table id="betHistoryTable">
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Wallet</th>
                         <th>Entry</th>
                         <th>Exit</th>
                         <th>Side</th>
@@ -108,7 +112,6 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                     </tr>
                 </thead>
                 <tbody id="betHistoryBody">
-                    <!-- Bets will be filled here -->
                 </tbody>
             </table>
         </div>
@@ -166,8 +169,8 @@ function initUser() {
             db.ref('users/' + userWallet).set({ balance: 100.0, wallet: userWallet });
         }
         updateUI();
-        loadBetHistory();
     });
+    loadBetHistory(); // Always show all bets by all users, not just personal
 }
 
 function updateUI() {
@@ -214,31 +217,48 @@ function loadLeaderboard() {
 }
 
 // --- BET HISTORY ---
+// Show all previous bets by all users, newest first
 function recordBet(entry, exit, dir, leverage, pnl, date) {
-    const betObj = { entry, exit, dir, leverage, pnl, date };
+    const betObj = {
+        entry, exit, dir, leverage, pnl, date,
+        wallet: userWallet
+    };
     const betKey = db.ref('bets/'+userWallet).push().key;
     db.ref(`bets/${userWallet}/${betKey}`).set(betObj).then(loadBetHistory);
 }
 
 function loadBetHistory() {
-    if(!userWallet) return;
     const tbody = document.getElementById('betHistoryBody');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#848E9C;">Loading...</td></tr>';
-    db.ref(`bets/${userWallet}`).orderByKey().limitToLast(30).once('value', function(snap) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#848E9C;">Loading...</td></tr>';
+    db.ref('bets').once('value', function(snap) {
+        let bets = [];
+        snap.forEach(userSnap => {
+            userSnap.forEach(betSnap => {
+                const v = betSnap.val();
+                bets.push(v);
+            });
+        });
+        bets.sort((a, b) => {
+            // descending by date
+            return (b.date||'') > (a.date||'') ? 1 : -1;
+        });
         let rows = [];
-        snap.forEach(child => {
-            let { date, entry, exit, dir, leverage, pnl } = child.val();
-            let dateStr = (new Date(date)).toLocaleString();
-            rows.unshift(`<tr>
+        for(let i=0; i<bets.length; i++) {
+            let { date, entry, exit, dir, leverage, pnl, wallet } = bets[i];
+            let dateStr = date ? (new Date(date)).toLocaleString() : "-";
+            let walletStr = wallet ? wallet.slice(0,6)+'...'+wallet.slice(-4) : '-';
+            rows.push(`<tr>
                 <td>${dateStr}</td>
+                <td>${walletStr}</td>
                 <td>${entry ? '$'+Number(entry).toFixed(2) : '-'}</td>
                 <td>${exit ? '$'+Number(exit).toFixed(2) : '-'}</td>
                 <td style="color:${dir=="UP"?"#2ebd85":"#f6465d"};font-weight:700">${dir||"-"}</td>
                 <td>${leverage||"-"}x</td>
-                <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+pnl.toFixed(2):"-"}</td>
+                <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+Number(pnl).toFixed(2):"-"}</td>
             </tr>`);
-        });
-        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
+            if(i===49) break; // Show at most 50
+        }
+        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
     });
 }
 
