@@ -1,211 +1,628 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>BTC Predictor Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<style>
-body{
-    margin:0;font-family:Segoe UI;background:#080a0f;color:#fff;
-    display:flex;justify-content:center;align-items:center;min-height:100vh;
-}
-.container{
-    width:420px;background:#111827;padding:20px;border-radius:20px;
-    box-shadow:0 0 40px rgba(0,242,255,.2);
-}
-h1{text-align:center;color:#00f2ff}
-.btn{
-    width:100%;padding:14px;margin-top:10px;
-    border:none;border-radius:10px;font-weight:700;cursor:pointer;
-}
-.primary{background:#00f2ff;color:#000}
-.dir{background:#1f2937;color:#fff}
-.dir.selected-up{border:2px solid #00ffa3}
-.dir.selected-down{border:2px solid #ff3864}
-#btc{font-size:28px;text-align:center;margin:10px 0}
-#leaderboard{margin-top:20px;border-top:1px solid #333;padding-top:10px}
-.lb-row{display:flex;justify-content:space-between;font-size:12px;color:#ccc}
-#paywall{display:none;text-align:center;background:#000;padding:20px;border-radius:12px}
-</style>
+  <meta charset="UTF-8">
+  <title>BTC Price Prediction App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- Ethers (for MetaMask connectivity) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+  <style>
+   html, body {
+      background: #121212;
+      color: #fff;
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+    }
+    #container {
+      max-width: 380px;
+      background: #17191d;
+      border-radius: 8px;
+      margin: 8vw auto 0 auto;
+      padding: 0 2vw 2vw 2vw;
+      box-shadow: 0 2px 16px #0007;
+    }
+    #wallet {
+      padding: 2px 0 2px 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    #connect-btn {
+      font-size: 10px;
+      padding: 4px 14px 4px 12px;
+      background: linear-gradient(90deg, #4912f7 20%, #21d4fd 100%);
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      min-width: 72px;
+      cursor: pointer;
+      margin-right: 14px;
+      transition: background .1s;
+    }
+    #connect-btn:hover {
+      background: linear-gradient(90deg, #163bc1 10%, #27e1f8 100%);
+    }
+    #addr {
+      color: #ffbb33;
+      font-size: 10px;
+      letter-spacing: 0.01em;
+    }
+    #balance-bar {
+      margin-top: 3px;
+      margin-bottom: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    #balance-bar span {
+      margin-right: 6px;
+    }
+    #recover {
+      color: #3bead2 !important;
+      cursor: pointer;
+      background: #271c28;
+      border-radius: 3px;
+      padding: 1px 4px;
+    }
+    #recover:hover {
+      filter: brightness(1.25);
+      text-decoration: underline;
+    }
+    #reload-addr {
+      font-family: monospace;
+      color: #d38bff;
+    }
+    #main {
+      padding: 4px 1vw 1vw 1vw;
+      border-radius: 5px;
+      background: #111927;
+      min-height: 300px;
+      margin-bottom: 4vw;
+      margin-top: 6px;
+      box-shadow: 0 0.5vw 2vw #000b;
+    }
+    #btc-price {
+      background: #212b36;
+      color: #ffd160;
+      border: 1px solid #272b21;
+      border-radius: 2px;
+      font-weight: bold;
+      padding: 2px 4px;
+      letter-spacing: .01em;
+    }
+    #graph {
+      width: 98%;
+      max-width: 350px;
+      height: 160px !important;
+      margin: 8px 0 4px 0;
+      background: #161616;
+      border-radius: 6px;
+      box-shadow: 0 1px 7px #0005;
+      display: block;
+    }
+    #game-controls {
+      text-align: center;
+      margin: 8px 0 8px 0;
+    }
+    #game-controls button {
+      font-size: 10px;
+      width: 68px;
+      margin: 2px 12px 2px 0;
+      padding: 4px 0;
+      border-radius: 4px;
+      border: 1px solid #262626;
+      background: #1d2227;
+      color: #aaffc7;
+      font-weight: bold;
+      box-shadow: 0 1px 6px #012b0736;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    #game-controls button#predict-up { background: #323ea1; color: #9cfff2;}
+    #game-controls button#predict-up:hover { background: #247be9; color: #fff;}
+    #game-controls button#predict-down { background: #421727; color: #ff99e0;}
+    #game-controls button#predict-down:hover { background: #c13c70; color: #fff;}
+    #game-controls button:disabled {
+      opacity: 0.38; background: #17191d; color: #aaa; cursor: not-allowed;
+    }
+    #timer {
+      color: #fff8ae;
+      background: #191a1a;
+      font-weight: bold;
+      display: block;
+      margin: 8px 0 1px 0;
+      font-size: 9.1px;
+      padding: 2px 12px;
+      text-align: center;
+      border-radius: 16px;
+      border: 1px solid #2a2621;
+      width: max-content;
+    }
+    #tabs {
+      margin-top: 14px;
+      display: flex;
+      gap: 5px;
+      border-bottom: 1px solid #232e39;
+      padding-bottom: 2px;
+      padding-left: 1vw;
+    }
+    .tab-btn {
+      background: #22252d;
+      color: #b8bbec;
+      border: 1px solid #262626;
+      border-bottom: none;
+      border-radius: 3px 3px 0 0;
+      font-size: 10px;
+      padding: 4px 9px;
+      cursor: pointer;
+      margin: 0 2px 0 0;
+      transition: all .15s;
+    }
+    .tab-btn.selected, .tab-btn:hover {
+      background: #292e39; color: #ff9e63;
+      border: 1.3px solid #aee4ea;
+    }
+    .tab-page {
+      padding: 6px 6px 12px 6px;
+      background: #141a1e;
+      border-radius: 0 0 6px 6px;
+      min-height: 20px;
+    }
+    .hide { display: none !important; }
+    #trades,
+    #leaderboard {
+      font-size: 10px;
+      max-height: 70px;
+      min-height: 20px;
+      overflow-y: auto;
+      background: #181818;
+      border-radius: 3px;
+      margin: 2px 0 10px 0;
+      padding: 2px;
+      box-shadow: 0 0.3vw 1vw #0007;
+    }
+    h4 { margin: 2px 0 1px 0; color: #5acfff; letter-spacing: 0.03em; font-size: 10px; }
+    table {
+      width: 100%;
+      font-size: 10px;
+      border-collapse: collapse;
+      background: #151a22;
+      color: #fcfcfc;
+    }
+    th, td {
+      border-bottom: 1px solid #23232f;
+      padding: 2px 3px;
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+    tr:hover { background: #292952;}
+    td {font-family: 'Menlo', 'Consolas', 'monospace';}
+    th {
+      background: #181818;
+      color: #ffd580;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      background: #232943;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #313959;
+      border-radius: 2px;
+    }
+  </style>
 </head>
-
 <body>
-<div class="container">
-<h1>BTC Predictor Pro</h1>
-
-<button id="connectBtn" class="btn primary">CONNECT WALLET</button>
-
-<div id="app" style="display:none">
-    <div id="btc">Loading...</div>
-    <canvas id="chart" height="120"></canvas>
-
-    <button id="up" class="btn dir">UP</button>
-    <button id="down" class="btn dir">DOWN</button>
-    <button id="confirm" class="btn primary" disabled>CONFIRM</button>
-
-    <p>Balance: <b id="bal">$100.00</b></p>
-    <p>Rounds: <b id="rounds">0 / 3</b></p>
-
-    <div id="paywall">
-        <h3>Free rounds used</h3>
-        <button class="btn primary" onclick="payToPlay()">PAY 1 POL</button>
+  <div id="container">
+    <div id="wallet">
+      <button id="connect-btn">Connect Wallet</button>
+      <span id="addr"></span>
     </div>
-
-    <div id="leaderboard">
-        <h3 style="color:#00f2ff">Leaderboard</h3>
-        <div id="lb"></div>
+    <div id="balance-bar">
+      <span>Balance: $<span id="balance"></span></span>
+      <span id="recover" class="hide">Balance is negative. Send 1 POL to <span id="reload-addr" style="font-size:10px;">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</span> for +$100</span>
     </div>
-</div>
-</div>
+    <div id="main">
+      <div>BTC Price: <span id="btc-price"></span> USD</div>
+      <canvas id="graph"></canvas>
+      <div id="game-controls">
+        <button id="predict-up">UP</button>
+        <button id="predict-down">DOWN</button>
+      </div>
+      <div id="timer" class="hide"></div>
+      <div id="tabs">
+        <button class="tab-btn selected" data-tab="entry">ENTRY PRICE</button>
+        <button class="tab-btn" data-tab="live">LIVE PRICE</button>
+        <button class="tab-btn" data-tab="pnl">PNL</button>
+      </div>
+      <div id="tab-pages">
+        <div id="entry" class="tab-page">-</div>
+        <div id="live" class="tab-page hide">-</div>
+        <div id="pnl" class="tab-page hide">-</div>
+      </div>
+      <div>
+        <h4 style="margin:2px 0 0 0">My Trades</h4>
+        <div id="trades"></div>
+      </div>
+      <div>
+        <h4 style="margin:2px 0 0 0">Leaderboard</h4>
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // -- Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+      authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+      databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+      projectId: "tokentransfer-4a9b3",
+      storageBucket: "tokentransfer-4a9b3.appspot.com",
+      messagingSenderId: "205455490321",
+      appId: "1:205455490321:web:9919f5dde059316c9320b0",
+      measurementId: "G-Y6CVEDL9XH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-<script>
-/* ================= CONFIG ================= */
-const ADMIN="0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
-const firebaseConfig={
- apiKey:"AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
- authDomain:"tokentransfer-4a9b3.firebaseapp.com",
- databaseURL:"https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
- projectId:"tokentransfer-4a9b3",
- storageBucket:"tokentransfer-4a9b3.firebasestorage.app",
- messagingSenderId:"205455490321",
- appId:"1:205455490321:web:9919f5dde059316c9320b0"
-};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
+    // -- App state vars
+    let walletAddr = "";
+    let provider = null;
+    let signer = null;
+    let balance = 100;
+    let trades = [];
+    let leaderboard = {};
+    let prediction = null; // {side, entry, start, status, id}
+    let timerInterval = null;
+    let chart, chartData=[], chartLabels=[];
+    let showingTab = "entry";
+    const POLY_CHAINID = "0x89";
+    const RELOAD_ADDR = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+    let entryLineId = null; // For Chart.js annotation
+    let lastPrice = 0;
 
-/* ================= STATE ================= */
-let provider,signer,wallet;
-let btc=0,entry=0,dir=null;
-let balance=100,rounds=0;
+    // -- Elements
+    const connectBtn = document.getElementById('connect-btn');
+    const addrSpan = document.getElementById('addr');
+    const balanceSpan = document.getElementById('balance');
+    const mainDiv = document.getElementById('main');
+    const reloadEl = document.getElementById('recover');
+    const btcPriceEl = document.getElementById('btc-price');
+    const tradesDiv = document.getElementById('trades');
+    const leaderboardDiv = document.getElementById('leaderboard');
+    const predictUpBtn = document.getElementById('predict-up');
+    const predictDownBtn = document.getElementById('predict-down');
+    const timerDiv = document.getElementById('timer');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabs = [
+      {elem: document.getElementById('entry'), key:"entry"},
+      {elem: document.getElementById('live'), key:"live"},
+      {elem: document.getElementById('pnl'), key:"pnl"}
+    ];
 
-/* ================= WALLET ================= */
-connectBtn.onclick=async()=>{
- if(!window.ethereum) return alert("Install MetaMask");
- provider=new ethers.providers.Web3Provider(window.ethereum);
- const net=await provider.getNetwork();
- if(net.chainId!==137) return alert("Switch to Polygon");
- signer=provider.getSigner();
- wallet=await signer.getAddress();
+    // -- Util
+    function truncateAddress(addr) { return addr.slice(0,6)+"..."+addr.slice(-4);}
+    function randId() {return Math.random().toString(36).substring(2,9);}
+    function nowSec() {return Math.floor(Date.now()/1000);}
+    function fmtUsd(n) {return (+n).toFixed(2);}
 
- connectBtn.style.display="none";
- app.style.display="block";
- loadUser();
- initChart();
-};
+    // -- Charts
+    function initChart() {
+      const ctx = document.getElementById('graph').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'BTC',
+              data: [],
+              borderColor: '#0af',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              pointBackgroundColor: '#0af',
+              pointBorderWidth: 0,
+              fill: false
+            },
+            {
+              label: 'Current Price Dot',
+              data: [],
+              pointRadius: 6,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#0af',
+              borderWidth: 0,
+              showLine: false, // just the dot
+              fill: false,
+              order: 2
+            },
+            {
+              label: 'Entry Price Line',
+              data: [],
+              borderColor: 'rgba(255,255,0,0.8)',
+              borderWidth: 2,
+              borderDash: [4,4],
+              pointRadius: 0,
+              fill: false,
+              hidden: true,
+              spanGaps: true
+            }
+          ]
+        },
+        options: {
+          elements: {
+            line: { borderJoinStyle: 'miter' }
+          },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              display: true,
+              ticks: {
+                color: "#aaa",
+                font: { size: 9 },
+                callback: function(value) { return value.toFixed(2); }
+              },
+              grid: { color: "#212b36" }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return ctx.dataset.label + ": $" + ctx.parsed.y;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    function updateChart(price) {
+      const maxPts = 60;
+      chartLabels.push('');
+      chartData.push(price);
+      // Crop data to 60 points
+      if (chartData.length > maxPts) { chartLabels.shift(); chartData.shift();}
+      chart.data.labels = chartLabels;
+      chart.data.datasets[0].data = chartData;
+      // Show last point dot
+      if (chartData.length) {
+        let lastIdx = chartData.length-1;
+        chart.data.datasets[1].data = Array.from({length:chartData.length}).fill(null);
+        chart.data.datasets[1].data[lastIdx] = chartData[lastIdx];
+      } else {
+        chart.data.datasets[1].data = [];
+      }
+      // Entry line, if applicable
+      if (prediction && prediction.entry) {
+        chart.data.datasets[2].hidden = false;
+        chart.data.datasets[2].data = chartData.map(()=>prediction.entry);
+      } else {
+        chart.data.datasets[2].hidden = true;
+        chart.data.datasets[2].data = [];
+      }
+      chart.update();
+    }
 
-/* ================= USER DATA ================= */
-async function loadUser(){
- const ref=db.ref("users/"+wallet);
- const snap=await ref.get();
- if(!snap.exists()){
-   await ref.set({balance:100,rounds:0});
- }
- const d=(await ref.get()).val();
- balance=d.balance; rounds=d.rounds;
- updateUI();
- if(rounds>=3) paywall.style.display="block";
-}
+    // -- Binance Price
+    async function fetchPrice(){
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=BTCUSD`);
+        const data = await res.json();
+        lastPrice = +data.price;
+        btcPriceEl.textContent = fmtUsd(lastPrice);
+        updateChart(lastPrice);
+        tabs.find(t=>t.key=='live').elem.textContent = lastPrice;
+      } catch (e) {}
+    }
+    setInterval(fetchPrice, 2000); // refresh every 2 seconds
+    fetchPrice();
 
-/* ================= PRICE ================= */
-async function fetchPrice(){
- const r=await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
- btc=parseFloat((await r.json()).price);
- document.getElementById("btc").textContent="$"+btc.toFixed(2);
- updateChart(btc);
-}
-setInterval(fetchPrice,2000);
+    // -- Wallet
+    async function connectWallet() {
+      if (!window.ethereum) return alert('Install MetaMask');
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      signer = provider.getSigner();
+      walletAddr = await signer.getAddress();
+      addrSpan.textContent = truncateAddress(walletAddr);
+      connectBtn.style.display = 'none';
+      await switchToPolygon();
+      checkOrInitUser();
+    }
+    async function switchToPolygon(){
+      // Set network to Polygon Mainnet if not already
+      try {
+        let net = await provider.getNetwork();
+        if (net.chainId !== 137) {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: POLY_CHAINID}],
+          });
+        }
+      } catch (e) {
+        // Polygon add
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: POLY_CHAINID,
+            chainName: 'Polygon Mainnet',
+            nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+            rpcUrls: ['https://polygon-rpc.com'],
+            blockExplorerUrls: ['https://polygonscan.com/'],
+          }],
+        });
+      }
+    }
 
-/* ================= GAME ================= */
-up.onclick=()=>select("UP");
-down.onclick=()=>select("DOWN");
+    // -- User
+    async function checkOrInitUser() {
+      const snapshot = await db.ref(`users/${walletAddr}`).once('value');
+      if(!snapshot.exists()){
+        await db.ref(`users/${walletAddr}`).set({ balance: 100 });
+        balance = 100;
+      } else {
+        balance = snapshot.val().balance || 0;
+      }
+      updateBalanceUI();
+      loadMyTrades();
+      mainDiv.style.display = '';
+      fetchLeaderboard();
+    }
+    async function setBalance(val){
+      balance = val;
+      await db.ref(`users/${walletAddr}`).update({ balance:balance });
+      updateBalanceUI();
+    }
+    function updateBalanceUI(){
+      balanceSpan.textContent = fmtUsd(balance);
+      reloadEl.classList.toggle('hide', balance>=0);
+      predictUpBtn.disabled = predictDownBtn.disabled = (balance<1 || prediction!==null);
+    }
 
-function select(d){
- dir=d;
- up.classList.toggle("selected-up",d==="UP");
- down.classList.toggle("selected-down",d==="DOWN");
- confirm.disabled=false;
-}
+    // -- Recover balance if user sent 1 MATIC to the address
+    async function checkMaticSent(){
+      // Since we can't check programmatically from client, simulate with a button user can click ;)
+      // (Prod: Replace with backend/graph API for address TX monitoring)
+      if (!walletAddr) return;
+      await setBalance(100);
+      updateBalanceUI();
+      alert("Balance reloaded to $100 after 1 POL payment simulation!");
+    }
+    reloadEl.onclick = checkMaticSent;
 
-confirm.onclick=()=>{
- if(rounds>=3){paywall.style.display="block";return;}
- entry=btc;
- setTimeout(endRound,60000);
- confirm.disabled=true;
-};
+    // -- Tabs
+    tabBtns.forEach(btn=>{
+      btn.onclick = ()=>{
+        tabBtns.forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        tabs.forEach(t=>t.elem.classList.toggle('hide', t.key!=btn.dataset.tab));
+        showingTab = btn.dataset.tab;
+      }
+    });
 
-async function endRound(){
- let pnl=dir==="UP"?btc-entry:entry-btc;
- balance+=pnl;
- rounds++;
-
- await db.ref("users/"+wallet).set({balance,rounds});
- await db.ref("leaderboard/"+wallet).set({balance});
-
- updateUI();
- loadLeaderboard();
-
- if(rounds>=3) paywall.style.display="block";
-}
-
-/* ================= PAY ================= */
-async function payToPlay(){
- const tx=await signer.sendTransaction({
-  to:ADMIN,
-  value:ethers.utils.parseEther("1")
- });
- await tx.wait();
- rounds=0;
- await db.ref("users/"+wallet+"/rounds").set(0);
- paywall.style.display="none";
- updateUI();
-}
-
-/* ================= UI ================= */
-function updateUI(){
- bal.textContent="$"+balance.toFixed(2);
- roundsEl=document.getElementById("rounds");
- roundsEl.textContent=rounds+" / 3";
-}
-
-/* ================= LEADERBOARD ================= */
-function loadLeaderboard(){
- db.ref("leaderboard").orderByChild("balance").limitToLast(10)
- .on("value",snap=>{
-  let arr=[];
-  snap.forEach(c=>arr.push({w:c.key,b:c.val().balance}));
-  arr.reverse();
-  lb.innerHTML=arr.map((p,i)=>
-   `<div class="lb-row">
-     <span>#${i+1} ${p.w.slice(0,6)}…</span>
-     <b>${p.b.toFixed(2)}</b>
-   </div>`).join("");
- });
-}
-loadLeaderboard();
-
-/* ================= CHART ================= */
-let chart,data=[];
-function initChart(){
- chart=new Chart(document.getElementById("chart"),{
-  type:"line",
-  data:{labels:[],datasets:[{data:[],borderColor:"#00f2ff",pointRadius:0}]},
-  options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
- });
-}
-function updateChart(p){
- data.push(p); if(data.length>20) data.shift();
- chart.data.datasets[0].data=data;
- chart.update("none");
-}
-</script>
+    // --- Prediction
+    function resetPredictionUI() {
+      prediction = null;
+      predictUpBtn.disabled = predictDownBtn.disabled = (balance<1);
+      timerDiv.classList.add('hide');
+      tabs.find(t=>t.key=='entry').elem.textContent = "-";
+      tabs.find(t=>t.key=='pnl').elem.textContent = "-";
+      // Hide entry line on chart
+      chart.data.datasets[2].hidden = true;
+      chart.update();
+    }
+    // Game: prediction
+    async function placePrediction(side){
+      if (!walletAddr || balance<1) return;
+      const entry = lastPrice;
+      const id = randId();
+      prediction = { id, side, entry, start:nowSec(), status:'PENDING', bet:1 };
+      tabs.find(t=>t.key=='entry').elem.textContent = fmtUsd(entry);
+      predictUpBtn.disabled = predictDownBtn.disabled = true;
+      // Show entry line
+      chart.data.datasets[2].hidden = false;
+      chart.data.datasets[2].data = chartData.length? chartData.map(()=>entry): []; // extend
+      chart.update();
+      // 60s timer
+      timerDiv.classList.remove('hide');
+      let secsLeft = 60;
+      timerDiv.textContent = "Time: " + secsLeft + "s";
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(async ()=>{
+        secsLeft--;
+        timerDiv.textContent = "Time: "+secsLeft+"s";
+        tabs.find(t=>t.key=='live').elem.textContent = lastPrice;
+        if(secsLeft<=0){
+          clearInterval(timerInterval);
+          timerDiv.classList.add('hide');
+          await resolvePrediction();
+        } else if (prediction) {
+          // keep updating the yellow entry line as graph window moves
+          chart.data.datasets[2].hidden = false;
+          chart.data.datasets[2].data = chartData.length? chartData.map(()=>prediction.entry): [];
+          chart.update();
+        }
+      }, 1000);
+    }
+    async function resolvePrediction() {
+      if(!prediction) return;
+      const result = lastPrice > prediction.entry ? 'UP' : (lastPrice < prediction.entry ? 'DOWN' : 'DRAW');
+      let pnl = 0;
+      if (result === 'DRAW') pnl = 0;
+      else if (prediction.side === result) pnl = +prediction.bet;
+      else pnl = -prediction.bet;
+      prediction.status='COMPLETE';
+      prediction.exit = lastPrice;
+      prediction.pnl=pnl;
+      prediction.ts = nowSec();
+      tabs.find(t=>t.key=='pnl').elem.textContent = pnl == 0 ? '0' : (pnl > 0 ? 'WIN $' : 'LOSS $')+Math.abs(pnl);
+      await db.ref(`trades/${walletAddr}/${prediction.id}`).set({
+        ...prediction
+      });
+      await setBalance(balance + pnl);
+      await db.ref(`users/${walletAddr}`).update({ lastTrade: prediction.ts, balance: balance });
+      resetPredictionUI();
+      loadMyTrades();
+      fetchLeaderboard();
+    }
+    // -- Bet buttons
+    predictUpBtn.onclick = ()=>placePrediction('UP');
+    predictDownBtn.onclick = ()=>placePrediction('DOWN');
+    // -- Show my trades
+    async function loadMyTrades(){
+      if (!walletAddr) return;
+      const snap = await db.ref(`trades/${walletAddr}`).limitToLast(10).once('value');
+      let _t = [];
+      snap.forEach(child=>_t.push(child.val()));
+      trades = _t.sort((a,b)=>b.ts-a.ts);
+      let html = "<table><tr><th>Side</th><th>Entry</th><th>Exit</th><th>PNL</th></tr>";
+      for (let t of trades) {
+        if (t.status!=='COMPLETE') continue;
+        html += `<tr>
+          <td>${t.side}</td>
+          <td>${fmtUsd(t.entry)}</td>
+          <td>${fmtUsd(t.exit)}</td>
+          <td style="color:${t.pnl > 0 ? '#0f0' : (t.pnl == 0 ? '#ff0':'#f00')}">${t.pnl>0?'+':''}${t.pnl}</td>
+        </tr>`;
+      }
+      html += "</table>";
+      tradesDiv.innerHTML = html;
+    }
+    // -- Leaderboard
+    async function fetchLeaderboard(){
+      const snap = await db.ref('users').orderByChild('balance').limitToLast(10).once('value');
+      let arr = [];
+      snap.forEach(child=>{
+        arr.push({addr:child.key, ...child.val()});
+      });
+      arr.sort((a,b)=>b.balance-a.balance);
+      let html = "<table><tr><th>Addr</th><th>Balance</th></tr>";
+      arr.forEach(e=>{
+        html += `<tr><td>${truncateAddress(e.addr)}</td><td>${fmtUsd(e.balance||0)}</td></tr>`;
+      });
+      html+="</table>";
+      leaderboardDiv.innerHTML = html;
+    }
+    // -- Main
+    connectBtn.onclick = connectWallet;
+    // -- Chart startup
+    window.addEventListener('DOMContentLoaded',()=>{
+      initChart();
+      updateBalanceUI();
+    });
+  </script>
 </body>
 </html>
