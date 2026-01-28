@@ -30,6 +30,8 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 .leverage-label { font-size:11px; color:#FCD535; }
 #leverageSlider { width: 70%; margin-left: 7px; margin-right:7px; }
 #leverageSlider:disabled { opacity:0.4; }
+#leverageExtraBtn { margin-left: 10px; font-size: 12px; background:#2B2F36; color: #FCD535; border:1px solid #222; border-radius: 4px; padding: 4px 8px; cursor:pointer; transition: background 0.15s;}
+#leverageExtraBtn:disabled { opacity:0.4; cursor:not-allowed;}
 /* Timer Progress Bar */
 #timerBarContainer { width:100%; height: 7px; background:#23262f; border-radius:7px; overflow:hidden; margin-bottom:3px; }
 #timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear; }
@@ -88,8 +90,9 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
             </div>
             <div class="leverage-row">
                 <span class="leverage-label">Leverage:</span>
-                <input type="range" min="1" max="500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
+                <input type="range" min="1" max="2500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
                 <span id="leverageValue" style="color:#FCD535;font-weight:bold;font-size:12px;">1x</span>
+                <button id="leverageExtraBtn" style="display:none;">+500x ($100)</button>
             </div>
             <div id="timerBarContainer" style="display:none;"><div id="timerBar"></div></div>
             <div id="timer" style="display:none;"></div>
@@ -124,7 +127,7 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
     </div>
     <div class="reward-info">
         <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. Negative balances are allowed.<br>
-        When a bet is active, leverage cannot be changed. 
+        When a bet is active, leverage cannot be changed except for extra leverage buy after 500x (if funds allow).
     </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -153,6 +156,13 @@ let userLeverage = 1;
 let entryLine = null;
 let timerInterval = null, timerValue=0;
 
+let leverageStartValue = 1; // used to preserve start leverage after entry
+let extraLeveragePaid = 0;
+
+const MAX_LEVERAGE = 2500;
+const FREE_LEVERAGE = 500;
+const EXTRA_LEVERAGE_COST = 100;
+
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -172,7 +182,7 @@ function initUser() {
         }
         updateUI();
     });
-    loadBetHistory(); // Always show all bets by all users, not just personal
+    loadBetHistory();
 }
 function updateUI() {
     const balanceField = document.getElementById('balanceUSD');
@@ -180,6 +190,8 @@ function updateUI() {
     balanceField.style.color = currentBalance >= 0 ? "#EAECEF" : "#f6465d";
     document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(1)}M`;
 }
+
+// TAB
 function switchTab(tab) {
     document.getElementById('view-trade').style.display = tab === 'trade' ? 'block' : 'none';
     document.getElementById('view-leader').style.display = tab === 'leader' ? 'block' : 'none';
@@ -188,16 +200,37 @@ function switchTab(tab) {
     if (tab === 'leader') loadLeaderboard();
 }
 
-// --- LEVERAGE ---
-function onLeverageSet(val) {
-    if(gameState==="ACTIVE") return;
-    userLeverage = parseInt(val);
+// ------- LEVERAGE LOGIC --------
+function updateLeverageUI() {
     document.getElementById('leverageValue').textContent = userLeverage+'x';
+    let showExtra = false;
+    if (gameState === "ACTIVE" && userLeverage < MAX_LEVERAGE && userLeverage >= FREE_LEVERAGE) {
+        showExtra = true;
+    }
+    document.getElementById('leverageExtraBtn').style.display = showExtra ? '' : 'none';
+    document.getElementById('leverageExtraBtn').disabled = (currentBalance >= EXTRA_LEVERAGE_COST && userLeverage+500 <= MAX_LEVERAGE) ? false : true;
 }
-// Lock leverage input while betting
+function onLeverageSet(val) {
+    if (gameState==="ACTIVE") return;
+    userLeverage = parseInt(val);
+    updateLeverageUI();
+}
 function setLeverageEnabled(enable) {
     const slider = document.getElementById('leverageSlider');
     slider.disabled = !enable;
+    document.getElementById('leverageExtraBtn').disabled = !enable;
+}
+
+// BUY 500x LEVERAGE MORE (if game is ongoing, up to 2500x)
+document.getElementById('leverageExtraBtn').onclick = function() {
+    if (gameState === "ACTIVE" && userLeverage >= FREE_LEVERAGE && userLeverage+500 <= MAX_LEVERAGE && currentBalance >= EXTRA_LEVERAGE_COST) {
+        userLeverage += 500;
+        extraLeveragePaid += EXTRA_LEVERAGE_COST;
+        currentBalance -= EXTRA_LEVERAGE_COST;
+        db.ref('users/' + userWallet).update({ balance: currentBalance });
+        updateLeverageUI();
+        updateUI();
+    }
 }
 
 // --- LEADERBOARD ---
@@ -217,7 +250,6 @@ function loadLeaderboard() {
 }
 
 // --- BET HISTORY ---
-// Show all previous bets by all users, newest first
 function recordBet(entry, exit, dir, leverage, pnl, date) {
     const betObj = {
         entry, exit, dir, leverage, pnl, date,
@@ -238,10 +270,7 @@ function loadBetHistory() {
                 bets.push(v);
             });
         });
-        bets.sort((a, b) => {
-            // descending by date
-            return (b.date||'') > (a.date||'') ? 1 : -1;
-        });
+        bets.sort((a, b) => (b.date||'') > (a.date||'') ? 1 : -1);
         let rows = [];
         for(let i=0; i<bets.length; i++) {
             let { date, entry, exit, dir, leverage, pnl, wallet } = bets[i];
@@ -256,7 +285,7 @@ function loadBetHistory() {
                 <td>${leverage||"-"}x</td>
                 <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+Number(pnl).toFixed(2):"-"}</td>
             </tr>`);
-            if(i===49) break; // Show at most 50
+            if(i===49) break;
         }
         tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
     });
@@ -280,6 +309,7 @@ async function fetchPrice() {
 }
 setInterval(fetchPrice, 2000);
 
+// --- SELECT DIRECTION
 function selectDir(dir) {
     if (gameState !== "IDLE") return;
     selectedDirection = dir;
@@ -288,6 +318,16 @@ function selectDir(dir) {
     document.getElementById('startBtn').classList.remove('btn-disabled');
 }
 
+// always show the selected direction option during bet
+function maintainSelectedBtnHighlight() {
+    if (gameState === "ACTIVE") {
+        document.getElementById('upBtn').className = "btn btn-up" + (selectedDirection === 'UP' ? ' selected' : '');
+        document.getElementById('downBtn').className = "btn btn-down" + (selectedDirection === 'DOWN' ? ' selected' : '');
+    }
+}
+setInterval(maintainSelectedBtnHighlight, 333);
+
+// --- CHART
 const ctx = document.getElementById('btcChart').getContext('2d');
 let priceHistory = [];
 let dottedLinePlugin = {
@@ -341,8 +381,13 @@ function startBet() {
     if (!selectedDirection) return;
     gameState = "ACTIVE";
     setLeverageEnabled(false);
+
+    leverageStartValue = userLeverage;
+    extraLeveragePaid = 0;
+
     entryPrice = btcPrice;
     entryLine = entryPrice;
+
     document.getElementById('controls').style.display = 'none';
     document.getElementById('comparison').style.display = 'flex';
     document.getElementById('entryPrice').textContent = `$${entryPrice.toFixed(2)}`;
@@ -354,10 +399,13 @@ function startBet() {
     updateTimerBar(1);
     showTimerBar(true);
     document.getElementById('timer').style.display = "none";
+    updateLeverageUI();
+
     if(timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         timerValue--;
         updateTimerBar(timerValue/60);
+        updateLeverageUI();
         if (timerValue <= 0) {
             clearInterval(timerInterval);
             endBet();
@@ -368,7 +416,8 @@ function endBet() {
     let fallBackPrice = btcPrice || entryPrice;
     let exitPrice = fallBackPrice;
     let diff = (selectedDirection === "UP" ? (exitPrice - entryPrice) : (entryPrice - exitPrice));
-    let pnl = diff * userLeverage;
+    let pnl = diff * userLeverage - extraLeveragePaid;
+    // Deduct all paid for extra leverage at settlement
     currentBalance += pnl;
     // NO minimum, allow negative balance
     let now = new Date().toISOString();
@@ -384,7 +433,10 @@ function endBet() {
         document.getElementById('upBtn').className = "btn btn-up";
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
+        // Reset leverage slider to last used value, but keep user's current leverage (don't reset slider to 1 if >1 after paid extra)
+        document.getElementById('leverageSlider').value = userLeverage;
         chart.update();
+        updateLeverageUI();
         updateUI();
         showTimerBar(false);
     }, 3000);
