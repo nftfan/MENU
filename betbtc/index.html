@@ -88,9 +88,8 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
             </div>
             <div class="leverage-row">
                 <span class="leverage-label">Leverage:</span>
-                <input type="range" min="1" max="10000" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
+                <input type="range" min="1" max="500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
                 <span id="leverageValue" style="color:#FCD535;font-weight:bold;font-size:12px;">1x</span>
-                <span id="leverageFee" style="color:#f6465d; font-size:11px;margin-left:8px;display:none;"></span>
             </div>
             <div id="timerBarContainer" style="display:none;"><div id="timerBar"></div></div>
             <div id="timer" style="display:none;"></div>
@@ -125,9 +124,7 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
     </div>
     <div class="reward-info">
         <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. Negative balances are allowed.<br>
-        Leverage up to 500x is free. Every x above 500 reduces your balance instantly by 0.01% per x moved above 500. Max 10000x.<br>
-        When a bet is active, leverage cannot be changed.<br>
-        All leverage fees are non-refundable.
+        When a bet is active, leverage cannot be changed. 
     </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -156,13 +153,6 @@ let userLeverage = 1;
 let entryLine = null;
 let timerInterval = null, timerValue=0;
 
-let pendingLeverage = 1;
-let paidLeverageFee = 0;
-
-const FREE_LEVERAGE = 500;
-const MAX_LEVERAGE = 10000;
-const LEVERAGE_FEE_RATE = 0.0001; // 0.01% per x above 500
-
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -182,7 +172,7 @@ function initUser() {
         }
         updateUI();
     });
-    loadBetHistory();
+    loadBetHistory(); // Always show all bets by all users, not just personal
 }
 function updateUI() {
     const balanceField = document.getElementById('balanceUSD');
@@ -190,7 +180,6 @@ function updateUI() {
     balanceField.style.color = currentBalance >= 0 ? "#EAECEF" : "#f6465d";
     document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(1)}M`;
 }
-
 function switchTab(tab) {
     document.getElementById('view-trade').style.display = tab === 'trade' ? 'block' : 'none';
     document.getElementById('view-leader').style.display = tab === 'leader' ? 'block' : 'none';
@@ -199,68 +188,12 @@ function switchTab(tab) {
     if (tab === 'leader') loadLeaderboard();
 }
 
-// Helper: compute fee for changing from prevX to newX (exclusive of <501)
-function getLeverageFee(prevX, newX, bal) {
-    let from = Math.max(prevX, FREE_LEVERAGE);
-    let to = Math.max(newX, FREE_LEVERAGE);
-    if (to > from && bal > 0) {
-        let added = to - from;
-        let fee = bal * LEVERAGE_FEE_RATE * added;
-        return fee;
-    }
-    return 0;
-}
-
-// Leverage slider logic
+// --- LEVERAGE ---
 function onLeverageSet(val) {
     if(gameState==="ACTIVE") return;
-
-    val = parseInt(val);
-    let slider = document.getElementById('leverageSlider');
-    let feeEl = document.getElementById('leverageFee');
-    feeEl.style.display = "none";
-
-    if(val > MAX_LEVERAGE) {
-        val = MAX_LEVERAGE;
-        slider.value = MAX_LEVERAGE;
-    }
-    let prevX = pendingLeverage;
-    let userBal = currentBalance;
-
-    // Calculate positive delta and fee
-    let fee = 0;
-    let charged = false;
-    if (val > prevX && val > FREE_LEVERAGE) {
-        let feeReq = getLeverageFee(prevX,val,userBal);
-        if(feeReq > currentBalance) {
-            // Clamp to max allowable leverage, user can only afford n more x
-            let maxExtraX = Math.floor(currentBalance/(userBal*LEVERAGE_FEE_RATE));
-            let maxX = Math.max(prevX,FREE_LEVERAGE) + maxExtraX;
-            if(maxX > MAX_LEVERAGE) maxX = MAX_LEVERAGE;
-            val = maxX;
-            slider.value = maxX;
-            feeReq = getLeverageFee(prevX,val,userBal);
-        }
-        if (feeReq > 0) {
-            charged = true;
-            pendingLeverage = val;
-            userLeverage = val;
-            paidLeverageFee += feeReq;
-            currentBalance -= feeReq;
-            db.ref('users/' + userWallet).update({ balance: currentBalance });
-            updateUI();
-        }
-    }
-    pendingLeverage = val;
-    userLeverage = val;
-    feeEl.style.display = (val>FREE_LEVERAGE) ? "" : "none";
-    if(val>FREE_LEVERAGE) {
-        let totalFee = paidLeverageFee + (charged ? 0 : getLeverageFee(FREE_LEVERAGE,val,currentBalance));
-        feeEl.textContent = `Fee: $${totalFee.toFixed(2)} non-refundable`;
-    }
+    userLeverage = parseInt(val);
     document.getElementById('leverageValue').textContent = userLeverage+'x';
 }
-
 // Lock leverage input while betting
 function setLeverageEnabled(enable) {
     const slider = document.getElementById('leverageSlider');
@@ -284,9 +217,10 @@ function loadLeaderboard() {
 }
 
 // --- BET HISTORY ---
-function recordBet(entry, exit, dir, leverage, pnl, date, feeCharged) {
+// Show all previous bets by all users, newest first
+function recordBet(entry, exit, dir, leverage, pnl, date) {
     const betObj = {
-        entry, exit, dir, leverage, pnl, date, fee: feeCharged,
+        entry, exit, dir, leverage, pnl, date,
         wallet: userWallet
     };
     const betKey = db.ref('bets/'+userWallet).push().key;
@@ -304,7 +238,10 @@ function loadBetHistory() {
                 bets.push(v);
             });
         });
-        bets.sort((a, b) => (b.date||'') > (a.date||'') ? 1 : -1);
+        bets.sort((a, b) => {
+            // descending by date
+            return (b.date||'') > (a.date||'') ? 1 : -1;
+        });
         let rows = [];
         for(let i=0; i<bets.length; i++) {
             let { date, entry, exit, dir, leverage, pnl, wallet } = bets[i];
@@ -319,7 +256,7 @@ function loadBetHistory() {
                 <td>${leverage||"-"}x</td>
                 <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+Number(pnl).toFixed(2):"-"}</td>
             </tr>`);
-            if(i===49) break;
+            if(i===49) break; // Show at most 50
         }
         tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
     });
@@ -350,13 +287,6 @@ function selectDir(dir) {
     document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
     document.getElementById('startBtn').classList.remove('btn-disabled');
 }
-function maintainSelectedBtnHighlight() {
-    if (gameState === "ACTIVE") {
-        document.getElementById('upBtn').className = "btn btn-up" + (selectedDirection === 'UP' ? ' selected' : '');
-        document.getElementById('downBtn').className = "btn btn-down" + (selectedDirection === 'DOWN' ? ' selected' : '');
-    }
-}
-setInterval(maintainSelectedBtnHighlight, 333);
 
 const ctx = document.getElementById('btcChart').getContext('2d');
 let priceHistory = [];
@@ -398,6 +328,7 @@ setInterval(() => {
     chart.update();
 }, 3000);
 
+// --- Progress Bar ---
 function showTimerBar(show) {
     document.getElementById('timerBarContainer').style.display = show?'block':'none';
 }
@@ -405,11 +336,11 @@ function updateTimerBar(percent) {
     document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%';
 }
 
+// --- BET CYCLE ---
 function startBet() {
     if (!selectedDirection) return;
     gameState = "ACTIVE";
     setLeverageEnabled(false);
-
     entryPrice = btcPrice;
     entryLine = entryPrice;
     document.getElementById('controls').style.display = 'none';
@@ -417,7 +348,6 @@ function startBet() {
     document.getElementById('entryPrice').textContent = `$${entryPrice.toFixed(2)}`;
     document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
     document.getElementById('liveDiff').textContent = '--';
-    document.getElementById('leverageFee').style.display = (userLeverage>FREE_LEVERAGE) ? "" : "none";
     chart.update();
 
     timerValue = 60;
@@ -434,17 +364,16 @@ function startBet() {
         }
     }, 1000);
 }
-
 function endBet() {
     let fallBackPrice = btcPrice || entryPrice;
     let exitPrice = fallBackPrice;
     let diff = (selectedDirection === "UP" ? (exitPrice - entryPrice) : (entryPrice - exitPrice));
-    let pnl = diff * userLeverage; // Fees already deducted, do NOT refund
+    let pnl = diff * userLeverage;
+    currentBalance += pnl;
+    // NO minimum, allow negative balance
     let now = new Date().toISOString();
-
     db.ref('users/' + userWallet).update({ balance: currentBalance });
-    recordBet(entryPrice, exitPrice, selectedDirection, userLeverage, pnl, now, paidLeverageFee);
-
+    recordBet(entryPrice, exitPrice, selectedDirection, userLeverage, pnl, now);
     setTimeout(() => {
         entryLine = null;
         gameState = "IDLE";
@@ -455,15 +384,9 @@ function endBet() {
         document.getElementById('upBtn').className = "btn btn-up";
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
-        document.getElementById('leverageSlider').value = userLeverage;
         chart.update();
+        updateUI();
         showTimerBar(false);
-
-        // Reset temporary state for next round
-        paidLeverageFee = 0;
-        pendingLeverage = userLeverage;
-        // flash fee text on settlement
-        document.getElementById('leverageFee').style.display = (userLeverage>FREE_LEVERAGE) ? "" : "none";
     }, 3000);
 }
 </script>
