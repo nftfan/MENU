@@ -22,10 +22,12 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 .comp-item { flex: 1; text-align: center; }
 .comp-label { font-size: 10px; color: #848E9C; display: block; }
 .comp-val { font-size: 12px; font-weight: bold; font-family: monospace; }
-.leverage-row { display: flex; align-items: center; margin-top:13px; margin-bottom: 5px; justify-content: space-between; }
-.leverage-label { font-size:11px; color:#FCD535; }
-#leverageSlider { width: 70%; margin-left: 7px; margin-right:7px; }
-#leverageSlider:disabled { opacity:0.4; }
+.leverage-row, .amount-row { display: flex; align-items: center; margin-bottom: 5px; justify-content: space-between; }
+.leverage-label, .amount-label { font-size:11px; color:#FCD535; }
+#leverageSlider, #amountSlider { width: 60%; margin-left: 7px; margin-right:7px; }
+#leverageSlider:disabled, #amountSlider:disabled { opacity:0.4; }
+.slider-value { color:#FCD535;font-weight:bold;font-size:12px;min-width:30px;display:inline-block;text-align:right; }
+#betAmountSummary { color: #fff; font-size: 12px; margin-bottom: 6px; margin-top: 3px; }
 #timerBarContainer { width:100%; height: 7px; background:#23262f; border-radius:7px; overflow:hidden; margin-bottom:3px; }
 #timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear; }
 .btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
@@ -78,10 +80,16 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                 <div class="comp-item"><span class="comp-label">Live</span><span id="livePrice" class="comp-val">--</span></div>
                 <div class="comp-item"><span class="comp-label">PnL</span><span id="liveDiff" class="comp-val">--</span></div>
             </div>
+            <div class="amount-row">
+                <span class="amount-label">Bet Amount:</span>
+                <input type="range" min="1" max="100" value="10" id="amountSlider" oninput="onBetAmountSet(this.value)">
+                <span id="amountValue" class="slider-value">10</span>
+            </div>
+            <div id="betAmountSummary">(Remaining balance after bet: <span id="betAmountRemain">$0.00</span>)</div>
             <div class="leverage-row">
                 <span class="leverage-label">Leverage:</span>
-                <input type="range" min="1" max="500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
-                <span id="leverageValue" style="color:#FCD535;font-weight:bold;font-size:12px;">1x</span>
+                <input type="range" min="0" max="500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
+                <span id="leverageValue" class="slider-value">1x</span>
             </div>
             <div id="timerBarContainer" style="display:none;"><div id="timerBar"></div></div>
             <div id="timer" style="display:none;"></div>
@@ -101,12 +109,12 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                         <th>Entry</th>
                         <th>Exit</th>
                         <th>Side</th>
-                        <th>Leverage</th>
+                        <th>Amount</th>
+                        <th>Lev</th>
                         <th>PnL</th>
                     </tr>
                 </thead>
-                <tbody id="betHistoryBody">
-                </tbody>
+                <tbody id="betHistoryBody"></tbody>
             </table>
         </div>
         <div id="view-leader" style="display:none;">
@@ -115,8 +123,11 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
         </div>
     </div>
     <div class="reward-info">
-        <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. Negative balances are allowed.<br>
-        When a bet is active, leverage cannot be changed. Closing your page will NOT stop the bet – it will auto-resolve!
+        <b>Rules:</b> Everyone starts with $100. You may bet any amount up to your current balance per trade.<br>
+        1M $NFTFAN for every $1 USD in your balance. Negative balance is allowed (no liquidation).<br>
+        <b>Negative balances</b> will reset to $100 after 24h. (Next day reset on login/refresh.)<br>
+        Leverage is applied on the bet amount, not on the PnL. Leverage is from 0x to 500x.<br>
+        When a bet is active, controls are locked. Closing your page will NOT stop the bet – it will auto-resolve.
     </div>
 </div>
 <script type="module">
@@ -142,7 +153,14 @@ let userWallet = null;
 let currentBalance = 0.00;
 let btcPrice = 0;
 let gameState = "IDLE";
-let selectedDirection = null, entryPrice = 0, userLeverage = 1, entryLine = null, timerInterval = null, timerValue=0;
+let selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
+let userLastReset = null;
+
+function startOfNextUtcDay(ts) {
+    const d = new Date(ts);
+    d.setUTCHours(0,0,0,0);
+    return d.getTime() + 24*3600*1000;
+}
 
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
@@ -155,14 +173,33 @@ document.getElementById('connectBtn').onclick = async () => {
 };
 
 function initUser() {
-    onValue(ref(db, 'users/' + userWallet), (snap) => {
-        if (snap.exists()) {
-            currentBalance = snap.val().balance;
+    onValue(ref(db, 'users/' + userWallet), async (snap) => {
+        let mustSet = false;
+        let userNode = snap.val();
+        let now = Date.now();
+        if (!userNode) {
+            mustSet = true;
+            currentBalance = 100.0;
+            userLastReset = now;
         } else {
-            set(ref(db, 'users/' + userWallet), { balance: 0.0, wallet: userWallet });
-            currentBalance = 0.0;
+            currentBalance = userNode.balance ?? 100.0;
+            userLastReset = userNode.lastReset ?? now;
+            if(currentBalance < 0 && now >= startOfNextUtcDay(userLastReset)) {
+                // Reset negative balances at start of "$next UTC day" after it was set negative
+                currentBalance = 100.00;
+                userLastReset = now;
+                mustSet = true;
+            }
+        }
+        if (mustSet) {
+            await set(ref(db, 'users/' + userWallet), {
+                balance: currentBalance,
+                wallet: userWallet,
+                lastReset: userLastReset
+            });
         }
         updateUI();
+        updateAmountSlider();
     });
     checkAndSettleActiveBet();
     loadBetHistory();
@@ -175,8 +212,6 @@ async function checkAndSettleActiveBet() {
         const now = Date.now();
         if (now >= activeBet.scheduledEnd) {
             await settleBetOffline(activeBet);
-        } else {
-            // Optionally: restore UI state for still-active bet (not implemented)
         }
     }
 }
@@ -188,19 +223,20 @@ async function settleBetOffline(activeBet) {
     try {
         const resp = await fetch(url);
         const data = await resp.json();
-        if (data && data[0] && data[0][4]) {
-            exitPrice = parseFloat(data[0][4]);
-        }
+        if (data && data[0] && data[0][4]) exitPrice = parseFloat(data[0][4]);
     } catch { }
-    let diff = (activeBet.direction === "UP" ? (exitPrice - activeBet.entryPrice) : (activeBet.entryPrice - exitPrice));
-    let pnl = diff * activeBet.leverage;
+    let wentUp = exitPrice > activeBet.entryPrice ? 1 : exitPrice < activeBet.entryPrice ? -1 : 0;
+    let mult = (activeBet.direction === "UP") ? wentUp : -wentUp;
+    let pnl = activeBet.betAmount * activeBet.leverage * mult;
     currentBalance += pnl;
+    // Save balance and flag bet
     await update(ref(db, 'users/' + userWallet), { balance: currentBalance });
     await set(ref(db, 'users/' + userWallet + '/activeBet/settled'), true);
     const now = new Date().toISOString();
-    recordBet(activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.leverage, pnl, now);
+    recordBet(activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage, pnl, now);
     updateUI();
     loadBetHistory();
+    updateAmountSlider();
 }
 
 function updateUI() {
@@ -221,10 +257,30 @@ window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
     userLeverage = parseInt(val);
     document.getElementById('leverageValue').textContent = userLeverage+'x';
-}
+};
+window.onBetAmountSet = function(val) {
+    if(gameState==="ACTIVE") return;
+    userBetAmount = Math.round(Math.min(Math.max(1, +val), Math.max(1, Math.floor(currentBalance))));
+    document.getElementById('amountValue').textContent = userBetAmount;
+    let futureBalance = currentBalance - userBetAmount;
+    document.getElementById('betAmountRemain').textContent = "$" + futureBalance.toFixed(2);
+};
 function setLeverageEnabled(enable) {
-    const slider = document.getElementById('leverageSlider');
-    slider.disabled = !enable;
+    document.getElementById('leverageSlider').disabled = !enable;
+}
+function setAmountEnabled(enable) {
+    document.getElementById('amountSlider').disabled = !enable;
+}
+
+function updateAmountSlider() {
+    let amountSlider = document.getElementById('amountSlider');
+    amountSlider.min = "1";
+    amountSlider.max = Math.max("1", currentBalance<1 ? 1 : Math.floor(currentBalance));
+    if(userBetAmount > +amountSlider.max) userBetAmount = +amountSlider.max;
+    amountSlider.value = userBetAmount;
+    document.getElementById('amountValue').textContent = userBetAmount;
+    let futureBalance = currentBalance - userBetAmount;
+    document.getElementById('betAmountRemain').textContent = "$" + futureBalance.toFixed(2);
 }
 
 function loadLeaderboard() {
@@ -243,8 +299,8 @@ function loadLeaderboard() {
     });
 }
 
-function recordBet(entry, exit, dir, leverage, pnl, date) {
-    const betObj = { entry, exit, dir, leverage, pnl, date, wallet: userWallet };
+function recordBet(entry, exit, dir, betAmount, leverage, pnl, date) {
+    const betObj = { entry, exit, dir, betAmount, leverage, pnl, date, wallet: userWallet };
     const betUserRef = ref(db, `bets/${userWallet}`);
     const betKey = push(betUserRef).key;
     set(ref(db, `bets/${userWallet}/${betKey}`), betObj).then(loadBetHistory);
@@ -252,7 +308,7 @@ function recordBet(entry, exit, dir, leverage, pnl, date) {
 
 function loadBetHistory() {
     const tbody = document.getElementById('betHistoryBody');
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#848E9C;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#848E9C;">Loading...</td></tr>';
     get(ref(db, 'bets')).then((snap) => {
         let bets = [];
         snap.forEach(userSnap => {
@@ -264,7 +320,7 @@ function loadBetHistory() {
         bets.sort((a, b) => (b.date||'') > (a.date||'') ? 1 : -1);
         let rows = [];
         for(let i=0; i<bets.length; i++) {
-            let { date, entry, exit, dir, leverage, pnl, wallet } = bets[i];
+            let { date, entry, exit, dir, betAmount, leverage, pnl, wallet } = bets[i];
             let dateStr = date ? (new Date(date)).toLocaleString() : "-";
             let walletStr = wallet ? wallet.slice(0,6)+'...'+wallet.slice(-4) : '-';
             rows.push(`<tr>
@@ -273,12 +329,13 @@ function loadBetHistory() {
                 <td>${entry ? '$'+Number(entry).toFixed(2) : '-'}</td>
                 <td>${exit ? '$'+Number(exit).toFixed(2) : '-'}</td>
                 <td style="color:${dir=="UP"?"#2ebd85":"#f6465d"};font-weight:700">${dir||"-"}</td>
+                <td>$${betAmount||"-"}</td>
                 <td>${leverage||"-"}x</td>
                 <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+Number(pnl).toFixed(2):"-"}</td>
             </tr>`);
             if(i===49) break;
         }
-        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
+        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="8" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
     });
 }
 
@@ -291,8 +348,9 @@ async function fetchPrice() {
     document.getElementById('btc-price').textContent = `$${btcPrice.toLocaleString()}`;
     if (gameState === "ACTIVE") {
         document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
-        let diff = btcPrice - entryPrice;
-        let pnl = (selectedDirection === "UP" ? diff : -diff) * userLeverage;
+        let wentUp = btcPrice > entryPrice ? 1 : btcPrice < entryPrice ? -1 : 0;
+        let diff = (selectedDirection === "UP" ? wentUp : -wentUp);
+        let pnl = userBetAmount * userLeverage * diff;
         document.getElementById('liveDiff').textContent = (pnl >= 0 ? "+" : "") + pnl.toFixed(2);
         document.getElementById('liveDiff').style.color = pnl >= 0 ? "#2ebd85" : "#f6465d";
     }
@@ -307,11 +365,8 @@ window.selectDir = function(dir) {
     document.getElementById('startBtn').classList.remove('btn-disabled');
 }
 
-// Chart.js setup with dottedLinePlugin and 10s signal candle plugin
 const ctx = document.getElementById('btcChart').getContext('2d');
 let priceHistory = [];
-
-// --- DOTTED LINE PLUGIN ---
 let dottedLinePlugin = {
     id: 'dottedLine',
     afterDraw: function(chart) {
@@ -331,13 +386,10 @@ let dottedLinePlugin = {
         }
     }
 };
-
-// --- SIGNAL CANDLE OVERLAY PLUGIN (10s update) ---
 let signalCandlePlugin = {
     id: 'signalCandle10s',
     afterDraw: function(chart) {
         if (entryLine === null) return;
-        // Only draw candle if there is a bet
         const lastPrice = chart.data.datasets[0].data.slice(-1)[0];
         if (typeof lastPrice !== 'number') return;
         let color = (lastPrice > entryLine) ? "#2ebd85" : (lastPrice < entryLine) ? "#f6465d" : "#fcd535";
@@ -357,21 +409,13 @@ let signalCandlePlugin = {
         ctx.restore();
     }
 };
-
 const chart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: Array(20).fill(''),
-        datasets: [
-            {
-                data: priceHistory,
-                borderColor: '#FCD535',
-                tension: 0.4,
-                pointRadius: 0,
-                borderWidth: 2,
-                fill:false
-            }
-        ]
+        datasets: [{
+            data: priceHistory, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 2, fill:false
+        }]
     },
     options: {
         animation: false,
@@ -380,33 +424,30 @@ const chart = new Chart(ctx, {
     },
     plugins: [dottedLinePlugin, signalCandlePlugin]
 });
-
-// Regular chart price feed & update
 setInterval(() => {
     priceHistory.push(btcPrice);
     if (priceHistory.length > 20) priceHistory.shift();
     chart.data.datasets[0].data = priceHistory.slice();
     chart.update();
 }, 3000);
-
-// Also redraw candle every 10s for 'signal'
 setInterval(() => { chart.update(); }, 10000);
 
-function showTimerBar(show) {
-    document.getElementById('timerBarContainer').style.display = show?'block':'none';
-}
-function updateTimerBar(percent) {
-    document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%';
-}
+function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
+function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
 
 window.startBet = function() {
     if (!selectedDirection) return;
+    userBetAmount = Math.round(Math.max(1, Math.min(userBetAmount, Math.floor(currentBalance))));
+    if (userBetAmount > currentBalance) userBetAmount = currentBalance;
+    if (userBetAmount < 1) userBetAmount = 1;
+    let newBalance = currentBalance - userBetAmount;
+    // Set everything before trade starts
     const entryTimestamp = Date.now();
     const betDuration = 60 * 1000; // 60s
     const scheduledEnd = entryTimestamp + betDuration;
-
     gameState = "ACTIVE";
     setLeverageEnabled(false);
+    setAmountEnabled(false);
     entryPrice = btcPrice;
     entryLine = entryPrice;
     document.getElementById('controls').style.display = 'none';
@@ -415,7 +456,11 @@ window.startBet = function() {
     document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
     document.getElementById('liveDiff').textContent = '--';
     chart.update();
-
+    // Save new balance immediately
+    update(ref(db, 'users/' + userWallet), { balance: newBalance });
+    currentBalance = newBalance;
+    updateUI();
+    updateAmountSlider();
     // Save active bet info for auto settlement
     set(ref(db, 'users/' + userWallet + '/activeBet'), {
         entryPrice,
@@ -423,9 +468,9 @@ window.startBet = function() {
         scheduledEnd,
         direction: selectedDirection,
         leverage: userLeverage,
+        betAmount: userBetAmount,
         settled: false
     });
-
     timerValue = 60;
     updateTimerBar(1);
     showTimerBar(true);
@@ -443,17 +488,19 @@ window.startBet = function() {
 function endBet() {
     let fallBackPrice = btcPrice || entryPrice;
     let exitPrice = fallBackPrice;
-    let diff = (selectedDirection === "UP" ? (exitPrice - entryPrice) : (entryPrice - exitPrice));
-    let pnl = diff * userLeverage;
+    let wentUp = exitPrice > entryPrice ? 1 : exitPrice < entryPrice ? -1 : 0;
+    let mult = (selectedDirection === "UP") ? wentUp : -wentUp;
+    let pnl = userBetAmount * userLeverage * mult;
     currentBalance += pnl;
     let now = new Date().toISOString();
     update(ref(db, 'users/' + userWallet), { balance: currentBalance });
     set(ref(db, 'users/' + userWallet + '/activeBet/settled'), true);
-    recordBet(entryPrice, exitPrice, selectedDirection, userLeverage, pnl, now);
+    recordBet(entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage, pnl, now);
     setTimeout(() => {
         entryLine = null;
         gameState = "IDLE";
         setLeverageEnabled(true);
+        setAmountEnabled(true);
         document.getElementById('controls').style.display = 'block';
         document.getElementById('comparison').style.display = 'none';
         document.getElementById('startBtn').classList.add('btn-disabled');
@@ -463,10 +510,10 @@ function endBet() {
         chart.update();
         updateUI();
         showTimerBar(false);
+        updateAmountSlider();
     }, 3000);
 }
 
-// Alert user if closing tab during active bet
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") {
         e.preventDefault();
