@@ -38,16 +38,15 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 .btn-disabled { opacity: 0.3; pointer-events: none; }
 .selected { outline: 2px solid #fff; transform: scale(0.98); }
 #btc-price { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; color: #FCD535; }
-#addMoneyTable, #profitTable { width:100%; font-size:9px; border-collapse:collapse; background:#242731; margin-bottom:8px; }
-#addMoneyTable th, #addMoneyTable td, #profitTable th, #profitTable td { border:1px solid #26282d; padding:3px; text-align:center; }
-#addMoneyTable th, #profitTable th { background:#181A20;color:#FCD535;}
-#addMoneyTable tr:nth-child(even), #profitTable tr:nth-child(even) { background:#1e2329; }
-#addMoneyTable tr:nth-child(odd), #profitTable tr:nth-child(odd) { background:#242731;}
+#profitTable { width:100%; font-size:9px; border-collapse:collapse; background:#242731; margin-bottom:8px; }
+#profitTable th, #profitTable td { border:1px solid #26282d; padding:3px; text-align:center; }
+#profitTable th { background:#181A20;color:#FCD535;}
+#profitTable tr:nth-child(even) { background:#1e2329; }
+#profitTable tr:nth-child(odd) { background:#242731;}
 #profitTable td.pnl-positive { color: #2ebd85;}
 #profitTable td.pnl-negative { color: #f6465d;}
 .reward-info { font-size: 10px; color: #848E9C; background: #1e2329; padding: 10px; border-radius: 8px; margin-top: 15px; border-left: 3px solid #FCD535; }
-.input-funds { width:70px; font-size:14px; border-radius:6px; padding:4px 3px; border:1px solid #333; background:#1e2329; color:#FCD535; }
-#profitToMainBtn, #tradingToMainBtn, #mainToTradingBtn, #mainToProfitBtn {margin-top:6px;}
+.input-funds { width:90px; font-size:14px; border-radius:6px; padding:4px 3px; border:1px solid #333; background:#1e2329; color:#FCD535; }
 .input-funds::-webkit-outer-spin-button,
 .input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .input-funds[type=number] { -moz-appearance: textfield; }
@@ -79,14 +78,13 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                 </div>
             </div>
             <div style="margin-bottom:8px;">
+                <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()">Add Money to Main</button>
+                <input class="input-funds" id="addMoneyInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            </div>
+            <div style="margin-bottom:8px;">
                 <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main ➔ Trading</button>
                 <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
                 <button class="max-btn" onclick="setMax('mainToTrading')">MAX</button>
-            </div>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-connect" id="mainToProfitBtn" onclick="moveBalance('main','profit')">Main ➔ Profit</button>
-                <input class="input-funds" id="mainToProfitInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
-                <button class="max-btn" onclick="setMax('mainToProfit')">MAX</button>
             </div>
             <div style="margin-bottom:8px;">
                 <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')">Trading ➔ Main</button>
@@ -173,8 +171,8 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
         <b>Move funds between balances using controls above in the MY BALANCE and PROFIT tabs.</b><br>
         <b>Rules:</b>
         <ul style="margin:0; padding-left:17px; font-size:11px;">
-        <li>You control your Main, Trading, and Profit balances. Use <b>MAX</b> or specific amounts to move between.</li>
-        <li>Bets use <b>Trading</b> balance only, but do not deduct bet amount on position open. Only realized profits or losses update balances.</li>
+        <li>You can <b>add new money</b> to your Main balance (simulate deposit). Move funds freely between Main, Trading, Profit.</li>
+        <li>Bets use <b>Trading</b> balance only, but do not deduct bet amount on position open. Only realized profits/losses update balances.</li>
         <li>Only <b>positive profits</b> from winning trades are credited to your Profit account. Negative profits are tracked but do not reduce your Profit balance.</li>
         <li>Negative profits are shown red (with a minus sign) in your Profit tab history.</li>
         <li>Profit, Trading, and Main balances are always available to move, no daily limit, and app is fully smooth/touch friendly.</li>
@@ -248,26 +246,30 @@ function updateTabs() {
     document.getElementById('balanceUSD').textContent = toUsd(trading);
     document.getElementById('totalProfit').textContent = toUsd(profit);
     updateAmountSlider();
-    // Update balance input "max" for all
     document.getElementById('mainToTradingInput').max = main;
-    document.getElementById('mainToProfitInput').max = main;
     document.getElementById('tradingToMainInput').max = trading;
     document.getElementById('profitToMainInput').max = profit;
     document.getElementById('profitToMainInput_2').max = profit;
 }
 function setMax(which) {
     if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
-    else if(which==='mainToProfit') document.getElementById('mainToProfitInput').value = main;
     else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
     else if(which==='profitToMain') { document.getElementById('profitToMainInput').value = profit; }
     else if(which==='profitToMain_2') { document.getElementById('profitToMainInput_2').value = profit; }
 }
 window.setMax = setMax;
 
-async function moveBalance(from,to) {
+// Add money to main
+window.addMoneyMain = async function() {
+    let amt = Math.round(+document.getElementById('addMoneyInput').value);
+    if (isNaN(amt)||amt<1) return alert("Enter a valid positive number");
+    await set(ref(db, `users/${userWallet}/main`), main + amt);
+    document.getElementById('addMoneyInput').value = '';
+};
+
+window.moveBalance = async function(from,to) {
     let inputId, amt, u = {};
     if (from==='main' && to==='trading') inputId = "mainToTradingInput";
-    else if (from==='main' && to==='profit') inputId = "mainToProfitInput";
     else if (from==='trading' && to==='main') inputId = "tradingToMainInput";
     else if (from==='profit' && to==='main') inputId = "profitToMainInput";
     else if (from==='profit_2' && to==='main') inputId = "profitToMainInput_2";
@@ -285,15 +287,10 @@ async function moveBalance(from,to) {
     if(to=='main')      u['main']=main+amt;
     if(from=='trading') u['trading']=trading-amt;
     if(to=='trading')   u['trading']=trading+amt;
-    if(from=='profit' || from=='profit_2') {
-        u['profit']=profit-amt;
-    }
-    if(to=='profit')    u['profit']=profit+amt;
+    if(from=='profit' || from=='profit_2') u['profit']=profit-amt;
     await update(ref(db,`users/${userWallet}`), u);
     document.getElementById(inputId).value = '';
-}
-
-window.moveBalance = moveBalance;
+};
 
 window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
