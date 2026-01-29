@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>BTCUSD Guess Cyberpunk App</title>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-database-compat.js"></script>
+  <!-- Cyberpunk (Neon) font for extreme cyber style -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Share Tech Mono', 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #141925 0%, #08090d 70%, #141116 100%);
+      color: #f9fafb;
+      font-size: 10px;
+      box-sizing: border-box;
+      user-select: none;
+      min-height: 100vh;
+      /* Neon grid overlay feel */
+      background-image: repeating-linear-gradient(
+        to right, rgba(34,255,255,0.025) 0, rgba(34,255,255,0.025) 1px, transparent 1px, transparent 24px
+      ), repeating-linear-gradient(
+        to bottom, rgba(252,29,253,0.04) 0, rgba(252,29,253,0.04) 1px, transparent 1px, transparent 24px
+      );
+    }
+    .container {
+      max-width: 396px;
+      margin: 12px auto 0 auto;
+      padding: 12px 8px 20px 8px;
+      background: rgba(18,20,32,0.93);
+      border-radius: 20px;
+      box-shadow: 0 4px 100px #ec32ee44, 0 0px 30px #0dd0ff28, 0 0 2px #1abfff90;
+      position: relative;
+      z-index: 2;
+    }
+    .price {
+      font-size: 2.1em;
+      font-weight: bold;
+      margin-bottom: 6px;
+      letter-spacing: 1.2px;
+      text-align: center;
+      color: #02ffe1;
+      text-shadow: 0 0 14px #00f5e169, 0 0 2px #0ff, 0 0 2px #d0e;
+      background: linear-gradient(101deg, #18172a 55%, #0beee2 110%);
+      padding: 10px 0 9px 0;
+      border-radius: 10px;
+    }
+    .timer {
+      font-family: inherit;
+      text-align: center;
+      color: #e500fe;
+      margin-bottom: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      font-size: 1.08em;
+      text-shadow: 0 0 7px #e500fe88;
+    }
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 14px;
+      background: linear-gradient(100deg, #14182e 80%, #25113e 100%);
+      padding: 10px 10px 13px 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 18px #ec32ee08;
+      border: 1.5px solid #231837;
+    }
+    input[type="text"], input[type="number"] {
+      font-size: 10px;
+      padding: 6px 10px;
+      border: 1.3px solid #231837;
+      border-radius: 7px;
+      background: #0c1023;
+      color: #fffc;
+      outline: none;
+      transition: box-shadow 0.17s, border 0.19s;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      letter-spacing: .2px;
+      caret-color: #e500fe;
+      filter: brightness(1.23);
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border: 1.4px solid #ec32ee;
+      box-shadow: 0 0 7px #e500fe44;
+      background: #181833;
+    }
+    button {
+      padding: 9px 0 7px 0;
+      font-size: 10px;
+      background: linear-gradient(90deg, #02ffe1 0%, #e500fe 100%);
+      color: #18182d;
+      font-family: inherit;
+      font-weight: bolder;
+      border: none;
+      border-radius: 8px;
+      margin-top: 2px;
+      cursor: pointer;
+      box-shadow: 0 2px 12px #0ff8, 0px 0px 2px #e500fe73;
+      letter-spacing: 1.2px;
+      text-shadow: 0px 0px 2px #fff9;
+      transition: filter 0.2s, background .18s;
+    }
+    button:active {
+      filter: brightness(0.85);
+    }
+    .disabled, button:disabled {
+      opacity: 0.27;
+      pointer-events: none;
+    }
+    .entries-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: linear-gradient(90deg, #131831 80%, #281340 100%);
+      box-shadow: 0 1px 7px #e500fe2b, 0 0px 2px #00ffe440;
+      border-radius: 9px;
+      overflow: hidden;
+      margin-top: 8px;
+      font-size: 10px;
+      border: 1.5px solid #191a30;
+    }
+    .entries-table th, .entries-table td {
+      padding: 5px 3.7px;
+      text-align: left;
+      border-bottom: 1px solid #23213a;
+      font-size: 10px;
+      font-family: inherit;
+      background: transparent;
+      text-shadow: 0 0 1px #0ff9;
+    }
+    .entries-table th {
+      background: linear-gradient(92deg, #260a3b 0%, #191f37 100%);
+      color: #22ffee;
+      font-weight: 700;
+      border-bottom: 1.8px solid #231837;
+      text-shadow: 0 0 4px #22ffee8c;
+    }
+    .entries-table tr:last-child td {
+      border-bottom: none;
+    }
+    .winner {
+      background: linear-gradient(93deg,#14e38380 0%, #5111e67c 100%) !important;
+      color: #171832 !important;
+      text-shadow: 0 0 6px #11ffba, 0 0 13px #f0f !important;
+    }
+    .closed-msg {
+      text-align: center;
+      color: #e500fe;
+      background: #22102e;
+      border-radius: 8px;
+      padding: 6px 8px 7px 8px;
+      margin-bottom: 12px;
+      margin-top: 5px;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 12px #e500fe37;
+    }
+    .info {
+      font-size: 9px;
+      color: #38c2e7;
+      margin-top: 3px;
+      text-align: center;
+      letter-spacing: 0px;
+      font-family: inherit;
+      text-shadow: 0 0 2px #0ff5, 0 0 2px #f0f3;
+    }
+    .neon-border {
+      border: 1px solid #e500fe;
+      box-shadow: 0 0 9px #e500fe33, 0 0 1.3px #1700a2 inset;
+    }
+    .pnl {
+      font-weight: bold;
+      font-family: inherit;
+      font-size: 10px;
+      text-shadow: 0 0 5px #05ff9f23;
+      padding-left: 5px;
+    }
+    .pnl-pos {
+      color: #18ff83;
+      text-shadow: 0 0 4px #05ff9f73, 0 0 2px #0ff9;
+    }
+    .pnl-neg {
+      color: #e63657;
+      text-shadow: 0 0 6px #f0f399b, 0 0 2px #f0f3;
+    }
+    .pnl-zero {
+      color: #f6e05e;
+      text-shadow: none;
+    }
+    tr:hover {
+      filter: brightness(1.13) saturate(1.65);
+      background: #280e4d33 !important;
+      transition: .2s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container neon-border">
+    <div style="text-align:center;margin-bottom:10px;"><img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=026" alt="BTC" style="width:38px;filter:drop-shadow(0 0 12px #ec32ee);"></div>
+    <div id="price" class="price">...</div>
+    <div id="timer" class="timer">Loading...</div>
+    <div id="closedMsg" class="closed-msg" style="display:none;">
+      Entries are closed.<br>Wait for results!
+    </div>
+    <form class="form neon-border" id="guessForm" autocomplete="off">
+      <input autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" pattern="^@.+" id="xUsername" type="text" placeholder="Your X username, e.g. @xyzzz" required maxlength="24" style="ime-mode:disabled;">
+      <input autocomplete="off" autocorrect="off" spellcheck="false" inputmode="decimal" pattern="^[\d\.]+$" min="0" max="999999" maxlength="7" id="usdGuess" type="number" placeholder="Guess price after 24h (USD)" required>
+      <button type="submit" id="guessBtn">Submit Guess</button>
+    </form>
+    <div class="info">(Entries close after 12h. Winner(s) list will show after 24h)<br>PNL = (BTC Live - Your Guess)</div>
+    <div id="winnersSection" style="display:none;margin-top:10px;">
+      <h3 style="font-size:10px;margin:0 0 4px 0;font-weight:bold;color:#22ffee;text-shadow:0 0 6px #22ffee;">Winners</h3>
+      <table class="entries-table neon-border" id="winnersTable"></table>
+    </div>
+    <div id="tableSection" style="margin-top:10px;">
+      <h3 style="font-size:10px;margin:0 0 4px 0;font-weight:bold;color:#22ffee;text-shadow:0 0 7px #23ffef;">Guesses</h3>
+      <table class="entries-table neon-border" id="entriesTable"></table>
+    </div>
+  </div>
+  <script>
+    // --- CONFIGURABLES ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+      authDomain: "betbtc-6d881.firebaseapp.com",
+      databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+      projectId: "betbtc-6d881",
+      storageBucket: "betbtc-6d881.appspot.com",
+      messagingSenderId: "962176232122",
+      appId: "1:962176232122:web:a277d922543c3378033083",
+      measurementId: "G-V4XNB7K1E0"
+    };
+
+    // ---- SESSION TIMER MANAGEMENT ----
+    // Each 24h round, same for all users per launch-time.
+    // START TIME: Set to first launch, then persist for future (use Firebase for server time always).
+    const firebaseApp = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const SESSION_PATH = '/btc24h_session';
+    const ENTRIES_PATH = '/btc24h_entries';
+
+    let session = {
+      start: null,
+      close: null,
+      end: null,
+      closePrice: null,
+      endPrice: null,
+    };
+
+    async function getOrCreateSession() {
+      return new Promise((resolve) => {
+        db.ref(SESSION_PATH).once('value').then(async snap => {
+          if (snap.exists()) {
+            session = {...session, ...snap.val()};
+            resolve(session);
+          } else {
+            // Set now as session start (rounded to minute) and restrict later edits.
+            const now = Date.now();
+            const start = now - (now % 60000);
+            const close = start + 12 * 60 * 60 * 1000;
+            const end = start + 24 * 60 * 60 * 1000;
+            session = { start, close, end, closePrice: null, endPrice: null };
+            await db.ref(SESSION_PATH).set(session);
+            resolve(session);
+          }
+        });
+      });
+    }
+
+    // --- BTC PRICE LIVE ---
+    let lastBTC = null;
+    async function fetchBTC() {
+      try {
+        const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+        const { price } = await r.json();
+        lastBTC = +price;
+        return lastBTC.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      } catch {
+        return '???.??';
+      }
+    }
+    async function updateBTC() {
+      const priceStr = await fetchBTC();
+      document.getElementById('price').textContent = priceStr;
+      renderEntries(); // Update PNL live
+    }
+    setInterval(updateBTC, 5000);
+
+    // --- TIMER ---
+    function prettyTime(ms, short=true) {
+      if (ms<0) return "0s";
+      const d = Math.floor(ms/86400000);
+      const h = Math.floor(ms/3600000)%24;
+      const m = Math.floor(ms/60000)%60;
+      const s = Math.floor(ms/1000)%60;
+      if (short) {
+        if (d>0) return `${d}d ${h}h`;
+        if (h>0) return `${h}h ${m}m`;
+        if (m>0) return `${m}m ${s}s`;
+        return `${s}s`;
+      }
+      let parts = [];
+      if (d) parts.push(d + ' day' + (d === 1 ? '' : 's'));
+      if (h) parts.push(h + ' hour' + (h === 1 ? '' : 's'));
+      if (m) parts.push(m + ' min' + (m === 1 ? '' : 's'));
+      if (s) parts.push(s + ' sec');
+      return parts.join(', ');
+    }
+    function updateTimerUI() {
+      const now = Date.now();
+      if (session.close && now<session.close) {
+        document.getElementById('timer').textContent = 'Enter guess: ' + prettyTime(session.close-now);
+      } else if (session.end && now<session.end) {
+        document.getElementById('timer').textContent = 'Next Payout: ' + prettyTime(session.end-now);
+      } else {
+        document.getElementById('timer').textContent = 'New session soon!';
+      }
+    }
+    function updateFormState() {
+      const now = Date.now();
+      if (session.close && now >= session.close) {
+        document.getElementById('closedMsg').style.display = '';
+        document.getElementById('guessForm').classList.add('disabled');
+        document.getElementById('guessBtn').disabled = true;
+        Array.from(document.querySelectorAll('.form input')).forEach(e=>e.disabled=true);
+      } else {
+        document.getElementById('closedMsg').style.display = 'none';
+        document.getElementById('guessForm').classList.remove('disabled');
+        document.getElementById('guessBtn').disabled = false;
+        Array.from(document.querySelectorAll('.form input')).forEach(e=>e.disabled=false);
+      }
+    }
+
+    // --- SUBMIT GUESS ---
+    document.getElementById('guessForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      let username = document.getElementById('xUsername').value.trim();
+      let guess = document.getElementById('usdGuess').value.trim();
+      if (!/^@[\w\.]{2,22,25}$|@[\w]{2,23}$/.test(username)) {
+        alert("Invalid X username. Example: @xyzzz");
+        return;
+      }
+      let guessNum = +guess;
+      if (isNaN(guessNum) || guessNum < 1000 || guessNum > 999999) {
+        alert("Guess must be a number in USD (1000-999999).");
+        return;
+      }
+      const userKey = username.replace(/[^a-zA-Z0-9_\.]/g,"_");
+      const entryPath = ENTRIES_PATH + '/' + session.start + '/' + userKey;
+      let existing = (await db.ref(entryPath).once('value')).val();
+      if (!existing) {
+        await db.ref(entryPath).set({
+          x: username,
+          guess: guessNum,
+          ts: Date.now()
+        });
+        alert('Guess submitted!');
+        document.getElementById('guessForm').reset();
+      } else {
+        alert("You've already entered!");
+      }
+      renderEntries();
+    });
+
+    // --- RENDER ENTRIES TABLE WITH LIVE PNL ---
+    async function renderEntries() {
+      const snap = await db.ref(ENTRIES_PATH + '/' + session.start).once('value');
+      const entriesObj = snap.val() || {};
+      let arr = Object.values(entriesObj);
+      arr.sort((a,b)=>a.ts-b.ts);
+      const table = document.getElementById('entriesTable');
+      let html = `<tr>
+        <th>X Username</th>
+        <th>Guess ($)</th>
+        <th>PNL (Live)</th>
+        <th>When</th>
+      </tr>`;
+      if (arr.length)
+        html += arr.map(e => {
+          if (!e.x || typeof e.guess !== 'number' && typeof e.guess !== 'string') return '';
+          const pnl = (lastBTC != null && !isNaN(e.guess)) ? (+lastBTC - e.guess) : null;
+          let pnlDisp = '';
+          if (pnl != null) {
+              const sign = pnl > 0 ? '+' : (pnl < 0 ? '-' : '±');
+              const absPnl = Math.abs(pnl).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+              let colorClass = pnl > 0 ? 'pnl-pos' : (pnl < 0 ? 'pnl-neg':'pnl-zero');
+              pnlDisp = `<span class="pnl ${colorClass}">${sign}${absPnl}</span>`;
+          }
+          return `
+            <tr>
+              <td style="color:#73faff;font-family:inherit;">${e.x}</td>
+              <td>${String(e.guess)}</td>
+              <td>${pnlDisp}</td>
+              <td>${new Date(e.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+            </tr>`;
+      }).join("");
+      else
+        html += "<tr><td colspan=4 style='text-align:center'>No guesses yet</td></tr>";
+      table.innerHTML = html;
+    }
+
+    // --- RECORD CLOSE/END PRICES (admin only, for auto: do below!) ---
+    async function checkAndSetPrices() {
+      const now = Date.now();
+      // At close/end, save price
+      if (!session.closePrice && session.close && now>session.close && now<(session.end-1000)) {
+        const cp = await fetchBTC();  // Price at 12h
+        session.closePrice = +cp.replace(/,/g,"");
+        await db.ref(SESSION_PATH + "/closePrice").set(session.closePrice);
+      }
+      if (!session.endPrice && session.end && now>session.end) {
+        const ep = await fetchBTC(); // Price at 24h
+        session.endPrice = +ep.replace(/,/g,"");
+        await db.ref(SESSION_PATH + "/endPrice").set(session.endPrice);
+      }
+    }
+
+    // --- WINNERS TABLE ---
+    async function renderWinners() {
+      if (!session.endPrice) return;
+      const snap = await db.ref(ENTRIES_PATH + '/' + session.start).once('value');
+      const entriesObj = snap.val() || {};
+      let arr = Object.values(entriesObj);
+      if (!arr.length) return;
+      arr.forEach(e => e.dist = Math.abs(e.guess - session.endPrice));
+      arr.sort((a, b) => a.dist - b.dist);
+      const table = document.getElementById('winnersTable');
+      let html = `<tr>
+        <th>Rank</th>
+        <th>X Username</th>
+        <th>Guess ($)</th>
+        <th>Δ</th>
+      </tr>`;
+      arr.forEach((e, i) => {
+        html += `<tr class="${i==0?'winner':''}">
+          <td>${i+1}</td>
+          <td style="font-family:inherit;">${e.x}</td>
+          <td>${String(e.guess)}</td>
+          <td>${Math.abs(e.guess - session.endPrice)}</td>
+        </tr>`;
+      });
+      table.innerHTML = html;
+      document.getElementById('winnersSection').style.display = '';
+      document.getElementById('tableSection').style.display = 'none';
+    }
+
+    // --- MAIN ---
+    async function main() {
+      await getOrCreateSession();
+      updateBTC();
+      updateTimerUI();
+      updateFormState();
+      renderEntries();
+      setInterval(updateTimerUI, 1000);
+      setInterval(updateFormState, 2000);
+      setInterval(async ()=> {
+        await checkAndSetPrices();
+        // Show results if ended
+        if (session.end && Date.now() > session.end) {
+          await db.ref(SESSION_PATH).once('value').then(snap=>session={...session, ...snap.val()});
+          if (session.endPrice) renderWinners();
+        }
+      }, 15*1000);
+      if (session.end && Date.now()>session.end) {
+        await db.ref(SESSION_PATH).once('value').then(snap=>session={...session, ...snap.val()});
+        if (session.endPrice) renderWinners();
+      }
+    }
+
+    main();
+
+    // --- Prevent zoom on input focus on mobile ---
+    document.querySelectorAll('input').forEach(function(input){
+      input.addEventListener('touchstart', function(){
+        document.body.style.fontSize = '10px';
+        document.documentElement.style.fontSize='10px';
+      });
+    });
+
+  </script>
+</body>
+</html>
