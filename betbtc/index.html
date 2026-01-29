@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: My Balance, Trading & Profits</title>
-<meta name="viewport" content="width=420">
+<title>BTC Pro: Multi-Balance Vault</title>
+<meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -43,8 +43,15 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 #addMoneyTable th, #profitTable th { background:#181A20;color:#FCD535;}
 #addMoneyTable tr:nth-child(even), #profitTable tr:nth-child(even) { background:#1e2329; }
 #addMoneyTable tr:nth-child(odd), #profitTable tr:nth-child(odd) { background:#242731;}
-#profitTable td { color: #2ebd85;}
+#profitTable td.pnl-positive { color: #2ebd85;}
+#profitTable td.pnl-negative { color: #f6465d;}
 .reward-info { font-size: 10px; color: #848E9C; background: #1e2329; padding: 10px; border-radius: 8px; margin-top: 15px; border-left: 3px solid #FCD535; }
+.input-funds { width:70px; font-size:14px; border-radius:6px; padding:4px 3px; border:1px solid #333; background:#1e2329; color:#FCD535; }
+#profitToMainBtn, #tradingToMainBtn, #mainToTradingBtn, #mainToProfitBtn {margin-top:6px;}
+.input-funds::-webkit-outer-spin-button,
+.input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.input-funds[type=number] { -moz-appearance: textfield; }
+.max-btn { background: #23262f; color:#FCD535; border:none; border-radius:3px; font-weight:bold; font-size:10px; padding: 2px 6px; margin-left:4px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -63,43 +70,45 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
         <div id="view-mybalance">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">Vault (add today)</span>
-                    <span id="userVault" class="stat-value">$0.00</span>
+                    <span class="stat-label">MAIN BALANCE</span>
+                    <span id="userMain" class="stat-value">$0.00</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Trading</span>
+                    <span class="stat-label">TRADING</span>
                     <span id="userTrading" class="stat-value">$0.00</span>
                 </div>
             </div>
-            <form id="addMoneyForm" onsubmit="return false;" style="margin-bottom:8px;">
-                <label style="color:#FCD535;font-size:11px;">How much do you want to spend today? (one-time per day)<br></label>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <input type="number" id="addMoneyInput" min="1" step="1" max="10000" style="width:90px;font-size:14px;padding:4px;border-radius:6px;margin:8px 0;" required>
-                    <button id="addMoneyBtn" class="btn btn-up" type="button" onclick="addMoneyToday()">Add to Vault</button>
-                </div>
-            </form>
-            <button id="vaultToTradingBtn" class="btn btn-connect" type="button" onclick="moveToTrading()" style="margin-bottom:10px;">Move to Trading</button>
-            <div style="font-size:10px;color:#848E9C;margin-bottom:5px;">History of Added Money</div>
-            <table id="addMoneyTable">
-                <thead>
-                    <tr>
-                        <th>Date (UTC)</th>
-                        <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody id="addMoneyHistory"></tbody>
-            </table>
+            <div style="margin-bottom:8px;">
+                <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main ➔ Trading</button>
+                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+                <button class="max-btn" onclick="setMax('mainToTrading')">MAX</button>
+            </div>
+            <div style="margin-bottom:8px;">
+                <button class="btn btn-connect" id="mainToProfitBtn" onclick="moveBalance('main','profit')">Main ➔ Profit</button>
+                <input class="input-funds" id="mainToProfitInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+                <button class="max-btn" onclick="setMax('mainToProfit')">MAX</button>
+            </div>
+            <div style="margin-bottom:8px;">
+                <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')">Trading ➔ Main</button>
+                <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+                <button class="max-btn" onclick="setMax('tradingToMain')">MAX</button>
+            </div>
+            <div style="margin-bottom:8px;">
+                <button class="btn btn-up" id="profitToMainBtn" onclick="moveBalance('profit','main')">Profit ➔ Main</button>
+                <input class="input-funds" id="profitToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+                <button class="max-btn" onclick="setMax('profitToMain')">MAX</button>
+            </div>
         </div>
         <!-- TRADE TAB -->
         <div id="view-trade" style="display:none;">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">Trading</span>
+                    <span class="stat-label">TRADING</span>
                     <span id="balanceUSD" class="stat-value">$0.00</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Vault</span>
-                    <span id="vaultBalance" class="stat-value" style="color:#fff">$0.00</span>
+                    <span class="stat-label">MAIN BALANCE</span>
+                    <span id="userMain2" class="stat-value" style="color:#fff">$0.00</span>
                 </div>
             </div>
             <div id="btc-price">--.---</div>
@@ -153,25 +162,28 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                 </thead>
                 <tbody id="profitTableBody"></tbody>
             </table>
+            <div style="margin-bottom:8px;">
+                <button class="btn btn-connect" id="profitToMainBtn_2" onclick="moveBalance('profit','main')">Profit ➔ Main</button>
+                <input class="input-funds" id="profitToMainInput_2" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+                <button class="max-btn" onclick="setMax('profitToMain_2')">MAX</button>
+            </div>
         </div>
     </div>
     <div class="reward-info">
+        <b>Move funds between balances using controls above in the MY BALANCE and PROFIT tabs.</b><br>
         <b>Rules:</b>
         <ul style="margin:0; padding-left:17px; font-size:11px;">
-        <li>Each day, input and add the amount you want to spend to your vault (can only add ONCE per day).</li>
-        <li>You must move funds from vault to trading before you can trade.</li>
-        <li>Your vault resets to $0 on each new UTC day.</li>
-        <li>All profits from winning trades are automatically transferred to your Profit account.</li>
-        <li>No initial balance. All balances persist for the day only, and profits accrue indefinitely!</li>
+        <li>You control your Main, Trading, and Profit balances. Use <b>MAX</b> or specific amounts to move between.</li>
+        <li>Bets use <b>Trading</b> balance only, but do not deduct bet amount on position open. Only realized profits or losses update balances.</li>
+        <li>Only <b>positive profits</b> from winning trades are credited to your Profit account. Negative profits are tracked but do not reduce your Profit balance.</li>
+        <li>Negative profits are shown red (with a minus sign) in your Profit tab history.</li>
+        <li>Profit, Trading, and Main balances are always available to move, no daily limit, and app is fully smooth/touch friendly.</li>
         </ul>
     </div>
-</div>
 <script type="module">
 // Firebase & Analytics
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, update, push, get, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
-
+import { getDatabase, ref, onValue, set, update, push, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
   authDomain: "betbtc-6d881.firebaseapp.com",
@@ -183,22 +195,30 @@ const firebaseConfig = {
   measurementId: "G-V4XNB7K1E0"
 };
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getDatabase(app);
 
 // Util
-function startOfUtcDay(ts) { let d = new Date(ts); d.setUTCHours(0,0,0,0); return d.getTime(); }
-function nowDayKey(){ return startOfUtcDay(Date.now()); }
 function toUsd(x) { return "$" + (+x).toFixed(2); }
+function positive(x) { return Math.max(0, x); }
+function nonneg(x) { return (!x||x<0)?0:Number(x); }
 
 let userWallet = null;
-let vault = 0, trading = 0, totalProfit = 0;
+let main = 0, trading = 0, profit = 0;
 let btcPrice = 0;
 let gameState = "IDLE";
 let selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
-let vaultAddToday = 0;
-let todayKey = 0;
 let profitHistory = [];
+
+// UI/DOM helpers
+function selectTab(tab) {
+    document.getElementById('view-mybalance').style.display = tab==="mybalance"?"block":"none";
+    document.getElementById('view-trade').style.display = tab==="trade"?"block":"none";
+    document.getElementById('view-profit').style.display = tab==="profit"?"block":"none";
+    document.getElementById('tab-mybalance').className = "tab" + (tab=='mybalance'?' active':'');
+    document.getElementById('tab-trade').className = "tab" + (tab=='trade'?' active':'');
+    document.getElementById('tab-profit').className = "tab" + (tab=='profit'?' active':'');
+}
+window.switchTab = selectTab;
 
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
@@ -211,97 +231,70 @@ document.getElementById('connectBtn').onclick = async () => {
 };
 
 function initUser() {
-    // Set up day tracking
-    todayKey = nowDayKey();
-    // Listen for balance changes in all tabs
     onValue(ref(db, `users/${userWallet}`), snap => {
         let node = snap.val();
-        vault = node?.vault ?? 0;
-        trading = node?.trading ?? 0;
-        totalProfit = node?.profit ?? 0;
-        updateMyBalanceTab();
-        updateTradeTab();
-        updateProfitTab();
+        main = nonneg(node?.main);
+        trading = nonneg(node?.trading);
+        profit = nonneg(node?.profit);
+        updateTabs();
     });
-    loadAddMoneyHistory();
     loadProfitTable();
     checkAndSettleActiveBet();
 }
-
-function updateMyBalanceTab() {
-    document.getElementById('userVault').textContent = toUsd(vault);
+function updateTabs() {
+    document.getElementById('userMain').textContent = toUsd(main);
+    document.getElementById('userMain2').textContent = toUsd(main);
     document.getElementById('userTrading').textContent = toUsd(trading);
-    document.getElementById('addMoneyInput').value = '';
-    document.getElementById('addMoneyInput').disabled = vaultAddToday > 0;
-    document.getElementById('addMoneyBtn').disabled = vaultAddToday > 0;
-    document.getElementById('addMoneyBtn').style.opacity = vaultAddToday > 0 ? 0.4 : 1;
-    document.getElementById('vaultToTradingBtn').disabled = (vault<=0);
-    document.getElementById('vaultToTradingBtn').style.opacity = (vault<=0) ? 0.4 : 1;
-}
-function updateTradeTab() {
     document.getElementById('balanceUSD').textContent = toUsd(trading);
-    document.getElementById('vaultBalance').textContent = toUsd(vault);
+    document.getElementById('totalProfit').textContent = toUsd(profit);
     updateAmountSlider();
+    // Update balance input "max" for all
+    document.getElementById('mainToTradingInput').max = main;
+    document.getElementById('mainToProfitInput').max = main;
+    document.getElementById('tradingToMainInput').max = trading;
+    document.getElementById('profitToMainInput').max = profit;
+    document.getElementById('profitToMainInput_2').max = profit;
 }
-function updateProfitTab() {
-    document.getElementById('totalProfit').textContent = toUsd(totalProfit);
+function setMax(which) {
+    if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
+    else if(which==='mainToProfit') document.getElementById('mainToProfitInput').value = main;
+    else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
+    else if(which==='profitToMain') { document.getElementById('profitToMainInput').value = profit; }
+    else if(which==='profitToMain_2') { document.getElementById('profitToMainInput_2').value = profit; }
 }
-function switchTab(tab) {
-    document.getElementById('view-mybalance').style.display = tab==="mybalance"?"block":"none";
-    document.getElementById('view-trade').style.display = tab==="trade"?"block":"none";
-    document.getElementById('view-profit').style.display = tab==="profit"?"block":"none";
-    document.getElementById('tab-mybalance').className = "tab" + (tab==='mybalance'?' active':'');
-    document.getElementById('tab-trade').className = "tab" + (tab==='trade'?' active':'');
-    document.getElementById('tab-profit').className = "tab" + (tab==='profit'?' active':'');
-}
-window.switchTab = switchTab;
+window.setMax = setMax;
 
-// Add money to vault (one per day)
-async function addMoneyToday() {
-    let amt = Math.round(+document.getElementById('addMoneyInput').value);
-    if (isNaN(amt)||amt<1||vaultAddToday>0) return;
-    // Save as "vaultAdd" for today; disable form
-    await set(ref(db, `users/${userWallet}/vault`), vault + amt);
-    await set(ref(db, `users/${userWallet}/vaultAdd/${todayKey}`), {amount: amt, date: (new Date()).toISOString()});
-    vaultAddToday = amt;
-    updateMyBalanceTab();
-    loadAddMoneyHistory();
-    alert(`$${amt} added to your vault for today!`);
+async function moveBalance(from,to) {
+    let inputId, amt, u = {};
+    if (from==='main' && to==='trading') inputId = "mainToTradingInput";
+    else if (from==='main' && to==='profit') inputId = "mainToProfitInput";
+    else if (from==='trading' && to==='main') inputId = "tradingToMainInput";
+    else if (from==='profit' && to==='main') inputId = "profitToMainInput";
+    else if (from==='profit_2' && to==='main') inputId = "profitToMainInput_2";
+    else return;
+    if(from==='profit' && to==='main' && !document.getElementById('profitToMainInput').value)
+        inputId="profitToMainInput_2"; // allow profit->main from profit tab as well
+
+    amt = parseFloat(document.getElementById(inputId).value);
+    if(!amt || amt <= 0) {alert("Enter valid amount."); return;}
+    if      (from=="main"    && amt>main)      { alert("Insufficient main balance."); return; }
+    else if (from=="trading" && amt>trading)   { alert("Insufficient trading balance."); return; }
+    else if (from=="profit"  && amt>profit)    { alert("Insufficient profit balance."); return; }
+    else if (from=="profit_2"&& amt>profit)    { alert("Insufficient profit balance."); return; }
+    if(from=='main')    u['main']=main-amt;
+    if(to=='main')      u['main']=main+amt;
+    if(from=='trading') u['trading']=trading-amt;
+    if(to=='trading')   u['trading']=trading+amt;
+    if(from=='profit' || from=='profit_2') {
+        u['profit']=profit-amt;
+    }
+    if(to=='profit')    u['profit']=profit+amt;
+    await update(ref(db,`users/${userWallet}`), u);
+    document.getElementById(inputId).value = '';
 }
 
-// Load add money history per user
-function loadAddMoneyHistory() {
-    let tb = document.getElementById('addMoneyHistory');
-    get(ref(db, `users/${userWallet}/vaultAdd`)).then(snap=>{
-        vaultAddToday = 0;
-        let arr = [];
-        snap.forEach(child=>{
-            let val = child.val();
-            let dt = new Date(val.date).toISOString().slice(0,10);
-            arr.push({dt,amount:val.amount, dateIso:val.date});
-        });
-        // Find today's entry if any
-        arr.forEach(a=>{
-            if (startOfUtcDay(new Date(a.dateIso).getTime())===todayKey) {
-                vaultAddToday = a.amount;
-            }
-        });
-        arr.sort((a,b)=>b.dateIso.localeCompare(a.dateIso));
-        tb.innerHTML = arr.length?arr.map(a=>(
-            `<tr><td>${a.dt}</td><td>$${a.amount}</td></tr>`
-        )).join(''):'<tr><td colspan=2 style="color:#848E9C">Empty</td></tr>';
-        updateMyBalanceTab();
-    });
-}
-window.addMoneyToday = addMoneyToday;
+window.moveBalance = moveBalance;
 
-// Move funds from vault to trading
-window.moveToTrading = async function() {
-    if(vault<=0) return;
-    await update(ref(db, `users/${userWallet}`), {trading: trading+vault, vault: 0});
-};
-
-// Bet Controls
 window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
     userLeverage = parseInt(val);
@@ -331,54 +324,46 @@ function updateAmountSlider() {
     document.getElementById('betAmountRemain').textContent = toUsd(futureBalance);
 }
 
-// Reset vault at the start of a new day
-async function resetVaultIfNeeded() {
-    let snap = await get(ref(db, `users/${userWallet}/vaultAdd`));
-    let found = false;
-    snap.forEach(child=>{
-        if(+child.key === todayKey) found=true;
-    });
-    if(!found) {
-        await update(ref(db, `users/${userWallet}`), {vault:0});
-    }
-}
-
-// Profits
+// --- Profit tab/table
 function addProfit(pnl, entry, exit, dir, amt, lev) {
     let profTx = {
         date: (new Date()).toISOString(),
         pnl, entry, exit, dir, amt, lev
     };
     profitHistory.push(profTx);
-    set(ref(db, `users/${userWallet}/profit`), totalProfit + pnl);
+    let newProfit = profit;
+    if (pnl > 0) { newProfit += pnl; }
+    set(ref(db, `users/${userWallet}/profit`), newProfit);
     let pKey = push(ref(db, `users/${userWallet}/profits`)).key;
     set(ref(db, `users/${userWallet}/profits/${pKey}`), profTx).then(loadProfitTable);
 }
 function loadProfitTable() {
     const tb = document.getElementById('profitTableBody');
     get(ref(db, `users/${userWallet}/profits`)).then(snap=>{
-        let out = [];
-        let total = 0;
         let arr = [];
-        snap.forEach(ch=>{
-            let obj = ch.val();
-            arr.push(obj);
-        });
+        let pos = 0, neg = 0;
+        snap.forEach(ch=>{ arr.push(ch.val()); });
         arr.sort((a,b)=>b.date.localeCompare(a.date));
-        arr.forEach(obj=>{
-            total += +obj.pnl;
+        let out = arr.map(obj=>{
             let d = new Date(obj.date).toISOString().slice(0,19).replace('T',' ');
-            out.push(
-                `<tr><td>${d}</td><td><b style="color:#2ebd85">${toUsd(obj.pnl)}</b></td><td>${toUsd(obj.entry)}</td><td>${toUsd(obj.exit)}</td><td style="color:${obj.dir=="UP"?"#2ebd85":"#f6465d"};font-weight:700">${obj.dir||"-"}</td><td>${toUsd(obj.amt)}</td><td>${obj.lev}x</td></tr>`
-            );
+            let val = (+obj.pnl).toFixed(2);
+            let pos = obj.pnl >= 0;
+            return `<tr>
+<td>${d}</td>
+<td class="${pos?'pnl-positive':'pnl-negative'}"><b>${pos?'':'-'}${toUsd(Math.abs(val))}</b></td>
+<td>${toUsd(obj.entry)}</td><td>${toUsd(obj.exit)}</td>
+<td style="color:${obj.dir=="UP"?"#2ebd85":"#f6465d"};font-weight:700">${obj.dir||"-"}</td>
+<td>${toUsd(obj.amt)}</td><td>${obj.lev}x</td>
+</tr>`;
         });
         tb.innerHTML = out.length?out.join(''):'<tr><td colspan=7 style="color:#848E9C">No profit yet.</td></tr>';
+        let total = 0;
+        arr.forEach(obj=>{ if(+obj.pnl>0) total += +obj.pnl; });
         document.getElementById('totalProfit').textContent = toUsd(total);
     });
 }
 
-
-// --- BET GAME LOGIC ----
+// --- BET LOGIC ---
 async function checkAndSettleActiveBet() {
     const betSnap = await get(ref(db, `users/${userWallet}/activeBet`));
     if (betSnap.exists() && betSnap.val() && !betSnap.val().settled) {
@@ -402,12 +387,11 @@ async function settleBetOffline(activeBet) {
     let wentUp = exitPrice > activeBet.entryPrice ? 1 : exitPrice < activeBet.entryPrice ? -1 : 0;
     let mult = (activeBet.direction === "UP") ? wentUp : -wentUp;
     let pnl = activeBet.betAmount * activeBet.leverage * mult;
-    let postTrade = trading + pnl;
     await set(ref(db, `users/${userWallet}/activeBet/settled`), true);
-    await set(ref(db, `users/${userWallet}/trading`), postTrade);
-    if(pnl>0) addProfit(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
-    updateProfitTab();
-    updateTradeTab();
+    let newTrading = trading + pnl;
+    await set(ref(db, `users/${userWallet}/trading`), newTrading);
+    if(pnl!=0) addProfit(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
+    updateTabs();
 }
 window.selectDir = function(dir) {
     if (gameState !== "IDLE") return;
@@ -422,7 +406,6 @@ window.startBet = function() {
     userBetAmount = Math.round(Math.max(1, Math.min(userBetAmount, Math.floor(trading))));
     if (userBetAmount > trading) userBetAmount = trading;
     if (userBetAmount < 1) userBetAmount = 1;
-    let newBalance = trading - userBetAmount;
     const entryTimestamp = Date.now();
     const betDuration = 60 * 1000;
     const scheduledEnd = entryTimestamp + betDuration;
@@ -437,7 +420,7 @@ window.startBet = function() {
     document.getElementById('livePrice').textContent = toUsd(btcPrice);
     document.getElementById('liveDiff').textContent = '--';
     chart.update();
-    set(ref(db, `users/${userWallet}/trading`), newBalance);
+    // Do NOT deduct bet amount from trading here
     set(ref(db, `users/${userWallet}/activeBet`), {
         entryPrice,
         entryTimestamp,
@@ -467,10 +450,10 @@ function endBet() {
     let wentUp = exitPrice > entryPrice ? 1 : exitPrice < entryPrice ? -1 : 0;
     let mult = (selectedDirection === "UP") ? wentUp : -wentUp;
     let pnl = userBetAmount * userLeverage * mult;
-    let postTrade = trading + pnl;
     set(ref(db, `users/${userWallet}/activeBet/settled`), true);
-    set(ref(db, `users/${userWallet}/trading`), postTrade);
-    if(pnl>0) addProfit(pnl, entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage);
+    let newTrading = trading + pnl;
+    set(ref(db, `users/${userWallet}/trading`), newTrading);
+    if(pnl!=0) addProfit(pnl, entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage);
     setTimeout(() => {
         entryLine = null; gameState = "IDLE"; setLeverageEnabled(true); setAmountEnabled(true);
         document.getElementById('controls').style.display = 'block';
@@ -480,9 +463,9 @@ function endBet() {
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
         chart.update();
-        updateTradeTab();
+        updateTabs();
         showTimerBar(false); updateAmountSlider();
-        updateProfitTab();
+        loadProfitTable();
     }, 3000);
 }
 
@@ -499,7 +482,7 @@ async function fetchPrice() {
         let wentUp = btcPrice > entryPrice ? 1 : btcPrice < entryPrice ? -1 : 0;
         let diff = (selectedDirection === "UP" ? wentUp : -wentUp);
         let pnl = userBetAmount * userLeverage * diff;
-        document.getElementById('liveDiff').textContent = (pnl >= 0 ? "+" : "") + pnl.toFixed(2);
+        document.getElementById('liveDiff').textContent = (pnl >= 0 ? "+" : "-") + Math.abs(pnl).toFixed(2);
         document.getElementById('liveDiff').style.color = pnl >= 0 ? "#2ebd85" : "#f6465d";
     }
 }
@@ -576,8 +559,6 @@ setInterval(() => { chart.update(); }, 10000);
 function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
 function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
 
-// Reset vault at the start of a new day after connect
-setInterval(resetVaultIfNeeded, 60*1000);
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") {
         e.preventDefault();
