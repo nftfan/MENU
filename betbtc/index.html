@@ -2,74 +2,73 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Multi-Balance Vault</title>
+<title>BTC Pro: Compact Vault</title>
 <meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:10px; }
-.container { max-width: 380px; margin: auto; background: #181A20; border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; }
-.tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #333; }
-.tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #848E9C; font-weight: bold; font-size: 12px; }
+body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:7px; font-size:9px; }
+.container { max-width: 370px; margin: auto; background: #181A20; border-radius: 11px; padding: 11px; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; font-weight:bold; }
+.tabs { display: flex; gap: 2px; margin-bottom: 7px; border-bottom: 1px solid #333; }
+.tab { flex: 1; padding: 6px; text-align: center; cursor: pointer; color: #848E9C; font-weight:bold; font-size: 9px; }
 .tab.active { color: #FCD535; border-bottom: 2px solid #FCD535; }
-.stats-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 15px; }
-.stat-card { background: #2B2F36; padding: 10px; border-radius: 8px; text-align: center; }
-.stat-label { font-size: 10px; color: #848E9C; text-transform: uppercase; }
-.stat-value { font-size: 14px; font-weight: bold; display: block; margin-top: 3px;}
-.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 7px; }
+.stat-card { background: #22252b; padding: 7px; border-radius: 6px; text-align: center; }
+.stat-label { font-size: 8px; color: #848E9C; text-transform: uppercase;}
+.stat-value { font-size: 10px; font-weight:bold; display:block; margin-top: 3px;}
+.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 7px; border-radius: 6px; margin: 7px 0; border: 1px solid #333; font-size:9px; }
 .comp-item { flex: 1; text-align: center; }
-.comp-label { font-size: 10px; color: #848E9C; display: block; }
-.comp-val { font-size: 13px; font-weight: bold; font-family: monospace; }
-.leverage-row, .amount-row { display: flex; align-items: center; margin-bottom: 5px; justify-content: space-between; }
-.leverage-label, .amount-label { font-size:11px; color:#FCD535; }
-#leverageSlider, #amountSlider { width: 60%; margin-left: 7px; margin-right:7px; }
+.comp-label { font-size: 8px; color: #848E9C; display: block; }
+.comp-val { font-size: 9px; font-weight: bold; font-family: monospace; }
+.leverage-row, .amount-row { display: flex; align-items: center; margin-bottom: 4px; justify-content: space-between; }
+.leverage-label, .amount-label { font-size:9px; color:#FCD535; }
+#leverageSlider, #amountSlider { width: 55%; margin-left: 4px; margin-right:4px; }
 #leverageSlider:disabled, #amountSlider:disabled { opacity:0.4; }
-.slider-value { color:#FCD535;font-weight:bold;font-size:12px;min-width:30px;display:inline-block;text-align:right; }
-#betAmountSummary { color: #fff; font-size: 12px; margin-bottom: 6px; margin-top: 3px; }
-#timerBarContainer { width:100%; height: 7px; background:#23262f; border-radius:7px; overflow:hidden; margin-bottom:3px; }
+.slider-value { color:#FCD535;font-weight:bold;font-size:9px;min-width:22px;display:inline-block;text-align:right; }
+#betAmountSummary { color: #fff; font-size: 9px; margin-bottom: 4px; margin-top: 2px; }
+#timerBarContainer { width:100%; height: 4px; background:#23262f; border-radius:4px; overflow:hidden; margin-bottom:2px; }
 #timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear; }
-.btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
+.btn { border: none; border-radius: 3px; padding: 7px 9px; font-weight: bold; cursor: pointer; width: unset; font-size: 9px; transition: 0.17s;}
 .btn-connect { background: #FCD535; color: #000; }
-.btn-row { display: flex; gap: 8px; width:100%; margin-bottom:8px;}
-.btn-up { background: #2ebd85; color: white; width: 50%; }
-.btn-down { background: #f6465d; color: white; width: 50%; }
+.btn-up { background: #2ebd85; color: white;}
+.btn-down { background: #f6465d; color: white;}
 .btn-disabled { opacity: 0.3; pointer-events: none; }
-.selected { outline: 2px solid #fff; transform: scale(0.98); }
-#btc-price { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; color: #FCD535; }
-#profitTable { width:100%; font-size:9px; border-collapse:collapse; background:#242731; margin-bottom:8px; }
-#profitTable th, #profitTable td { border:1px solid #26282d; padding:3px; text-align:center; }
+.selected { outline: 2px solid #fff; transform: scale(0.97); }
+#btc-price { font-size: 12px; font-weight:bold; text-align:center; margin:7px 0; color:#FCD535;}
+#profitTable { width:100%; font-size:8px; border-collapse:collapse; background:#242731; margin-bottom:6px; }
+#profitTable th, #profitTable td { border:1px solid #26282d; padding:2px; text-align:center; font-size:8px;}
 #profitTable th { background:#181A20;color:#FCD535;}
 #profitTable tr:nth-child(even) { background:#1e2329; }
 #profitTable tr:nth-child(odd) { background:#242731;}
 #profitTable td.pnl-positive { color: #2ebd85;}
 #profitTable td.pnl-negative { color: #f6465d;}
-.reward-info { font-size: 10px; color: #848E9C; background: #1e2329; padding: 10px; border-radius: 8px; margin-top: 15px; border-left: 3px solid #FCD535; }
-.input-funds { width:90px; font-size:14px; border-radius:6px; padding:4px 3px; border:1px solid #333; background:#1e2329; color:#FCD535; }
+.reward-info { font-size:8px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535; }
+.input-funds { width:55px; font-size:9px; border-radius:4px; padding:3px 2px; border:1px solid #333; background:#1e2329; color:#FCD535; margin-left:3px;}
 .input-funds::-webkit-outer-spin-button,
 .input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .input-funds[type=number] { -moz-appearance: textfield; }
-.max-btn { background: #23262f; color:#FCD535; border:none; border-radius:3px; font-weight:bold; font-size:10px; padding: 2px 6px; margin-left:4px; cursor:pointer; }
+.max-btn { background: #23262f; color:#FCD535; border:none; border-radius:2px; font-weight:bold; font-size:8px; padding: 2px 6px; margin:0 2px; cursor:pointer;}
 </style>
 </head>
 <body>
 <div class="container">
     <h1>BTC TRADER PRO</h1>
     <div id="auth-section">
-        <button id="connectBtn" class="btn btn-connect">CONNECT WALLET TO START</button>
+        <button id="connectBtn" class="btn btn-connect">CONNECT</button>
     </div>
     <div id="app-content" style="display:none;">
         <div class="tabs">
-            <div id="tab-mybalance" class="tab active" onclick="switchTab('mybalance')">MY BALANCE</div>
-            <div id="tab-trade" class="tab" onclick="switchTab('trade')">TRADING</div>
+            <div id="tab-mybalance" class="tab active" onclick="switchTab('mybalance')">MY BAL</div>
+            <div id="tab-trade" class="tab" onclick="switchTab('trade')">TRADE</div>
             <div id="tab-profit" class="tab" onclick="switchTab('profit')">PROFIT</div>
         </div>
         <!-- MY BALANCE TAB -->
         <div id="view-mybalance">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">MAIN BALANCE</span>
+                    <span class="stat-label">MAIN</span>
                     <span id="userMain" class="stat-value">$0.00</span>
                 </div>
                 <div class="stat-card">
@@ -77,23 +76,27 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                     <span id="userTrading" class="stat-value">$0.00</span>
                 </div>
             </div>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()">Add Money to Main</button>
-                <input class="input-funds" id="addMoneyInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            <div style="margin-bottom:6px;">
+                <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()">Add Main</button>
+                <input class="input-funds" id="addMoneyInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="1000000">
+                <span style="color:#848E9C; font-size:7px;">(max 1,000,000 daily)</span>
             </div>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main ➔ Trading</button>
-                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            <div style="margin-bottom:6px;">
+                <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main➔Trade</button>
+                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
+                       step="1" max="999999">
                 <button class="max-btn" onclick="setMax('mainToTrading')">MAX</button>
             </div>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')">Trading ➔ Main</button>
-                <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            <div style="margin-bottom:6px;">
+                <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')">Trade➔Main</button>
+                <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
+                       step="1" max="999999">
                 <button class="max-btn" onclick="setMax('tradingToMain')">MAX</button>
             </div>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-up" id="profitToMainBtn" onclick="moveBalance('profit','main')">Profit ➔ Main</button>
-                <input class="input-funds" id="profitToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            <div style="margin-bottom:6px;">
+                <button class="btn btn-up" id="profitToMainBtn" onclick="moveBalance('profit','main')">Profit➔Main</button>
+                <input class="input-funds" id="profitToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
+                       step="1" max="999999">
                 <button class="max-btn" onclick="setMax('profitToMain')">MAX</button>
             </div>
         </div>
@@ -105,25 +108,25 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                     <span id="balanceUSD" class="stat-value">$0.00</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">MAIN BALANCE</span>
+                    <span class="stat-label">MAIN</span>
                     <span id="userMain2" class="stat-value" style="color:#fff">$0.00</span>
                 </div>
             </div>
             <div id="btc-price">--.---</div>
-            <canvas id="btcChart" width="340" height="80"></canvas>
+            <canvas id="btcChart" width="340" height="55"></canvas>
             <div id="comparison" class="comparison-bar" style="display:none;">
                 <div class="comp-item"><span class="comp-label">Entry</span><span id="entryPrice" class="comp-val">--</span></div>
                 <div class="comp-item"><span class="comp-label">Live</span><span id="livePrice" class="comp-val">--</span></div>
                 <div class="comp-item"><span class="comp-label">PnL</span><span id="liveDiff" class="comp-val">--</span></div>
             </div>
             <div class="amount-row">
-                <span class="amount-label">Bet Amount:</span>
+                <span class="amount-label">Bet:</span>
                 <input type="range" min="1" max="100" value="10" id="amountSlider" oninput="onBetAmountSet(this.value)">
                 <span id="amountValue" class="slider-value">10</span>
             </div>
-            <div id="betAmountSummary">(Balance after bet: <span id="betAmountRemain">$0.00</span>)</div>
+            <div id="betAmountSummary">(Bal after: <span id="betAmountRemain">$0.00</span>)</div>
             <div class="leverage-row">
-                <span class="leverage-label">Leverage:</span>
+                <span class="leverage-label">Lev:</span>
                 <input type="range" min="0" max="500" value="1" id="leverageSlider" oninput="onLeverageSet(this.value)">
                 <span id="leverageValue" class="slider-value">1x</span>
             </div>
@@ -134,22 +137,22 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                     <button id="upBtn" class="btn btn-up" onclick="selectDir('UP')">UP</button>
                     <button id="downBtn" class="btn btn-down" onclick="selectDir('DOWN')">DOWN</button>
                 </div>
-                <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:10px;" onclick="startBet()">CONFIRM POSITION</button>
+                <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:5px;" onclick="startBet()">CONFIRM</button>
             </div>
         </div>
         <!-- PROFIT TAB -->
         <div id="view-profit" style="display:none;">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">TOTAL PROFIT</span>
+                    <span class="stat-label">PROFIT</span>
                     <span id="totalProfit" class="stat-value" style="color:#2ebd85">$0.00</span>
                 </div>
             </div>
-            <div style="font-size:10px;color:#848E9C;margin-bottom:5px;">Profits History</div>
+            <div style="color:#848E9C;font-size:8px;margin-bottom:4px;">Profits History</div>
             <table id="profitTable">
                 <thead>
                     <tr>
-                        <th>Date (UTC)</th>
+                        <th>Date</th>
                         <th>PnL</th>
                         <th>Entry</th>
                         <th>Exit</th>
@@ -160,22 +163,20 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
                 </thead>
                 <tbody id="profitTableBody"></tbody>
             </table>
-            <div style="margin-bottom:8px;">
-                <button class="btn btn-connect" id="profitToMainBtn_2" onclick="moveBalance('profit','main')">Profit ➔ Main</button>
-                <input class="input-funds" id="profitToMainInput_2" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999" style="margin-left:7px;">
+            <div style="margin-bottom:6px;">
+                <button class="btn btn-connect" id="profitToMainBtn_2" onclick="moveBalance('profit','main')">Profit➔Main</button>
+                <input class="input-funds" id="profitToMainInput_2" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999">
                 <button class="max-btn" onclick="setMax('profitToMain_2')">MAX</button>
             </div>
         </div>
     </div>
     <div class="reward-info">
-        <b>Move funds between balances using controls above in the MY BALANCE and PROFIT tabs.</b><br>
-        <b>Rules:</b>
-        <ul style="margin:0; padding-left:17px; font-size:11px;">
-        <li>You can <b>add new money</b> to your Main balance (simulate deposit). Move funds freely between Main, Trading, Profit.</li>
-        <li>Bets use <b>Trading</b> balance only, but do not deduct bet amount on position open. Only realized profits/losses update balances.</li>
-        <li>Only <b>positive profits</b> from winning trades are credited to your Profit account. Negative profits are tracked but do not reduce your Profit balance.</li>
-        <li>Negative profits are shown red (with a minus sign) in your Profit tab history.</li>
-        <li>Profit, Trading, and Main balances are always available to move, no daily limit, and app is fully smooth/touch friendly.</li>
+        <b>Add up to <span style="color:#FCD535;">1,000,000</span> per day to your Main balance.</b>
+        <ul style="margin:0; padding-left:14px; font-size:8px;">
+        <li>Move funds using compact controls above.</li>
+        <li>Bets use <b>Trading</b> wallet, PnL adjusts only when bets settle.</li>
+        <li>Profits track only positives. Negatives show red in history.</li>
+        <li>Low font, sleek controls, no zoom-in on input (touch-friendly!).</li>
         </ul>
     </div>
 <script type="module">
@@ -197,7 +198,6 @@ const db = getDatabase(app);
 
 // Util
 function toUsd(x) { return "$" + (+x).toFixed(2); }
-function positive(x) { return Math.max(0, x); }
 function nonneg(x) { return (!x||x<0)?0:Number(x); }
 
 let userWallet = null;
@@ -206,8 +206,8 @@ let btcPrice = 0;
 let gameState = "IDLE";
 let selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
 let profitHistory = [];
+let todayAddAmt = 0, todayAddDate = null;
 
-// UI/DOM helpers
 function selectTab(tab) {
     document.getElementById('view-mybalance').style.display = tab==="mybalance"?"block":"none";
     document.getElementById('view-trade').style.display = tab==="trade"?"block":"none";
@@ -228,12 +228,18 @@ document.getElementById('connectBtn').onclick = async () => {
     } else { alert("Install MetaMask"); }
 };
 
+function todayKey() {
+    let d = new Date();  d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);
+}
+
 function initUser() {
     onValue(ref(db, `users/${userWallet}`), snap => {
         let node = snap.val();
         main = nonneg(node?.main);
         trading = nonneg(node?.trading);
         profit = nonneg(node?.profit);
+        todayAddAmt = node?.todayAdd?.amount || 0;
+        todayAddDate = node?.todayAdd?.date || '';
         updateTabs();
     });
     loadProfitTable();
@@ -251,6 +257,7 @@ function updateTabs() {
     document.getElementById('profitToMainInput').max = profit;
     document.getElementById('profitToMainInput_2').max = profit;
 }
+
 function setMax(which) {
     if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
     else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
@@ -259,11 +266,16 @@ function setMax(which) {
 }
 window.setMax = setMax;
 
-// Add money to main
+// Add money to main, max 1M per day
 window.addMoneyMain = async function() {
     let amt = Math.round(+document.getElementById('addMoneyInput').value);
-    if (isNaN(amt)||amt<1) return alert("Enter a valid positive number");
+    if (isNaN(amt)||amt<1||amt>1000000) return alert("Max add per day is 1,000,000");
+    // Only allow one add per day
+    let lastKey = todayAddDate ? todayAddDate.slice(0,10) : "";
+    if (todayAddAmt>0 && lastKey === todayKey()) return alert("Already added money for today!");
     await set(ref(db, `users/${userWallet}/main`), main + amt);
+    await set(ref(db, `users/${userWallet}/todayAdd`), {amount:amt, date:new Date().toISOString()});
+    todayAddAmt = amt;
     document.getElementById('addMoneyInput').value = '';
 };
 
@@ -275,8 +287,7 @@ window.moveBalance = async function(from,to) {
     else if (from==='profit_2' && to==='main') inputId = "profitToMainInput_2";
     else return;
     if(from==='profit' && to==='main' && !document.getElementById('profitToMainInput').value)
-        inputId="profitToMainInput_2"; // allow profit->main from profit tab as well
-
+        inputId="profitToMainInput_2";
     amt = parseFloat(document.getElementById(inputId).value);
     if(!amt || amt <= 0) {alert("Enter valid amount."); return;}
     if      (from=="main"    && amt>main)      { alert("Insufficient main balance."); return; }
@@ -321,7 +332,6 @@ function updateAmountSlider() {
     document.getElementById('betAmountRemain').textContent = toUsd(futureBalance);
 }
 
-// --- Profit tab/table
 function addProfit(pnl, entry, exit, dir, amt, lev) {
     let profTx = {
         date: (new Date()).toISOString(),
@@ -338,11 +348,10 @@ function loadProfitTable() {
     const tb = document.getElementById('profitTableBody');
     get(ref(db, `users/${userWallet}/profits`)).then(snap=>{
         let arr = [];
-        let pos = 0, neg = 0;
         snap.forEach(ch=>{ arr.push(ch.val()); });
         arr.sort((a,b)=>b.date.localeCompare(a.date));
         let out = arr.map(obj=>{
-            let d = new Date(obj.date).toISOString().slice(0,19).replace('T',' ');
+            let d = new Date(obj.date).toISOString().slice(0,16).replace('T',' ');
             let val = (+obj.pnl).toFixed(2);
             let pos = obj.pnl >= 0;
             return `<tr>
@@ -417,7 +426,6 @@ window.startBet = function() {
     document.getElementById('livePrice').textContent = toUsd(btcPrice);
     document.getElementById('liveDiff').textContent = '--';
     chart.update();
-    // Do NOT deduct bet amount from trading here
     set(ref(db, `users/${userWallet}/activeBet`), {
         entryPrice,
         entryTimestamp,
@@ -463,7 +471,7 @@ function endBet() {
         updateTabs();
         showTimerBar(false); updateAmountSlider();
         loadProfitTable();
-    }, 3000);
+    }, 1600);
 }
 
 // --- Price / PnL chart ---
@@ -518,15 +526,15 @@ let signalCandlePlugin = {
         let x = chart.scales.x.getPixelForValue(chart.data.labels.length-1);
         let yTop = chart.scales.y.getPixelForValue(Math.max(lastPrice, entryLine));
         let yBot = chart.scales.y.getPixelForValue(Math.min(lastPrice, entryLine));
-        let barWidth = 14;
+        let barWidth = 10;
         ctx.save();
         ctx.globalAlpha = 0.85;
         ctx.beginPath();
         ctx.fillStyle = color;
-        ctx.fillRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 3);
+        ctx.fillRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 2.5);
         ctx.strokeStyle = "#181a20";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 3);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 2.5);
         ctx.restore();
     }
 };
@@ -535,7 +543,7 @@ const chart = new Chart(ctx, {
     data: {
         labels: Array(20).fill(''),
         datasets: [{
-            data: priceHistory, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 2, fill:false
+            data: priceHistory, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 1.4, fill:false
         }]
     },
     options: {
@@ -555,7 +563,6 @@ setInterval(() => { chart.update(); }, 10000);
 
 function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
 function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
-
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") {
         e.preventDefault();
