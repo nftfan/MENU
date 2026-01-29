@@ -127,22 +127,29 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
         When a bet is active, leverage cannot be changed. 
     </div>
 </div>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script>
-const firebaseConfig = {
-    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
-    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
-    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
-    projectId: "tokentransfer-4a9b3",
-    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
-    messagingSenderId: "205455490321",
-    appId: "1:205455490321:web:9919f5dde059316c9320b0",
-    measurementId: "G-Y6CVEDL9XH"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 
+<!-- Firebase modular SDK imports -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, update, push, get, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+  authDomain: "betbtc-6d881.firebaseapp.com",
+  databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+  projectId: "betbtc-6d881",
+  storageBucket: "betbtc-6d881.firebasestorage.app",
+  messagingSenderId: "962176232122",
+  appId: "1:962176232122:web:a277d922543c3378033083",
+  measurementId: "G-V4XNB7K1E0"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getDatabase(app);
+
+// The rest of your core logic, adapted for modular Firebase
 let userWallet = null;
 let currentBalance = 0.00;
 let btcPrice = 0;
@@ -163,11 +170,11 @@ document.getElementById('connectBtn').onclick = async () => {
     } else { alert("Install MetaMask"); }
 };
 function initUser() {
-    db.ref('users/' + userWallet).on('value', (snap) => {
+    onValue(ref(db, 'users/' + userWallet), (snap) => {
         if (snap.exists()) {
             currentBalance = snap.val().balance;
         } else {
-            db.ref('users/' + userWallet).set({ balance: 0.0, wallet: userWallet });
+            set(ref(db, 'users/' + userWallet), { balance: 0.0, wallet: userWallet });
             currentBalance = 0.0;
         }
         updateUI();
@@ -180,7 +187,7 @@ function updateUI() {
     balanceField.style.color = currentBalance >= 0 ? "#EAECEF" : "#f6465d";
     document.getElementById('rewardNFTFAN').textContent = `${(currentBalance * 1).toFixed(1)}M`;
 }
-function switchTab(tab) {
+window.switchTab = function(tab) {
     document.getElementById('view-trade').style.display = tab === 'trade' ? 'block' : 'none';
     document.getElementById('view-leader').style.display = tab === 'leader' ? 'block' : 'none';
     document.getElementById('tab-trade').className = "tab" + (tab === 'trade' ? ' active' : '');
@@ -189,7 +196,7 @@ function switchTab(tab) {
 }
 
 // --- LEVERAGE ---
-function onLeverageSet(val) {
+window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
     userLeverage = parseInt(val);
     document.getElementById('leverageValue').textContent = userLeverage+'x';
@@ -202,7 +209,9 @@ function setLeverageEnabled(enable) {
 
 // --- LEADERBOARD ---
 function loadLeaderboard() {
-    db.ref('users').orderByChild('balance').limitToLast(10).once('value', (snap) => {
+    // Modular: use query, orderByChild, limitToLast, get
+    get(query(ref(db, 'users'), orderByChild('balance'), limitToLast(10)))
+    .then((snap) => {
         let list = document.getElementById('leaderboard-list');
         list.innerHTML = "";
         let items = [];
@@ -217,20 +226,21 @@ function loadLeaderboard() {
 }
 
 // --- BET HISTORY ---
-// Show all previous bets by all users, newest first
 function recordBet(entry, exit, dir, leverage, pnl, date) {
     const betObj = {
         entry, exit, dir, leverage, pnl, date,
         wallet: userWallet
     };
-    const betKey = db.ref('bets/'+userWallet).push().key;
-    db.ref(`bets/${userWallet}/${betKey}`).set(betObj).then(loadBetHistory);
+    // Modular: use push to get new key
+    const betUserRef = ref(db, `bets/${userWallet}`);
+    const betKey = push(betUserRef).key;
+    set(ref(db, `bets/${userWallet}/${betKey}`), betObj).then(loadBetHistory);
 }
 
 function loadBetHistory() {
     const tbody = document.getElementById('betHistoryBody');
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#848E9C;">Loading...</td></tr>';
-    db.ref('bets').once('value', function(snap) {
+    get(ref(db, 'bets')).then((snap) => {
         let bets = [];
         snap.forEach(userSnap => {
             userSnap.forEach(betSnap => {
@@ -280,7 +290,7 @@ async function fetchPrice() {
 }
 setInterval(fetchPrice, 2000);
 
-function selectDir(dir) {
+window.selectDir = function(dir) {
     if (gameState !== "IDLE") return;
     selectedDirection = dir;
     document.getElementById('upBtn').className = "btn btn-up" + (dir === 'UP' ? ' selected' : '');
@@ -337,7 +347,7 @@ function updateTimerBar(percent) {
 }
 
 // --- BET CYCLE ---
-function startBet() {
+window.startBet = function() {
     if (!selectedDirection) return;
     gameState = "ACTIVE";
     setLeverageEnabled(false);
@@ -372,7 +382,7 @@ function endBet() {
     currentBalance += pnl;
     // NO minimum, allow negative balance
     let now = new Date().toISOString();
-    db.ref('users/' + userWallet).update({ balance: currentBalance });
+    update(ref(db, 'users/' + userWallet), { balance: currentBalance });
     recordBet(entryPrice, exitPrice, selectedDirection, userLeverage, pnl, now);
     setTimeout(() => {
         entryLine = null;
