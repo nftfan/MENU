@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Compact PnL Vault</title>
+<title>BTC Pro: 15 Day Bank Vault</title>
 <meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:7px; font-size:9px; }
+body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:7px; font-size:9px;}
 .container { max-width: 370px; margin: auto; background: #181A20; border-radius: 11px; padding: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);}
-h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; font-weight:bold; }
+h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; font-weight:bold;}
 .tabs { display: flex; gap: 2px; margin-bottom: 7px; border-bottom: 1px solid #333; }
 .tab { flex: 1; padding: 6px; text-align: center; cursor: pointer; color: #848E9C; font-weight:bold; font-size: 9px;}
 .tab.active { color: #FCD535; border-bottom: 2px solid #FCD535;}
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 7px; }
-.stat-card { background: #22252b; padding: 7px; border-radius: 6px; text-align: center; }
+.stat-card { background: #22252b; padding: 7px; border-radius: 6px; text-align: center;}
 .stat-label { font-size: 8px; color: #848E9C; text-transform: uppercase;}
 .stat-value { font-size: 10px; font-weight:bold; display:block; margin-top: 3px;}
 .comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 7px; border-radius: 6px; margin: 7px 0; border: 1px solid #333; font-size:9px;}
@@ -23,7 +23,7 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
 .comp-label { font-size: 8px; color: #848E9C; display: block;}
 .comp-val { font-size: 9px; font-weight: bold; font-family: monospace;}
 .leverage-row, .amount-row { display: flex; align-items: center; margin-bottom: 4px; justify-content: space-between; }
-.leverage-label, .amount-label { font-size:9px; color:#FCD535; }
+.leverage-label, .amount-label { font-size:9px; color:#FCD535;}
 #leverageSlider, #amountSlider { width: 55%; margin-left: 4px; margin-right:4px; }
 #leverageSlider:disabled, #amountSlider:disabled { opacity:0.4;}
 .slider-value { color:#FCD535;font-weight:bold;font-size:9px;min-width:22px;display:inline-block;text-align:right;}
@@ -44,15 +44,12 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
 #pnlTable tr:nth-child(odd) { background:#242731;}
 #pnlTable td.pnl-positive { color: #2ebd85;}
 #pnlTable td.pnl-negative { color: #f6465d;}
-#currentLoss { color:#f6465d;font-weight:bold; }
-#remainingAdd { color:#FCD535;font-weight:bold;}
-#payForLossBtn { margin-top:7px;}
+.input-funds { width:58px; font-size:9px; border-radius:4px; padding:2.5px 2px;border:1px solid #333; background:#1e2329; color:#FCD535; margin-left:2px;}
 .max-btn { background: #23262f; color:#FCD535; border:none; border-radius:2px; font-weight:bold; font-size:8px; padding:2px 6px; margin:0 2px; cursor:pointer;}
-.input-funds { width:58px; font-size:9px; border-radius:4px; padding:2.5px 2px;border:1px solid #333; background:#1e2329; color:#FCD535; margin-left:3px;}
-.input-funds::-webkit-outer-spin-button,
-.input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0;}
-.input-funds[type=number] { -moz-appearance: textfield;}
-.reward-info { font-size:8px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535; }
+.bold-balance { font-size:13px; font-weight:bold; letter-spacing:1px; color:#FCD535; display:inline-block;}
+#bank-balance-container {text-align:center; font-size:10px; margin-bottom:7px; margin-top:3px;}
+.reward-info { font-size:8px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535;}
+.info-15 {color:#e6b422; font-size:8.5px; font-weight:bold; margin-bottom:4px; text-align:center;}
 </style>
 </head>
 <body>
@@ -62,6 +59,7 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
         <button id="connectBtn" class="btn btn-connect">CONNECT</button>
     </div>
     <div id="app-content" style="display:none;">
+        <div class="info-15">BANK ACCOUNT IS RECHARGED WITH $1,000,000 EVERY 15 DAYS<br>(Next top-up: <span id="nextBankTopup">...</span>)</div>
         <div class="tabs">
             <div id="tab-mybalance" class="tab active" onclick="switchTab('mybalance')">MY BAL</div>
             <div id="tab-trade" class="tab" onclick="switchTab('trade')">TRADE</div>
@@ -80,22 +78,22 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 </div>
             </div>
             <div style="margin-bottom:6px;">
-                <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()">Add Main</button>
                 <input class="input-funds" id="addMoneyInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="1000000">
-                <span style="color:#848E9C;font-size:7px;padding-left:2px;">Max/day: 1M</span>
+                <button class="max-btn" onclick="setMaxAdd()">MAX</button>
+                <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()" style="margin-left:3px;">Add Main</button>
             </div>
-            <div style="color:#848E9C;font-size:8px;margin-bottom:3px;">Remaining today: <span id="remainingAdd">$1,000,000</span></div>
+            <div style="color:#848E9C;font-size:8px;margin-bottom:3px;">
+                Remaining today: <span id="remainingAdd">$1,000,000</span>
+            </div>
             <div style="margin-bottom:6px;">
-                <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main➔Trade</button>
-                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
-                       step="1" max="999999">
+                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999">
                 <button class="max-btn" onclick="setMax('mainToTrading')">MAX</button>
+                <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')" style="margin-left:3px;">Main➔Trade</button>
             </div>
             <div style="margin-bottom:6px;">
-                <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')">Trade➔Main</button>
-                <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
-                       step="1" max="999999">
+                <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999">
                 <button class="max-btn" onclick="setMax('tradingToMain')">MAX</button>
+                <button class="btn btn-down" id="tradingToMainBtn" onclick="moveBalance('trading','main')" style="margin-left:3px;">Trade➔Main</button>
             </div>
         </div>
         <!-- TRADE TAB -->
@@ -146,9 +144,8 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                     <span id="totalProfit" class="stat-value" style="color:#2ebd85">$0.00</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">LOSS TO PAY</span>
-                    <span id="currentLoss" class="stat-value">$0.00</span>
-                    <button class="btn btn-down" id="payForLossBtn" style="display:none;" onclick="payForLoss()">Pay for Loss</button>
+                    <span class="stat-label">TOTAL LOSS</span>
+                    <span id="totalLoss" class="stat-value" style="color:#f6465d;">$0.00</span>
                 </div>
             </div>
             <div style="color:#848E9C;font-size:8px;margin-bottom:3px;">Profit/Loss History</div>
@@ -167,11 +164,22 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 <tbody id="pnlTableBody"></tbody>
             </table>
         </div>
+        <!-- BANK TAB always visible -->
+        <div id="bank-balance-container">
+            <div style="font-weight:bold; color:#2ebd85; margin-top:9px;margin-bottom:3px;font-size:10px;">
+                MY BANK ACCOUNT: <span id="bankBalance" class="bold-balance">$1,000,000</span>
+            </div>
+            <div>
+                <input class="input-funds" id="mainToBankInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999">
+                <button class="max-btn" onclick="setMax('mainToBank')">MAX</button>
+                <button class="btn btn-connect" id="mainToBankBtn" onclick="moveBalance('main','bank')" style="margin-left:3px;">Main➔Bank</button>
+            </div>
+        </div>
     </div>
     <div class="reward-info">
         Fund your Main up to <span style="color:#FCD535;">1,000,000</span> per day.<br>
-        Move between Main/Trade. <span style="color:#f6465d;">If you have a loss, you must "Pay for Loss" to 0 before further trading.</span><br>
-        Profits/loss/compact UI - no zoom on mobile!
+        Move between Main/Trade/Bank at will. <span style="color:#2ebd85;"><b>Bank is refilled to $1M automatically every 15 days</b></span>.<br>
+        Bet from Trading. Profits/losses accrue live and can be negative. Compact, mobile-optimized.
     </div>
 <script type="module">
 // Firebase & Analytics
@@ -190,13 +198,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Util
 function toUsd(x) { return "$" + (+x).toLocaleString("en",{minimumFractionDigits:2}); }
-function nonneg(x) { return (!x||x<0)?0:Number(x); }
 function todayKey() { let d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);}
-let userWallet = null, main = 0, trading = 0, totalProfit = 0, currentLoss = 0, btcPrice = 0;
+function addDays(date, days){ let d=new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate()+days); return d;}
+function nextBankTopupDate(lastBankDate){
+  let last=new Date(lastBankDate);
+  let next=new Date(last.getTime()+15*24*3600*1000);
+  return next;
+}
+let userWallet = null, main = 0, trading = 0, totalProfit = 0, totalLoss = 0, bank = 1000000, btcPrice = 0;
 let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
-let todayAddAmt = 0, todayAddDate = null;
+let todayAddAmt = 0, todayAddDate = null, bankDate="";
 
 function selectTab(tab) {
     document.getElementById('view-mybalance').style.display = tab==="mybalance"?"block":"none";
@@ -222,49 +234,72 @@ function setRemainingAdd(val) {
     let left = 1000000 - (val||0);
     document.getElementById('remainingAdd').textContent = toUsd(left<=0?0:left);
 }
+function setMaxAdd() {
+    let left = 1000000 - (todayAddAmt||0);
+    document.getElementById('addMoneyInput').value = left >= 1 ? left : '';
+}
+window.setMaxAdd = setMaxAdd;
 
+function reset15DaysBankAccountIfNeeded(node) {
+    // -- Check/reset every 15 days
+    let lastBankKey = node?.bankDate || "";
+    let now = new Date();
+    let last = lastBankKey ? new Date(lastBankKey) : new Date(0);
+    last.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    const ms15d = 15*24*3600*1000;
+    let nextTopup = new Date(last.getTime()+ms15d);
+    document.getElementById('nextBankTopup').textContent = nextTopup.toISOString().slice(0,10);
+    if(now >= nextTopup){
+        set(ref(db,`users/${userWallet}/bank`), 1000000);
+        set(ref(db,`users/${userWallet}/bankDate`), now.toISOString().slice(0,10));
+        bank = 1000000;
+        bankDate = now.toISOString().slice(0,10);
+        document.getElementById('bankBalance').textContent = toUsd(bank);
+        document.getElementById('nextBankTopup').textContent = addDays(now,15).toISOString().slice(0,10);
+    }
+}
 function initUser() {
     onValue(ref(db, `users/${userWallet}`), snap => {
         let node = snap.val();
-        main = nonneg(node?.main);
-        trading = nonneg(node?.trading);
+        main = Number(node?.main)||0;
+        trading = Number(node?.trading)||0;
+        bank = typeof node?.bank === "number" ? node.bank : 1000000;
+        bankDate = node?.bankDate || todayKey();
         totalProfit = Number(node?.totalProfit ?? 0);
-        currentLoss = Number(node?.loss ?? 0);
+        totalLoss = Number(node?.totalLoss ?? 0);
         todayAddAmt = node?.todayAdd?.amount || 0;
         todayAddDate = node?.todayAdd?.date || '';
-        updateTabs();
+        document.getElementById('userMain').textContent = toUsd(main);
+        document.getElementById('userTrading').textContent = toUsd(trading);
+        document.getElementById('balanceUSD').textContent = toUsd(trading);
+        document.getElementById('userMain2').textContent = toUsd(main);
+        document.getElementById('bankBalance').textContent = toUsd(bank);
         setRemainingAdd(todayAddAmt);
-        updateLossUI();
+        document.getElementById('mainToTradingInput').max = main;
+        document.getElementById('tradingToMainInput').max = trading;
+        loadPnLTable();
+        reset15DaysBankAccountIfNeeded(node);
+        updateAmountSlider();
+        updatePLLabels();
     });
-    loadPnLTable();
     checkAndSettleActiveBet();
-}
-
-function updateTabs() {
-    document.getElementById('userMain').textContent = toUsd(main);
-    document.getElementById('userMain2').textContent = toUsd(main);
-    document.getElementById('userTrading').textContent = toUsd(trading);
-    document.getElementById('balanceUSD').textContent = toUsd(trading);
-    updateAmountSlider();
-    document.getElementById('mainToTradingInput').max = main;
-    document.getElementById('tradingToMainInput').max = trading;
 }
 function setMax(which) {
     if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
     else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
+    else if(which==='mainToBank') document.getElementById('mainToBankInput').value = main;
 }
 window.setMax = setMax;
 
-// Add to main, max 1M per day
+// Add to main, max 1M per day, can be done multiple times until 1M
 window.addMoneyMain = async function() {
     let amt = Math.round(+document.getElementById('addMoneyInput').value);
-    if (isNaN(amt)||amt<1||amt>1000000) return alert("Max add per day is 1,000,000");
-    // Only one add per day
-    let todayStr = todayKey();
-    if (todayAddAmt>0 && todayAddDate && todayAddDate.slice(0,10) == todayStr) return alert("Already added money today!");
+    let left = 1000000 - (todayAddAmt||0);
+    if (isNaN(amt)||amt<1||amt>left) return alert("You can only add up to your remaining daily limit.");
     await set(ref(db, `users/${userWallet}/main`), main + amt);
-    await set(ref(db, `users/${userWallet}/todayAdd`), {amount:amt, date:new Date().toISOString()});
-    todayAddAmt = amt;
+    await set(ref(db, `users/${userWallet}/todayAdd`), {amount: todayAddAmt+amt, date:new Date().toISOString()});
+    todayAddAmt += amt;
     setRemainingAdd(todayAddAmt);
     document.getElementById('addMoneyInput').value = '';
 };
@@ -273,17 +308,21 @@ window.moveBalance = async function(from,to) {
     let inputId, amt, u = {};
     if (from==='main' && to==='trading') inputId = "mainToTradingInput";
     else if (from==='trading' && to==='main') inputId = "tradingToMainInput";
+    else if (from==='main' && to==='bank') inputId = "mainToBankInput";
     else return;
     amt = parseFloat(document.getElementById(inputId).value);
     if(!amt || amt <= 0) {alert("Enter valid amount."); return;}
     if      (from=="main"    && amt>main)      { alert("Insufficient main balance."); return; }
     else if (from=="trading" && amt>trading)   { alert("Insufficient trading balance."); return; }
+    else if (from=="bank" && amt>bank)   { alert("Insufficient bank balance."); return; }
     if(from=='main')    u['main']=main-amt;
     if(to=='main')      u['main']=main+amt;
     if(from=='trading') u['trading']=trading-amt;
     if(to=='trading')   u['trading']=trading+amt;
+    if(to=='bank')      u['bank'] = (typeof bank !== "undefined" ? bank : 1000000) + amt;
     await update(ref(db,`users/${userWallet}`), u);
     document.getElementById(inputId).value = '';
+    document.getElementById('bankBalance').textContent = toUsd(typeof u['bank']==="number"?u['bank']:bank);
 };
 
 window.onLeverageSet = function(val) {
@@ -315,33 +354,6 @@ function updateAmountSlider() {
     document.getElementById('betAmountRemain').textContent = toUsd(futureBalance);
 }
 
-function updateLossUI() {
-    document.getElementById('currentLoss').textContent = (currentLoss>0 ? "-" : "")+toUsd(Math.abs(currentLoss));
-    document.getElementById('payForLossBtn').style.display = (currentLoss < 0) ? "inline-block" : "none";
-}
-
-window.payForLoss = async function() {
-    if (currentLoss >= 0) return alert("No loss to pay for!");
-    if (main + currentLoss < 0) return alert("Not enough main to pay for loss.");
-    if (!confirm(`Pay ${toUsd(-currentLoss)} from Main to normalize loss?`)) return;
-    await update(ref(db,`users/${userWallet}`), {main: main + currentLoss, loss: 0});
-    currentLoss = 0; updateLossUI();
-};
-
-// PnL log (profit/loss)
-function addPnL(pnl, entry, exit, dir, amt, lev) {
-    let tpl = {date: (new Date()).toISOString(), pnl, entry, exit, dir, amt, lev};
-    let pKey = push(ref(db, `users/${userWallet}/pnl`)).key;
-    set(ref(db, `users/${userWallet}/pnl/${pKey}`), tpl).then(loadPnLTable);
-    // profit/loss balancing
-    let tProfit = Number(totalProfit), tLoss = Number(currentLoss);
-    if (pnl > 0)  tProfit += pnl;
-    if (pnl < 0)  tLoss += pnl;
-    set(ref(db, `users/${userWallet}/totalProfit`), tProfit);
-    set(ref(db, `users/${userWallet}/loss`), tLoss);
-    updateLossUI();
-}
-//
 function loadPnLTable() {
     const tb = document.getElementById('pnlTableBody');
     get(ref(db, `users/${userWallet}/pnl`)).then(snap=>{
@@ -363,12 +375,21 @@ function loadPnLTable() {
         // accumulate profit/loss for summary
         let prof = 0, los = 0;
         arr.forEach(obj=>{ if(+obj.pnl>0) prof+=+obj.pnl; else los+=+obj.pnl;});
-        document.getElementById('totalProfit').textContent = toUsd(prof);
-        currentLoss = los;
-        updateLossUI();
+        totalProfit = prof;
+        totalLoss = los;
+        updatePLLabels();
     });
 }
-// --- BET LOGIC ---
+function updatePLLabels() {
+    document.getElementById('totalProfit').textContent = toUsd(totalProfit);
+    document.getElementById('totalLoss').textContent = (totalLoss<0?'-':'')+toUsd(Math.abs(totalLoss));
+}
+
+function addPnL(pnl, entry, exit, dir, amt, lev) {
+    let tpl = {date: (new Date()).toISOString(), pnl, entry, exit, dir, amt, lev};
+    let pKey = push(ref(db, `users/${userWallet}/pnl`)).key;
+    set(ref(db, `users/${userWallet}/pnl/${pKey}`), tpl).then(loadPnLTable);
+}
 async function checkAndSettleActiveBet() {
     const betSnap = await get(ref(db, `users/${userWallet}/activeBet`));
     if (betSnap.exists() && betSnap.val() && !betSnap.val().settled) {
@@ -397,12 +418,11 @@ async function settleBetOffline(activeBet) {
     await set(ref(db, `users/${userWallet}/trading`), newTrading);
     if(pnl!=0) addPnL(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
     loadPnLTable();
-    updateTabs();
-    updateLossUI();
+    updateAmountSlider();
+    updatePLLabels();
 }
 window.selectDir = function(dir) {
     if (gameState !== "IDLE") return;
-    if (currentLoss < 0) { alert("You must pay for loss first."); return; }
     selectedDirection = dir;
     document.getElementById('upBtn').className = "btn btn-up" + (dir === 'UP' ? ' selected' : '');
     document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
@@ -410,7 +430,6 @@ window.selectDir = function(dir) {
 };
 window.startBet = function() {
     if (!selectedDirection) return;
-    if (currentLoss < 0) { alert("You must pay for loss first."); return; }
     userBetAmount = Math.round(Math.max(1, Math.min(userBetAmount, Math.floor(trading))));
     if (userBetAmount > trading) userBetAmount = trading;
     if (userBetAmount < 1) userBetAmount = 1;
@@ -470,9 +489,8 @@ function endBet() {
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
         chart.update();
-        updateTabs();
-        updateLossUI();
-        showTimerBar(false); updateAmountSlider();
+        updateAmountSlider();
+        updatePLLabels();
         loadPnLTable();
     }, 1600);
 }
