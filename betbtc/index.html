@@ -2,54 +2,57 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Compact Vault</title>
+<title>BTC Pro: Compact PnL Vault</title>
 <meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
 body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:7px; font-size:9px; }
-.container { max-width: 370px; margin: auto; background: #181A20; border-radius: 11px; padding: 11px; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+.container { max-width: 370px; margin: auto; background: #181A20; border-radius: 11px; padding: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);}
 h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; font-weight:bold; }
 .tabs { display: flex; gap: 2px; margin-bottom: 7px; border-bottom: 1px solid #333; }
-.tab { flex: 1; padding: 6px; text-align: center; cursor: pointer; color: #848E9C; font-weight:bold; font-size: 9px; }
-.tab.active { color: #FCD535; border-bottom: 2px solid #FCD535; }
+.tab { flex: 1; padding: 6px; text-align: center; cursor: pointer; color: #848E9C; font-weight:bold; font-size: 9px;}
+.tab.active { color: #FCD535; border-bottom: 2px solid #FCD535;}
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 7px; }
 .stat-card { background: #22252b; padding: 7px; border-radius: 6px; text-align: center; }
 .stat-label { font-size: 8px; color: #848E9C; text-transform: uppercase;}
 .stat-value { font-size: 10px; font-weight:bold; display:block; margin-top: 3px;}
-.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 7px; border-radius: 6px; margin: 7px 0; border: 1px solid #333; font-size:9px; }
-.comp-item { flex: 1; text-align: center; }
-.comp-label { font-size: 8px; color: #848E9C; display: block; }
-.comp-val { font-size: 9px; font-weight: bold; font-family: monospace; }
+.comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 7px; border-radius: 6px; margin: 7px 0; border: 1px solid #333; font-size:9px;}
+.comp-item { flex: 1; text-align: center;}
+.comp-label { font-size: 8px; color: #848E9C; display: block;}
+.comp-val { font-size: 9px; font-weight: bold; font-family: monospace;}
 .leverage-row, .amount-row { display: flex; align-items: center; margin-bottom: 4px; justify-content: space-between; }
 .leverage-label, .amount-label { font-size:9px; color:#FCD535; }
 #leverageSlider, #amountSlider { width: 55%; margin-left: 4px; margin-right:4px; }
-#leverageSlider:disabled, #amountSlider:disabled { opacity:0.4; }
-.slider-value { color:#FCD535;font-weight:bold;font-size:9px;min-width:22px;display:inline-block;text-align:right; }
-#betAmountSummary { color: #fff; font-size: 9px; margin-bottom: 4px; margin-top: 2px; }
-#timerBarContainer { width:100%; height: 4px; background:#23262f; border-radius:4px; overflow:hidden; margin-bottom:2px; }
-#timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear; }
-.btn { border: none; border-radius: 3px; padding: 7px 9px; font-weight: bold; cursor: pointer; width: unset; font-size: 9px; transition: 0.17s;}
-.btn-connect { background: #FCD535; color: #000; }
+#leverageSlider:disabled, #amountSlider:disabled { opacity:0.4;}
+.slider-value { color:#FCD535;font-weight:bold;font-size:9px;min-width:22px;display:inline-block;text-align:right;}
+#betAmountSummary { color: #fff; font-size: 9px; margin-bottom: 4px; margin-top: 2px;}
+#timerBarContainer { width:100%; height: 4px; background:#23262f; border-radius:4px; overflow:hidden; margin-bottom:2px;}
+#timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear;}
+.btn { border: none; border-radius: 3px; padding: 6px 9px; font-weight: bold; cursor: pointer; width: unset; font-size: 8.5px; transition: 0.17s;}
+.btn-connect { background: #FCD535; color: #000;}
 .btn-up { background: #2ebd85; color: white;}
 .btn-down { background: #f6465d; color: white;}
-.btn-disabled { opacity: 0.3; pointer-events: none; }
-.selected { outline: 2px solid #fff; transform: scale(0.97); }
+.btn-disabled { opacity: 0.3; pointer-events: none;}
+.selected { outline: 2px solid #fff; transform: scale(0.97);}
 #btc-price { font-size: 12px; font-weight:bold; text-align:center; margin:7px 0; color:#FCD535;}
-#profitTable { width:100%; font-size:8px; border-collapse:collapse; background:#242731; margin-bottom:6px; }
-#profitTable th, #profitTable td { border:1px solid #26282d; padding:2px; text-align:center; font-size:8px;}
-#profitTable th { background:#181A20;color:#FCD535;}
-#profitTable tr:nth-child(even) { background:#1e2329; }
-#profitTable tr:nth-child(odd) { background:#242731;}
-#profitTable td.pnl-positive { color: #2ebd85;}
-#profitTable td.pnl-negative { color: #f6465d;}
-.reward-info { font-size:8px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535; }
-.input-funds { width:55px; font-size:9px; border-radius:4px; padding:3px 2px; border:1px solid #333; background:#1e2329; color:#FCD535; margin-left:3px;}
+#pnlTable { width: 100%; font-size: 8px; border-collapse: collapse; background: #242731; margin-bottom: 5px;}
+#pnlTable th, #pnlTable td { border:1px solid #26282d; padding:2px; text-align:center; font-size:8px;}
+#pnlTable th { background:#181A20;color:#FCD535;}
+#pnlTable tr:nth-child(even) { background:#1e2329;}
+#pnlTable tr:nth-child(odd) { background:#242731;}
+#pnlTable td.pnl-positive { color: #2ebd85;}
+#pnlTable td.pnl-negative { color: #f6465d;}
+#currentLoss { color:#f6465d;font-weight:bold; }
+#remainingAdd { color:#FCD535;font-weight:bold;}
+#payForLossBtn { margin-top:7px;}
+.max-btn { background: #23262f; color:#FCD535; border:none; border-radius:2px; font-weight:bold; font-size:8px; padding:2px 6px; margin:0 2px; cursor:pointer;}
+.input-funds { width:58px; font-size:9px; border-radius:4px; padding:2.5px 2px;border:1px solid #333; background:#1e2329; color:#FCD535; margin-left:3px;}
 .input-funds::-webkit-outer-spin-button,
-.input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.input-funds[type=number] { -moz-appearance: textfield; }
-.max-btn { background: #23262f; color:#FCD535; border:none; border-radius:2px; font-weight:bold; font-size:8px; padding: 2px 6px; margin:0 2px; cursor:pointer;}
+.input-funds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0;}
+.input-funds[type=number] { -moz-appearance: textfield;}
+.reward-info { font-size:8px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535; }
 </style>
 </head>
 <body>
@@ -62,7 +65,7 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
         <div class="tabs">
             <div id="tab-mybalance" class="tab active" onclick="switchTab('mybalance')">MY BAL</div>
             <div id="tab-trade" class="tab" onclick="switchTab('trade')">TRADE</div>
-            <div id="tab-profit" class="tab" onclick="switchTab('profit')">PROFIT</div>
+            <div id="tab-pnl" class="tab" onclick="switchTab('pnl')">PNL</div>
         </div>
         <!-- MY BALANCE TAB -->
         <div id="view-mybalance">
@@ -79,8 +82,9 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
             <div style="margin-bottom:6px;">
                 <button class="btn btn-up" id="addMoneyBtn" onclick="addMoneyMain()">Add Main</button>
                 <input class="input-funds" id="addMoneyInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="1000000">
-                <span style="color:#848E9C; font-size:7px;">(max 1,000,000 daily)</span>
+                <span style="color:#848E9C;font-size:7px;padding-left:2px;">Max/day: 1M</span>
             </div>
+            <div style="color:#848E9C;font-size:8px;margin-bottom:3px;">Remaining today: <span id="remainingAdd">$1,000,000</span></div>
             <div style="margin-bottom:6px;">
                 <button class="btn btn-connect" id="mainToTradingBtn" onclick="moveBalance('main','trading')">Main➔Trade</button>
                 <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
@@ -92,12 +96,6 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 <input class="input-funds" id="tradingToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
                        step="1" max="999999">
                 <button class="max-btn" onclick="setMax('tradingToMain')">MAX</button>
-            </div>
-            <div style="margin-bottom:6px;">
-                <button class="btn btn-up" id="profitToMainBtn" onclick="moveBalance('profit','main')">Profit➔Main</button>
-                <input class="input-funds" id="profitToMainInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1"
-                       step="1" max="999999">
-                <button class="max-btn" onclick="setMax('profitToMain')">MAX</button>
             </div>
         </div>
         <!-- TRADE TAB -->
@@ -140,16 +138,21 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:5px;" onclick="startBet()">CONFIRM</button>
             </div>
         </div>
-        <!-- PROFIT TAB -->
-        <div id="view-profit" style="display:none;">
-            <div class="stats-grid">
+        <!-- PNL TAB -->
+        <div id="view-pnl" style="display:none;">
+            <div class="stats-grid" style="margin-bottom:4px;">
                 <div class="stat-card">
-                    <span class="stat-label">PROFIT</span>
+                    <span class="stat-label">TOTAL PROFIT</span>
                     <span id="totalProfit" class="stat-value" style="color:#2ebd85">$0.00</span>
                 </div>
+                <div class="stat-card">
+                    <span class="stat-label">LOSS TO PAY</span>
+                    <span id="currentLoss" class="stat-value">$0.00</span>
+                    <button class="btn btn-down" id="payForLossBtn" style="display:none;" onclick="payForLoss()">Pay for Loss</button>
+                </div>
             </div>
-            <div style="color:#848E9C;font-size:8px;margin-bottom:4px;">Profits History</div>
-            <table id="profitTable">
+            <div style="color:#848E9C;font-size:8px;margin-bottom:3px;">Profit/Loss History</div>
+            <table id="pnlTable">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -161,23 +164,14 @@ h1 { font-size: 10px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                         <th>Lev</th>
                     </tr>
                 </thead>
-                <tbody id="profitTableBody"></tbody>
+                <tbody id="pnlTableBody"></tbody>
             </table>
-            <div style="margin-bottom:6px;">
-                <button class="btn btn-connect" id="profitToMainBtn_2" onclick="moveBalance('profit','main')">Profit➔Main</button>
-                <input class="input-funds" id="profitToMainInput_2" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1" max="999999">
-                <button class="max-btn" onclick="setMax('profitToMain_2')">MAX</button>
-            </div>
         </div>
     </div>
     <div class="reward-info">
-        <b>Add up to <span style="color:#FCD535;">1,000,000</span> per day to your Main balance.</b>
-        <ul style="margin:0; padding-left:14px; font-size:8px;">
-        <li>Move funds using compact controls above.</li>
-        <li>Bets use <b>Trading</b> wallet, PnL adjusts only when bets settle.</li>
-        <li>Profits track only positives. Negatives show red in history.</li>
-        <li>Low font, sleek controls, no zoom-in on input (touch-friendly!).</li>
-        </ul>
+        Fund your Main up to <span style="color:#FCD535;">1,000,000</span> per day.<br>
+        Move between Main/Trade. <span style="color:#f6465d;">If you have a loss, you must "Pay for Loss" to 0 before further trading.</span><br>
+        Profits/loss/compact UI - no zoom on mobile!
     </div>
 <script type="module">
 // Firebase & Analytics
@@ -197,24 +191,20 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // Util
-function toUsd(x) { return "$" + (+x).toFixed(2); }
+function toUsd(x) { return "$" + (+x).toLocaleString("en",{minimumFractionDigits:2}); }
 function nonneg(x) { return (!x||x<0)?0:Number(x); }
-
-let userWallet = null;
-let main = 0, trading = 0, profit = 0;
-let btcPrice = 0;
-let gameState = "IDLE";
-let selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
-let profitHistory = [];
+function todayKey() { let d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);}
+let userWallet = null, main = 0, trading = 0, totalProfit = 0, currentLoss = 0, btcPrice = 0;
+let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
 let todayAddAmt = 0, todayAddDate = null;
 
 function selectTab(tab) {
     document.getElementById('view-mybalance').style.display = tab==="mybalance"?"block":"none";
     document.getElementById('view-trade').style.display = tab==="trade"?"block":"none";
-    document.getElementById('view-profit').style.display = tab==="profit"?"block":"none";
+    document.getElementById('view-pnl').style.display = tab==="pnl"?"block":"none";
     document.getElementById('tab-mybalance').className = "tab" + (tab=='mybalance'?' active':'');
     document.getElementById('tab-trade').className = "tab" + (tab=='trade'?' active':'');
-    document.getElementById('tab-profit').className = "tab" + (tab=='profit'?' active':'');
+    document.getElementById('tab-pnl').className = "tab" + (tab=='pnl'?' active':'');
 }
 window.switchTab = selectTab;
 
@@ -228,8 +218,9 @@ document.getElementById('connectBtn').onclick = async () => {
     } else { alert("Install MetaMask"); }
 };
 
-function todayKey() {
-    let d = new Date();  d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);
+function setRemainingAdd(val) {
+    let left = 1000000 - (val||0);
+    document.getElementById('remainingAdd').textContent = toUsd(left<=0?0:left);
 }
 
 function initUser() {
@@ -237,45 +228,44 @@ function initUser() {
         let node = snap.val();
         main = nonneg(node?.main);
         trading = nonneg(node?.trading);
-        profit = nonneg(node?.profit);
+        totalProfit = Number(node?.totalProfit ?? 0);
+        currentLoss = Number(node?.loss ?? 0);
         todayAddAmt = node?.todayAdd?.amount || 0;
         todayAddDate = node?.todayAdd?.date || '';
         updateTabs();
+        setRemainingAdd(todayAddAmt);
+        updateLossUI();
     });
-    loadProfitTable();
+    loadPnLTable();
     checkAndSettleActiveBet();
 }
+
 function updateTabs() {
     document.getElementById('userMain').textContent = toUsd(main);
     document.getElementById('userMain2').textContent = toUsd(main);
     document.getElementById('userTrading').textContent = toUsd(trading);
     document.getElementById('balanceUSD').textContent = toUsd(trading);
-    document.getElementById('totalProfit').textContent = toUsd(profit);
     updateAmountSlider();
     document.getElementById('mainToTradingInput').max = main;
     document.getElementById('tradingToMainInput').max = trading;
-    document.getElementById('profitToMainInput').max = profit;
-    document.getElementById('profitToMainInput_2').max = profit;
 }
-
 function setMax(which) {
     if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
     else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
-    else if(which==='profitToMain') { document.getElementById('profitToMainInput').value = profit; }
-    else if(which==='profitToMain_2') { document.getElementById('profitToMainInput_2').value = profit; }
 }
 window.setMax = setMax;
 
-// Add money to main, max 1M per day
+// Add to main, max 1M per day
 window.addMoneyMain = async function() {
     let amt = Math.round(+document.getElementById('addMoneyInput').value);
     if (isNaN(amt)||amt<1||amt>1000000) return alert("Max add per day is 1,000,000");
-    // Only allow one add per day
-    let lastKey = todayAddDate ? todayAddDate.slice(0,10) : "";
-    if (todayAddAmt>0 && lastKey === todayKey()) return alert("Already added money for today!");
+    // Only one add per day
+    let todayStr = todayKey();
+    if (todayAddAmt>0 && todayAddDate && todayAddDate.slice(0,10) == todayStr) return alert("Already added money today!");
     await set(ref(db, `users/${userWallet}/main`), main + amt);
     await set(ref(db, `users/${userWallet}/todayAdd`), {amount:amt, date:new Date().toISOString()});
     todayAddAmt = amt;
+    setRemainingAdd(todayAddAmt);
     document.getElementById('addMoneyInput').value = '';
 };
 
@@ -283,22 +273,15 @@ window.moveBalance = async function(from,to) {
     let inputId, amt, u = {};
     if (from==='main' && to==='trading') inputId = "mainToTradingInput";
     else if (from==='trading' && to==='main') inputId = "tradingToMainInput";
-    else if (from==='profit' && to==='main') inputId = "profitToMainInput";
-    else if (from==='profit_2' && to==='main') inputId = "profitToMainInput_2";
     else return;
-    if(from==='profit' && to==='main' && !document.getElementById('profitToMainInput').value)
-        inputId="profitToMainInput_2";
     amt = parseFloat(document.getElementById(inputId).value);
     if(!amt || amt <= 0) {alert("Enter valid amount."); return;}
     if      (from=="main"    && amt>main)      { alert("Insufficient main balance."); return; }
     else if (from=="trading" && amt>trading)   { alert("Insufficient trading balance."); return; }
-    else if (from=="profit"  && amt>profit)    { alert("Insufficient profit balance."); return; }
-    else if (from=="profit_2"&& amt>profit)    { alert("Insufficient profit balance."); return; }
     if(from=='main')    u['main']=main-amt;
     if(to=='main')      u['main']=main+amt;
     if(from=='trading') u['trading']=trading-amt;
     if(to=='trading')   u['trading']=trading+amt;
-    if(from=='profit' || from=='profit_2') u['profit']=profit-amt;
     await update(ref(db,`users/${userWallet}`), u);
     document.getElementById(inputId).value = '';
 };
@@ -332,28 +315,42 @@ function updateAmountSlider() {
     document.getElementById('betAmountRemain').textContent = toUsd(futureBalance);
 }
 
-function addProfit(pnl, entry, exit, dir, amt, lev) {
-    let profTx = {
-        date: (new Date()).toISOString(),
-        pnl, entry, exit, dir, amt, lev
-    };
-    profitHistory.push(profTx);
-    let newProfit = profit;
-    if (pnl > 0) { newProfit += pnl; }
-    set(ref(db, `users/${userWallet}/profit`), newProfit);
-    let pKey = push(ref(db, `users/${userWallet}/profits`)).key;
-    set(ref(db, `users/${userWallet}/profits/${pKey}`), profTx).then(loadProfitTable);
+function updateLossUI() {
+    document.getElementById('currentLoss').textContent = (currentLoss>0 ? "-" : "")+toUsd(Math.abs(currentLoss));
+    document.getElementById('payForLossBtn').style.display = (currentLoss < 0) ? "inline-block" : "none";
 }
-function loadProfitTable() {
-    const tb = document.getElementById('profitTableBody');
-    get(ref(db, `users/${userWallet}/profits`)).then(snap=>{
+
+window.payForLoss = async function() {
+    if (currentLoss >= 0) return alert("No loss to pay for!");
+    if (main + currentLoss < 0) return alert("Not enough main to pay for loss.");
+    if (!confirm(`Pay ${toUsd(-currentLoss)} from Main to normalize loss?`)) return;
+    await update(ref(db,`users/${userWallet}`), {main: main + currentLoss, loss: 0});
+    currentLoss = 0; updateLossUI();
+};
+
+// PnL log (profit/loss)
+function addPnL(pnl, entry, exit, dir, amt, lev) {
+    let tpl = {date: (new Date()).toISOString(), pnl, entry, exit, dir, amt, lev};
+    let pKey = push(ref(db, `users/${userWallet}/pnl`)).key;
+    set(ref(db, `users/${userWallet}/pnl/${pKey}`), tpl).then(loadPnLTable);
+    // profit/loss balancing
+    let tProfit = Number(totalProfit), tLoss = Number(currentLoss);
+    if (pnl > 0)  tProfit += pnl;
+    if (pnl < 0)  tLoss += pnl;
+    set(ref(db, `users/${userWallet}/totalProfit`), tProfit);
+    set(ref(db, `users/${userWallet}/loss`), tLoss);
+    updateLossUI();
+}
+//
+function loadPnLTable() {
+    const tb = document.getElementById('pnlTableBody');
+    get(ref(db, `users/${userWallet}/pnl`)).then(snap=>{
         let arr = [];
         snap.forEach(ch=>{ arr.push(ch.val()); });
         arr.sort((a,b)=>b.date.localeCompare(a.date));
         let out = arr.map(obj=>{
             let d = new Date(obj.date).toISOString().slice(0,16).replace('T',' ');
-            let val = (+obj.pnl).toFixed(2);
-            let pos = obj.pnl >= 0;
+            let val = (+obj.pnl).toFixed(2), pos = obj.pnl >= 0;
             return `<tr>
 <td>${d}</td>
 <td class="${pos?'pnl-positive':'pnl-negative'}"><b>${pos?'':'-'}${toUsd(Math.abs(val))}</b></td>
@@ -362,13 +359,15 @@ function loadProfitTable() {
 <td>${toUsd(obj.amt)}</td><td>${obj.lev}x</td>
 </tr>`;
         });
-        tb.innerHTML = out.length?out.join(''):'<tr><td colspan=7 style="color:#848E9C">No profit yet.</td></tr>';
-        let total = 0;
-        arr.forEach(obj=>{ if(+obj.pnl>0) total += +obj.pnl; });
-        document.getElementById('totalProfit').textContent = toUsd(total);
+        tb.innerHTML = out.length?out.join(''):'<tr><td colspan=7 style="color:#848E9C">No history yet.</td></tr>';
+        // accumulate profit/loss for summary
+        let prof = 0, los = 0;
+        arr.forEach(obj=>{ if(+obj.pnl>0) prof+=+obj.pnl; else los+=+obj.pnl;});
+        document.getElementById('totalProfit').textContent = toUsd(prof);
+        currentLoss = los;
+        updateLossUI();
     });
 }
-
 // --- BET LOGIC ---
 async function checkAndSettleActiveBet() {
     const betSnap = await get(ref(db, `users/${userWallet}/activeBet`));
@@ -396,19 +395,22 @@ async function settleBetOffline(activeBet) {
     await set(ref(db, `users/${userWallet}/activeBet/settled`), true);
     let newTrading = trading + pnl;
     await set(ref(db, `users/${userWallet}/trading`), newTrading);
-    if(pnl!=0) addProfit(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
+    if(pnl!=0) addPnL(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
+    loadPnLTable();
     updateTabs();
+    updateLossUI();
 }
 window.selectDir = function(dir) {
     if (gameState !== "IDLE") return;
+    if (currentLoss < 0) { alert("You must pay for loss first."); return; }
     selectedDirection = dir;
     document.getElementById('upBtn').className = "btn btn-up" + (dir === 'UP' ? ' selected' : '');
     document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
     document.getElementById('startBtn').classList.remove('btn-disabled');
 };
-
 window.startBet = function() {
     if (!selectedDirection) return;
+    if (currentLoss < 0) { alert("You must pay for loss first."); return; }
     userBetAmount = Math.round(Math.max(1, Math.min(userBetAmount, Math.floor(trading))));
     if (userBetAmount > trading) userBetAmount = trading;
     if (userBetAmount < 1) userBetAmount = 1;
@@ -458,7 +460,7 @@ function endBet() {
     set(ref(db, `users/${userWallet}/activeBet/settled`), true);
     let newTrading = trading + pnl;
     set(ref(db, `users/${userWallet}/trading`), newTrading);
-    if(pnl!=0) addProfit(pnl, entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage);
+    if(pnl!=0) addPnL(pnl, entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage);
     setTimeout(() => {
         entryLine = null; gameState = "IDLE"; setLeverageEnabled(true); setAmountEnabled(true);
         document.getElementById('controls').style.display = 'block';
@@ -469,12 +471,13 @@ function endBet() {
         selectedDirection = null;
         chart.update();
         updateTabs();
+        updateLossUI();
         showTimerBar(false); updateAmountSlider();
-        loadProfitTable();
+        loadPnLTable();
     }, 1600);
 }
 
-// --- Price / PnL chart ---
+// --- Price / Chart
 async function fetchPrice() {
     try {
         const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
@@ -563,6 +566,7 @@ setInterval(() => { chart.update(); }, 10000);
 
 function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
 function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
+
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") {
         e.preventDefault();
