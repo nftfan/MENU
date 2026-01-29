@@ -307,11 +307,14 @@ window.selectDir = function(dir) {
     document.getElementById('startBtn').classList.remove('btn-disabled');
 }
 
+// Chart.js setup with dottedLinePlugin and 10s signal candle plugin
 const ctx = document.getElementById('btcChart').getContext('2d');
 let priceHistory = [];
+
+// --- DOTTED LINE PLUGIN ---
 let dottedLinePlugin = {
     id: 'dottedLine',
-    afterDraw: function(chart, eas) {
+    afterDraw: function(chart) {
         if (entryLine !== null) {
             let y = chart.scales['y'].getPixelForValue(entryLine);
             let ctx = chart.ctx;
@@ -327,25 +330,67 @@ let dottedLinePlugin = {
             ctx.restore();
         }
     }
-}
+};
+
+// --- SIGNAL CANDLE OVERLAY PLUGIN (10s update) ---
+let signalCandlePlugin = {
+    id: 'signalCandle10s',
+    afterDraw: function(chart) {
+        if (entryLine === null) return;
+        // Only draw candle if there is a bet
+        const lastPrice = chart.data.datasets[0].data.slice(-1)[0];
+        if (typeof lastPrice !== 'number') return;
+        let color = (lastPrice > entryLine) ? "#2ebd85" : (lastPrice < entryLine) ? "#f6465d" : "#fcd535";
+        let ctx = chart.ctx;
+        let x = chart.scales.x.getPixelForValue(chart.data.labels.length-1);
+        let yTop = chart.scales.y.getPixelForValue(Math.max(lastPrice, entryLine));
+        let yBot = chart.scales.y.getPixelForValue(Math.min(lastPrice, entryLine));
+        let barWidth = 14;
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.fillRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 3);
+        ctx.strokeStyle = "#181a20";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x-barWidth/2, yTop, barWidth, yBot-yTop || 3);
+        ctx.restore();
+    }
+};
+
 const chart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: Array(20).fill(''),
-        datasets: [{ data: priceHistory, borderColor: '#FCD535', tension: 0.4, pointRadius: 0, borderWidth: 2, fill:false }]
+        datasets: [
+            {
+                data: priceHistory,
+                borderColor: '#FCD535',
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2,
+                fill:false
+            }
+        ]
     },
     options: {
+        animation: false,
         scales: { x: { display: false }, y: { display: false } },
         plugins: { legend: { display: false } }
     },
-    plugins: [dottedLinePlugin]
+    plugins: [dottedLinePlugin, signalCandlePlugin]
 });
+
+// Regular chart price feed & update
 setInterval(() => {
     priceHistory.push(btcPrice);
     if (priceHistory.length > 20) priceHistory.shift();
     chart.data.datasets[0].data = priceHistory.slice();
     chart.update();
 }, 3000);
+
+// Also redraw candle every 10s for 'signal'
+setInterval(() => { chart.update(); }, 10000);
 
 function showTimerBar(show) {
     document.getElementById('timerBarContainer').style.display = show?'block':'none';
@@ -371,7 +416,7 @@ window.startBet = function() {
     document.getElementById('liveDiff').textContent = '--';
     chart.update();
 
-    // NEW: Save active bet info for auto settlement
+    // Save active bet info for auto settlement
     set(ref(db, 'users/' + userWallet + '/activeBet'), {
         entryPrice,
         entryTimestamp,
@@ -421,6 +466,7 @@ function endBet() {
     }, 3000);
 }
 
+// Alert user if closing tab during active bet
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") {
         e.preventDefault();
