@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Bank, Life, Trading (Bidirectional)</title>
+<title>BTC Pro: Bank, Life, Trading (M/B/T, items per user)</title>
 <meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -180,7 +180,8 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
     </div>
     <div class="reward-info">
         <span class="material-icons" style="font-size:11px;vertical-align:-2.5px;">info</span> $1,000,000 bank, refilled every 15 days.<br>
-        Move money between all wallets via compact controls. Buy luxury demo items in "My Life". Quick trading with up&down choice and timer bar!
+        Move money between all wallets (bank, main, trading). <br>
+        Buy luxury demo items ("My Life") are permanently remembered in your account. All balances formatted M, B, T!
     </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -197,9 +198,17 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
-function toUsd(x) { return "$" + (+x).toLocaleString("en",{minimumFractionDigits:2}); }
-function todayKey() { let d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);}
+function toScaled(n) {
+    n = +n;
+    if (n >= 1_000_000_000_000) return (n/1_000_000_000_000).toFixed(2).replace(/\.00$/,"")+'T';
+    if (n >= 1_000_000_000)    return (n/1_000_000_000).toFixed(2).replace(/\.00$/,"")+'B';
+    if (n >= 1_000_000)        return (n/1_000_000).toFixed(2).replace(/\.00$/,"")+'M';
+    return "$" + n.toLocaleString("en",{minimumFractionDigits:2});
+}
+function toUsd(x) {
+    x=+x;
+    return toScaled(x) || "$0";
+}
 function demoItems() {
     let icons = ["villa","directions_car","diamond","sailing","flight","image","house","commute","bolt","sports_esports","camera","phone_iphone","saving","emoji_events","music_note","watch","stadium","pool","local_cafe","skateboarding"];
     let names = [
@@ -214,7 +223,6 @@ function demoItems() {
 }
 let userWallet = null, main = 0, trading = 0, bank = 1000000, btcPrice = 0, bankDate = "";
 let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0, myItems={};
-
 function switchTab(tab) {
     document.getElementById('view-bank').style.display = tab==="bank"?"block":"none";
     document.getElementById('view-life').style.display = tab==="life"?"block":"none";
@@ -241,7 +249,6 @@ function setMax(which) {
     else if(which==='tradingToMain') document.getElementById('tradingToMainInput').value = trading;
 }
 window.setMax = setMax;
-
 function checkAndRefillBankIfNeeded(node) {
     let now = new Date();
     now.setHours(0,0,0,0);
@@ -321,7 +328,10 @@ window.buyItem= async function(k) {
     let item = items.find(x=>x.k===k);
     if(!item) return;
     if(bank<item.p) { alert("Insufficient bank account balance!"); return; }
-    let ni = Object.assign({}, myItems); ni[k]=true;
+    let snapshot = await get(ref(db,`users/${userWallet}/myItems`));
+    let ni = (snapshot.exists() ? snapshot.val() : {});
+    ni = ni || {};
+    ni[k] = true;
     await update(ref(db,`users/${userWallet}`), {bank: bank-item.p, myItems:ni});
 };
 window.onLeverageSet = function(val) {
