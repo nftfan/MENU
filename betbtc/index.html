@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Pro: Bank, Life, Trading, Gallery</title>
+<title>BTC Pro: Bank, Life, Trading</title>
 <meta name="viewport" content="width=420, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -36,7 +36,6 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
 .grid-life .btn-buy, .grid-life .btn-own {font-size:8.2px;}
 .grid-life .btn-own { background: #333; color: #aaa; cursor:default;}
 .grid-life .btn-buy {padding:4px 6px; margin-top:1.5px;}
-#lifeTabMsg {font-size:9px;color:#FCD535;font-weight:bold;text-align:center;margin:4px 0;}
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 7px; }
 .stat-card { background: #22252b; padding: 7px; border-radius: 6px; text-align: center; }
 .stat-label { font-size: 8px; color: #848E9C; text-transform: uppercase;}
@@ -57,10 +56,6 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
 #betAmountSummary { font-size:8.3px;color:#FCD535; margin-bottom: 3px;}
 #tradeUpDown {font-size:10px; font-weight:bold;margin-top:2px;margin-bottom:2px;}
 #tradeUpDown .material-icons{font-size:16px;vertical-align:bottom;}
-.trading-profits, .trading-losses { margin:9px 0 4px 0; }
-#tradeProfitList, #tradeLossList { font-size:8.7px; }
-.pnl-positive { color: #2ebd85;}
-.pnl-negative { color: #f6465d;}
 .reward-info { font-size:7.5px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535;}
 </style>
 </head>
@@ -75,7 +70,6 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
             <div id="tab-bank" class="tab active" onclick="switchTab('bank')">BANK ACC</div>
             <div id="tab-life" class="tab" onclick="switchTab('life')">MY LIFE</div>
             <div id="tab-trade" class="tab" onclick="switchTab('trade')">TRADE</div>
-            <div id="tab-gallery" class="tab" onclick="switchTab('gallery')">GALLERY</div>
         </div>
         <!-- BANK TAB -->
         <div id="view-bank">
@@ -90,6 +84,11 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 <button class="max-btn" onclick="setMax('mainToBank')">MAX</button>
                 <button class="btn btn-connect" id="mainToBankBtn" onclick="moveBalance('bank','main')" style="margin-left:3px;"><span class="material-icons" style="font-size:10px;vertical-align:-2.5px;margin-right:1px;">trending_down</span>Bank➔Main</button>
             </div>
+            <div id="main-to-trading-row" style="display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+                <input class="input-funds" id="mainToTradingInput" pattern="[0-9]*" inputmode="numeric" type="number" min="1" step="1">
+                <button class="max-btn" onclick="setMax('mainToTrading')">MAX</button>
+                <button class="btn btn-up" id="mainToTradingBtn" onclick="moveBalance('main','trading')" style="margin-left:3px;"><span class="material-icons" style="font-size:10px;vertical-align:-2.5px;margin-right:1px;">swap_horiz</span>Main➔Trade</button>
+            </div>
             <div class="stats-grid" style="margin-bottom:0;">
                 <div class="stat-card">
                     <span class="stat-label">MAIN</span>
@@ -103,7 +102,9 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
         </div>
         <!-- LIFE TAB -->
         <div id="view-life" style="display:none;">
-            <div id="lifeTabMsg">What could you buy? Show off your "owns"! <span class="material-icons" style="font-size:13px;vertical-align:-2.5px;">star</span></div>
+            <div style="font-size:9px;color:#FCD535;font-weight:bold;text-align:center;margin:4px 0;">
+                What could you buy? Show off your "owns"! <span class="material-icons" style="font-size:13px;vertical-align:-2.5px;">star</span>
+            </div>
             <div class="grid-life" id="lifeGrid"></div>
         </div>
         <!-- TRADE TAB -->
@@ -148,34 +149,11 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 </div>
                 <button id="startBtn" class="btn btn-connect btn-disabled" style="margin-top:5px;" onclick="startBet()">CONFIRM</button>
             </div>
-            <div class="trading-profits">
-                <b style="color:#2ebd85;font-size:9px;">Profits</b>
-                <div id="tradeProfitList"></div>
-            </div>
-            <div class="trading-losses">
-                <b style="color:#f6465d;font-size:9px;">Losses</b>
-                <div id="tradeLossList"></div>
-            </div>
-        </div>
-        <!-- GALLERY (simple with material icons) -->
-        <div id="view-gallery" style="display:none;">
-            <div style="text-align:center; margin:10px 0 3px 0; color:#FCD535;font-weight:bold;font-size:11px;">
-                <span class="material-icons" style="font-size:17px;vertical-align:-3px;margin-right:2px;">collections</span>
-                My PnL Gallery
-            </div>
-            <div class="trading-profits">
-                <b style="color:#2ebd85;font-size:9px;">Profits</b>
-                <div id="galleryProfitList"></div>
-            </div>
-            <div class="trading-losses">
-                <b style="color:#f6465d;font-size:9px;">Losses</b>
-                <div id="galleryLossList"></div>
-            </div>
         </div>
     </div>
     <div class="reward-info">
         <span class="material-icons" style="font-size:11px;vertical-align:-2.5px;">info</span> Each user gets $1,000,000 in their bank, refilled every 15 days.<br>
-        Move money via beautiful Bank card. Buy virtual life upgrades in "My Life". Track your profit/loss story in "Trade" and "Gallery"!
+        Move money via sleek Bank card. Buy luxury demo items in "My Life". Quick trading with up&down choice always on!
     </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -196,29 +174,27 @@ function toUsd(x) { return "$" + (+x).toLocaleString("en",{minimumFractionDigits
 function todayKey() { let d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);}
 function addDays(date, days){ let d=new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate()+days); return d;}
 function demoItems() {
-    return [
-        { k:"villa",n:"Luxury Villa",p:650000,icon:"villa" },
-        { k:"lambo",n:"Lamborghini",p:300000,icon:"directions_car" },
-        { k:"diamond",n:"Rare Diamond",p:450000,icon:"diamond" },
-        { k:"yacht",n:"Super Yacht",p:2500000,icon:"sailing" },
-        { k:"jet",n:"Private Jet",p:3800000,icon:"flight" },
-        { k:"mona", n:"Mona Lisa NFT",p:8000000,icon:"image"}
+    let icons = ["villa","directions_car","diamond","sailing","flight","image","house","commute","bolt","sports_esports","camera","phone_iphone","saving","emoji_events","music_note","watch","stadium","pool","local_cafe","skateboarding"];
+    let names = [
+        "Luxury Villa", "Lamborghini", "Rare Diamond", "Super Yacht", "Private Jet", "Mona Lisa NFT", "Dream Home", "Hypercar", "Electric City", "Pro Gaming Setup", "DSLR Camera", "iPhone X", "Swiss Bank Vault", "Olympic Medal", "Grand Piano", "Rolex Watch", "Sports Stadium", "Infinity Pool", "Celebrity Coffee", "Pro Skateboard"
     ];
+    let items = [];
+    for (let i = 0; i < 20; ++i) {
+        let price = 1000000 + Math.round((99000000 * i) / 19); // spreads 1M to 100M evenly
+        items.push({ k: "i" + i, n: names[i], p: price, icon: icons[i % icons.length] });
+    }
+    return items;
 }
-let userWallet = null, main = 0, trading = 0, totalProfit = 0, totalLoss = 0, bank = 1000000, btcPrice = 0, bankDate = "";
-let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0;
-let todayAddAmt = 0, todayAddDate = null, pnlArr = [], myItems = {};
+let userWallet = null, main = 0, trading = 0, bank = 1000000, btcPrice = 0, bankDate = "";
+let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0, myItems={};
 function switchTab(tab) {
     document.getElementById('view-bank').style.display = tab==="bank"?"block":"none";
     document.getElementById('view-life').style.display = tab==="life"?"block":"none";
     document.getElementById('view-trade').style.display = tab==="trade"?"block":"none";
-    document.getElementById('view-gallery').style.display = tab==="gallery"?"block":"none";
     document.getElementById('tab-bank').className = "tab" + (tab=='bank'?' active':'');
     document.getElementById('tab-life').className = "tab" + (tab=='life'?' active':'');
     document.getElementById('tab-trade').className = "tab" + (tab=='trade'?' active':'');
-    document.getElementById('tab-gallery').className = "tab" + (tab=='gallery'?' active':'');
     if(tab==="life") drawLifeTab();
-    if(tab==="gallery") drawGallery();
 }
 window.switchTab = switchTab;
 document.getElementById('connectBtn').onclick = async () => {
@@ -232,15 +208,9 @@ document.getElementById('connectBtn').onclick = async () => {
 };
 function setMax(which) {
     if(which==='mainToBank') document.getElementById('mainToBankInput').value = bank;
-}
-function setMaxAdd() { // not used, see setMax for MAX to main
-    let left = bank;
-    document.getElementById('mainToBankInput').value = left >= 1 ? left : '';
+    else if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
 }
 window.setMax = setMax;
-window.setMaxAdd = setMaxAdd;
-
-// 15 days bank logic, also maintain last-recharge date
 function checkAndRefillBankIfNeeded(node) {
     let now = new Date();
     now.setHours(0,0,0,0);
@@ -264,46 +234,41 @@ function initUser() {
         trading = Number(node?.trading)||0;
         bank = typeof node?.bank === "number" ? node.bank : 1000000;
         bankDate = node?.bankDate||todayKey();
-        todayAddAmt = node?.todayAdd?.amount || 0;
-        todayAddDate = node?.todayAdd?.date || '';
         myItems = node?.myItems||{};
-        pnlArr = [];
         document.getElementById('userMain').textContent = toUsd(main);
         document.getElementById('userTrading').textContent = toUsd(trading);
         document.getElementById('balanceUSD').textContent = toUsd(trading);
         document.getElementById('userMain2').textContent = toUsd(main);
         document.getElementById('bankBalance').textContent = toUsd(bank);
         document.getElementById('mainToBankInput').max=bank;
-        loadPnLTable();
-        checkAndRefillBankIfNeeded(node);
+        document.getElementById('mainToTradingInput').max=main;
         updateAmountSlider();
         drawLifeTab();
-        drawTradeProfitLoss();
-        drawGallery();
     });
     checkAndSettleActiveBet();
 }
 window.moveBalance = async function(from,to) {
     let inputId, amt, u = {};
     if (from==='bank' && to==='main') inputId = "mainToBankInput";
+    else if (from==='main' && to==='trading') inputId = "mainToTradingInput";
     else return;
     amt = parseFloat(document.getElementById(inputId).value);
     if(!amt || amt <= 0) {alert("Enter a valid amount."); return;}
-    if(from=='bank' && amt>bank) { alert("Insufficient bank funds."); return;}
-    u['bank'] = bank-amt;
-    u['main'] = main+amt;
+    if(from==='bank' && amt>bank) { alert("Insufficient bank funds."); return;}
+    if(from==='main' && amt>main) { alert("Insufficient main funds."); return;}
+    if(from==='bank') { u['bank'] = bank-amt; u['main'] = main+amt;}
+    if(from==='main') { u['main'] = main-amt; u['trading'] = trading+amt;}
     await update(ref(db,`users/${userWallet}`), u);
     document.getElementById(inputId).value = '';
-    document.getElementById('bankBalance').textContent = toUsd(bank-amt);
+    if(from==='bank') document.getElementById('bankBalance').textContent = toUsd(bank-amt);
 };
 function drawLifeTab() {
     let grid = document.getElementById("lifeGrid");
     let items = demoItems();
-    let str = "";
     grid.innerHTML="";
     items.forEach(it=>{
         let own = (myItems&&(myItems[it.k]));
-        str += `<div class="item-card">
+        grid.innerHTML += `<div class="item-card">
             <span class="material-icons">${it.icon}</span>
             <div class="item-name">${it.n}</div>
             <div class="item-price">${toUsd(it.p)}</div>
@@ -311,7 +276,6 @@ function drawLifeTab() {
                 :(`<button class="btn btn-buy" onclick="buyItem('${it.k}')">Buy <span class="material-icons" style="font-size:11px;vertical-align:-2px;">shopping_cart</span></button>`)}
         </div>`;
     });
-    grid.innerHTML = str;
 }
 window.buyItem= async function(k) {
     let items = demoItems();
@@ -319,37 +283,9 @@ window.buyItem= async function(k) {
     if(!item) return;
     if(bank<item.p) { alert("Insufficient bank account balance!"); return; }
     let ni = Object.assign({}, myItems); ni[k]=true;
-    await update(ref(db,`users/${userWallet}`), {bank: bank-item.p, myItems:ni})
+    await update(ref(db,`users/${userWallet}`), {bank: bank-item.p, myItems:ni});
 };
-function drawTradeProfitLoss() {
-    let arr = pnlArr || [];
-    let pl = arr.filter(x=>x.pnl>0).slice(0,5), ls = arr.filter(x=>x.pnl<0).slice(0,5);
-    let pList = pl.length?pl.map(x=>`<div class='pnl-positive'>+${toUsd(x.pnl)}</div>`).join(""):"<div style='color:#666'>No profit yet.</div>";
-    let lList = ls.length?ls.map(x=>`<div class='pnl-negative'>-${toUsd(Math.abs(x.pnl))}</div>`).join(""):"<div style='color:#444'>No loss yet.</div>";
-    document.getElementById('tradeProfitList').innerHTML=pList;
-    document.getElementById('tradeLossList').innerHTML=lList;
-}
-function drawGallery() {
-    let arr=pnlArr||[];
-    let p=arr.filter(x=>x.pnl>0),l=arr.filter(x=>x.pnl<0);
-    document.getElementById('galleryProfitList').innerHTML= p.length?p.map(x=>`<div class="pnl-positive">+${toUsd(x.pnl)}</div>`).join(""):"<div style='color:#666'>No profit yet.</div>";
-    document.getElementById('galleryLossList').innerHTML= l.length?l.map(x=>`<div class="pnl-negative">-${toUsd(Math.abs(x.pnl))}</div>`).join(""):"<div style='color:#444'>No loss yet.</div>";
-}
-function addPnL(pnl, entry, exit, dir, amt, lev) {
-    let tpl = {date: (new Date()).toISOString(), pnl, entry, exit, dir, amt, lev};
-    let pKey = push(ref(db, `users/${userWallet}/pnl`)).key;
-    set(ref(db, `users/${userWallet}/pnl/${pKey}`), tpl).then(loadPnLTable);
-}
-function loadPnLTable() {
-    get(ref(db, `users/${userWallet}/pnl`)).then(snap=>{
-        let arr = [];
-        snap.forEach(ch=>{ arr.push(ch.val()); });
-        arr.sort((a,b)=>b.date.localeCompare(a.date));
-        pnlArr = arr || [];
-        drawTradeProfitLoss();
-        drawGallery();
-    });
-}
+// ---- Trading ----
 window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
     userLeverage = parseInt(val);
@@ -377,7 +313,6 @@ function updateAmountSlider() {
     let futureBalance = trading - userBetAmount;
     document.getElementById('betAmountRemain').textContent = toUsd(futureBalance);
 }
-// ---- Trading ----
 window.selectDir = function(dir) {
     if (gameState !== "IDLE") return;
     selectedDirection = dir;
@@ -431,7 +366,6 @@ function endBet() {
     let pnl = userBetAmount * userLeverage * mult;
     set(ref(db, `users/${userWallet}/activeBet/settled`), true);
     set(ref(db, `users/${userWallet}/trading`), trading + pnl);
-    if(pnl!==0) addPnL(pnl, entryPrice, exitPrice, selectedDirection, userBetAmount, userLeverage);
     setTimeout(() => {
         entryLine = null; gameState = "IDLE"; setLeverageEnabled(true); setAmountEnabled(true);
         document.getElementById('controls').style.display = 'block';
@@ -441,7 +375,7 @@ function endBet() {
         document.getElementById('upBtn').className = "btn btn-up";
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
-        chart.update(); updateAmountSlider(); loadPnLTable();
+        chart.update(); updateAmountSlider();
     }, 1400);
 }
 async function fetchPrice() {
@@ -461,7 +395,6 @@ async function fetchPrice() {
     }
 }
 setInterval(fetchPrice, 2000);
-
 const ctx = document.getElementById('btcChart').getContext('2d');
 let priceHistory = [];
 let chart = new Chart(ctx, {
@@ -470,10 +403,8 @@ let chart = new Chart(ctx, {
     options: {animation:false,scales:{x:{display:false},y:{display:false}},plugins:{legend:{display:false}}}
 });
 setInterval(() => {priceHistory.push(btcPrice); if(priceHistory.length>20) priceHistory.shift(); chart.data.datasets[0].data=priceHistory.slice();chart.update();},3000);
-
 function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
 function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
-
 async function checkAndSettleActiveBet() {
     const betSnap = await get(ref(db, `users/${userWallet}/activeBet`));
     if (betSnap.exists() && betSnap.val() && !betSnap.val().settled) {
@@ -494,19 +425,16 @@ async function settleBetOffline(activeBet) {
     let pnl = activeBet.betAmount * activeBet.leverage * mult;
     set(ref(db, `users/${userWallet}/activeBet/settled`), true);
     set(ref(db, `users/${userWallet}/trading`), trading + pnl);
-    if(pnl!==0) addPnL(pnl, activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.betAmount, activeBet.leverage);
-    loadPnLTable(); updateAmountSlider();
+    updateAmountSlider();
 }
 window.buyItem = window.buyItem;
 window.setMax = setMax;
-window.setMaxAdd = setMaxAdd;
 window.moveBalance = window.moveBalance;
 window.selectDir = window.selectDir;
 window.startBet = window.startBet;
 window.switchTab = window.switchTab;
 window.onLeverageSet = window.onLeverageSet;
 window.onBetAmountSet = window.onBetAmountSet;
-window.addMoneyMain = window.addMoneyMain;
 window.addEventListener('beforeunload', function (e) {
     if (gameState === "ACTIVE") { e.preventDefault(); e.returnValue = 'You have an active bet. It will auto-resolve even if you close this page.'; }
 });
