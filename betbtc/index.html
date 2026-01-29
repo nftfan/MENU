@@ -11,29 +11,23 @@
 body { font-family: 'Roboto', sans-serif; background: #0B0E11; color: #EAECEF; margin:0; padding:10px; }
 .container { max-width: 380px; margin: auto; background: #181A20; border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; }
-/* Tabs */
 .tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #333; }
 .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #848E9C; font-weight: bold; font-size: 12px; }
 .tab.active { color: #FCD535; border-bottom: 2px solid #FCD535; }
-/* Stats */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
 .stat-card { background: #2B2F36; padding: 10px; border-radius: 8px; text-align: center; }
 .stat-label { font-size: 9px; color: #848E9C; text-transform: uppercase; }
 .stat-value { font-size: 14px; font-weight: bold; display: block; margin-top: 3px; }
-/* Game Elements */
 .comparison-bar { display: flex; justify-content: space-between; background: #1e2329; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
 .comp-item { flex: 1; text-align: center; }
 .comp-label { font-size: 10px; color: #848E9C; display: block; }
 .comp-val { font-size: 12px; font-weight: bold; font-family: monospace; }
-/* Leverage Slider */
 .leverage-row { display: flex; align-items: center; margin-top:13px; margin-bottom: 5px; justify-content: space-between; }
 .leverage-label { font-size:11px; color:#FCD535; }
 #leverageSlider { width: 70%; margin-left: 7px; margin-right:7px; }
 #leverageSlider:disabled { opacity:0.4; }
-/* Timer Progress Bar */
 #timerBarContainer { width:100%; height: 7px; background:#23262f; border-radius:7px; overflow:hidden; margin-bottom:3px; }
 #timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear; }
-/* Buttons */
 .btn { border: none; border-radius: 4px; padding: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; font-size: 13px; }
 .btn-connect { background: #FCD535; color: #000; }
 .btn-row { display: flex; gap: 8px; width:100%; margin-bottom:8px;}
@@ -42,14 +36,12 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
 .btn-disabled { opacity: 0.3; pointer-events: none; }
 .selected { outline: 2px solid #fff; transform: scale(0.98); }
 #btc-price { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; color: #FCD535; }
-/* Bet History */
 .bet-history-title { margin-top:15px; font-size: 9px; color:#FCD535; font-weight:bold; text-align:left; margin-bottom:5px; }
 #betHistoryTable { width:100%; font-size:7px; border-collapse:collapse; background:#242731; margin-bottom: 0; }
 #betHistoryTable th, #betHistoryTable td { border:1px solid #26282d; padding:3px; text-align:center; }
 #betHistoryTable th { background:#181A20;color:#FCD535;}
 #betHistoryTable tr:nth-child(even) { background:#1e2329; }
 #betHistoryTable tr:nth-child(odd) { background:#242731;}
-/* Leaderboard */
 #leaderboard-list { list-style: none; padding: 0; margin-top: 10px; }
 .lb-item { display: flex; justify-content: space-between; padding: 8px; background: #2b2f36; margin-bottom: 4px; border-radius: 4px; font-size: 11px; }
 .lb-rank { color: #FCD535; font-weight: bold; width: 20px; }
@@ -124,11 +116,9 @@ h1 { font-size: 1.2rem; text-align: center; color: #FCD535; margin-bottom: 5px; 
     </div>
     <div class="reward-info">
         <b>Rules:</b> 1M $NFTFAN for every $1 USD in your balance. Negative balances are allowed.<br>
-        When a bet is active, leverage cannot be changed. 
+        When a bet is active, leverage cannot be changed. Closing your page will NOT stop the bet – it will auto-resolve!
     </div>
 </div>
-
-<!-- Firebase modular SDK imports -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, push, get, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
@@ -144,21 +134,15 @@ const firebaseConfig = {
   appId: "1:962176232122:web:a277d922543c3378033083",
   measurementId: "G-V4XNB7K1E0"
 };
-
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getDatabase(app);
 
-// The rest of your core logic, adapted for modular Firebase
 let userWallet = null;
 let currentBalance = 0.00;
 let btcPrice = 0;
 let gameState = "IDLE";
-let selectedDirection = null;
-let entryPrice = 0;
-let userLeverage = 1;
-let entryLine = null;
-let timerInterval = null, timerValue=0;
+let selectedDirection = null, entryPrice = 0, userLeverage = 1, entryLine = null, timerInterval = null, timerValue=0;
 
 document.getElementById('connectBtn').onclick = async () => {
     if (window.ethereum) {
@@ -169,6 +153,7 @@ document.getElementById('connectBtn').onclick = async () => {
         initUser();
     } else { alert("Install MetaMask"); }
 };
+
 function initUser() {
     onValue(ref(db, 'users/' + userWallet), (snap) => {
         if (snap.exists()) {
@@ -179,8 +164,45 @@ function initUser() {
         }
         updateUI();
     });
-    loadBetHistory(); // Always show all bets by all users, not just personal
+    checkAndSettleActiveBet();
+    loadBetHistory();
 }
+
+async function checkAndSettleActiveBet() {
+    const betSnap = await get(ref(db, 'users/' + userWallet + '/activeBet'));
+    if (betSnap.exists() && betSnap.val() && !betSnap.val().settled) {
+        const activeBet = betSnap.val();
+        const now = Date.now();
+        if (now >= activeBet.scheduledEnd) {
+            await settleBetOffline(activeBet);
+        } else {
+            // Optionally: restore UI state for still-active bet (not implemented)
+        }
+    }
+}
+
+async function settleBetOffline(activeBet) {
+    const endTime = Math.ceil(activeBet.scheduledEnd / 60000) * 60000;
+    const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&endTime=${endTime}&limit=1`;
+    let exitPrice = activeBet.entryPrice;
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data && data[0] && data[0][4]) {
+            exitPrice = parseFloat(data[0][4]);
+        }
+    } catch { }
+    let diff = (activeBet.direction === "UP" ? (exitPrice - activeBet.entryPrice) : (activeBet.entryPrice - exitPrice));
+    let pnl = diff * activeBet.leverage;
+    currentBalance += pnl;
+    await update(ref(db, 'users/' + userWallet), { balance: currentBalance });
+    await set(ref(db, 'users/' + userWallet + '/activeBet/settled'), true);
+    const now = new Date().toISOString();
+    recordBet(activeBet.entryPrice, exitPrice, activeBet.direction, activeBet.leverage, pnl, now);
+    updateUI();
+    loadBetHistory();
+}
+
 function updateUI() {
     const balanceField = document.getElementById('balanceUSD');
     balanceField.textContent = `$${currentBalance.toFixed(2)}`;
@@ -195,21 +217,17 @@ window.switchTab = function(tab) {
     if (tab === 'leader') loadLeaderboard();
 }
 
-// --- LEVERAGE ---
 window.onLeverageSet = function(val) {
     if(gameState==="ACTIVE") return;
     userLeverage = parseInt(val);
     document.getElementById('leverageValue').textContent = userLeverage+'x';
 }
-// Lock leverage input while betting
 function setLeverageEnabled(enable) {
     const slider = document.getElementById('leverageSlider');
     slider.disabled = !enable;
 }
 
-// --- LEADERBOARD ---
 function loadLeaderboard() {
-    // Modular: use query, orderByChild, limitToLast, get
     get(query(ref(db, 'users'), orderByChild('balance'), limitToLast(10)))
     .then((snap) => {
         let list = document.getElementById('leaderboard-list');
@@ -225,13 +243,8 @@ function loadLeaderboard() {
     });
 }
 
-// --- BET HISTORY ---
 function recordBet(entry, exit, dir, leverage, pnl, date) {
-    const betObj = {
-        entry, exit, dir, leverage, pnl, date,
-        wallet: userWallet
-    };
-    // Modular: use push to get new key
+    const betObj = { entry, exit, dir, leverage, pnl, date, wallet: userWallet };
     const betUserRef = ref(db, `bets/${userWallet}`);
     const betKey = push(betUserRef).key;
     set(ref(db, `bets/${userWallet}/${betKey}`), betObj).then(loadBetHistory);
@@ -248,10 +261,7 @@ function loadBetHistory() {
                 bets.push(v);
             });
         });
-        bets.sort((a, b) => {
-            // descending by date
-            return (b.date||'') > (a.date||'') ? 1 : -1;
-        });
+        bets.sort((a, b) => (b.date||'') > (a.date||'') ? 1 : -1);
         let rows = [];
         for(let i=0; i<bets.length; i++) {
             let { date, entry, exit, dir, leverage, pnl, wallet } = bets[i];
@@ -266,13 +276,12 @@ function loadBetHistory() {
                 <td>${leverage||"-"}x</td>
                 <td style="color:${(pnl>0?"#2ebd85":(pnl<0?"#f6465d":"#aaa"))};font-weight:bold">${!isNaN(pnl)?(pnl>0?"+":"")+Number(pnl).toFixed(2):"-"}</td>
             </tr>`);
-            if(i===49) break; // Show at most 50
+            if(i===49) break;
         }
         tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" style="text-align:center;color:#848E9C;">No bet history.</td></tr>';
     });
 }
 
-// --- GAMEPLAY ---
 async function fetchPrice() {
     try {
         const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
@@ -338,7 +347,6 @@ setInterval(() => {
     chart.update();
 }, 3000);
 
-// --- Progress Bar ---
 function showTimerBar(show) {
     document.getElementById('timerBarContainer').style.display = show?'block':'none';
 }
@@ -346,9 +354,12 @@ function updateTimerBar(percent) {
     document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%';
 }
 
-// --- BET CYCLE ---
 window.startBet = function() {
     if (!selectedDirection) return;
+    const entryTimestamp = Date.now();
+    const betDuration = 60 * 1000; // 60s
+    const scheduledEnd = entryTimestamp + betDuration;
+
     gameState = "ACTIVE";
     setLeverageEnabled(false);
     entryPrice = btcPrice;
@@ -359,6 +370,16 @@ window.startBet = function() {
     document.getElementById('livePrice').textContent = `$${btcPrice.toFixed(2)}`;
     document.getElementById('liveDiff').textContent = '--';
     chart.update();
+
+    // NEW: Save active bet info for auto settlement
+    set(ref(db, 'users/' + userWallet + '/activeBet'), {
+        entryPrice,
+        entryTimestamp,
+        scheduledEnd,
+        direction: selectedDirection,
+        leverage: userLeverage,
+        settled: false
+    });
 
     timerValue = 60;
     updateTimerBar(1);
@@ -380,9 +401,9 @@ function endBet() {
     let diff = (selectedDirection === "UP" ? (exitPrice - entryPrice) : (entryPrice - exitPrice));
     let pnl = diff * userLeverage;
     currentBalance += pnl;
-    // NO minimum, allow negative balance
     let now = new Date().toISOString();
     update(ref(db, 'users/' + userWallet), { balance: currentBalance });
+    set(ref(db, 'users/' + userWallet + '/activeBet/settled'), true);
     recordBet(entryPrice, exitPrice, selectedDirection, userLeverage, pnl, now);
     setTimeout(() => {
         entryLine = null;
@@ -399,6 +420,13 @@ function endBet() {
         showTimerBar(false);
     }, 3000);
 }
+
+window.addEventListener('beforeunload', function (e) {
+    if (gameState === "ACTIVE") {
+        e.preventDefault();
+        e.returnValue = 'You have an active bet. It will auto-resolve even if you close this page.';
+    }
+});
 </script>
 </body>
 </html>
