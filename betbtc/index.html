@@ -56,6 +56,9 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
 #betAmountSummary { font-size:8.3px;color:#FCD535; margin-bottom: 3px;}
 #tradeUpDown {font-size:10px; font-weight:bold;margin-top:2px;margin-bottom:2px;}
 #tradeUpDown .material-icons{font-size:16px;vertical-align:bottom;}
+#timerBarContainer { width:100%; height: 15px; background:#23262f; border-radius:7px; overflow:hidden; margin-bottom:3px; position:relative;}
+#timerBar { height:100%; background:linear-gradient(90deg,#FCD535 0,#fcb535 100%); transition:width 1s linear;}
+#timeRemainText { position:absolute; left:50%; top:1.5px; transform:translateX(-50%); font-size:9.7px; color:#23262f; font-weight:bold; pointer-events:none; line-height:1;}
 .reward-info { font-size:7.5px; color:#848E9C; background:#1e2329; padding:7px; border-radius:5px; margin-top:9px; border-left: 2px solid #FCD535;}
 </style>
 </head>
@@ -140,7 +143,10 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
                 </div>
             </div>
             <div id="tradeUpDown"></div>
-            <div id="timerBarContainer" style="display:none;"><div id="timerBar"></div></div>
+            <div id="timerBarContainer" style="display:none;">
+                <div id="timerBar"></div>
+                <span id="timeRemainText"></span>
+            </div>
             <div id="timer" style="display:none;"></div>
             <div id="controls">
                 <div class="btn-row">
@@ -153,7 +159,7 @@ h1 { font-size: 11px; text-align: center; color: #FCD535; margin-bottom: 4px; fo
     </div>
     <div class="reward-info">
         <span class="material-icons" style="font-size:11px;vertical-align:-2.5px;">info</span> Each user gets $1,000,000 in their bank, refilled every 15 days.<br>
-        Move money via sleek Bank card. Buy luxury demo items in "My Life". Quick trading with up&down choice always on!
+        Move money via sleek Bank card. Buy luxury demo items in "My Life". Quick trading with up&down choice and timer always on!
     </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -171,8 +177,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 function toUsd(x) { return "$" + (+x).toLocaleString("en",{minimumFractionDigits:2}); }
-function todayKey() { let d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);}
-function addDays(date, days){ let d=new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate()+days); return d;}
 function demoItems() {
     let icons = ["villa","directions_car","diamond","sailing","flight","image","house","commute","bolt","sports_esports","camera","phone_iphone","saving","emoji_events","music_note","watch","stadium","pool","local_cafe","skateboarding"];
     let names = [
@@ -187,6 +191,7 @@ function demoItems() {
 }
 let userWallet = null, main = 0, trading = 0, bank = 1000000, btcPrice = 0, bankDate = "";
 let gameState = "IDLE", selectedDirection = null, entryPrice = 0, userLeverage = 1, userBetAmount = 10, entryLine = null, timerInterval = null, timerValue=0, myItems={};
+
 function switchTab(tab) {
     document.getElementById('view-bank').style.display = tab==="bank"?"block":"none";
     document.getElementById('view-life').style.display = tab==="life"?"block":"none";
@@ -206,11 +211,7 @@ document.getElementById('connectBtn').onclick = async () => {
         initUser();
     } else { alert("Install MetaMask"); }
 };
-function setMax(which) {
-    if(which==='mainToBank') document.getElementById('mainToBankInput').value = bank;
-    else if(which==='mainToTrading') document.getElementById('mainToTradingInput').value = main;
-}
-window.setMax = setMax;
+
 function checkAndRefillBankIfNeeded(node) {
     let now = new Date();
     now.setHours(0,0,0,0);
@@ -233,7 +234,7 @@ function initUser() {
         main = Number(node?.main)||0;
         trading = Number(node?.trading)||0;
         bank = typeof node?.bank === "number" ? node.bank : 1000000;
-        bankDate = node?.bankDate||todayKey();
+        bankDate = node?.bankDate||"";
         myItems = node?.myItems||{};
         document.getElementById('userMain').textContent = toUsd(main);
         document.getElementById('userTrading').textContent = toUsd(trading);
@@ -261,6 +262,7 @@ window.moveBalance = async function(from,to) {
     await update(ref(db,`users/${userWallet}`), u);
     document.getElementById(inputId).value = '';
     if(from==='bank') document.getElementById('bankBalance').textContent = toUsd(bank-amt);
+    if(from==='main') document.getElementById('userMain').textContent = toUsd(main-amt);
 };
 function drawLifeTab() {
     let grid = document.getElementById("lifeGrid");
@@ -324,13 +326,14 @@ window.selectDir = function(dir) {
     document.getElementById('downBtn').className = "btn btn-down" + (dir === 'DOWN' ? ' selected' : '');
     document.getElementById('startBtn').classList.remove('btn-disabled');
 };
+let betTimeAll = 60;
 window.startBet = function() {
     if (!selectedDirection) return;
     userBetAmount = Math.round(Math.max(1, Math.min(userBetAmount, Math.floor(trading))));
     if (userBetAmount > trading) userBetAmount = trading;
     if (userBetAmount < 1) userBetAmount = 1;
     const entryTimestamp = Date.now();
-    const betDuration = 60 * 1000;
+    const betDuration = betTimeAll * 1000;
     const scheduledEnd = entryTimestamp + betDuration;
     gameState = "ACTIVE";
     setLeverageEnabled(false); setAmountEnabled(false);
@@ -348,13 +351,16 @@ window.startBet = function() {
     set(ref(db, `users/${userWallet}/activeBet`), {
         entryPrice, entryTimestamp,scheduledEnd,direction: selectedDirection,leverage: userLeverage,betAmount: userBetAmount,settled: false
     });
-    timerValue = 60;
-    updateTimerBar(1); showTimerBar(true);
+    timerValue = betTimeAll;
+    updateTimerBar(1);
+    setTimeRemainText(timerValue);
+    showTimerBar(true);
     document.getElementById('timer').style.display = "none";
     if(timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         timerValue--;
-        updateTimerBar(timerValue/60);
+        updateTimerBar(timerValue/betTimeAll);
+        setTimeRemainText(timerValue);
         if (timerValue <= 0) { clearInterval(timerInterval); endBet();}
     }, 1000);
 };
@@ -376,7 +382,13 @@ function endBet() {
         document.getElementById('downBtn').className = "btn btn-down";
         selectedDirection = null;
         chart.update(); updateAmountSlider();
+        showTimerBar(false);
+        setTimeRemainText('');
     }, 1400);
+}
+function setTimeRemainText(val) {
+    let t = document.getElementById('timeRemainText');
+    t.innerHTML = (val? (val + "s") : "");
 }
 async function fetchPrice() {
     try {
@@ -403,8 +415,13 @@ let chart = new Chart(ctx, {
     options: {animation:false,scales:{x:{display:false},y:{display:false}},plugins:{legend:{display:false}}}
 });
 setInterval(() => {priceHistory.push(btcPrice); if(priceHistory.length>20) priceHistory.shift(); chart.data.datasets[0].data=priceHistory.slice();chart.update();},3000);
-function showTimerBar(show) { document.getElementById('timerBarContainer').style.display = show?'block':'none'; }
-function updateTimerBar(percent) { document.getElementById('timerBar').style.width = (percent*100).toFixed(2)+'%'; }
+function showTimerBar(show) {
+    document.getElementById('timerBarContainer').style.display = show?'block':'none';
+    document.getElementById('timeRemainText').style.display = show?'block':'none';
+}
+function updateTimerBar(percent) {
+    document.getElementById('timerBar').style.width = ((percent>=0?percent:0)*100).toFixed(2)+'%';
+}
 async function checkAndSettleActiveBet() {
     const betSnap = await get(ref(db, `users/${userWallet}/activeBet`));
     if (betSnap.exists() && betSnap.val() && !betSnap.val().settled) {
