@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload Media to TikTokMedia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      background: #141414;
+      color: #f2bd21;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .app-header {
+      padding: 18px 16px 14px 16px;
+      background: #181818;
+      border-bottom: 1.5px solid #222;
+      position: sticky;
+      top: 0;
+    }
+    .app-title {
+      font-size: 20px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #f2bd21;
+      margin: 0;
+    }
+    .container {
+      padding: 18px 16px 32px 16px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 11px;
+      color: #f2bd21;
+    }
+    input[type="file"], select, input[type="text"] {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 8px 0;
+      color: #888;
+      font-size: 15px;
+      border-radius: 7px;
+      border: none;
+      background: #1c1c1c;
+      box-sizing: border-box;
+    }
+    .tag-select-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    select {
+      flex: 2 1 0;
+      padding: 8px;
+      border: none;
+      background: #1c1c1c;
+      color: #f2bd21;
+      font-size: 15px;
+    }
+    input[type="text"] { flex: 2 1 0; }
+    .small-label {font-size: 13px; color: #888; margin-bottom: 4px;}
+    .btn-upload {
+      background: #f2bd21;
+      color: #000;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 9px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    .btn-upload:active {
+      background: #c9a018;
+    }
+    .status {
+      font-size: 13px;
+      min-height: 18px;
+      color: #f2bd21;
+      margin-bottom: 12px;
+      text-align: left;
+      word-break: break-word;
+    }
+    .preview {
+      margin-bottom: 10px;
+      max-width: 100%;
+      border-radius: 15px;
+      background: #191919;
+      padding: 9px;
+      display: none;
+    }
+    .preview img,
+    .preview video {
+      max-width: 100%;
+      border-radius: 13px;
+      display: block;
+      margin: 0 auto;
+      background: #222;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-title">Upload to TikTokMedia</h1>
+  </header>
+  <div class="container">
+    <label for="fileInput">Choose image or video</label>
+    <input type="file" id="fileInput" accept="image/*,video/*" />
+    <div class="preview" id="preview"></div>
+
+    <div class="small-label">Tag your media <span style="color:#ddd;">(choose from previous tags or enter new)</span></div>
+    <div class="tag-select-row">
+      <select id="tagDropdown">
+        <option value="">--Choose previous tag--</option>
+      </select>
+      <span style="color:#888;font-size:13px;">or</span>
+      <input type="text" id="tagInput" placeholder="Enter new tag" maxlength="30"/>
+    </div>
+
+    <button class="btn-upload" id="uploadBtn">Upload</button>
+    <div class="status" id="statusBar"></div>
+  </div>
+  <script>
+    // Firebase config (match your gallery app!)
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
+      authDomain: "newnft-47bd7.firebaseapp.com",
+      databaseURL: "https://newnft-47bd7-default-rtdb.firebaseio.com",
+      projectId: "newnft-47bd7",
+      storageBucket: "newnft-47bd7.firebasestorage.app",
+      messagingSenderId: "172043823738",
+      appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
+      measurementId: "G-8VB3DYRNXR"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const FIREBASE_COLLECTION = "tiktokmedia";
+    const TAGS_COLLECTION = "mediaTags"; // path to store tag list
+
+    // Cloudinary config (use your values)
+    const CLOUDINARY_CLOUD_NAME = "dzuynnxtz";
+    const CLOUDINARY_API_KEY = "964153625392878";
+    const CLOUDINARY_API_SECRET = "dv-Oh2Cf_0B_O2ZtdhEyCxrlLA8";
+    const CLOUDINARY_IMAGE_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+
+    // Elements
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusBar = document.getElementById("statusBar");
+    const preview = document.getElementById("preview");
+    const tagDropdown = document.getElementById("tagDropdown");
+    const tagInput = document.getElementById("tagInput");
+
+    let pendingFile = null;
+    let pendingType = null;
+    let tagList = [];
+
+    function setStatus(msg) {
+      statusBar.textContent = msg || "";
+    }
+
+    function showPreview(file) {
+      preview.innerHTML = "";
+      if (!file) {
+        preview.style.display = "none";
+        return;
+      }
+      let url = URL.createObjectURL(file);
+      if (file.type.startsWith("image/")) {
+        preview.innerHTML = `<img src="${url}" alt="preview" />`;
+      } else if (file.type.startsWith("video/")) {
+        preview.innerHTML = `<video src="${url}" controls muted playsinline style="max-height:300px"></video>`;
+      }
+      preview.style.display = "block";
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        pendingFile = null;
+        preview.style.display = "none";
+        return;
+      }
+      pendingFile = file;
+      pendingType = file.type.startsWith("image/") ? "image" :
+                    file.type.startsWith("video/") ? "video" : null;
+      showPreview(file);
+    });
+
+    function trimTag(str) {
+      return (str || '').trim().replace(/\s{2,}/g, ' ');
+    }
+
+    tagDropdown.addEventListener("change", () => {
+      if (tagDropdown.value) {
+        tagInput.value = tagDropdown.value;
+      }
+    });
+
+    tagInput.addEventListener("input", () => {
+      if (!tagInput.value) tagDropdown.selectedIndex = 0;
+    });
+
+    function populateDropdown(tags) {
+      // Remove all except first/placeholder
+      while (tagDropdown.options.length > 1) tagDropdown.remove(1);
+      tags.forEach(tag => {
+        const opt = document.createElement("option");
+        opt.value = tag;
+        opt.textContent = tag;
+        tagDropdown.appendChild(opt);
+      });
+    }
+
+    function loadTags() {
+      db.ref(TAGS_COLLECTION)
+        .orderByKey()
+        .once("value")
+        .then(snap => {
+          tagList = [];
+          if (snap.exists()) {
+            Object.values(snap.val()).forEach(val => {
+              if (val && typeof val === 'string') tagList.push(val);
+            });
+            tagList = Array.from(new Set(tagList.filter(Boolean))).sort();
+          }
+          populateDropdown(tagList);
+        });
+    }
+    loadTags();
+
+    async function sha1(message) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2,"0")).join("");
+    }
+
+    async function uploadToCloudinary(file, type) {
+      setStatus("Uploading to Cloudinary...");
+      const timestamp = Math.floor(Date.now() / 1000);
+      const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+      const signature = await sha1(stringToSign);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", CLOUDINARY_API_KEY);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+
+      const url = type === "video" ? CLOUDINARY_VIDEO_UPLOAD_URL : CLOUDINARY_IMAGE_UPLOAD_URL;
+      const res = await fetch(url, { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Cloudinary upload failed: " + res.status);
+      const json = await res.json();
+      return json.secure_url;
+    }
+
+    async function saveTagIfNew(tag) {
+      // Save tag to tags list if it's not already there
+      tag = trimTag(tag);
+      if (!tag) return;
+      if (tagList.includes(tag)) return;
+      const ref = db.ref(TAGS_COLLECTION).push();
+      await ref.set(tag);
+      tagList.push(tag);
+      populateDropdown(tagList);
+    }
+
+    async function handleUpload() {
+      setStatus("");
+      if (!pendingFile || !pendingType) {
+        setStatus("Please select an image or video file.");
+        return;
+      }
+      // Grab tag (either dropdown OR input field)
+      let tagVal = trimTag(tagInput.value) || trimTag(tagDropdown.value);
+      if (!tagVal) {
+        setStatus("Please enter or select a tag.");
+        tagInput.focus();
+        return;
+      }
+      let mediaUrl = "";
+      try {
+        mediaUrl = await uploadToCloudinary(pendingFile, pendingType);
+      } catch(e) {
+        setStatus("Upload failed: " + e.message);
+        return;
+      }
+      setStatus("Saving to TikTokMedia...");
+      const ref = db.ref(FIREBASE_COLLECTION).push();
+      const data = {
+        createdAt: Date.now(),
+        tag: tagVal
+      };
+      if (pendingType === "image") {
+        data.imageUrl = mediaUrl;
+      } else if (pendingType === "video") {
+        data.videoUrl = mediaUrl;
+      }
+      await ref.set(data);
+      await saveTagIfNew(tagVal);
+      setStatus("Media uploaded! Check TikTokMedia gallery.");
+      preview.style.display = "none";
+      fileInput.value = "";
+      tagInput.value = "";
+      tagDropdown.selectedIndex = 0;
+      pendingFile = null; pendingType = null;
+    }
+
+    uploadBtn.addEventListener("click", handleUpload);
+  </script>
+</body>
+</html>
