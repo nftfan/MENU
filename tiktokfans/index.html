@@ -18,7 +18,7 @@
     .tab-button:last-child{ border-right:none;}
     .tab-button.active{background:#000;color:#fff;font-weight:700;}
     .feed{display:flex;flex-direction:column;gap:10px;}
-    .media-card{background:#000; border-radius:var(--media-radius);overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,0.12);}
+    .media-card{background:#000; border-radius:var(--media-radius);overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,0.10);}
     .media-photo {
       display: block;
       width: 100%;
@@ -31,8 +31,6 @@
       display: block;
       width: 100%;
       height: auto;
-      /* Preserve aspect ratio */
-      aspect-ratio: auto;
       border-radius: var(--media-radius);
       background: #101010;
       object-fit: contain;
@@ -44,7 +42,7 @@
       display:flex;align-items:center;justify-content:center;cursor:pointer;
       position:relative;
     }
-    .grid-photo{
+    .grid-photo {
       width: 100%;
       height: 100%;
       border-radius: var(--media-radius);
@@ -52,7 +50,7 @@
       background: #111;
       display: block;
     }
-    .grid-video{
+    .grid-video {
       max-width: 100%;
       max-height: 100%;
       width: auto;
@@ -66,7 +64,7 @@
     }
     .empty-state{font-size:13px;color:#888;text-align:center;margin-top:16px;}
     .status-bar{font-size:11px;color:#888;margin-top:10px;text-align:center;}
-    .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;z-index:30;}
+    .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.87);display:none;align-items:center;justify-content:center;z-index:30;}
     .viewer-content{background:#111;border-radius:20px;max-width:92vw;max-height:90vh;padding:14px;overflow:hidden;}
     .viewer-photo,.viewer-video{
       max-width:80vw;max-height:65vh;border-radius:16px;background:#222;display:block;margin:0 auto;object-fit:contain;
@@ -79,11 +77,13 @@
   <div class="app">
     <header class="app-header"><h1 class="app-title">TikTokMedia</h1></header>
     <nav class="tab-bar">
-      <button class="tab-button active" id="timelineTab" type="button">Timeline</button>
+      <button class="tab-button active" id="photosTab" type="button">Photos</button>
+      <button class="tab-button" id="videosTab" type="button">Videos</button>
       <button class="tab-button" id="gridTab" type="button">Grid</button>
     </nav>
     <main>
-      <section class="feed" id="feed"></section>
+      <section class="feed" id="feedPhotos"></section>
+      <section class="feed" id="feedVideos" style="display:none;"></section>
       <section class="grid-feed" id="gridFeed" style="display:none;"></section>
     </main>
     <div class="empty-state" id="emptyState">No media yet.</div>
@@ -94,7 +94,6 @@
     <div class="viewer-content" id="viewerContent"></div>
   </div>
   <script>
-    // Database path for TikTokMedia!
     const FIREBASE_COLLECTION = "tiktokmedia";
     const firebaseConfig = {
       apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
@@ -106,10 +105,12 @@
       appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
       measurementId: "G-8VB3DYRNXR",
     };
-    const feed = document.getElementById("feed");
+    const feedPhotos = document.getElementById("feedPhotos");
+    const feedVideos = document.getElementById("feedVideos");
     const gridFeed = document.getElementById("gridFeed");
     const emptyState = document.getElementById("emptyState");
-    const timelineTab = document.getElementById("timelineTab");
+    const photosTab = document.getElementById("photosTab");
+    const videosTab = document.getElementById("videosTab");
     const gridTab = document.getElementById("gridTab");
     const viewerBackdrop = document.getElementById("viewerBackdrop");
     const viewerContent = document.getElementById("viewerContent");
@@ -118,100 +119,136 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // DEBUG: Show all data received
-    db.ref(FIREBASE_COLLECTION).orderByChild("createdAt").limitToLast(10).once("value").then(snap => {
-      console.log("Firebase contents:", snap.val());
-    });
-
-    function createMediaCardElement(media, idx) {
+    // Render helpers
+    function createPhotoCard(media, idx) {
       if (media.imageUrl) {
         const article = document.createElement("article");
         article.className = "media-card";
         article.innerHTML = `<img class="media-photo" src="${media.imageUrl}" loading="lazy" />`;
-        article.onclick = function(){ showViewer(idx); };
-        return article;
-      }
-      if (media.videoUrl) {
-        const article = document.createElement("article");
-        article.className = "media-card";
-        // "controls muted playsinline" for preview and playback, aspect ratio preserved
-        article.innerHTML = `<video class="media-video" src="${media.videoUrl}" controls muted playsinline preload="metadata"></video>`;
-        article.onclick = function(){ showViewer(idx); };
+        article.onclick = function(){ showViewer('image', media.imageUrl); };
         return article;
       }
       return null;
     }
-    function createGridCardElement(media, idx) {
+    function createVideoCard(media, idx) {
+      if (media.videoUrl) {
+        const article = document.createElement("article");
+        article.className = "media-card";
+        article.innerHTML = `<video class="media-video" src="${media.videoUrl}" muted playsinline preload="metadata"></video>`;
+        article.onclick = function(){ showViewer('video', media.videoUrl); };
+        return article;
+      }
+      return null;
+    }
+    function createGridCard(media, idx) {
       if(media.imageUrl){
         const div = document.createElement("div");
         div.className = "grid-card";
         div.innerHTML = `<img class="grid-photo" src="${media.imageUrl}" loading="lazy" />`;
-        div.onclick = function(){ showViewer(idx); };
+        div.onclick = function(){ showViewer('image', media.imageUrl); };
         return div;
       }
       if(media.videoUrl){
         const div = document.createElement("div");
         div.className = "grid-card";
-        // object-fit: contain, so aspect ratio preserved, and preview centered
         div.innerHTML = `<video class="grid-video" src="${media.videoUrl}" muted playsinline preload="metadata"></video>`;
-        div.onclick = function(){ showViewer(idx); };
+        div.onclick = function(){ showViewer('video', media.videoUrl); };
         return div;
       }
       return null;
     }
-    function renderAll() {
-      feed.innerHTML = '';
+
+    function renderFeeds() {
+      feedPhotos.innerHTML = '';
+      feedVideos.innerHTML = '';
       gridFeed.innerHTML = '';
-      let hasMedia = false;
+      let hasPhotos = false, hasVideos = false, hasGrid = false;
       mediaData.forEach((item, idx)=>{
-        const card = createMediaCardElement(item, idx);
-        if (card) { feed.appendChild(card); hasMedia=true; }
-        const gridCard = createGridCardElement(item, idx);
-        if(gridCard){ gridFeed.appendChild(gridCard); hasMedia=true; }
+        // Photos tab
+        const photoCard = createPhotoCard(item, idx);
+        if (photoCard) { feedPhotos.appendChild(photoCard); hasPhotos = true; hasGrid = true; }
+        // Videos tab
+        const videoCard = createVideoCard(item, idx);
+        if (videoCard) { feedVideos.appendChild(videoCard); hasVideos = true; hasGrid = true; }
+        // Grid tab
+        const gridCard = createGridCard(item, idx);
+        if(gridCard){ gridFeed.appendChild(gridCard); hasGrid = true; }
       });
-      if(!hasMedia){emptyState.style.display="";}else{emptyState.style.display="none";}
+      if(!hasPhotos && feedPhotos.style.display!=='none') emptyState.style.display="";
+      else if(!hasVideos && feedVideos.style.display!=='none') emptyState.style.display="";
+      else if(!hasGrid && gridFeed.style.display!=='none') emptyState.style.display="";
+      else emptyState.style.display="none";
     }
-    function listenForMedia() {
-      db.ref(FIREBASE_COLLECTION)
-        .orderByChild("createdAt")
-        .limitToLast(100)
-        .on("child_added", (snap) => {
-          const data = snap.val();
-          if (data.imageUrl || data.videoUrl) {
-            mediaData.unshift(data);
-            renderAll();
+
+    // Intersection Observer for autoplay videos in view
+    let videoObserver = null;
+    function setupVideoAutoplay() {
+      // Disconnect previous observer
+      if(videoObserver) videoObserver.disconnect();
+      // Find all videos in Videos tab
+      const videos = feedVideos.querySelectorAll("video");
+      if (!videos.length) return;
+      videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target;
+          if (entry.isIntersecting) {
+            // Attempt to play (browsers require muted for autoplay)
+            video.play().catch(()=>{});
+          } else {
+            video.pause();
           }
         });
-      db.ref(FIREBASE_COLLECTION)
-        .limitToFirst(1)
-        .once("value")
-        .then((snap) => {
-          if (snap.exists()) emptyState.style.display = "none";
-        });
+      }, { threshold: 0.33 });
+      videos.forEach(v=>{
+        // Must be muted+playsinline to autoplay on mobile
+        v.muted = true;
+        v.setAttribute("playsinline", "");
+        videoObserver.observe(v);
+      });
     }
-    timelineTab.addEventListener("click", () => {
-      timelineTab.classList.add("active");
-      gridTab.classList.remove("active");
-      feed.style.display = "";
+
+    // Always play grid videos when visible (helpful if you want reels-UI; otherwise, keep them paused)
+    function pauseAllGridVideos() {
+      gridFeed.querySelectorAll("video").forEach(v=>v.pause());
+    }
+
+    // Tab switching
+    function showTab(tab) {
+      feedPhotos.style.display = "none";
+      feedVideos.style.display = "none";
       gridFeed.style.display = "none";
-    });
-    gridTab.addEventListener("click", () => {
-      timelineTab.classList.remove("active");
-      gridTab.classList.add("active");
-      feed.style.display = "none";
-      gridFeed.style.display = "";
-    });
-    function showViewer(idx){
-      const media = mediaData[idx];
-      viewerContent.innerHTML = '';
-      if(!media) return;
-      let contentHTML = '';
-      if(media.imageUrl){
-        contentHTML = `<img class="viewer-photo" src="${media.imageUrl}" />`;
-      } else if(media.videoUrl){
-        contentHTML = `<video class="viewer-video" src="${media.videoUrl}" controls autoplay></video>`;
+      photosTab.classList.remove("active");
+      videosTab.classList.remove("active");
+      gridTab.classList.remove("active");
+      if(tab==="photos"){
+        feedPhotos.style.display = "";
+        photosTab.classList.add("active");
+      } else if(tab==="videos"){
+        feedVideos.style.display = "";
+        videosTab.classList.add("active");
+        setupVideoAutoplay();
+      } else { // grid
+        gridFeed.style.display = "";
+        gridTab.classList.add("active");
+        // Optionally, pause grid-view videos unless user wants all playing
+        pauseAllGridVideos();
       }
-      viewerContent.innerHTML = contentHTML;
+      renderFeeds();
+    }
+    photosTab.addEventListener("click", ()=>showTab("photos"));
+    videosTab.addEventListener("click", ()=>showTab("videos"));
+    gridTab.addEventListener("click", ()=>showTab("grid"));
+
+    // Modal viewer
+    function showViewer(kind, url) {
+      viewerContent.innerHTML = '';
+      let html = '';
+      if (kind === 'image') {
+        html = `<img class="viewer-photo" src="${url}" />`;
+      } else {
+        html = `<video class="viewer-video" src="${url}" controls autoplay></video>`;
+      }
+      viewerContent.innerHTML = html;
       viewerBackdrop.style.display = "flex";
     }
     viewerClose.addEventListener("click", ()=> {
@@ -224,9 +261,31 @@
         viewerContent.innerHTML = '';
       }
     });
+
+    // Firebase load
+    function listenForMedia() {
+      db.ref(FIREBASE_COLLECTION)
+        .orderByChild("createdAt")
+        .limitToLast(100)
+        .on("child_added", (snap) => {
+          const data = snap.val();
+          if (data.imageUrl || data.videoUrl) {
+            mediaData.unshift(data);
+            renderFeeds();
+            setupVideoAutoplay();
+          }
+        });
+      db.ref(FIREBASE_COLLECTION)
+        .limitToFirst(1)
+        .once("value")
+        .then((snap) => {
+          if (snap.exists()) emptyState.style.display = "none";
+        });
+    }
     listenForMedia();
-    feed.style.display = "";
-    gridFeed.style.display = "none";
+
+    // Default = Photos tab
+    showTab("photos");
   </script>
 </body>
 </html>
