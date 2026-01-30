@@ -8,11 +8,18 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    :root { --media-radius: 18px; --bg: #000; }
+    :root { --media-radius: 18px; --media-radius-grid: 5px; --bg: #000;}
     body { background: var(--bg); color: #fff; margin: 0; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; display: flex; justify-content: center;}
     .app { width: 100%; max-width:480px; background: #000; padding: 12px 0 16px;}
     .app-header { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; padding: 0 12px 8px;}
     .app-title { font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: #f2bd21;}
+    .top-bar {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 12px 12px 12px; padding-bottom: 0;
+    }
+    .tag-dropdown { background: #181818; color: #f2bd21; border: none; border-radius: 7px; padding: 8px 20px 8px 10px; font-size: 14px;}
+    .go-btn { background: #f2bd21; color: #000; font-weight: 700; border: none; border-radius: 7px; padding: 8px 16px; font-size: 14px; cursor: pointer;}
+    .go-btn:active { background: #ca9b11;}
     .tab-bar {display: flex; justify-content: center; align-items: center; background: #111; border-radius: 30px; margin: 0 12px 12px 12px; width: calc(100% - 24px);}
     .tab-button {flex:1 1 0;text-align:center;font-size:13px;padding: 9px 0;background:none;border:none;outline:none;cursor:pointer;color:#f2bd21;font-weight:500; border-right:1px solid #222;}
     .tab-button:last-child{ border-right:none;}
@@ -38,15 +45,21 @@
     }
     .grid-feed{display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;padding:0 12px;}
     .grid-card{
-      border-radius:var(--media-radius);background:#000;overflow:hidden;aspect-ratio:1;
-      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      border-radius:var(--media-radius-grid);
+      background:#000;
+      overflow:hidden;
+      aspect-ratio:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
       position:relative;
     }
     .grid-photo {
       width: 100%;
       height: 100%;
-      border-radius: var(--media-radius);
-      object-fit: cover;
+      border-radius: var(--media-radius-grid);
+      object-fit: contain;
       background: #111;
       display: block;
     }
@@ -55,20 +68,33 @@
       max-height: 100%;
       width: auto;
       height: auto;
-      border-radius: var(--media-radius);
+      border-radius: var(--media-radius-grid);
       background: #111;
       object-fit: contain;
       display: block;
       margin: auto;
       position: relative;
     }
+    .video-label {
+      position: absolute;
+      left: 6px;
+      bottom: 6px;
+      font-size: 11px;
+      background: rgba(0,0,0,0.66);
+      color: #fff;
+      padding: 2.5px 9px 2.5px 8px;
+      border-radius: 7px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      pointer-events:none;
+      z-index: 2;
+      user-select: none;
+    }
     .empty-state{font-size:13px;color:#888;text-align:center;margin-top:16px;}
     .status-bar{font-size:11px;color:#888;margin-top:10px;text-align:center;}
     .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.87);display:none;align-items:center;justify-content:center;z-index:30;}
     .viewer-content{background:#111;border-radius:20px;max-width:92vw;max-height:90vh;padding:14px;overflow:hidden;}
-    .viewer-photo,.viewer-video{
-      max-width:80vw;max-height:65vh;border-radius:16px;background:#222;display:block;margin:0 auto;object-fit:contain;
-    }
+    .viewer-photo,.viewer-video{max-width:80vw;max-height:65vh;border-radius:16px;background:#222;display:block;margin:0 auto;object-fit:contain;}
     .viewer-close{position:absolute;right:24px;top:18px;color:#fff;background:none;border:none;font-size:28px;cursor:pointer;z-index:40;}
     @media (max-width:600px) {.app{max-width:100vw;} .viewer-content{max-width:98vw;max-height:97vh;padding:5px;} .grid-feed{gap:5px;}}
   </style>
@@ -76,6 +102,10 @@
 <body>
   <div class="app">
     <header class="app-header"><h1 class="app-title">TikTokMedia</h1></header>
+    <div class="top-bar">
+      <select id="tagDropdown" class="tag-dropdown"></select>
+      <button id="goBtn" class="go-btn">Go</button>
+    </div>
     <nav class="tab-bar">
       <button class="tab-button active" id="photosTab" type="button">Photos</button>
       <button class="tab-button" id="videosTab" type="button">Videos</button>
@@ -94,7 +124,10 @@
     <div class="viewer-content" id="viewerContent"></div>
   </div>
   <script>
+    // Firebase paths
     const FIREBASE_COLLECTION = "tiktokmedia";
+    const TAGS_COLLECTION = "mediaTags";
+
     const firebaseConfig = {
       apiKey: "AIzaSyC6wYBu-KOXkDmB-84_7OPtY71zBX4FzRY",
       authDomain: "newnft-47bd7.firebaseapp.com",
@@ -105,6 +138,10 @@
       appId: "1:172043823738:web:daf1fcfb7862d7d8f029c3",
       measurementId: "G-8VB3DYRNXR",
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // UI elements
     const feedPhotos = document.getElementById("feedPhotos");
     const feedVideos = document.getElementById("feedVideos");
     const gridFeed = document.getElementById("gridFeed");
@@ -115,64 +152,83 @@
     const viewerBackdrop = document.getElementById("viewerBackdrop");
     const viewerContent = document.getElementById("viewerContent");
     const viewerClose = document.getElementById("viewerClose");
-    let mediaData = [];
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const tagDropdown = document.getElementById("tagDropdown");
+    const goBtn = document.getElementById("goBtn");
 
-    // Render helpers
-    function createPhotoCard(media, idx) {
-      if (media.imageUrl) {
-        const article = document.createElement("article");
-        article.className = "media-card";
-        article.innerHTML = `<img class="media-photo" src="${media.imageUrl}" loading="lazy" />`;
-        article.onclick = function(){ showViewer('image', media.imageUrl); };
-        return article;
-      }
-      return null;
+    let allMediaData = [];
+    let filteredMediaData = [];
+    let tagList = [];
+    let selectedTag = "All";
+
+    function populateDropdown(tags) {
+      tagDropdown.innerHTML = '';
+      let options = ['<option value="All">All</option>'];
+      tags.forEach(tag => {
+        options.push(`<option value="${encodeURIComponent(tag)}">${tag}</option>`);
+      });
+      tagDropdown.innerHTML = options.join('');
+      tagDropdown.value = encodeURIComponent(selectedTag) || "All";
     }
-    function createVideoCard(media, idx) {
-      if (media.videoUrl) {
-        const article = document.createElement("article");
-        article.className = "media-card";
-        article.innerHTML = `<video class="media-video" src="${media.videoUrl}" muted playsinline preload="metadata"></video>`;
-        article.onclick = function(){ showViewer('video', media.videoUrl); };
-        return article;
-      }
-      return null;
+
+    function loadTags() {
+      db.ref(TAGS_COLLECTION)
+        .orderByKey()
+        .once("value")
+        .then(snap => {
+          tagList = [];
+          if (snap.exists()) {
+            Object.values(snap.val()).forEach(val => {
+              if (val && typeof val === 'string') tagList.push(val);
+            });
+            tagList = Array.from(new Set(tagList.filter(Boolean))).sort();
+          }
+          populateDropdown(tagList);
+        });
     }
-    function createGridCard(media, idx) {
-      if(media.imageUrl){
-        const div = document.createElement("div");
-        div.className = "grid-card";
-        div.innerHTML = `<img class="grid-photo" src="${media.imageUrl}" loading="lazy" />`;
-        div.onclick = function(){ showViewer('image', media.imageUrl); };
-        return div;
-      }
-      if(media.videoUrl){
-        const div = document.createElement("div");
-        div.className = "grid-card";
-        div.innerHTML = `<video class="grid-video" src="${media.videoUrl}" muted playsinline preload="metadata"></video>`;
-        div.onclick = function(){ showViewer('video', media.videoUrl); };
-        return div;
-      }
-      return null;
-    }
+    loadTags();
 
     function renderFeeds() {
       feedPhotos.innerHTML = '';
       feedVideos.innerHTML = '';
       gridFeed.innerHTML = '';
       let hasPhotos = false, hasVideos = false, hasGrid = false;
-      mediaData.forEach((item, idx)=>{
+      filteredMediaData.forEach((item, idx)=>{
         // Photos tab
-        const photoCard = createPhotoCard(item, idx);
-        if (photoCard) { feedPhotos.appendChild(photoCard); hasPhotos = true; hasGrid = true; }
+        if (item.imageUrl) {
+          const article = document.createElement("article");
+          article.className = "media-card";
+          article.innerHTML = `<img class="media-photo" src="${item.imageUrl}" loading="lazy" />`;
+          article.onclick = function(){ showViewer('image', item.imageUrl); };
+          feedPhotos.appendChild(article);
+          hasPhotos = true; hasGrid = true;
+        }
         // Videos tab
-        const videoCard = createVideoCard(item, idx);
-        if (videoCard) { feedVideos.appendChild(videoCard); hasVideos = true; hasGrid = true; }
+        if (item.videoUrl) {
+          const article = document.createElement("article");
+          article.className = "media-card";
+          article.innerHTML = `<video class="media-video" src="${item.videoUrl}" muted playsinline preload="metadata"></video>`;
+          article.onclick = function(){ showViewer('video', item.videoUrl); };
+          feedVideos.appendChild(article);
+          hasVideos = true; hasGrid = true;
+        }
         // Grid tab
-        const gridCard = createGridCard(item, idx);
-        if(gridCard){ gridFeed.appendChild(gridCard); hasGrid = true; }
+        if(item.imageUrl){
+          const div = document.createElement("div");
+          div.className = "grid-card";
+          div.innerHTML = `<img class="grid-photo" src="${item.imageUrl}" loading="lazy" />`;
+          div.onclick = function(){ showViewer('image', item.imageUrl); };
+          gridFeed.appendChild(div);
+          hasGrid = true;
+        }
+        if(item.videoUrl){
+          const div = document.createElement("div");
+          div.className = "grid-card";
+          div.innerHTML = `<video class="grid-video" src="${item.videoUrl}" muted playsinline preload="metadata"></video>
+            <span class="video-label">Video</span>`;
+          div.onclick = function(){ showViewer('video', item.videoUrl); };
+          gridFeed.appendChild(div);
+          hasGrid = true;
+        }
       });
       if(!hasPhotos && feedPhotos.style.display!=='none') emptyState.style.display="";
       else if(!hasVideos && feedVideos.style.display!=='none') emptyState.style.display="";
@@ -180,19 +236,16 @@
       else emptyState.style.display="none";
     }
 
-    // Intersection Observer for autoplay videos in view
+    // Setup video autoplay for Videos tab
     let videoObserver = null;
     function setupVideoAutoplay() {
-      // Disconnect previous observer
       if(videoObserver) videoObserver.disconnect();
-      // Find all videos in Videos tab
       const videos = feedVideos.querySelectorAll("video");
       if (!videos.length) return;
       videoObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           const video = entry.target;
           if (entry.isIntersecting) {
-            // Attempt to play (browsers require muted for autoplay)
             video.play().catch(()=>{});
           } else {
             video.pause();
@@ -200,14 +253,12 @@
         });
       }, { threshold: 0.33 });
       videos.forEach(v=>{
-        // Must be muted+playsinline to autoplay on mobile
         v.muted = true;
         v.setAttribute("playsinline", "");
         videoObserver.observe(v);
       });
     }
 
-    // Always play grid videos when visible (helpful if you want reels-UI; otherwise, keep them paused)
     function pauseAllGridVideos() {
       gridFeed.querySelectorAll("video").forEach(v=>v.pause());
     }
@@ -230,7 +281,6 @@
       } else { // grid
         gridFeed.style.display = "";
         gridTab.classList.add("active");
-        // Optionally, pause grid-view videos unless user wants all playing
         pauseAllGridVideos();
       }
       renderFeeds();
@@ -238,6 +288,20 @@
     photosTab.addEventListener("click", ()=>showTab("photos"));
     videosTab.addEventListener("click", ()=>showTab("videos"));
     gridTab.addEventListener("click", ()=>showTab("grid"));
+
+    // Tag filter
+    function filterMediaByTag() {
+      selectedTag = decodeURIComponent(tagDropdown.value || "All");
+      filteredMediaData = allMediaData.filter(item => {
+        if (selectedTag === "All") return true;
+        return (item.tag || "").toLowerCase() === selectedTag.toLowerCase();
+      });
+      renderFeeds();
+      setupVideoAutoplay();
+    }
+    goBtn.addEventListener("click", function(e){
+      filterMediaByTag();
+    });
 
     // Modal viewer
     function showViewer(kind, url) {
@@ -270,9 +334,8 @@
         .on("child_added", (snap) => {
           const data = snap.val();
           if (data.imageUrl || data.videoUrl) {
-            mediaData.unshift(data);
-            renderFeeds();
-            setupVideoAutoplay();
+            allMediaData.unshift(data);
+            filterMediaByTag();
           }
         });
       db.ref(FIREBASE_COLLECTION)
@@ -284,7 +347,10 @@
     }
     listenForMedia();
 
-    // Default = Photos tab
+    tagDropdown.innerHTML = "<option>All</option>";
+    tagDropdown.value = "All";
+    selectedTag = "All";
+    filteredMediaData = [];
     showTab("photos");
   </script>
 </body>
