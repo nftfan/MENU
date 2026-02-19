@@ -262,181 +262,200 @@
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-  <script>
-    // Polygon mainnet configuration for Metamask
-    const POLYGON_PARAMS = {
-      chainId: '0x89',
-      chainName: 'Polygon Mainnet',
-      nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-      rpcUrls: ['https://polygon-rpc.com/'],
-      blockExplorerUrls: ['https://polygonscan.com/'],
-    };
-    // Wallet/Contract addresses
-    const POLYGON_RPC = "https://polygon-rpc.com/";
-    const WALLETS = [
-      { address: "0x92d550cdBc234211957Bd1B579d962c885A127Ba", label: "MY WALLET", owner: "Personal", idx: 0 },
-      { address: "0xaf2d132c8773bca3821c24ecf64e844e202a12e8", label: "NFTFAN SALE", owner: "Trading", idx: 1 },
-      { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", label: "POLDOG SALE", owner: "Investment", idx: 2 },
-      { address: "0x098745B08F85aD8Dc8801a107eE0d4204460828E", label: "QuickNFT SALE", owner: "Digital Goods", idx: 3 },
-      { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", label: "PhotoNFT SALE", owner: "Photography", idx: 4 },
-    ];
-    // Display order for payment then savings
-    const DISPLAY_ORDER = [1, 2, 3, 4, 0];
-    // Sale contract addresses
-    const NFTFAN_CA = "0xaf2d132c8773bca3821c24ecf64e844e202a12e8";
-    const POLDOG_CA = "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54";
-    const QUICKNFT_CA = "0x098745B08F85aD8Dc8801a107eE0d4204460828E";
-    const PHOTONFT_CA = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
-    // Minimal ABI for withdraw
-    const SALE_ABI = [
-      {
-        "inputs": [],
-        "name": "withdraw",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      }
-    ];
-    // Web3, accounts
-    let web3;
-    let userAccount = null;
-    let provider = null;
-    let isPolygon = false;
+  <!-- Replace ONLY the JS section inside your <script> tag with the updated parts below -->
 
-    // Connect wallet and switch to Polygon
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert("Please install MetaMask or a compatible wallet!");
-        return;
-      }
+<script>
+  // Polygon mainnet configuration for Metamask
+  const POLYGON_PARAMS = {
+    chainId: '0x89',
+    chainName: 'Polygon Mainnet',
+    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+    rpcUrls: ['https://polygon-rpc.com/'],
+    blockExplorerUrls: ['https://polygonscan.com/'],
+  };
+
+  // Use multiple public RPCs (failover). You can add your own paid RPC first for best reliability.
+  const POLYGON_RPCS = [
+    "https://polygon-rpc.com/",
+    "https://rpc.ankr.com/polygon",
+    "https://polygon-bor.publicnode.com",
+    "https://polygon.llamarpc.com",
+    "https://1rpc.io/matic",
+  ];
+
+  const WALLETS = [
+    { address: "0x92d550cdBc234211957Bd1B579d962c885A127Ba", label: "MY WALLET", owner: "Personal", idx: 0 },
+    { address: "0xaf2d132c8773bca3821c24ecf64e844e202a12e8", label: "NFTFAN SALE", owner: "Trading", idx: 1 },
+    { address: "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54", label: "POLDOG SALE", owner: "Investment", idx: 2 },
+    { address: "0x098745B08F85aD8Dc8801a107eE0d4204460828E", label: "QuickNFT SALE", owner: "Digital Goods", idx: 3 },
+    { address: "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC", label: "PhotoNFT SALE", owner: "Photography", idx: 4 },
+  ];
+
+  const DISPLAY_ORDER = [1, 2, 3, 4, 0];
+
+  const NFTFAN_CA = "0xaf2d132c8773bca3821c24ecf64e844e202a12e8";
+  const POLDOG_CA = "0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54";
+  const QUICKNFT_CA = "0x098745B08F85aD8Dc8801a107eE0d4204460828E";
+  const PHOTONFT_CA = "0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC";
+
+  const SALE_ABI = [
+    { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+  ];
+
+  let web3;
+  let userAccount = null;
+  let provider = null;
+  let isPolygon = false;
+
+  // --- NEW: RPC failover + timeout helpers ---
+  function withTimeout(promise, ms, label = "timeout") {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(label)), ms))
+    ]);
+  }
+
+  // Simple round-robin start index so we don’t hammer only the first RPC forever
+  let rpcCursor = 0;
+
+  async function getBalanceWithFailover(address) {
+    const start = rpcCursor % POLYGON_RPCS.length;
+    rpcCursor++;
+
+    let lastErr = null;
+
+    for (let i = 0; i < POLYGON_RPCS.length; i++) {
+      const rpcUrl = POLYGON_RPCS[(start + i) % POLYGON_RPCS.length];
       try {
-        provider = window.ethereum;
-        // Switch or add Polygon
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [POLYGON_PARAMS]
-        });
-        // Get accounts
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        userAccount = accounts[0];
-        isPolygon = true;
-        document.getElementById("connect-btn").textContent = "✔ Connected";
-        enableWithdrawIfOwner();
+        const w3 = new Web3(rpcUrl);
+
+        // 8s timeout per RPC attempt (tune if you want)
+        const balanceWei = await withTimeout(w3.eth.getBalance(address), 8000, "RPC timeout");
+
+        return { balanceWei, rpcUrl };
       } catch (e) {
-        alert("Wallet connection failed: " + (e.message || e));
+        lastErr = e;
+        // try next RPC
       }
     }
+    throw lastErr || new Error("All RPCs failed");
+  }
 
-    // Check if connected user is owner, enable withdraw buttons
-    function enableWithdrawIfOwner() {
-      // Owner hardcoded as MY WALLET
-      if (userAccount && userAccount.toLowerCase() === WALLETS[0].address.toLowerCase()) {
-        document.getElementById("withdraw-btn-1").disabled = false;
-        document.getElementById("withdraw-btn-2").disabled = false;
-        document.getElementById("withdraw-btn-3").disabled = false;
-        document.getElementById("withdraw-btn-4").disabled = false;
-      } else {
-        document.getElementById("withdraw-btn-1").disabled = true;
-        document.getElementById("withdraw-btn-2").disabled = true;
-        document.getElementById("withdraw-btn-3").disabled = true;
-        document.getElementById("withdraw-btn-4").disabled = true;
-      }
+  async function connectWallet() {
+    if (!window.ethereum) {
+      alert("Please install MetaMask or a compatible wallet!");
+      return;
     }
-
-    // Withdraw for NFTFAN, POLDOG, QuickNFT, or PhotoNFT sale
-    async function withdrawSale(type) {
-      if (!window.ethereum) return alert("Connect your wallet first.");
-      if (!isPolygon) return alert("Switch to Polygon network in your wallet.");
-      let contractAddr, btnId;
-      switch (type) {
-        case "nftfan":
-          contractAddr = NFTFAN_CA;
-          btnId = "withdraw-btn-1";
-          break;
-        case "poldog":
-          contractAddr = POLDOG_CA;
-          btnId = "withdraw-btn-2";
-          break;
-        case "quicknft":
-          contractAddr = QUICKNFT_CA;
-          btnId = "withdraw-btn-3";
-          break;
-        case "photonft":
-          contractAddr = PHOTONFT_CA;
-          btnId = "withdraw-btn-4";
-          break;
-        default:
-          return;
-      }
-      let btn = document.getElementById(btnId);
-      btn.disabled = true;
-      btn.textContent = "Processing...";
-      try {
-        web3 = new Web3(window.ethereum);
-        const contract = new web3.eth.Contract(SALE_ABI, contractAddr);
-        await contract.methods.withdraw().send({ from: userAccount });
-        alert("Withdraw successful!");
-      } catch (e) {
-        alert("Withdraw failed: " + (e.message || e));
-      }
-      btn.disabled = false;
-      btn.textContent = "Withdraw";
-    }
-
-    // Show balances and total sum
-    async function fetchAndShowBalance(wallet, idx) {
-      try {
-        document.getElementById("balance-" + idx).innerHTML = '<span class="loading-spinner"></span>';
-        web3 = new Web3(POLYGON_RPC);
-        const balanceWei = await web3.eth.getBalance(wallet.address);
-        const balance = web3.utils.fromWei(balanceWei, "ether");
-        const formatted = parseFloat(balance).toLocaleString(undefined, {maximumFractionDigits: 4});
-        document.getElementById("balance-" + idx).textContent = "+ " + formatted + " MATIC";
-        return parseFloat(balance);
-      } catch (err) {
-        document.getElementById("balance-" + idx).innerHTML = "--";
-        return 0;
-      }
-    }
-
-    async function refreshAllBalances() {
-      const btn = document.getElementById("refresh-btn");
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "⟳ Refreshing...";
-      }
-      document.getElementById("total-sum").innerHTML = '<span class="loading-spinner"></span>';
-      let sum = 0;
-      for (let i = 0; i < DISPLAY_ORDER.length; i++) {
-        const idx = DISPLAY_ORDER[i];
-        const balance = await fetchAndShowBalance(WALLETS[idx], idx);
-        sum += balance;
-      }
-      document.getElementById("total-sum").textContent = "+ " + sum.toLocaleString(undefined, {maximumFractionDigits: 4}) + " MATIC";
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "⟳ Refresh";
-      }
+    try {
+      provider = window.ethereum;
+      await provider.request({ method: 'wallet_addEthereumChain', params: [POLYGON_PARAMS] });
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      userAccount = accounts[0];
+      isPolygon = true;
+      document.getElementById("connect-btn").textContent = "✔ Connected";
       enableWithdrawIfOwner();
+    } catch (e) {
+      alert("Wallet connection failed: " + (e.message || e));
     }
+  }
 
-    // Listen for account/network changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', function (accounts) {
-        userAccount = accounts[0] || null;
-        document.getElementById("connect-btn").textContent = userAccount ? "✔ Connected" : "🔗 Connect Wallet";
-        enableWithdrawIfOwner();
-      });
-      window.ethereum.on('chainChanged', function (chainId) {
-        isPolygon = (chainId === POLYGON_PARAMS.chainId);
-        enableWithdrawIfOwner();
-      });
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      refreshAllBalances();
-      setInterval(refreshAllBalances, 30000);
+  function enableWithdrawIfOwner() {
+    const isOwner = userAccount && userAccount.toLowerCase() === WALLETS[0].address.toLowerCase();
+    ["1", "2", "3", "4"].forEach(n => {
+      const el = document.getElementById("withdraw-btn-" + n);
+      if (el) el.disabled = !isOwner;
     });
-  </script>
+  }
+
+  async function withdrawSale(type) {
+    if (!window.ethereum) return alert("Connect your wallet first.");
+    if (!isPolygon) return alert("Switch to Polygon network in your wallet.");
+    let contractAddr, btnId;
+    switch (type) {
+      case "nftfan": contractAddr = NFTFAN_CA; btnId = "withdraw-btn-1"; break;
+      case "poldog": contractAddr = POLDOG_CA; btnId = "withdraw-btn-2"; break;
+      case "quicknft": contractAddr = QUICKNFT_CA; btnId = "withdraw-btn-3"; break;
+      case "photonft": contractAddr = PHOTONFT_CA; btnId = "withdraw-btn-4"; break;
+      default: return;
+    }
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+    try {
+      web3 = new Web3(window.ethereum);
+      const contract = new web3.eth.Contract(SALE_ABI, contractAddr);
+      await contract.methods.withdraw().send({ from: userAccount });
+      alert("Withdraw successful!");
+    } catch (e) {
+      alert("Withdraw failed: " + (e.message || e));
+    }
+    btn.disabled = false;
+    btn.textContent = "Withdraw";
+  }
+
+  // Show balances and total sum
+  async function fetchAndShowBalance(wallet, idx) {
+    const el = document.getElementById("balance-" + idx);
+    try {
+      el.innerHTML = '<span class="loading-spinner"></span>';
+
+      const { balanceWei } = await getBalanceWithFailover(wallet.address);
+
+      // Use a local Web3 instance just for utils (no network call needed)
+      const utilWeb3 = web3 || new Web3();
+      const balance = utilWeb3.utils.fromWei(balanceWei, "ether");
+
+      const formatted = parseFloat(balance).toLocaleString(undefined, { maximumFractionDigits: 4 });
+      el.textContent = "+ " + formatted + " MATIC";
+      return parseFloat(balance);
+    } catch (err) {
+      el.textContent = "--";
+      return 0;
+    }
+  }
+
+  async function refreshAllBalances() {
+    const btn = document.getElementById("refresh-btn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⟳ Refreshing...";
+    }
+
+    document.getElementById("total-sum").innerHTML = '<span class="loading-spinner"></span>';
+
+    let sum = 0;
+    for (let i = 0; i < DISPLAY_ORDER.length; i++) {
+      const idx = DISPLAY_ORDER[i];
+      const balance = await fetchAndShowBalance(WALLETS[idx], idx);
+      sum += balance;
+    }
+
+    document.getElementById("total-sum").textContent =
+      "+ " + sum.toLocaleString(undefined, { maximumFractionDigits: 4 }) + " MATIC";
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "⟳ Refresh";
+    }
+    enableWithdrawIfOwner();
+  }
+
+  if (window.ethereum) {
+    window.ethereum.on('accountsChanged', function (accounts) {
+      userAccount = accounts[0] || null;
+      document.getElementById("connect-btn").textContent = userAccount ? "✔ Connected" : "🔗 Connect Wallet";
+      enableWithdrawIfOwner();
+    });
+    window.ethereum.on('chainChanged', function (chainId) {
+      isPolygon = (chainId === POLYGON_PARAMS.chainId);
+      enableWithdrawIfOwner();
+    });
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    refreshAllBalances();
+    setInterval(refreshAllBalances, 30000);
+  });
+</script>
 </body>
 </html>
