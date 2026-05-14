@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,17 +115,17 @@
     padding: 8px 12px;
     border-radius: var(--radius);
     outline: none;
-    color-scheme: dark; /* forces dark native calendar icon */
+    color-scheme: dark;
   }
   .filter-group input[type="date"]:focus {
     border-color: var(--blue);
   }
 
-  .btn-load-all {
-    margin-left: auto; /* Pushes the button to the far right */
-    background: var(--blue);
-    color: #fff;
-    border: none;
+  .btn-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 9px 16px;
     border-radius: var(--radius);
     font-family: 'IBM Plex Mono', monospace;
@@ -133,13 +134,39 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     cursor: pointer;
-    transition: background 0.15s, opacity 0.15s;
+    transition: all 0.2s;
+    border: 1px solid rgba(31,203,138,.4);
+    background: rgba(31,203,138,.12);
+    color: var(--green);
   }
-  .btn-load-all:hover {
-    background: #3a8eef;
+  .btn-toggle:hover { background: rgba(31,203,138,.22); }
+  .btn-toggle.active {
+    border-color: rgba(74,158,255,.4);
+    background: rgba(74,158,255,.12);
+    color: var(--blue);
   }
-  .btn-load-all:active {
-    opacity: 0.8;
+  .btn-toggle.active:hover { background: rgba(74,158,255,.22); }
+  .toggle-knob {
+    width: 28px; height: 16px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-knob::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .btn-toggle.active .toggle-knob::after {
+    transform: translateX(12px);
+    background: var(--blue);
   }
 
   /* ── MONEY TABS ── */
@@ -204,8 +231,7 @@
     font-family: 'IBM Plex Mono', monospace;
     transition: color 0.12s;
   }
-  th:first-child { text-align: left; }
-  th:nth-child(2) { text-align: left; }
+  th:first-child, th:nth-child(2), th:nth-child(3) { text-align: left; }
   th:hover { color: var(--text); }
   th.active { color: var(--text); }
   td {
@@ -216,8 +242,8 @@
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
   }
-  td:first-child { text-align: left; }
-  td:nth-child(2) { text-align: left; max-width: 250px; white-space: normal; line-height: 1.6; }
+  td:first-child, td:nth-child(2), td:nth-child(3) { text-align: left; }
+  td:nth-child(2), td:nth-child(3) { max-width: 250px; white-space: normal; line-height: 1.6; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,.025); }
 
@@ -237,6 +263,18 @@
     background: var(--bg3);
     border: 1px solid var(--border2);
     color: var(--text2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .shift-tag {
+    display: inline-block;
+    background: rgba(240, 160, 48, 0.15);
+    border: 1px solid rgba(240, 160, 48, 0.3);
+    color: var(--orange);
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;
@@ -328,8 +366,10 @@
     <label for="endDate">To</label>
     <input type="date" id="endDate">
   </div>
-  
-  <button id="loadAllBtn" class="btn-load-all">Load All Data</button>
+  <button id="loadAllBtn" class="btn-toggle">
+    <span class="toggle-knob"></span>
+    <span id="toggleLabel">Valid Only</span>
+  </button>
 </div>
 
 <!-- GLOBAL TOTALS -->
@@ -355,6 +395,7 @@
       <tr>
         <th onclick="sortBy('ts')"           id="th-ts">Date <span class="arr">↓</span></th>
         <th onclick="sortBy('campaignsStr')" id="th-campaignsStr">Campaigns <span class="arr">↕</span></th>
+        <th onclick="sortBy('shiftsStr')"    id="th-shiftsStr">Shifts <span class="arr">↕</span></th>
         <th onclick="sortBy('total')"        id="th-total">Total Dots <span class="arr">↕</span></th>
         <th onclick="sortBy('green')"        id="th-green"  style="color:var(--green)">Green <span class="arr">↕</span></th>
         <th onclick="sortBy('red')"          id="th-red"    style="color:var(--red)">Red <span class="arr">↕</span></th>
@@ -365,13 +406,13 @@
         <th onclick="sortBy('profit')"       id="th-profit">Profit <span class="arr">↕</span></th>
       </tr>
     </thead>
-    <tbody id="dailyTbody"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
+    <tbody id="dailyTbody"><tr><td colspan="11" class="empty">Loading…</td></tr></tbody>
   </table>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
@@ -382,32 +423,28 @@ const app = initializeApp({
 });
 const db = getDatabase(app);
 
-let rawPostsData = {};
-let rawClicksData = {};
-let isPostsLoaded = false;
-let isClicksLoaded = false;
+let rawPostsData   = {};
+let rawClicksData  = {};
 
-// Application state for condition
+let isPostsLoaded   = false;
+let isClicksLoaded  = false;
+
 let limitToValidCampaigns = true;
-
 let allDaysData = [];
 let filteredDaysData = [];
 
-// Sort state: default sort by Date (ts), descending (-1)
 const sortState = { key: 'ts', dir: -1 };
-
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// Initialize date inputs to current month
+// ── helpers ──────────────────────────────────────────────────────────────────
+
 function initDateInputs() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-  const format = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  
-  document.getElementById('startDate').value = format(firstDay);
-  document.getElementById('endDate').value = format(lastDay);
+  const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('startDate').value = fmt(firstDay);
+  document.getElementById('endDate').value   = fmt(lastDay);
 }
 
 function fmtDateFriendly(ts){
@@ -416,10 +453,41 @@ function fmtDateFriendly(ts){
 }
 function eur(v){ return '€'+v.toFixed(2); }
 
+// ── Build a map:  dateStr → Array of shift labels  from scheduledShifts ──────
+//
+// Each entry in scheduledShifts: { worker, date, time, shiftName?, isPickup, … }
+// We push EVERY shift entry for a date as its own label so all shifts
+// (including duplicates for different workers) appear in the column.
+// Label = shiftName if set, otherwise worker name.
+//
+function buildShiftsByDate(scheds) {
+  const map = {};  // { 'YYYY-MM-DD': string[] }
+  if (!scheds) return map;
+
+  Object.values(scheds).forEach(s => {
+    if (!s || !s.date) return;
+
+    // worker holds names like sid1, sid2, tom1 etc.
+    const label = s.worker && s.worker.trim() ? s.worker.trim() : null;
+
+    if (!label) return;
+
+    if (!map[s.date]) map[s.date] = [];
+    map[s.date].push(label);   // push every entry — no dedup
+  });
+
+  // Sort each day's list alphabetically for consistent display
+  Object.values(map).forEach(arr => arr.sort());
+
+  return map;
+}
+
+// ── Main processing ───────────────────────────────────────────────────────────
+
 function processAllData() {
   if (!isPostsLoaded || !isClicksLoaded) return;
-  
-  // 1. Scan everything to find campaigns with > 2000 dots (only if filter is active)
+
+  // 1. Find valid campaigns (>2000 dots) if the filter is active
   const validCampaigns = new Set();
 
   if (limitToValidCampaigns) {
@@ -431,57 +499,53 @@ function processAllData() {
         if (!campDots) return;
         Object.values(campDots).forEach(dot => {
           const col = (dot.color || '').toLowerCase();
-          if (col === 'green') campTotals[campId].green++;
-          else if (col === 'red') campTotals[campId].red++;
-          else if (col === 'blue') campTotals[campId].blue++;
+          if      (col === 'green') campTotals[campId].green++;
+          else if (col === 'red')   campTotals[campId].red++;
+          else if (col === 'blue')  campTotals[campId].blue++;
         });
       });
     }
-
     countCampaignTotals(rawPostsData);
     countCampaignTotals(rawClicksData);
 
     Object.entries(campTotals).forEach(([campId, counts]) => {
-      const totalDots = counts.green + counts.red + counts.blue;
-      if (totalDots > 2000) {
-        validCampaigns.add(campId);
-      }
+      if (counts.green + counts.red + counts.blue > 2000) validCampaigns.add(campId);
     });
   }
 
-  // 2. Aggregate data by day, enforcing the campaign condition if active
+  // 2. Aggregate dots by day
   const dailyMap = {};
-  let minTs = Infinity;
-  let maxTs = -Infinity;
+  let minTs = Infinity, maxTs = -Infinity;
 
-  function processDotsByDay(data){
+  function processDotsByDay(data) {
     if (!data) return;
     Object.entries(data).forEach(([campId, campDots]) => {
-      // SKIP campaigns that don't meet the >2000 threshold if the limit is active
       if (limitToValidCampaigns && !validCampaigns.has(campId)) return;
-
       if (!campDots) return;
-      Object.values(campDots).forEach(dot => {
-        if(!dot || !dot.timestamp) return;
-        
-        if(dot.timestamp < minTs) minTs = dot.timestamp;
-        if(dot.timestamp > maxTs) maxTs = dot.timestamp;
 
-        // Group by YYYY-MM-DD
+      Object.values(campDots).forEach(dot => {
+        if (!dot || !dot.timestamp) return;
+
+        if (dot.timestamp < minTs) minTs = dot.timestamp;
+        if (dot.timestamp > maxTs) maxTs = dot.timestamp;
+
         const d = new Date(dot.timestamp);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        
-        if(!dailyMap[dateStr]) {
-            dailyMap[dateStr] = { green: 0, red: 0, blue: 0, orange: 0, campaigns: new Set() };
-        }
-        
-        dailyMap[dateStr].campaigns.add(campId);
 
-        const col = (dot.color||'').toLowerCase();
-        if(col==='green')       dailyMap[dateStr].green++;
-        else if(col==='red')    dailyMap[dateStr].red++;
-        else if(col==='blue')   dailyMap[dateStr].blue++;
-        else if(col==='orange') dailyMap[dateStr].orange++;
+        if (!dailyMap[dateStr]) {
+          dailyMap[dateStr] = { green: 0, red: 0, blue: 0, orange: 0, campaigns: new Set(), workers: new Set() };
+        }
+
+        dailyMap[dateStr].campaigns.add(campId);
+        if (dot.workerName && dot.workerName.trim()) {
+          dailyMap[dateStr].workers.add(dot.workerName.trim());
+        }
+
+        const col = (dot.color || '').toLowerCase();
+        if      (col === 'green')  dailyMap[dateStr].green++;
+        else if (col === 'red')    dailyMap[dateStr].red++;
+        else if (col === 'blue')   dailyMap[dateStr].blue++;
+        else if (col === 'orange') dailyMap[dateStr].orange++;
       });
     });
   }
@@ -492,30 +556,35 @@ function processAllData() {
   allDaysData = [];
 
   // 3. Generate continuous list of days
-  if(minTs !== Infinity && maxTs !== -Infinity) {
+  if (minTs !== Infinity && maxTs !== -Infinity) {
     const start = new Date(minTs); start.setHours(0,0,0,0);
-    const end = new Date(maxTs); end.setHours(0,0,0,0);
-    const curr = new Date(start);
+    const end   = new Date(maxTs); end.setHours(0,0,0,0);
+    const curr  = new Date(start);
 
     while (curr <= end) {
       const dateStr = `${curr.getFullYear()}-${String(curr.getMonth()+1).padStart(2,'0')}-${String(curr.getDate()).padStart(2,'0')}`;
-      const dayStats = dailyMap[dateStr] || { green:0, red:0, blue:0, orange:0, campaigns: new Set() };
-      
-      const total = dayStats.green + dayStats.red + dayStats.blue;
+      const dayStats = dailyMap[dateStr] || { green:0, red:0, blue:0, orange:0, campaigns: new Set(), workers: new Set() };
+
+      const total   = dayStats.green + dayStats.red + dayStats.blue;
       const revenue = total * 0.1;
-      const wages = total * 0.04869;
-      const profit = revenue - wages;
+      const wages   = total * 0.05;
+      const profit  = revenue - wages;
 
       const campaignsArr = Array.from(dayStats.campaigns).sort();
 
+      // Active workers that day — pulled directly from dot.workerName
+      const shiftsArr = Array.from(dayStats.workers).sort();
+
       allDaysData.push({
-        ts: curr.getTime(), 
+        ts: curr.getTime(),
         dateFriendly: fmtDateFriendly(curr.getTime()),
-        campaignsArr: campaignsArr,
-        campaignsStr: campaignsArr.join(', '), 
+        campaignsArr,
+        campaignsStr: campaignsArr.join(', '),
+        shiftsArr,
+        shiftsStr: shiftsArr.join(', '),
         green: dayStats.green,
-        red: dayStats.red,
-        blue: dayStats.blue,
+        red:   dayStats.red,
+        blue:  dayStats.blue,
         orange: dayStats.orange,
         total,
         revenue,
@@ -531,73 +600,67 @@ function processAllData() {
   document.getElementById('loadingScreen').classList.add('hidden');
 }
 
+// ── Filters & render ──────────────────────────────────────────────────────────
+
 function applyFilters() {
   const startVal = document.getElementById('startDate').value;
-  const endVal = document.getElementById('endDate').value;
+  const endVal   = document.getElementById('endDate').value;
+  const startTs  = startVal ? new Date(startVal).setHours(0,0,0,0)    : -Infinity;
+  const endTs    = endVal   ? new Date(endVal).setHours(23,59,59,999) : Infinity;
 
-  const startTs = startVal ? new Date(startVal).setHours(0,0,0,0) : -Infinity;
-  const endTs = endVal ? new Date(endVal).setHours(23,59,59,999) : Infinity;
-
-  // Filter the all-time data
   filteredDaysData = allDaysData.filter(d => d.ts >= startTs && d.ts <= endTs);
 
-  // Recalculate totals for the filtered range
   let rangeRev = 0, rangeWages = 0, rangeProfit = 0;
-  filteredDaysData.forEach(d => {
-    rangeRev += d.revenue;
-    rangeWages += d.wages;
-    rangeProfit += d.profit;
-  });
+  filteredDaysData.forEach(d => { rangeRev += d.revenue; rangeWages += d.wages; rangeProfit += d.profit; });
 
-  document.getElementById('totalRev').textContent = eur(rangeRev);
+  document.getElementById('totalRev').textContent   = eur(rangeRev);
   document.getElementById('totalWages').textContent = eur(rangeWages);
   const profEl = document.getElementById('totalProfit');
   profEl.textContent = eur(rangeProfit);
-  profEl.className = 'tab-value ' + (rangeProfit >= 0 ? 'prof' : 'loss');
+  profEl.className   = 'tab-value ' + (rangeProfit >= 0 ? 'prof' : 'loss');
 
   renderTable();
 }
 
 function renderTable() {
   const tbody = document.getElementById('dailyTbody');
-  
-  // Update header arrows
+
   document.querySelectorAll('th').forEach(th => th.classList.remove('active'));
   const activeTh = document.getElementById(`th-${sortState.key}`);
-  if(activeTh) {
-      activeTh.classList.add('active');
-      activeTh.querySelector('.arr').textContent = sortState.dir === 1 ? '↑' : '↓';
+  if (activeTh) {
+    activeTh.classList.add('active');
+    activeTh.querySelector('.arr').textContent = sortState.dir === 1 ? '↑' : '↓';
   }
 
-  // Sort Data
   let rows = [...filteredDaysData];
-  rows.sort((a,b) => {
-    let valA = a[sortState.key];
-    let valB = b[sortState.key];
-    if (typeof valA === 'string') {
-        valA = valA.toLowerCase();
-        valB = valB.toLowerCase();
-    }
-    return valA < valB ? -sortState.dir : valA > valB ? sortState.dir : 0;
+  rows.sort((a, b) => {
+    let vA = a[sortState.key];
+    let vB = b[sortState.key];
+    if (typeof vA === 'string') { vA = vA.toLowerCase(); vB = vB.toLowerCase(); }
+    return vA < vB ? -sortState.dir : vA > vB ? sortState.dir : 0;
   });
 
-  if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="10" class="empty">No data in this date range</td></tr>';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">No data in this date range</td></tr>';
     return;
   }
 
-  let html='';
+  let html = '';
   rows.forEach(r => {
     const profCls = r.profit >= 0 ? 'profit-pos' : 'profit-neg';
-    
-    // Create HTML tags for campaigns
-    const tagsHtml = r.campaignsArr.length > 0 
-        ? r.campaignsArr.map(id => `<span class="camp-tag">${id}</span>`).join('')
-        : '<span style="opacity: 0.3;">—</span>';
+
+    const tagsHtml = r.campaignsArr.length > 0
+      ? r.campaignsArr.map(id => `<span class="camp-tag">${id}</span>`).join('')
+      : '<span style="opacity:0.3;">—</span>';
+
+    const shiftsHtml = r.shiftsArr.length > 0
+      ? r.shiftsArr.map(s => `<span class="shift-tag">${s}</span>`).join('')
+      : '<span style="opacity:0.3;">—</span>';
 
     html += `<tr>
       <td><span class="date-str">${r.dateFriendly}</span></td>
       <td>${tagsHtml}</td>
+      <td>${shiftsHtml}</td>
       <td><span class="dot-total">${r.total.toLocaleString()}</span></td>
       <td><span class="dot-green">${r.green.toLocaleString()}</span></td>
       <td><span class="dot-red">${r.red.toLocaleString()}</span></td>
@@ -612,65 +675,70 @@ function renderTable() {
 }
 
 window.sortBy = function(key) {
-  if(sortState.key === key) sortState.dir *= -1;
+  if (sortState.key === key) sortState.dir *= -1;
   else { sortState.key = key; sortState.dir = -1; }
   renderTable();
 };
 
-// Event listeners for date filters
+// ── Event listeners ───────────────────────────────────────────────────────────
+
 document.getElementById('startDate').addEventListener('change', applyFilters);
-document.getElementById('endDate').addEventListener('change', applyFilters);
+document.getElementById('endDate').addEventListener('change',   applyFilters);
 
-// Event listener for Load All Data button
 document.getElementById('loadAllBtn').addEventListener('click', () => {
-  // Update state to include all campaigns regardless of size
-  limitToValidCampaigns = false;
-  
-  // Clear date filters
-  document.getElementById('startDate').value = '';
-  document.getElementById('endDate').value = '';
-  
-  // Update badge UI to reflect state
-  const badge = document.getElementById('validBadge');
-  badge.textContent = 'Showing All Data (No Filters)';
-  badge.classList.remove('badge-valid');
-  badge.classList.add('badge-all');
+  limitToValidCampaigns = !limitToValidCampaigns;
 
-  // Show loading screen and process
+  const btn   = document.getElementById('loadAllBtn');
+  const badge = document.getElementById('validBadge');
+  const label = document.getElementById('toggleLabel');
+
+  if (limitToValidCampaigns) {
+    btn.classList.remove('active');
+    label.textContent = 'Valid Only';
+    badge.textContent = '✓ Valid Campaigns Only (>2000 dots)';
+    badge.classList.remove('badge-all');
+    badge.classList.add('badge-valid');
+  } else {
+    btn.classList.add('active');
+    label.textContent = 'All Data';
+    badge.textContent = 'Showing All Data (No Filters)';
+    badge.classList.remove('badge-valid');
+    badge.classList.add('badge-all');
+  }
+
   document.getElementById('loadingScreen').classList.remove('hidden');
   setTimeout(processAllData, 10);
 });
 
-// Setup initial dates
+// ── Firebase listeners ────────────────────────────────────────────────────────
+
 initDateInputs();
 
-// Initialize Listeners
-const postsRef = ref(db, 'userPosts');
+const postsRef  = ref(db, 'userPosts');
 const clicksRef = ref(db, 'userPostClicks');
 
-onValue(postsRef, (snapshot) => {
-  rawPostsData = snapshot.val() || {};
+onValue(postsRef, snapshot => {
+  rawPostsData  = snapshot.val() || {};
   isPostsLoaded = true;
   processAllData();
-}, (err) => {
-  console.error("Firebase posts read failed:", err);
-  isPostsLoaded = true; 
+}, err => {
+  console.error('Firebase posts error:', err);
+  isPostsLoaded = true;
   processAllData();
-  document.getElementById('dailyTbody').innerHTML = `<tr><td colspan="10" class="empty" style="color:var(--red)">Failed to load posts: ${err.message}</td></tr>`;
   document.getElementById('loadingScreen').classList.add('hidden');
 });
 
-onValue(clicksRef, (snapshot) => {
-  rawClicksData = snapshot.val() || {};
+onValue(clicksRef, snapshot => {
+  rawClicksData  = snapshot.val() || {};
   isClicksLoaded = true;
   processAllData();
-}, (err) => {
-  console.error("Firebase clicks read failed:", err);
+}, err => {
+  console.error('Firebase clicks error:', err);
   isClicksLoaded = true;
   processAllData();
-  document.getElementById('dailyTbody').innerHTML = `<tr><td colspan="10" class="empty" style="color:var(--red)">Failed to load clicks: ${err.message}</td></tr>`;
   document.getElementById('loadingScreen').classList.add('hidden');
 });
+
 
 </script>
 </body>
