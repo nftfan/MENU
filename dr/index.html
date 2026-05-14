@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Revenue Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161820;
+    --bg3: #1d1f2a;
+    --border: #2a2d3a;
+    --border2: #353848;
+    --text: #e2e4f0;
+    --text2: #8b8fa8;
+    --text3: #555870;
+    --green: #1fcb8a;
+    --red: #e05c5c;
+    --blue: #4a9eff;
+    --orange: #f0a030;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 span.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); display: inline-block; box-shadow: 0 0 8px var(--blue); }
+
+  .badge-valid {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(31,203,138,.15); 
+    color: var(--green); 
+    border: 1px solid rgba(31,203,138,.3);
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    background: var(--bg2);
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    align-items: center;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .filter-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .filter-group input[type="date"] {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    outline: none;
+    color-scheme: dark; /* forces dark native calendar icon */
+  }
+  .filter-group input[type="date"]:focus {
+    border-color: var(--blue);
+  }
+
+  /* ── MONEY TABS ── */
+  .money-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg2);
+  }
+  .money-tab {
+    flex: 1;
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-right: 1px solid var(--border);
+  }
+  .money-tab:last-child { border-right: none; }
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .tab-value {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1;
+  }
+  .tab-value.rev   { color: var(--green); }
+  .tab-value.wages { color: var(--orange); }
+  .tab-value.prof  { color: var(--blue); }
+  .tab-value.loss  { color: var(--red); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--bg3); }
+  th {
+    padding: 9px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .9px;
+    text-align: right;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: color 0.12s;
+  }
+  th:first-child { text-align: left; }
+  th:nth-child(2) { text-align: left; }
+  th:hover { color: var(--text); }
+  th.active { color: var(--text); }
+  td {
+    padding: 10px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  td:first-child { text-align: left; }
+  td:nth-child(2) { text-align: left; max-width: 250px; white-space: normal; line-height: 1.6; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.025); }
+
+  .date-str    { font-weight: 600; color: var(--text); font-size: 12px; white-space: nowrap; }
+  .dot-total   { font-weight: 500; color: var(--text); }
+  .dot-green   { color: var(--green); }
+  .dot-red     { color: var(--red); }
+  .dot-blue    { color: var(--blue); }
+  .dot-orange  { color: var(--orange); }
+  .revenue     { color: var(--green); font-weight: 600; }
+  .wages-cell  { color: var(--orange); }
+  .profit-pos  { color: var(--blue); font-weight: 600; }
+  .profit-neg  { color: var(--red); font-weight: 600; }
+  
+  .camp-tag {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .arr { font-size: 9px; margin-left: 3px; opacity: .3; }
+  th.active .arr { opacity: 1; }
+
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* ── LOADING SCREEN ── */
+  #loadingScreen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    transition: opacity 0.4s ease;
+  }
+  #loadingScreen.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loader-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: .4; }
+    50%      { opacity: 1; }
+  }
+  .loader-dots { display: flex; gap: 10px; }
+  .loader-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    animation: dot-fade 1.4s ease-in-out infinite;
+  }
+  .loader-dot:nth-child(1){ background:var(--green);  animation-delay:0s; }
+  .loader-dot:nth-child(2){ background:var(--blue);   animation-delay:.2s; }
+  .loader-dot:nth-child(3){ background:var(--orange); animation-delay:.4s; }
+  .loader-dot:nth-child(4){ background:var(--red);    animation-delay:.6s; }
+  @keyframes dot-fade {
+    0%,100%{ transform:scale(.6); opacity:.3; }
+    50%    { transform:scale(1.3); opacity:1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+  <div class="loader-label">Calculating Daily Stats...</div>
+</div>
+
+<div class="header-container">
+  <h1><span class="dot"></span> Daily Report</h1>
+  <span class="badge-valid">✓ Valid Campaigns Only (&gt;2000 dots)</span>
+</div>
+
+<!-- DATE FILTERS -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <label for="startDate">From</label>
+    <input type="date" id="startDate">
+  </div>
+  <div class="filter-group">
+    <label for="endDate">To</label>
+    <input type="date" id="endDate">
+  </div>
+</div>
+
+<!-- GLOBAL TOTALS -->
+<div class="money-tabs" id="globalTabs">
+  <div class="money-tab">
+    <div class="tab-label">Total Revenue (Selected Range)</div>
+    <div class="tab-value rev" id="totalRev">—</div>
+  </div>
+  <div class="money-tab">
+    <div class="tab-label">Total Wages (Selected Range)</div>
+    <div class="tab-value wages" id="totalWages">—</div>
+  </div>
+  <div class="money-tab">
+    <div class="tab-label">Total Net Profit (Selected Range)</div>
+    <div class="tab-value prof" id="totalProfit">—</div>
+  </div>
+</div>
+
+<!-- DAILY TABLE -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('ts')"           id="th-ts">Date <span class="arr">↓</span></th>
+        <th onclick="sortBy('campaignsStr')" id="th-campaignsStr">Campaigns <span class="arr">↕</span></th>
+        <th onclick="sortBy('total')"        id="th-total">Total Dots <span class="arr">↕</span></th>
+        <th onclick="sortBy('green')"        id="th-green"  style="color:var(--green)">Green <span class="arr">↕</span></th>
+        <th onclick="sortBy('red')"          id="th-red"    style="color:var(--red)">Red <span class="arr">↕</span></th>
+        <th onclick="sortBy('blue')"         id="th-blue"   style="color:var(--blue)">Blue <span class="arr">↕</span></th>
+        <th onclick="sortBy('orange')"       id="th-orange" style="color:var(--orange)">Posts <span class="arr">↕</span></th>
+        <th onclick="sortBy('revenue')"      id="th-revenue">Revenue <span class="arr">↕</span></th>
+        <th onclick="sortBy('wages')"        id="th-wages">Wages <span class="arr">↕</span></th>
+        <th onclick="sortBy('profit')"       id="th-profit">Profit <span class="arr">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="dailyTbody"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
+  </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+  authDomain:"tokentransfer-4a9b3.firebaseapp.com",
+  databaseURL:"https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+  projectId:"tokentransfer-4a9b3",
+  storageBucket:"tokentransfer-4a9b3.firebasestorage.app"
+});
+const db = getDatabase(app);
+
+let rawPostsData = {};
+let rawClicksData = {};
+let isPostsLoaded = false;
+let isClicksLoaded = false;
+
+let allDaysData = [];
+let filteredDaysData = [];
+
+// Sort state: default sort by Date (ts), descending (-1)
+const sortState = { key: 'ts', dir: -1 };
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Initialize date inputs to current month
+function initDateInputs() {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const format = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  
+  document.getElementById('startDate').value = format(firstDay);
+  document.getElementById('endDate').value = format(lastDay);
+}
+
+function fmtDateFriendly(ts){
+  const d = new Date(ts);
+  return `${d.getDate()} ${MONTHS[d.getMonth()].toUpperCase()} ${d.getFullYear()}`;
+}
+function eur(v){ return '€'+v.toFixed(2); }
+
+function processAllData() {
+  if (!isPostsLoaded || !isClicksLoaded) return;
+  
+  // 1. Scan everything to find campaigns with > 2000 dots
+  const campTotals = {};
+  
+  function countCampaignTotals(data) {
+    Object.entries(data).forEach(([campId, campDots]) => {
+      if (!campTotals[campId]) campTotals[campId] = { green: 0, red: 0, blue: 0 };
+      Object.values(campDots).forEach(dot => {
+        const col = (dot.color || '').toLowerCase();
+        if (col === 'green') campTotals[campId].green++;
+        else if (col === 'red') campTotals[campId].red++;
+        else if (col === 'blue') campTotals[campId].blue++;
+      });
+    });
+  }
+
+  countCampaignTotals(rawPostsData);
+  countCampaignTotals(rawClicksData);
+
+  const validCampaigns = new Set();
+  Object.entries(campTotals).forEach(([campId, counts]) => {
+    const totalDots = counts.green + counts.red + counts.blue;
+    if (totalDots > 2000) {
+      validCampaigns.add(campId);
+    }
+  });
+
+  // 2. Aggregate data by day, but ONLY for valid campaigns
+  const dailyMap = {};
+  let minTs = Infinity;
+  let maxTs = -Infinity;
+
+  function processDotsByDay(data){
+    Object.entries(data).forEach(([campId, campDots]) => {
+      // SKIP campaigns that don't meet the >2000 threshold
+      if (!validCampaigns.has(campId)) return;
+
+      Object.values(campDots).forEach(dot => {
+        if(!dot.timestamp) return;
+        
+        if(dot.timestamp < minTs) minTs = dot.timestamp;
+        if(dot.timestamp > maxTs) maxTs = dot.timestamp;
+
+        // Group by YYYY-MM-DD
+        const d = new Date(dot.timestamp);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        
+        if(!dailyMap[dateStr]) {
+            dailyMap[dateStr] = { green: 0, red: 0, blue: 0, orange: 0, campaigns: new Set() };
+        }
+        
+        dailyMap[dateStr].campaigns.add(campId);
+
+        const col = (dot.color||'').toLowerCase();
+        if(col==='green')       dailyMap[dateStr].green++;
+        else if(col==='red')    dailyMap[dateStr].red++;
+        else if(col==='blue')   dailyMap[dateStr].blue++;
+        else if(col==='orange') dailyMap[dateStr].orange++;
+      });
+    });
+  }
+
+  processDotsByDay(rawPostsData);
+  processDotsByDay(rawClicksData);
+
+  allDaysData = [];
+
+  // 3. Generate continuous list of days
+  if(minTs !== Infinity && maxTs !== -Infinity) {
+    const start = new Date(minTs); start.setHours(0,0,0,0);
+    const end = new Date(maxTs); end.setHours(0,0,0,0);
+    const curr = new Date(start);
+
+    while (curr <= end) {
+      const dateStr = `${curr.getFullYear()}-${String(curr.getMonth()+1).padStart(2,'0')}-${String(curr.getDate()).padStart(2,'0')}`;
+      const dayStats = dailyMap[dateStr] || { green:0, red:0, blue:0, orange:0, campaigns: new Set() };
+      
+      const total = dayStats.green + dayStats.red + dayStats.blue;
+      const revenue = total * 0.1;
+      const wages = total * 0.05;
+      const profit = revenue - wages;
+
+      const campaignsArr = Array.from(dayStats.campaigns).sort();
+
+      allDaysData.push({
+        ts: curr.getTime(), 
+        dateFriendly: fmtDateFriendly(curr.getTime()),
+        campaignsArr: campaignsArr,
+        campaignsStr: campaignsArr.join(', '), 
+        green: dayStats.green,
+        red: dayStats.red,
+        blue: dayStats.blue,
+        orange: dayStats.orange,
+        total,
+        revenue,
+        wages,
+        profit
+      });
+
+      curr.setDate(curr.getDate() + 1);
+    }
+  }
+
+  applyFilters();
+  document.getElementById('loadingScreen').classList.add('hidden');
+}
+
+function applyFilters() {
+  const startVal = document.getElementById('startDate').value;
+  const endVal = document.getElementById('endDate').value;
+
+  const startTs = startVal ? new Date(startVal).setHours(0,0,0,0) : -Infinity;
+  const endTs = endVal ? new Date(endVal).setHours(23,59,59,999) : Infinity;
+
+  // Filter the all-time data
+  filteredDaysData = allDaysData.filter(d => d.ts >= startTs && d.ts <= endTs);
+
+  // Recalculate totals for the filtered range
+  let rangeRev = 0, rangeWages = 0, rangeProfit = 0;
+  filteredDaysData.forEach(d => {
+    rangeRev += d.revenue;
+    rangeWages += d.wages;
+    rangeProfit += d.profit;
+  });
+
+  document.getElementById('totalRev').textContent = eur(rangeRev);
+  document.getElementById('totalWages').textContent = eur(rangeWages);
+  const profEl = document.getElementById('totalProfit');
+  profEl.textContent = eur(rangeProfit);
+  profEl.className = 'tab-value ' + (rangeProfit >= 0 ? 'prof' : 'loss');
+
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('dailyTbody');
+  
+  // Update header arrows
+  document.querySelectorAll('th').forEach(th => th.classList.remove('active'));
+  const activeTh = document.getElementById(`th-${sortState.key}`);
+  if(activeTh) {
+      activeTh.classList.add('active');
+      activeTh.querySelector('.arr').textContent = sortState.dir === 1 ? '↑' : '↓';
+  }
+
+  // Sort Data
+  let rows = [...filteredDaysData];
+  rows.sort((a,b) => {
+    let valA = a[sortState.key];
+    let valB = b[sortState.key];
+    if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+    }
+    return valA < valB ? -sortState.dir : valA > valB ? sortState.dir : 0;
+  });
+
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="10" class="empty">No data in this date range</td></tr>';
+    return;
+  }
+
+  let html='';
+  rows.forEach(r => {
+    const profCls = r.profit >= 0 ? 'profit-pos' : 'profit-neg';
+    
+    // Create HTML tags for campaigns
+    const tagsHtml = r.campaignsArr.length > 0 
+        ? r.campaignsArr.map(id => `<span class="camp-tag">${id}</span>`).join('')
+        : '<span style="opacity: 0.3;">—</span>';
+
+    html += `<tr>
+      <td><span class="date-str">${r.dateFriendly}</span></td>
+      <td>${tagsHtml}</td>
+      <td><span class="dot-total">${r.total.toLocaleString()}</span></td>
+      <td><span class="dot-green">${r.green.toLocaleString()}</span></td>
+      <td><span class="dot-red">${r.red.toLocaleString()}</span></td>
+      <td><span class="dot-blue">${r.blue.toLocaleString()}</span></td>
+      <td><span class="dot-orange">${r.orange.toLocaleString()}</span></td>
+      <td><span class="revenue">${eur(r.revenue)}</span></td>
+      <td><span class="wages-cell">${eur(r.wages)}</span></td>
+      <td><span class="${profCls}">${eur(r.profit)}</span></td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+window.sortBy = function(key) {
+  if(sortState.key === key) sortState.dir *= -1;
+  else { sortState.key = key; sortState.dir = -1; }
+  renderTable();
+};
+
+// Event listeners for date filters
+document.getElementById('startDate').addEventListener('change', applyFilters);
+document.getElementById('endDate').addEventListener('change', applyFilters);
+
+// Setup initial dates
+initDateInputs();
+
+// Initialize Listeners
+const postsRef = ref(db, 'userPosts');
+const clicksRef = ref(db, 'userPostClicks');
+
+onValue(postsRef, (snapshot) => {
+  rawPostsData = snapshot.val() || {};
+  isPostsLoaded = true;
+  processAllData();
+}, (err) => console.error("Firebase posts read failed:", err));
+
+onValue(clicksRef, (snapshot) => {
+  rawClicksData = snapshot.val() || {};
+  isClicksLoaded = true;
+  processAllData();
+}, (err) => console.error("Firebase clicks read failed:", err));
+
+</script>
+</body>
+</html>
