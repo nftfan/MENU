@@ -55,6 +55,32 @@
   }
   h1 span.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); display: inline-block; box-shadow: 0 0 8px var(--blue); }
 
+  .badge-valid {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(31,203,138,.15); 
+    color: var(--green); 
+    border: 1px solid rgba(31,203,138,.3);
+  }
+  
+  .badge-all {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(74, 158, 255, .15); 
+    color: var(--blue); 
+    border: 1px solid rgba(74, 158, 255, .3);
+  }
+
   /* ── FILTER BAR ── */
   .filter-bar {
     display: flex;
@@ -88,14 +114,14 @@
     padding: 8px 12px;
     border-radius: var(--radius);
     outline: none;
-    color-scheme: dark; 
+    color-scheme: dark; /* forces dark native calendar icon */
   }
   .filter-group input[type="date"]:focus {
     border-color: var(--blue);
   }
 
   .btn-load-all {
-    margin-left: auto;
+    margin-left: auto; /* Pushes the button to the far right */
     background: var(--blue);
     color: #fff;
     border: none;
@@ -289,6 +315,7 @@
 
 <div class="header-container">
   <h1><span class="dot"></span> Daily Report</h1>
+  <span id="validBadge" class="badge-valid">✓ Valid Campaigns Only (&gt;2000 dots)</span>
 </div>
 
 <!-- DATE FILTERS -->
@@ -360,6 +387,9 @@ let rawClicksData = {};
 let isPostsLoaded = false;
 let isClicksLoaded = false;
 
+// Application state for condition
+let limitToValidCampaigns = true;
+
 let allDaysData = [];
 let filteredDaysData = [];
 
@@ -389,7 +419,37 @@ function eur(v){ return '€'+v.toFixed(2); }
 function processAllData() {
   if (!isPostsLoaded || !isClicksLoaded) return;
   
-  // Aggregate data by day for ALL campaigns
+  // 1. Scan everything to find campaigns with > 2000 dots (only if filter is active)
+  const validCampaigns = new Set();
+
+  if (limitToValidCampaigns) {
+    const campTotals = {};
+    function countCampaignTotals(data) {
+      if (!data) return;
+      Object.entries(data).forEach(([campId, campDots]) => {
+        if (!campTotals[campId]) campTotals[campId] = { green: 0, red: 0, blue: 0 };
+        if (!campDots) return;
+        Object.values(campDots).forEach(dot => {
+          const col = (dot.color || '').toLowerCase();
+          if (col === 'green') campTotals[campId].green++;
+          else if (col === 'red') campTotals[campId].red++;
+          else if (col === 'blue') campTotals[campId].blue++;
+        });
+      });
+    }
+
+    countCampaignTotals(rawPostsData);
+    countCampaignTotals(rawClicksData);
+
+    Object.entries(campTotals).forEach(([campId, counts]) => {
+      const totalDots = counts.green + counts.red + counts.blue;
+      if (totalDots > 2000) {
+        validCampaigns.add(campId);
+      }
+    });
+  }
+
+  // 2. Aggregate data by day, enforcing the campaign condition if active
   const dailyMap = {};
   let minTs = Infinity;
   let maxTs = -Infinity;
@@ -397,6 +457,9 @@ function processAllData() {
   function processDotsByDay(data){
     if (!data) return;
     Object.entries(data).forEach(([campId, campDots]) => {
+      // SKIP campaigns that don't meet the >2000 threshold if the limit is active
+      if (limitToValidCampaigns && !validCampaigns.has(campId)) return;
+
       if (!campDots) return;
       Object.values(campDots).forEach(dot => {
         if(!dot || !dot.timestamp) return;
@@ -428,7 +491,7 @@ function processAllData() {
 
   allDaysData = [];
 
-  // Generate continuous list of days
+  // 3. Generate continuous list of days
   if(minTs !== Infinity && maxTs !== -Infinity) {
     const start = new Date(minTs); start.setHours(0,0,0,0);
     const end = new Date(maxTs); end.setHours(0,0,0,0);
@@ -440,7 +503,7 @@ function processAllData() {
       
       const total = dayStats.green + dayStats.red + dayStats.blue;
       const revenue = total * 0.1;
-      const wages = total * 0.036;
+      const wages = total * 0.04869;
       const profit = revenue - wages;
 
       const campaignsArr = Array.from(dayStats.campaigns).sort();
@@ -560,9 +623,22 @@ document.getElementById('endDate').addEventListener('change', applyFilters);
 
 // Event listener for Load All Data button
 document.getElementById('loadAllBtn').addEventListener('click', () => {
+  // Update state to include all campaigns regardless of size
+  limitToValidCampaigns = false;
+  
+  // Clear date filters
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
-  applyFilters();
+  
+  // Update badge UI to reflect state
+  const badge = document.getElementById('validBadge');
+  badge.textContent = 'Showing All Data (No Filters)';
+  badge.classList.remove('badge-valid');
+  badge.classList.add('badge-all');
+
+  // Show loading screen and process
+  document.getElementById('loadingScreen').classList.remove('hidden');
+  setTimeout(processAllData, 10);
 });
 
 // Setup initial dates
