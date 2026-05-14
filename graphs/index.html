@@ -1,0 +1,453 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profit Chart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Figtree', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 28px 24px 40px;
+    color: #111;
+  }
+
+  #loader {
+    position: fixed; inset: 0;
+    background: #f0f2f5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #999; font-weight: 500;
+    z-index: 99; transition: opacity .3s;
+  }
+  #loader.gone { opacity: 0; pointer-events: none; }
+
+  h1 { font-size: 22px; font-weight: 800; color: #111; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+
+  .filters {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .filters label { font-size: 13px; color: #555; font-weight: 600; }
+  .filters input[type="date"] {
+    border: 1.5px solid #ddd; border-radius: 8px;
+    padding: 7px 12px; font-family: inherit; font-size: 13px;
+    background: #fff; color: #111; outline: none;
+  }
+  .filters input[type="date"]:focus { border-color: #555; }
+  .filters span { color: #bbb; }
+
+  .cards {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 24px;
+  }
+  .card {
+    background: #fff; border-radius: 12px;
+    padding: 18px 20px; border: 1.5px solid #e8e8e8;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #aaa; margin-bottom: 8px;
+  }
+  .card-val { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+  .card-val.green  { color: #16a34a; }
+  .card-val.red    { color: #dc2626; }
+  .card-val.blue   { color: #2563eb; }
+  .card-val.orange { color: #d97706; }
+
+  .chart-card {
+    background: #fff; border-radius: 14px;
+    border: 1.5px solid #e8e8e8; padding: 24px 24px 20px;
+  }
+  .chart-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .chart-top h2 { font-size: 15px; font-weight: 700; color: #333; }
+  .legend { display: flex; gap: 14px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #888; font-weight: 500; }
+  .leg-box { width: 10px; height: 10px; border-radius: 3px; }
+
+  .chart-scroll {
+    overflow-x: auto; overflow-y: visible; padding-bottom: 4px;
+    scrollbar-width: thin; scrollbar-color: #ddd transparent;
+  }
+  .chart-scroll::-webkit-scrollbar { height: 4px; }
+  .chart-scroll::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+  .chart-inner { position: relative; min-width: 100%; }
+  canvas { display: block; }
+
+  #tooltip {
+    position: fixed; background: #fff;
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 12px 16px; font-size: 13px;
+    pointer-events: none; opacity: 0; transition: opacity .1s;
+    z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.1); min-width: 150px;
+  }
+  #tooltip.show { opacity: 1; }
+  .tt-date { font-weight: 700; font-size: 13px; color: #111; margin-bottom: 8px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 20px; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .tt-row:last-child { margin-bottom: 0; }
+  .tt-row b { font-weight: 700; }
+  .tt-profit { color: #16a34a; } .tt-loss { color: #dc2626; }
+  .tt-rev { color: #2563eb; } .tt-wages { color: #d97706; }
+  .tt-divider { border: none; border-top: 1px solid #f0f0f0; margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<div id="loader">Loading…</div>
+
+<h1>Daily Profit</h1>
+<p class="sub">Revenue − Wages per day</p>
+
+<div class="filters">
+  <label>From</label>
+  <input type="date" id="startDate">
+  <span>→</span>
+  <label>To</label>
+  <input type="date" id="endDate">
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">Total Revenue</div>
+    <div class="card-val blue" id="cRev">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Total Wages</div>
+    <div class="card-val orange" id="cWages">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Net Profit</div>
+    <div class="card-val green" id="cProfit">—</div>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-top">
+    <h2>Profit per Day</h2>
+    <div class="legend">
+      <div class="leg"><div class="leg-box" style="background:#16a34a"></div>Profit</div>
+      <div class="leg"><div class="leg-box" style="background:#dc2626"></div>Loss</div>
+      <div class="leg"><div class="leg-box" style="background:#e5e7eb"></div>No data</div>
+    </div>
+  </div>
+  <div class="chart-scroll">
+    <div class="chart-inner" id="chartInner">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+  authDomain:"tokentransfer-4a9b3.firebaseapp.com",
+  databaseURL:"https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+  projectId:"tokentransfer-4a9b3",
+  storageBucket:"tokentransfer-4a9b3.firebasestorage.app"
+});
+const db = getDatabase(app);
+
+let rawPosts = {}, rawClicks = {};
+let postsOk = false, clicksOk = false;
+let allDays = [];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function toDateStr(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function eur(v) {
+  const sign = v < 0 ? '-' : '';
+  return sign + '€' + Math.abs(v).toFixed(2);
+}
+function fmtShort(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+function fmtFull(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function initDates() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const f = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  document.getElementById('startDate').value = f(new Date(now.getFullYear(), now.getMonth(), 1));
+  document.getElementById('endDate').value   = f(new Date(now.getFullYear(), now.getMonth()+1, 0));
+}
+
+function processAll() {
+  if (!postsOk || !clicksOk) return;
+
+  const totals = {};
+  const scan = data => {
+    if (!data) return;
+    Object.entries(data).forEach(([cid, dots]) => {
+      if (!dots) return;
+      if (!totals[cid]) totals[cid] = 0;
+      Object.values(dots).forEach(d => {
+        const c = (d.color||'').toLowerCase();
+        if (c==='green'||c==='red'||c==='blue') totals[cid]++;
+      });
+    });
+  };
+  scan(rawPosts); scan(rawClicks);
+  const valid = new Set(Object.entries(totals).filter(([,n])=>n>2000).map(([k])=>k));
+
+  const map = {};
+  let minTs = Infinity, maxTs = -Infinity;
+  const scanDots = data => {
+    if (!data) return;
+    Object.entries(data).forEach(([cid, dots]) => {
+      if (!valid.has(cid) || !dots) return;
+      Object.values(dots).forEach(dot => {
+        if (!dot?.timestamp) return;
+        if (dot.timestamp < minTs) minTs = dot.timestamp;
+        if (dot.timestamp > maxTs) maxTs = dot.timestamp;
+        const ds = toDateStr(dot.timestamp);
+        if (!map[ds]) map[ds] = {g:0,r:0,b:0,o:0};
+        const c = (dot.color||'').toLowerCase();
+        if      (c==='green')  map[ds].g++;
+        else if (c==='red')    map[ds].r++;
+        else if (c==='blue')   map[ds].b++;
+        else if (c==='orange') map[ds].o++;
+      });
+    });
+  };
+  scanDots(rawPosts); scanDots(rawClicks);
+
+  allDays = [];
+  if (minTs !== Infinity) {
+    const cur = new Date(minTs); cur.setHours(0,0,0,0);
+    const end = new Date(maxTs); end.setHours(0,0,0,0);
+    while (cur <= end) {
+      const ds = toDateStr(cur);
+      const d  = map[ds] || {g:0,r:0,b:0,o:0};
+      const dots    = d.g + d.r + d.b;
+      const revenue = dots * 0.1;
+      const wages   = dots * 0.05;
+      allDays.push({ ds, ts: cur.getTime(), dots, revenue, wages, profit: revenue - wages, orange: d.o });
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+
+  draw();
+  document.getElementById('loader').classList.add('gone');
+}
+
+const canvas  = document.getElementById('chart');
+const ctx     = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+let   hitBoxes = [];
+
+function draw() {
+  const sv = document.getElementById('startDate').value;
+  const ev = document.getElementById('endDate').value;
+  const s  = sv ? new Date(sv).setHours(0,0,0,0)    : -Infinity;
+  const e  = ev ? new Date(ev).setHours(23,59,59,999): Infinity;
+  const days = allDays.filter(d => d.ts >= s && d.ts <= e);
+
+  const totRev    = days.reduce((a,d)=>a+d.revenue,0);
+  const totWages  = days.reduce((a,d)=>a+d.wages,0);
+  const totProfit = days.reduce((a,d)=>a+d.profit,0);
+
+  document.getElementById('cRev').textContent   = eur(totRev);
+  document.getElementById('cWages').textContent = eur(totWages);
+  const cp = document.getElementById('cProfit');
+  cp.textContent = eur(totProfit);
+  cp.className   = 'card-val ' + (totProfit >= 0 ? 'green' : 'red');
+
+  if (!days.length) {
+    canvas.width = 300; canvas.height = 180;
+    ctx.clearRect(0,0,300,180);
+    ctx.font = '14px Figtree, sans-serif';
+    ctx.fillStyle = '#bbb'; ctx.textAlign = 'center';
+    ctx.fillText('No data in range', 150, 90);
+    return;
+  }
+
+  const DPR     = window.devicePixelRatio || 1;
+  const n       = days.length;
+  const wrapW   = document.getElementById('chartInner').parentElement.clientWidth - 48;
+  const BAR_W   = Math.min(56, Math.max(20, Math.floor(wrapW / n) - 4));
+  const GAP     = Math.max(3, Math.floor(BAR_W * 0.2));
+  const PAD_L   = 72;
+  const PAD_R   = 16;
+  const PAD_T   = 24;
+  const PAD_B   = 48;
+  const CHART_H = 340;
+  const totalW  = Math.max(wrapW, PAD_L + PAD_R + n * (BAR_W + GAP));
+
+  canvas.width        = totalW * DPR;
+  canvas.height       = CHART_H * DPR;
+  canvas.style.width  = totalW + 'px';
+  canvas.style.height = CHART_H + 'px';
+  ctx.scale(DPR, DPR);
+  ctx.clearRect(0, 0, totalW, CHART_H);
+
+  const chartH = CHART_H - PAD_T - PAD_B;
+  const chartW = totalW - PAD_L - PAD_R;
+
+  const profits = days.map(d => d.profit);
+  const maxP    = Math.max(...profits, 0.01);
+  const minP    = Math.min(...profits, 0);
+  const span    = maxP - minP || 1;
+  const yTop    = maxP + span * 0.12;
+  const yBot    = minP - span * 0.12;
+  const ySpan   = yTop - yBot;
+
+  const yPx   = v => PAD_T + (1 - (v - yBot) / ySpan) * chartH;
+  const zeroY = yPx(0);
+
+  // grid
+  const nLines = 5;
+  for (let i = 0; i <= nLines; i++) {
+    const v  = yBot + (ySpan / nLines) * i;
+    const py = yPx(v);
+    ctx.beginPath();
+    ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.moveTo(PAD_L, py); ctx.lineTo(PAD_L + chartW, py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '600 11px Figtree, sans-serif';
+    ctx.fillStyle = '#bbb'; ctx.textAlign = 'right';
+    ctx.fillText(eur(v), PAD_L - 8, py + 4);
+  }
+
+  // zero line
+  ctx.beginPath();
+  ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1.5;
+  ctx.moveTo(PAD_L, zeroY); ctx.lineTo(PAD_L + chartW, zeroY);
+  ctx.stroke();
+
+  hitBoxes = [];
+  const radius = Math.min(5, BAR_W * 0.2);
+
+  days.forEach((day, i) => {
+    const cx = PAD_L + i * (BAR_W + GAP);
+    const hasData = day.dots > 0;
+    const p  = day.profit;
+
+    let color, bY, bH;
+    if (!hasData) {
+      color = '#e5e7eb'; bH = 4; bY = zeroY - 2;
+    } else if (p >= 0) {
+      color = '#16a34a';
+      bH = Math.max(3, zeroY - yPx(p));
+      bY = yPx(p);
+    } else {
+      color = '#dc2626';
+      bH = Math.max(3, yPx(p) - zeroY);
+      bY = zeroY;
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    if (p >= 0 || !hasData) {
+      ctx.moveTo(cx + radius, bY);
+      ctx.lineTo(cx + BAR_W - radius, bY);
+      ctx.arcTo(cx + BAR_W, bY, cx + BAR_W, bY + radius, radius);
+      ctx.lineTo(cx + BAR_W, bY + bH);
+      ctx.lineTo(cx, bY + bH);
+      ctx.lineTo(cx, bY + radius);
+      ctx.arcTo(cx, bY, cx + radius, bY, radius);
+    } else {
+      ctx.moveTo(cx, bY);
+      ctx.lineTo(cx + BAR_W, bY);
+      ctx.lineTo(cx + BAR_W, bY + bH - radius);
+      ctx.arcTo(cx + BAR_W, bY + bH, cx + BAR_W - radius, bY + bH, radius);
+      ctx.lineTo(cx + radius, bY + bH);
+      ctx.arcTo(cx, bY + bH, cx, bY + bH - radius, radius);
+      ctx.lineTo(cx, bY);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // amount label on bar
+    if (hasData && bH > 22) {
+      const fs = Math.min(11, Math.max(8, BAR_W * 0.24));
+      ctx.font      = `700 ${fs}px Figtree, sans-serif`;
+      ctx.fillStyle = p >= 0 ? '#14532d' : '#7f1d1d';
+      ctx.textAlign = 'center';
+      const labelY  = p >= 0 ? bY - 5 : bY + bH + 13;
+      ctx.fillText(eur(p), cx + BAR_W / 2, labelY);
+    }
+
+    // date label
+    const showEvery = Math.ceil(n / Math.floor(chartW / 40));
+    if (i % showEvery === 0) {
+      ctx.font      = '500 10px Figtree, sans-serif';
+      ctx.fillStyle = '#aaa'; ctx.textAlign = 'center';
+      ctx.fillText(fmtShort(day.ds), cx + BAR_W / 2, CHART_H - PAD_B + 16);
+    }
+
+    hitBoxes.push({ x: cx, y: Math.min(bY, bY) - 8, w: BAR_W, h: bH + 16, day });
+  });
+
+  // axis
+  ctx.beginPath();
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+  ctx.moveTo(PAD_L, PAD_T); ctx.lineTo(PAD_L, PAD_T + chartH);
+  ctx.stroke();
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const DPR = window.devicePixelRatio || 1;
+  const mx = (e.clientX - rect.left) * scaleX / DPR;
+  const my = (e.clientY - rect.top)  * scaleY / DPR;
+
+  const hit = hitBoxes.find(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
+  if (!hit) { tooltip.classList.remove('show'); return; }
+
+  const d    = hit.day;
+  const pCls = d.profit >= 0 ? 'tt-profit' : 'tt-loss';
+  tooltip.innerHTML = `
+    <div class="tt-date">${fmtFull(d.ds)}</div>
+    ${d.dots > 0 ? `
+      <div class="tt-row"><span>Revenue</span><b class="tt-rev">${eur(d.revenue)}</b></div>
+      <div class="tt-row"><span>Wages</span><b class="tt-wages">${eur(d.wages)}</b></div>
+      <hr class="tt-divider">
+      <div class="tt-row"><span>Profit</span><b class="${pCls}">${eur(d.profit)}</b></div>
+      <div class="tt-row"><span>Dots</span><b>${d.dots.toLocaleString()}</b></div>
+    ` : `<div style="color:#bbb;font-size:12px;margin-top:2px">No activity</div>`}
+  `;
+  tooltip.classList.add('show');
+
+  let tx = e.clientX + 16, ty = e.clientY - 10;
+  if (tx + 170 > window.innerWidth)  tx = e.clientX - 186;
+  if (ty + 150 > window.innerHeight) ty = e.clientY - 160;
+  tooltip.style.left = tx + 'px';
+  tooltip.style.top  = ty + 'px';
+});
+canvas.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+
+document.getElementById('startDate').addEventListener('change', draw);
+document.getElementById('endDate').addEventListener('change', draw);
+let resizeT;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(draw, 80); });
+
+initDates();
+onValue(ref(db,'userPosts'), snap => { rawPosts = snap.val()||{}; postsOk=true; processAll(); }, err=>{ postsOk=true; processAll(); });
+onValue(ref(db,'userPostClicks'), snap => { rawClicks = snap.val()||{}; clicksOk=true; processAll(); }, err=>{ clicksOk=true; processAll(); });
+</script>
+</body>
+</html>
