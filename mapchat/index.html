@@ -1,137 +1,170 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>MapChat</title>
+<title>RotiPani</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-<meta name="theme-color" content="#111"/>
+<meta name="theme-color" content="#0a1f0e"/>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:#111;--card:#1e1e1e;--border:#2a2a2a;
-  --text:#f0f0f0;--muted:#666;
-  --accent:#f5e642;--green:#4ade80;
-  --bar-h:64px;
-  font-family:'DM Sans',system-ui,sans-serif;
+  --bg:#0a1f0e;
+  --surface:#112a14;
+  --card:#162f1a;
+  --border:#1f4226;
+  --border2:#2a5c34;
+  --text:#f0f7f1;
+  --muted:#6b8f72;
+  --accent:#ffffff;
+  --green:#22c55e;
+  --green-dim:#16a34a;
+  --tag:#0d3318;
+  --bar-h:68px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;}
 
+/* ── TOPBAR ── */
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:50px;
+  position:fixed;top:0;left:0;right:0;height:52px;
   background:var(--bg);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 14px;z-index:600;
+  display:flex;align-items:center;padding:0 14px;z-index:600;gap:10px;
 }
-.logo{font-weight:600;font-size:17px;letter-spacing:-.4px;}
-.logo span{color:var(--accent);}
-.online-pill{
+.logo{display:flex;align-items:center;gap:7px;}
+.logo-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--green);display:grid;place-items:center;font-size:16px;flex-shrink:0;
+}
+.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;color:var(--accent);}
+.logo-text span{color:var(--green);}
+.deals-pill{
   margin-left:auto;display:flex;align-items:center;gap:6px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--muted);
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:999px;padding:5px 12px 5px 10px;
+  font-size:12px;color:var(--muted);white-space:nowrap;
 }
-.odot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
-#onlineCount{font-weight:600;color:var(--text);}
+.deals-pill .d-icon{font-size:13px;}
+#dealsCount{font-weight:700;color:var(--green);font-size:13px;}
 
+/* ── MAP ── */
 #map{
-  position:fixed;top:50px;left:0;right:0;
+  position:fixed;top:52px;left:0;right:0;
   bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
 }
 
-.msg-bar{
+/* ── POST BAR ── */
+.post-bar{
   position:fixed;bottom:0;left:0;right:0;
   height:calc(var(--bar-h) + env(safe-area-inset-bottom));
-  padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+  padding:9px 12px calc(9px + env(safe-area-inset-bottom));
   background:var(--bg);border-top:1px solid var(--border);
   display:flex;align-items:center;gap:8px;z-index:600;
 }
 .loc-btn{
-  width:48px;height:48px;flex-shrink:0;border-radius:12px;
-  background:var(--card);border:1px solid var(--border);
+  width:50px;height:50px;flex-shrink:0;border-radius:12px;
+  background:var(--card);border:1px solid var(--border2);
   cursor:pointer;display:grid;place-items:center;color:var(--muted);transition:all .15s;
 }
-.loc-btn.on{border-color:var(--accent);color:var(--accent);}
-.loc-btn:active{transform:scale(.93);}
-.loc-btn svg{width:20px;height:20px;fill:currentColor;}
-.msg-input{
-  flex:1;height:48px;background:var(--card);border:1px solid var(--border);
+.loc-btn.on{border-color:var(--green);color:var(--green);}
+.loc-btn:active{transform:scale(.92);}
+.loc-btn svg{width:19px;height:19px;fill:currentColor;}
+.deal-input{
+  flex:1;height:50px;background:var(--card);border:1px solid var(--border2);
   border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;
-  font-size:15px;padding:0 14px;outline:none;
+  font-size:15px;padding:0 14px;outline:none;min-width:0;
 }
-.msg-input::placeholder{color:var(--muted);}
-.msg-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(245,230,66,.12);}
-.send-btn{
-  width:48px;height:48px;flex-shrink:0;border-radius:12px;
-  background:var(--accent);border:none;cursor:pointer;
-  display:grid;place-items:center;transition:transform .1s,opacity .1s;
+.deal-input::placeholder{color:var(--muted);}
+.deal-input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(34,197,94,.12);}
+.post-btn{
+  height:50px;flex-shrink:0;border-radius:12px;
+  background:var(--green);border:none;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  padding:0 16px;font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;color:#0a1f0e;
+  transition:transform .1s,opacity .1s;white-space:nowrap;
 }
-.send-btn:active{transform:scale(.93);}
-.send-btn:disabled{opacity:.35;cursor:not-allowed;}
-.send-btn svg{width:20px;height:20px;fill:#111;}
+.post-btn:active{transform:scale(.94);}
+.post-btn:disabled{opacity:.3;cursor:not-allowed;}
+.post-btn svg{width:17px;height:17px;fill:#0a1f0e;}
 
-/* SPLASH */
+/* ── SPLASH ── */
 .splash{
   position:fixed;inset:0;background:var(--bg);z-index:900;
   display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:20px;padding:36px 28px;text-align:center;
+  justify-content:center;gap:22px;padding:36px 28px;text-align:center;
 }
-.splash-icon{font-size:52px;line-height:1;}
-.splash h1{font-size:27px;font-weight:600;line-height:1.25;}
-.splash h1 span{color:var(--accent);}
-.splash p{font-size:15px;color:var(--muted);line-height:1.65;max-width:290px;}
+.splash-logo{
+  width:72px;height:72px;border-radius:20px;
+  background:var(--green);display:grid;place-items:center;font-size:36px;
+}
+.splash h1{font-size:28px;font-weight:700;line-height:1.2;color:var(--accent);}
+.splash h1 span{color:var(--green);}
+.splash p{font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;}
 .splash-btn{
-  background:var(--accent);color:#111;font-family:'DM Sans',sans-serif;
-  font-size:16px;font-weight:600;border:none;cursor:pointer;
-  border-radius:14px;padding:15px 0;width:100%;max-width:280px;transition:transform .1s;
+  background:var(--green);color:#0a1f0e;font-family:'DM Sans',sans-serif;
+  font-size:16px;font-weight:700;border:none;cursor:pointer;
+  border-radius:14px;padding:15px 0;width:100%;max-width:290px;transition:transform .1s;
 }
 .splash-btn:active{transform:scale(.97);}
 .splash-note{font-size:12px;color:var(--muted);}
 
-/* POPUP */
+/* ── MAPLIBRE POPUP — always visible, dark green + white ── */
+.maplibregl-popup{pointer-events:auto;}
 .maplibregl-popup-content{
-  background:#fefce8 !important;
-  border:1.5px solid #c9b800 !important;
+  background:var(--surface, #112a14) !important;
+  border:1.5px solid #2a5c34 !important;
   border-radius:10px !important;
-  padding:9px 11px !important;
-  box-shadow:0 3px 14px rgba(0,0,0,.28) !important;
+  padding:9px 11px 8px !important;
+  box-shadow:0 4px 18px rgba(0,0,0,.55) !important;
   font-family:'DM Sans',sans-serif !important;
   min-width:0 !important;max-width:200px !important;
 }
-.maplibregl-popup-tip{border-top-color:#c9b800 !important;}
+.maplibregl-popup-tip{border-top-color:#2a5c34 !important;}
 .maplibregl-popup-close-button{
-  color:#888 !important;font-size:16px !important;
-  top:3px !important;right:4px !important;padding:0 5px !important;line-height:1.4 !important;
+  color:#6b8f72 !important;font-size:16px !important;
+  top:2px !important;right:4px !important;padding:0 5px !important;line-height:1.5 !important;
 }
 .maplibregl-ctrl-attrib{display:none !important;}
 .maplibregl-canvas{touch-action:none;}
 
-.pop-msg{font-size:14px;font-weight:500;color:#1a1800;line-height:1.4;word-break:break-word;padding-right:12px;}
-.pop-empty{font-size:13px;color:#9a8600;font-style:italic;}
-.pop-time{font-size:11px;color:#9a8600;margin-top:4px;font-weight:400;}
-
-/* MARKER — plain dot only, no text */
-.umarker{
-  width:16px;height:16px;border-radius:50%;
-  background:var(--accent);border:2.5px solid #fff;
-  box-shadow:0 1px 6px rgba(0,0,0,.5);
-  cursor:pointer;position:relative;
+/* popup inner */
+.pop-deal{
+  font-size:13px;font-weight:600;color:#ffffff;
+  line-height:1.4;word-break:break-word;padding-right:14px;
 }
-.umarker.me{background:var(--green);}
-.umarker .ping{
+.pop-empty{font-size:12px;color:#6b8f72;font-style:italic;}
+.pop-time{font-size:10px;color:#4a7a52;margin-top:4px;}
+.pop-tag{
+  display:inline-block;background:#0d3318;color:var(--green);
+  font-size:10px;font-weight:700;border-radius:5px;
+  padding:2px 7px;margin-bottom:5px;letter-spacing:.3px;
+}
+
+/* ── RESTAURANT MARKER ── */
+.rmarker{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--surface);border:2.5px solid var(--green);
+  box-shadow:0 2px 10px rgba(0,0,0,.5);
+  cursor:pointer;position:relative;display:grid;place-items:center;
+  font-size:16px;transition:transform .15s;
+}
+.rmarker:active{transform:scale(.88);}
+.rmarker.me{border-color:#fff;box-shadow:0 2px 10px rgba(34,197,94,.35);}
+.rmarker .ping{
   position:absolute;inset:-5px;border-radius:50%;
-  border:2px solid var(--accent);opacity:0;
-  animation:ping 2.8s ease-out infinite;
+  border:2px solid var(--green);opacity:0;
+  animation:ping 3s ease-out infinite;
 }
-.umarker.me .ping{border-color:var(--green);}
-@keyframes ping{0%{transform:scale(.8);opacity:.7;}100%{transform:scale(2.2);opacity:0;}}
+.rmarker.me .ping{animation-duration:2s;}
+@keyframes ping{0%{transform:scale(.8);opacity:.65;}100%{transform:scale(2);opacity:0;}}
 
-/* TOAST */
+/* ── TOAST ── */
 .toast{
-  position:fixed;top:58px;left:50%;
+  position:fixed;top:60px;left:50%;
   transform:translateX(-50%) translateY(-6px);
-  background:var(--card);border:1px solid var(--border);border-radius:999px;
-  padding:7px 16px;font-size:13px;color:var(--text);z-index:700;
+  background:var(--card);border:1px solid var(--border2);border-radius:999px;
+  padding:7px 18px;font-size:13px;color:var(--text);z-index:700;
   opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -139,31 +172,38 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 </head>
 <body>
 
+<!-- SPLASH -->
 <div class="splash" id="splash">
-  <div class="splash-icon">🗺️</div>
-  <h1>Welcome to <span>MapChat</span></h1>
-  <p>Share your location and drop a message. See who's around you in real time.</p>
+  <div class="splash-logo">🍛</div>
+  <h1>Roti<span>Pani</span></h1>
+  <p>Post your restaurant's latest food deal. Customers nearby see it instantly on the map.</p>
   <button class="splash-btn" id="shareLocBtn">Share my location</button>
-  <div class="splash-note">No account needed · removed when you leave</div>
+  <div class="splash-note">Deals auto-removed when you close the app</div>
 </div>
 
+<!-- TOPBAR -->
 <header class="topbar">
-  <div class="logo">Map<span>Chat</span></div>
-  <div class="online-pill">
-    <div class="odot"></div>
-    <span id="onlineCount">0</span>&nbsp;online
+  <div class="logo">
+    <div class="logo-icon">🍛</div>
+    <div class="logo-text">Roti<span>Pani</span></div>
+  </div>
+  <div class="deals-pill">
+    <span class="d-icon">🏷️</span>
+    <span id="dealsCount">0</span>&nbsp;deals posted
   </div>
 </header>
 
 <div id="map"></div>
 
-<div class="msg-bar">
+<!-- POST BAR -->
+<div class="post-bar">
   <button class="loc-btn" id="locateBtn" title="Centre on me">
     <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6a1 1 0 0 1 1 1v1.07A9 9 0 0 1 20.93 11H22a1 1 0 0 1 0 2h-1.07A9 9 0 0 1 13 20.93V22a1 1 0 0 1-2 0v-1.07A9 9 0 0 1 3.07 13H2a1 1 0 0 1 0-2h1.07A9 9 0 0 1 11 3.07V2a1 1 0 0 1 1-1zm0 4a7 7 0 1 0 0 14A7 7 0 0 0 12 6z"/></svg>
   </button>
-  <input class="msg-input" id="msgInput" type="text" placeholder="Type a message…" maxlength="140" autocomplete="off"/>
-  <button class="send-btn" id="sendBtn" disabled>
-    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  <input class="deal-input" id="dealInput" type="text" placeholder="e.g. 50% off biryani today!" maxlength="120" autocomplete="off"/>
+  <button class="post-btn" id="postBtn" disabled>
+    <svg viewBox="0 0 24 24"><path d="M11 17H7a5 5 0 0 1 0-10h4v2H7a3 3 0 0 0 0 6h4v2zm6-8h-4V7h4a5 5 0 0 1 0 10h-4v-2h4a3 3 0 0 0 0-6zm-8 4v-2h6v2H9z"/></svg>
+    Post
   </button>
 </div>
 
@@ -183,31 +223,31 @@ const app = initializeApp({
   storageBucket:"trackingclients.appspot.com",
   messagingSenderId:"27490943622",
   appId:"1:27490943622:web:d6c87547aa5df440508707"
-}, 'mapChatApp2');
+}, 'rotiPaniApp');
 const db = getDatabase(app);
-const USERS = 'mapchat/users';
+const USERS = 'rotipani/restaurants';
 
 /* session */
-let myId = localStorage.getItem('mapchat_id2');
+let myId = localStorage.getItem('rotipani_id');
 if (!myId) {
-  myId = 'mc_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-  localStorage.setItem('mapchat_id2', myId);
+  myId = 'rp_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  localStorage.setItem('rotipani_id', myId);
 }
 
-let map, myLat=null, myLng=null, myMsg='', myRef=null;
+let map, myLat=null, myLng=null, myDeal='', myRef=null;
 const markers  = new Map();
-const userData = new Map();
+const restData = new Map();
 
 const splash      = document.getElementById('splash');
 const shareLocBtn = document.getElementById('shareLocBtn');
-const msgInput    = document.getElementById('msgInput');
-const sendBtn     = document.getElementById('sendBtn');
+const dealInput   = document.getElementById('dealInput');
+const postBtn     = document.getElementById('postBtn');
 const locateBtn   = document.getElementById('locateBtn');
-const onlineEl    = document.getElementById('onlineCount');
+const dealsEl     = document.getElementById('dealsCount');
 const toastEl     = document.getElementById('toast');
 
 let toastT;
-function toast(t, ms=2400){
+function toast(t, ms=2500){
   toastEl.textContent=t; toastEl.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),ms);
 }
@@ -220,80 +260,99 @@ function fmtTs(ts){
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* popup: just message + datetime, super compact */
+/* compact popup: deal tag + text + time */
 function mkPopup(data){
-  const msg  = (data.msg||'').trim();
+  const deal = (data.deal||'').trim();
   const time = fmtTs(data.ts);
-  if (!msg) return `<div class="pop-empty">No message yet</div>`;
-  return `<div class="pop-msg">${esc(msg)}</div>${time?`<div class="pop-time">${time}</div>`:''}`;
+  if(!deal) return `<div class="pop-empty">No deal posted yet</div>`;
+  return `<div class="pop-tag">🏷️ DEAL</div><div class="pop-deal">${esc(deal)}</div>${time?`<div class="pop-time">${time}</div>`:''}`;
 }
 
-/* marker = plain dot, zero text */
+/* marker = fork+knife emoji dot */
 function mkEl(isMe){
   const d=document.createElement('div');
-  d.className='umarker'+(isMe?' me':'');
-  d.innerHTML='<div class="ping"></div>';
+  d.className='rmarker'+(isMe?' me':'');
+  d.innerHTML='<div class="ping"></div>'+(isMe?'📍':'🍽️');
   return d;
 }
 
+/* always show popup by default — addTo map directly */
 function upsert(uid, data){
-  const isMe=uid===myId;
-  const lngLat=[data.lng,data.lat];
+  const isMe = uid===myId;
+  const lngLat = [data.lng, data.lat];
+
   if(markers.has(uid)){
-    const {marker,popup}=markers.get(uid);
+    const {marker, popup} = markers.get(uid);
     marker.setLngLat(lngLat);
-    popup.setHTML(mkPopup(data)); // always refresh
+    popup.setHTML(mkPopup(data));
+    /* keep popup open always */
+    if(!popup.isOpen()) popup.addTo(map);
   } else {
-    const el=mkEl(isMe);
-    const popup=new maplibregl.Popup({offset:[0,-12],closeButton:true,closeOnClick:false,maxWidth:'200px'})
-      .setHTML(mkPopup(data));
-    const marker=new maplibregl.Marker({element:el,anchor:'center'})
-      .setLngLat(lngLat).setPopup(popup).addTo(map);
-    el.addEventListener('click',()=>{
-      popup.setHTML(mkPopup(userData.get(uid)||data));
-      marker.togglePopup();
+    const el = mkEl(isMe);
+
+    /* Create popup — no close button for others so it stays visible;
+       allow close only on own marker so user can re-open */
+    const popup = new maplibregl.Popup({
+      offset:[0,-20],
+      closeButton: isMe,
+      closeOnClick: false,
+      maxWidth:'200px'
+    }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map); /* addTo map directly = always open */
+
+    const marker = new maplibregl.Marker({element:el, anchor:'center'})
+      .setLngLat(lngLat)
+      .addTo(map);
+
+    /* tapping own marker re-opens if closed */
+    el.addEventListener('click', ()=>{
+      popup.setHTML(mkPopup(restData.get(uid)||data));
+      if(!popup.isOpen()) popup.setLngLat(lngLat).addTo(map);
     });
-    markers.set(uid,{marker,popup});
+
+    markers.set(uid, {marker, popup});
   }
 }
 
 function drop(uid){
-  if(!markers.has(uid))return;
+  if(!markers.has(uid)) return;
   const {marker,popup}=markers.get(uid);
   popup.remove(); marker.remove();
-  markers.delete(uid); userData.delete(uid);
+  markers.delete(uid); restData.delete(uid);
 }
 
-function listenUsers(){
-  onValue(ref(db,USERS), snap=>{
+function listenRestaurants(){
+  onValue(ref(db, USERS), snap=>{
     const live=new Set();
     if(snap.exists()){
       snap.forEach(child=>{
         const uid=child.key, d=child.val();
-        if(!d||typeof d.lat!=='number')return;
+        if(!d||typeof d.lat!=='number') return;
         live.add(uid);
-        userData.set(uid,{...d,id:uid});
+        restData.set(uid,{...d,id:uid});
         upsert(uid,{...d,id:uid});
       });
     }
     markers.forEach((_,uid)=>{ if(!live.has(uid)) drop(uid); });
-    onlineEl.textContent=live.size;
+    /* count only those with an actual deal */
+    let dealCount=0;
+    restData.forEach(d=>{ if((d.deal||'').trim()) dealCount++; });
+    dealsEl.textContent=dealCount;
   });
 }
 
-async function pushMe(msg){
-  if(myLat===null)return;
+async function pushMe(deal){
+  if(myLat===null) return;
   if(!myRef){ myRef=ref(db,`${USERS}/${myId}`); onDisconnect(myRef).remove(); }
   const p={lat:myLat,lng:myLng,ts:serverTimestamp()};
-  if(msg!==undefined) p.msg=msg;
-  else if(myMsg) p.msg=myMsg;
+  if(deal!==undefined) p.deal=deal;
+  else if(myDeal) p.deal=myDeal;
   await set(myRef,p);
 }
 
 function startWatch(){
-  if(!navigator.geolocation){toast('Geolocation not supported');return;}
+  if(!navigator.geolocation){ toast('Geolocation not supported'); return; }
   navigator.geolocation.watchPosition(
-    pos=>{ myLat=pos.coords.latitude; myLng=pos.coords.longitude; pushMe(); locateBtn.classList.add('on'); sendBtn.disabled=false; },
+    pos=>{ myLat=pos.coords.latitude; myLng=pos.coords.longitude; pushMe(); locateBtn.classList.add('on'); postBtn.disabled=false; },
     err=>toast('Location: '+err.message),
     {enableHighAccuracy:true,timeout:10000,maximumAge:4000}
   );
@@ -304,51 +363,52 @@ locateBtn.addEventListener('click',()=>{
   else toast('Location not ready yet');
 });
 
-async function send(){
-  const text=msgInput.value.trim();
-  if(!text||myLat===null)return;
-  sendBtn.disabled=true;
+async function postDeal(){
+  const text=dealInput.value.trim();
+  if(!text||myLat===null) return;
+  postBtn.disabled=true;
   try{
-    myMsg=text;
-    // Optimistic local update so popup shows immediately without waiting for Firebase round-trip
+    myDeal=text;
     const now=Date.now();
-    const updated={lat:myLat,lng:myLng,msg:text,ts:now,id:myId};
-    userData.set(myId,updated);
+    const updated={lat:myLat,lng:myLng,deal:text,ts:now,id:myId};
+    restData.set(myId,updated);
     if(markers.has(myId)){
       const {marker,popup}=markers.get(myId);
       popup.setHTML(mkPopup(updated));
-      if(!popup.isOpen()) marker.togglePopup();
+      if(!popup.isOpen()) popup.setLngLat([myLng,myLat]).addTo(map);
     }
-    msgInput.value='';
-    // Then persist
+    dealInput.value='';
     await pushMe(text);
-    toast('Sent ✓');
+    toast('Deal posted 🎉');
   }catch(e){
-    toast('Failed to send');
+    toast('Failed to post');
   }finally{
-    sendBtn.disabled=(myLat===null);
+    postBtn.disabled=(myLat===null);
   }
 }
 
-sendBtn.addEventListener('click',send);
-msgInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send();}});
+postBtn.addEventListener('click', postDeal);
+dealInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); postDeal();}});
 
 async function initMap(){
-  map=new maplibregl.Map({
+  map = new maplibregl.Map({
     container:'map',
-    style:{version:8,
+    style:{
+      version:8,
       sources:{osm:{type:'raster',
-        tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+               'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize:256}},
       layers:[{id:'osm',type:'raster',source:'osm',
-        paint:{'raster-saturation':-0.4,'raster-brightness-max':0.75}}]
+        /* strong green tint to match theme */
+        paint:{'raster-saturation':.3,'raster-hue-rotate':100,'raster-brightness-max':.55,'raster-brightness-min':.05}}]
     },
     center:[4.35,50.85],zoom:13,maxZoom:19,attributionControl:false,fadeDuration:0
   });
   return new Promise(res=>map.on('load',res));
 }
 
-shareLocBtn.addEventListener('click',async()=>{
+shareLocBtn.addEventListener('click', async()=>{
   shareLocBtn.textContent='Getting location…'; shareLocBtn.disabled=true;
   try{
     const pos=await new Promise((res,rej)=>
@@ -357,9 +417,9 @@ shareLocBtn.addEventListener('click',async()=>{
     myLat=pos.coords.latitude; myLng=pos.coords.longitude;
     await initMap();
     map.flyTo({center:[myLng,myLat],zoom:15,duration:800});
-    listenUsers(); startWatch();
+    listenRestaurants(); startWatch();
     splash.style.transition='opacity .28s'; splash.style.opacity='0';
-    setTimeout(()=>{splash.style.display='none';},290);
+    setTimeout(()=>{ splash.style.display='none'; },290);
   }catch(e){
     shareLocBtn.textContent='Try again'; shareLocBtn.disabled=false;
     toast('Could not get location — check permissions');
