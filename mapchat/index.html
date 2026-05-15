@@ -1,221 +1,404 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
+<meta charset="utf-8" />
 <title>RotiPani</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-<meta name="theme-color" content="#0a1f0e"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a1f0e" />
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
 <style>
 :root{
   --bg:#0a1f0e;
-  --surface:#112a14;
-  --card:#162f1a;
-  --border:#1f4226;
+  --surface:#0f2613;
+  --card:#132c17;
+  --card2:#162f1a;
+  --border:#1d3b24;
   --border2:#2a5c34;
-  --text:#f0f7f1;
-  --muted:#6b8f72;
-  --accent:#ffffff;
+  --text:#eef6ef;
+  --muted:#77a282;
+  --muted2:#5f8c6b;
   --green:#22c55e;
-  --green-dim:#16a34a;
-  --tag:#0d3318;
-  --bar-h:68px;
+  --green2:#16a34a;
+  --danger:#ef4444;
+
+  --top-h:50px;
+  --bar-h:64px;
+
+  --radius:14px;
+  --radius-sm:12px;
+  --shadow:0 10px 28px rgba(0,0,0,.42);
+  --font: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);}
 
-/* ── TOPBAR ── */
+button,input,textarea{font-family:var(--font);}
+
+.small{font-size:12px;color:var(--muted);}
+hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
+
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:52px;
-  background:var(--bg);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 14px;z-index:600;gap:10px;
+  position:fixed;top:0;left:0;right:0;height:var(--top-h);
+  background:rgba(10,31,14,.92);
+  backdrop-filter:saturate(150%) blur(10px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px;z-index:600;gap:10px;
 }
-.logo{display:flex;align-items:center;gap:7px;}
-.logo-icon{
-  width:30px;height:30px;border-radius:8px;
-  background:var(--green);display:grid;place-items:center;font-size:16px;flex-shrink:0;
+.brand{display:flex;align-items:center;gap:8px;min-width:0;}
+.brand .icon{
+  width:30px;height:30px;border-radius:10px;background:var(--green);
+  display:grid;place-items:center;font-size:16px;flex-shrink:0;
+  box-shadow:0 10px 20px rgba(34,197,94,.18);
 }
-.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;color:var(--accent);}
-.logo-text span{color:var(--green);}
-.deals-pill{
-  margin-left:auto;display:flex;align-items:center;gap:6px;
-  background:var(--card);border:1px solid var(--border2);
-  border-radius:999px;padding:5px 12px 5px 10px;
-  font-size:12px;color:var(--muted);white-space:nowrap;
+.brand .name{font-weight:800;font-size:15px;letter-spacing:-.2px;white-space:nowrap;}
+.brand .name span{color:var(--green);}
+.pill{
+  margin-left:auto;
+  display:flex;align-items:center;gap:6px;
+  border:1px solid var(--border2);
+  background:linear-gradient(180deg, rgba(22,47,26,.9), rgba(15,38,19,.9));
+  border-radius:999px;
+  padding:5px 10px;
+  font-size:11px;color:var(--muted);white-space:nowrap;
 }
-.deals-pill .d-icon{font-size:13px;}
-#dealsCount{font-weight:700;color:var(--green);font-size:13px;}
+.pill b{color:var(--green);font-size:12px;}
 
-/* ── MAP ── */
 #map{
-  position:fixed;top:52px;left:0;right:0;
+  position:fixed;
+  top:var(--top-h); left:0; right:0;
   bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
 }
 
-/* ── POST BAR ── */
-.post-bar{
-  position:fixed;bottom:0;left:0;right:0;
+/* Bottom compact bar */
+.bottom{
+  position:fixed;left:0;right:0;bottom:0;z-index:650;
   height:calc(var(--bar-h) + env(safe-area-inset-bottom));
-  padding:9px 12px calc(9px + env(safe-area-inset-bottom));
-  background:var(--bg);border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;z-index:600;
+  padding:8px 10px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(10,31,14,.92);
+  backdrop-filter:saturate(150%) blur(10px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
 }
-.loc-btn{
-  width:50px;height:50px;flex-shrink:0;border-radius:12px;
-  background:var(--card);border:1px solid var(--border2);
-  cursor:pointer;display:grid;place-items:center;color:var(--muted);transition:all .15s;
+.btn-icon{
+  width:46px;height:46px;border-radius:var(--radius-sm);
+  background:var(--card);
+  border:1px solid var(--border2);
+  display:grid;place-items:center;
+  color:var(--muted);
+  cursor:pointer;
+  transition:transform .1s ease, border-color .15s ease, color .15s ease;
 }
-.loc-btn.on{border-color:var(--green);color:var(--green);}
-.loc-btn:active{transform:scale(.92);}
-.loc-btn svg{width:19px;height:19px;fill:currentColor;}
-.deal-input{
-  flex:1;height:50px;background:var(--card);border:1px solid var(--border2);
-  border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;
-  font-size:15px;padding:0 14px;outline:none;min-width:0;
-}
-.deal-input::placeholder{color:var(--muted);}
-.deal-input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(34,197,94,.12);}
-.post-btn{
-  height:50px;flex-shrink:0;border-radius:12px;
-  background:var(--green);border:none;cursor:pointer;
-  display:flex;align-items:center;gap:6px;
-  padding:0 16px;font-family:'DM Sans',sans-serif;
-  font-size:14px;font-weight:600;color:#0a1f0e;
-  transition:transform .1s,opacity .1s;white-space:nowrap;
-}
-.post-btn:active{transform:scale(.94);}
-.post-btn:disabled{opacity:.3;cursor:not-allowed;}
-.post-btn svg{width:17px;height:17px;fill:#0a1f0e;}
+.btn-icon:active{transform:scale(.95);}
+.btn-icon.on{border-color:var(--green);color:var(--green);}
+.btn-icon svg{width:18px;height:18px;fill:currentColor;}
 
-/* ── SPLASH ── */
-.splash{
-  position:fixed;inset:0;background:var(--bg);z-index:900;
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:22px;padding:36px 28px;text-align:center;
+.primary{
+  height:46px;
+  border-radius:var(--radius-sm);
+  border:none;
+  background:var(--green);
+  color:#061a0a;
+  font-weight:800;
+  font-size:13px;
+  padding:0 14px;
+  cursor:pointer;
+  transition:transform .1s ease, opacity .15s ease;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  white-space:nowrap;
 }
-.splash-logo{
-  width:72px;height:72px;border-radius:20px;
-  background:var(--green);display:grid;place-items:center;font-size:36px;
-}
-.splash h1{font-size:28px;font-weight:700;line-height:1.2;color:var(--accent);}
-.splash h1 span{color:var(--green);}
-.splash p{font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;}
-.splash-btn{
-  background:var(--green);color:#0a1f0e;font-family:'DM Sans',sans-serif;
-  font-size:16px;font-weight:700;border:none;cursor:pointer;
-  border-radius:14px;padding:15px 0;width:100%;max-width:290px;transition:transform .1s;
-}
-.splash-btn:active{transform:scale(.97);}
-.splash-note{font-size:12px;color:var(--muted);}
+.primary:active{transform:scale(.98);}
+.primary:disabled{opacity:.35;cursor:not-allowed;}
 
-/* ── MAPLIBRE POPUP — always visible, dark green + white ── */
+.input{
+  flex:1;
+  height:46px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border2);
+  background:var(--card);
+  color:var(--text);
+  padding:0 12px;
+  outline:none;
+  font-size:13px;
+  min-width:0;
+}
+.input::placeholder{color:var(--muted2);}
+.input:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.12);}
+
+/* Modals */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.52);
+  z-index:900;
+  display:none;
+  align-items:flex-end;
+  padding:14px 12px calc(14px + env(safe-area-inset-bottom));
+}
+.sheet{
+  width:100%;
+  background:linear-gradient(180deg, rgba(19,44,23,.98), rgba(15,38,19,.98));
+  border:1px solid var(--border2);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.sheet-h{
+  padding:12px 12px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border-bottom:1px solid var(--border);
+}
+.sheet-h .title{font-size:13px;font-weight:800;letter-spacing:-.2px;}
+.sheet-h .sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.sheet-h .x{
+  width:38px;height:38px;border-radius:12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  color:var(--muted);
+  cursor:pointer;
+}
+.sheet-h .x:active{transform:scale(.97);}
+
+.sheet-b{padding:12px;}
+.grid{display:grid;gap:10px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.label{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.field input, .field textarea{
+  width:100%;
+  border-radius:12px;
+  border:1px solid var(--border2);
+  background:rgba(10,31,14,.25);
+  color:var(--text);
+  padding:10px 11px;
+  font-size:13px;
+  outline:none;
+}
+.field textarea{min-height:84px;resize:none;line-height:1.35;}
+.field input:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.12);}
+
+.hint{font-size:11px;color:var(--muted2);line-height:1.35;}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#0c2a14;border:1px solid var(--border2);
+  padding:6px 10px;border-radius:999px;
+  font-size:11px;color:var(--muted);
+}
+.badge b{color:var(--text);}
+.badge code{color:var(--green);font-weight:800;background:transparent;}
+
+.actions{display:flex;gap:10px;margin-top:12px;}
+.btn{
+  flex:1;
+  height:44px;border-radius:12px;
+  border:1px solid var(--border2);
+  background:var(--card2);
+  color:var(--text);
+  font-weight:800;font-size:13px;
+  cursor:pointer;
+}
+.btn:active{transform:scale(.98);}
+.btn.green{background:var(--green);border:none;color:#061a0a;}
+.btn.ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+
+/* Toast */
+.toast{
+  position:fixed;top:calc(var(--top-h) + 10px);left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  background:rgba(19,44,23,.95);
+  border:1px solid var(--border2);
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:12px;color:var(--text);
+  z-index:950;
+  opacity:0;pointer-events:none;transition:all .2s;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Markers & popups */
+.maplibregl-ctrl-attrib{display:none !important;}
+.maplibregl-canvas{touch-action:none;}
 .maplibregl-popup{pointer-events:auto;}
 .maplibregl-popup-content{
-  background:var(--surface, #112a14) !important;
-  border:1.5px solid #2a5c34 !important;
-  border-radius:10px !important;
-  padding:9px 11px 8px !important;
-  box-shadow:0 4px 18px rgba(0,0,0,.55) !important;
-  font-family:'DM Sans',sans-serif !important;
-  min-width:0 !important;max-width:200px !important;
+  background:rgba(15,38,19,.96) !important;
+  border:1px solid #2a5c34 !important;
+  border-radius:12px !important;
+  padding:9px 10px !important;
+  box-shadow:0 10px 26px rgba(0,0,0,.55) !important;
+  font-family:var(--font) !important;
+  max-width:220px !important;
 }
 .maplibregl-popup-tip{border-top-color:#2a5c34 !important;}
 .maplibregl-popup-close-button{
-  color:#6b8f72 !important;font-size:16px !important;
-  top:2px !important;right:4px !important;padding:0 5px !important;line-height:1.5 !important;
+  color:var(--muted) !important;font-size:18px !important;
+  top:2px !important;right:6px !important;
 }
-.maplibregl-ctrl-attrib{display:none !important;}
-.maplibregl-canvas{touch-action:none;}
-
-/* popup inner */
-.pop-deal{
-  font-size:13px;font-weight:600;color:#ffffff;
-  line-height:1.4;word-break:break-word;padding-right:14px;
-}
-.pop-empty{font-size:12px;color:#6b8f72;font-style:italic;}
-.pop-time{font-size:10px;color:#4a7a52;margin-top:4px;}
 .pop-tag{
-  display:inline-block;background:#0d3318;color:var(--green);
-  font-size:10px;font-weight:700;border-radius:5px;
-  padding:2px 7px;margin-bottom:5px;letter-spacing:.3px;
+  display:inline-flex;align-items:center;gap:6px;
+  background:#0d3318;color:var(--green);
+  font-size:10px;font-weight:900;border-radius:7px;
+  padding:3px 8px;margin-bottom:6px;letter-spacing:.35px;
+  border:1px solid rgba(42,92,52,.65);
 }
-
-/* ── RESTAURANT MARKER ── */
+.pop-title{font-size:13px;font-weight:900;color:#fff;line-height:1.2;}
+.pop-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.pop-price{margin-top:7px;font-size:12px;}
+.pop-price s{color:#90b79a;opacity:.9;margin-right:6px;}
+.pop-price b{color:#fff;}
+.pop-time{font-size:10px;color:#4a7a52;margin-top:6px;}
 .rmarker{
   width:34px;height:34px;border-radius:50%;
-  background:var(--surface);border:2.5px solid var(--green);
-  box-shadow:0 2px 10px rgba(0,0,0,.5);
+  background:rgba(15,38,19,.95);
+  border:2.5px solid var(--green);
+  box-shadow:0 2px 12px rgba(0,0,0,.5);
   cursor:pointer;position:relative;display:grid;place-items:center;
-  font-size:16px;transition:transform .15s;
+  font-size:16px;transition:transform .1s;
 }
-.rmarker:active{transform:scale(.88);}
-.rmarker.me{border-color:#fff;box-shadow:0 2px 10px rgba(34,197,94,.35);}
+.rmarker:active{transform:scale(.9);}
+.rmarker.me{border-color:#fff; box-shadow:0 2px 12px rgba(34,197,94,.26);}
 .rmarker .ping{
-  position:absolute;inset:-5px;border-radius:50%;
+  position:absolute;inset:-6px;border-radius:50%;
   border:2px solid var(--green);opacity:0;
-  animation:ping 3s ease-out infinite;
+  animation:ping 2.8s ease-out infinite;
 }
-.rmarker.me .ping{animation-duration:2s;}
-@keyframes ping{0%{transform:scale(.8);opacity:.65;}100%{transform:scale(2);opacity:0;}}
+.rmarker.me .ping{animation-duration:2.1s;}
+@keyframes ping{0%{transform:scale(.82);opacity:.65;}100%{transform:scale(2);opacity:0;}}
 
-/* ── TOAST ── */
-.toast{
-  position:fixed;top:60px;left:50%;
-  transform:translateX(-50%) translateY(-6px);
-  background:var(--card);border:1px solid var(--border2);border-radius:999px;
-  padding:7px 18px;font-size:13px;color:var(--text);z-index:700;
-  opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;
+@media (max-width:360px){
+  .row2{grid-template-columns:1fr; }
 }
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
+
 <body>
-
-<!-- SPLASH -->
-<div class="splash" id="splash">
-  <div class="splash-logo">🍛</div>
-  <h1>Roti<span>Pani</span></h1>
-  <p>Post your restaurant's latest food deal. Customers nearby see it instantly on the map.</p>
-  <button class="splash-btn" id="shareLocBtn">Share my location</button>
-  <div class="splash-note">Deals stay on the map until you update them</div>
-</div>
-
-<!-- TOPBAR -->
 <header class="topbar">
-  <div class="logo">
-    <div class="logo-icon">🍛</div>
-    <div class="logo-text">Roti<span>Pani</span></div>
+  <div class="brand">
+    <div class="icon">🍛</div>
+    <div class="name">Roti<span>Pani</span></div>
   </div>
-  <div class="deals-pill">
-    <span class="d-icon">🏷️</span>
-    <span id="dealsCount">0</span>&nbsp;deals posted
-  </div>
+  <div class="pill"><span>🏷️</span><b id="dealsCount">0</b>&nbsp;deals</div>
 </header>
 
 <div id="map"></div>
 
-<!-- POST BAR -->
-<div class="post-bar">
-  <button class="loc-btn" id="locateBtn" title="Centre on me">
+<div class="bottom">
+  <button class="btn-icon" id="locateBtn" title="Center on me" aria-label="Center on me">
     <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6a1 1 0 0 1 1 1v1.07A9 9 0 0 1 20.93 11H22a1 1 0 0 1 0 2h-1.07A9 9 0 0 1 13 20.93V22a1 1 0 0 1-2 0v-1.07A9 9 0 0 1 3.07 13H2a1 1 0 0 1 0-2h1.07A9 9 0 0 1 11 3.07V2a1 1 0 0 1 1-1zm0 4a7 7 0 1 0 0 14A7 7 0 0 0 12 6z"/></svg>
   </button>
-  <input class="deal-input" id="dealInput" type="text" placeholder="e.g. 50% off biryani today!" maxlength="120" autocomplete="off"/>
-  <button class="post-btn" id="postBtn" disabled>
-    <svg viewBox="0 0 24 24"><path d="M11 17H7a5 5 0 0 1 0-10h4v2H7a3 3 0 0 0 0 6h4v2zm6-8h-4V7h4a5 5 0 0 1 0 10h-4v-2h4a3 3 0 0 0 0-6zm-8 4v-2h6v2H9z"/></svg>
-    Post
+
+  <input class="input" id="quickInput" placeholder="Tap Post to add a deal…" readonly />
+
+  <button class="primary" id="openPostBtn" disabled>
+    Post Deal
   </button>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<!-- LOGIN SHEET -->
+<div class="overlay" id="loginOverlay" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-h">
+      <div>
+        <div class="title">Restaurant Login</div>
+        <div class="sub">Enter your username. We will use <b>@rotipani.net</b> automatically.</div>
+      </div>
+      <button class="x" id="closeLoginBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-b">
+      <div class="grid">
+        <div class="badge">Account: <code id="emailPreview">—</code></div>
+
+        <div class="field">
+          <div class="label">Username</div>
+          <input id="usernameInput" placeholder="e.g. alrahman" autocomplete="off" inputmode="text" />
+          <div class="hint">Only letters/numbers/underscore/dot. No spaces.</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn ghost" id="logoutBtn" style="display:none;">Logout</button>
+          <button class="btn green" id="loginBtn">Continue</button>
+        </div>
+
+        <div class="hint">
+          This is a lightweight login (no password). It’s best for demos. For production security, add Firebase Auth.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POST SHEET -->
+<div class="overlay" id="postOverlay" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-h">
+      <div>
+        <div class="title">Post a Deal</div>
+        <div class="sub">Your deal appears instantly on the map for nearby customers.</div>
+      </div>
+      <button class="x" id="closePostBtn" aria-label="Close">✕</button>
+    </div>
+
+    <div class="sheet-b">
+      <div class="grid">
+        <div class="badge">
+          Logged in as <b id="whoami">—</b>
+        </div>
+
+        <div class="field">
+          <div class="label">Restaurant name</div>
+          <input id="restName" placeholder="e.g. Al Rehman Restaurant" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <div class="label">Deal title</div>
+          <input id="dealTitle" placeholder="e.g. Biryani Friday Special" autocomplete="off" maxlength="60" />
+        </div>
+
+        <div class="field">
+          <div class="label">Deal description</div>
+          <textarea id="dealDesc" placeholder="e.g. Chicken biryani + raita, limited time offer…" maxlength="180"></textarea>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <div class="label">Original price (PKR)</div>
+            <input id="origPrice" placeholder="e.g. 800" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="label">Discount price (PKR)</div>
+            <input id="discPrice" placeholder="e.g. 550" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label">WhatsApp number</div>
+          <input id="waLocal" placeholder="03452233450" inputmode="numeric" />
+          <div class="hint">We automatically add country code <b>92</b>. Saved as: <b id="waPreview">92…</b></div>
+        </div>
+
+        <hr class="sep"/>
+
+        <div class="actions">
+          <button class="btn ghost" id="cancelPostBtn">Cancel</button>
+          <button class="btn green" id="submitPostBtn">Post</button>
+        </div>
+
+        <div class="hint" id="postHint">Tip: Keep it short—customers decide fast.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, serverTimestamp, onDisconnect }
+import { getDatabase, ref, onValue, set, update, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+/* -------------------- Firebase -------------------- */
 const app = initializeApp({
   apiKey:"AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
   authDomain:"trackingclients.firebaseapp.com",
@@ -224,208 +407,497 @@ const app = initializeApp({
   storageBucket:"trackingclients.appspot.com",
   messagingSenderId:"27490943622",
   appId:"1:27490943622:web:d6c87547aa5df440508707"
-}, 'rotiPaniApp');
+}, "rotiPaniApp");
+
 const db = getDatabase(app);
-const USERS = 'rotipani/restaurants';
+const USERS = "rotipani/restaurantsV2"; // use a new path to avoid breaking old data
 
-/* session */
-let myId = localStorage.getItem('rotipani_id');
-if (!myId) {
-  myId = 'rp_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-  localStorage.setItem('rotipani_id', myId);
-}
+/* -------------------- State -------------------- */
+let map;
+let myLat = null, myLng = null;
+let myUsername = localStorage.getItem("rp_username") || "";
+let myId = localStorage.getItem("rp_uid") || ""; // stable id derived from username
 
-let map, myLat=null, myLng=null, myDeal='', myRef=null;
-const markers  = new Map();
+const markers = new Map();
 const restData = new Map();
 
-const splash      = document.getElementById('splash');
-const shareLocBtn = document.getElementById('shareLocBtn');
-const dealInput   = document.getElementById('dealInput');
-const postBtn     = document.getElementById('postBtn');
-const locateBtn   = document.getElementById('locateBtn');
-const dealsEl     = document.getElementById('dealsCount');
-const toastEl     = document.getElementById('toast');
+let watchId = null;
 
+/* -------------------- DOM -------------------- */
+const dealsEl = document.getElementById("dealsCount");
+const toastEl = document.getElementById("toast");
+
+const locateBtn = document.getElementById("locateBtn");
+const openPostBtn = document.getElementById("openPostBtn");
+const quickInput = document.getElementById("quickInput");
+
+const loginOverlay = document.getElementById("loginOverlay");
+const closeLoginBtn = document.getElementById("closeLoginBtn");
+const usernameInput = document.getElementById("usernameInput");
+const emailPreview = document.getElementById("emailPreview");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const postOverlay = document.getElementById("postOverlay");
+const closePostBtn = document.getElementById("closePostBtn");
+const cancelPostBtn = document.getElementById("cancelPostBtn");
+const submitPostBtn = document.getElementById("submitPostBtn");
+const whoami = document.getElementById("whoami");
+
+const restName = document.getElementById("restName");
+const dealTitle = document.getElementById("dealTitle");
+const dealDesc = document.getElementById("dealDesc");
+const origPrice = document.getElementById("origPrice");
+const discPrice = document.getElementById("discPrice");
+const waLocal = document.getElementById("waLocal");
+const waPreview = document.getElementById("waPreview");
+const postHint = document.getElementById("postHint");
+
+/* -------------------- UI helpers -------------------- */
 let toastT;
-function toast(t, ms=2500){
-  toastEl.textContent=t; toastEl.classList.add('show');
-  clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),ms);
+function toast(t, ms=2400){
+  toastEl.textContent = t;
+  toastEl.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>toastEl.classList.remove("show"), ms);
 }
 
-function fmtTs(ts){
-  if(!ts) return '';
-  const d=new Date(ts), p=n=>String(n).padStart(2,'0');
+function openSheet(el){ el.style.display="flex"; }
+function closeSheet(el){ el.style.display="none"; }
+
+function esc(s){
+  return String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function cleanUsername(u){
+  u = String(u || "").trim().toLowerCase();
+  // allow letters, numbers, underscore, dot
+  u = u.replace(/[^a-z0-9._]/g, "");
+  // avoid leading dots
+  u = u.replace(/^\.+/,"");
+  return u.slice(0, 24);
+}
+
+function emailFromUsername(u){
+  return u ? `${u}@rotipani.net` : "—";
+}
+
+function uidFromUsername(u){
+  // simple deterministic id: rp_<username>
+  return u ? `rp_${u}` : "";
+}
+
+function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
+
+function normalizeWa(local){
+  // input example: 03452233450
+  // store: 92 + (strip leading 0)
+  let d = digitsOnly(local);
+  if (d.startsWith("0")) d = d.slice(1);
+  // clamp to typical PK lengths (best-effort)
+  d = d.slice(0, 11);
+  return d ? `92${d}` : "";
+}
+
+function fmtTs(val){
+  if(!val) return "";
+  const ts = (typeof val === "object" && val !== null && "toMillis" in val) ? val.toMillis() : val;
+  const d = new Date(ts);
+  const p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* -------------------- Popup rendering -------------------- */
+function mkPopup(d){
+  const rn = (d.restName || "").trim();
+  const title = (d.dealTitle || "").trim();
+  const desc = (d.dealDesc || "").trim();
+  const op = (d.origPrice || "").toString().trim();
+  const dp = (d.discPrice || "").toString().trim();
+  const wa = (d.whatsapp || "").trim();
 
-/* compact popup: deal tag + text + time */
-function mkPopup(data){
-  const deal = (data.deal||'').trim();
-  const time = fmtTs(data.ts);
-  if(!deal) return `<div class="pop-empty">No deal posted yet</div>`;
-  return `<div class="pop-tag">🏷️ DEAL</div><div class="pop-deal">${esc(deal)}</div>${time?`<div class="pop-time">${time}</div>`:''}`;
+  const hasDeal = title || desc || dp || op;
+
+  const time = d.tsClient ? fmtTs(d.tsClient) : "";
+
+  if(!hasDeal){
+    return `<div class="pop-sub"><i>No deal posted yet</i></div>`;
+  }
+
+  const priceLine = (op || dp)
+    ? `<div class="pop-price">${op?`<s>PKR ${esc(op)}</s>`:""}${dp?`<b>PKR ${esc(dp)}</b>`:""}</div>`
+    : "";
+
+  const waLine = wa ? `<div class="pop-sub" style="margin-top:6px">WhatsApp: <b>${esc(wa)}</b></div>` : "";
+
+  return `
+    <div class="pop-tag">🏷️ DEAL</div>
+    <div class="pop-title">${esc(title || rn || "Deal")}</div>
+    ${rn && title ? `<div class="pop-sub">${esc(rn)}</div>` : ""}
+    ${desc ? `<div class="pop-sub" style="margin-top:6px">${esc(desc)}</div>` : ""}
+    ${priceLine}
+    ${waLine}
+    ${time ? `<div class="pop-time">${esc(time)}</div>` : ""}
+  `;
 }
 
-/* marker = fork+knife emoji dot */
 function mkEl(isMe){
-  const d=document.createElement('div');
-  d.className='rmarker'+(isMe?' me':'');
-  d.innerHTML='<div class="ping"></div>'+(isMe?'📍':'🍽️');
+  const d=document.createElement("div");
+  d.className="rmarker"+(isMe?" me":"");
+  d.innerHTML = `<div class="ping"></div>${isMe ? "📍" : "🍽️"}`;
   return d;
 }
 
-/* always show popup by default — addTo map directly */
 function upsert(uid, data){
-  const isMe = uid===myId;
+  const isMe = uid === myId;
   const lngLat = [data.lng, data.lat];
 
   if(markers.has(uid)){
-    const {marker, popup} = markers.get(uid);
+    const { marker, popup } = markers.get(uid);
     marker.setLngLat(lngLat);
+    popup.setLngLat(lngLat);
     popup.setHTML(mkPopup(data));
-    /* keep popup open always */
     if(!popup.isOpen()) popup.addTo(map);
-  } else {
-    const el = mkEl(isMe);
-
-    /* Create popup — no close button for others so it stays visible;
-       allow close only on own marker so user can re-open */
-    const popup = new maplibregl.Popup({
-      offset:[0,-20],
-      closeButton: isMe,
-      closeOnClick: false,
-      maxWidth:'200px'
-    }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map); /* addTo map directly = always open */
-
-    const marker = new maplibregl.Marker({element:el, anchor:'center'})
-      .setLngLat(lngLat)
-      .addTo(map);
-
-    /* tapping own marker re-opens if closed */
-    el.addEventListener('click', ()=>{
-      popup.setHTML(mkPopup(restData.get(uid)||data));
-      if(!popup.isOpen()) popup.setLngLat(lngLat).addTo(map);
-    });
-
-    markers.set(uid, {marker, popup});
+    return;
   }
+
+  const el = mkEl(isMe);
+  const popup = new maplibregl.Popup({
+    offset:[0,-20],
+    closeButton: isMe,
+    closeOnClick: false,
+    maxWidth:"220px"
+  }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map);
+
+  const marker = new maplibregl.Marker({ element: el, anchor:"center" })
+    .setLngLat(lngLat)
+    .addTo(map);
+
+  el.addEventListener("click", ()=>{
+    const latest = restData.get(uid) || data;
+    popup.setHTML(mkPopup(latest));
+    if(!popup.isOpen()) popup.setLngLat(lngLat).addTo(map);
+  });
+
+  markers.set(uid, { marker, popup });
 }
 
 function drop(uid){
-  if(!markers.has(uid)) return;
-  const {marker,popup}=markers.get(uid);
-  popup.remove(); marker.remove();
-  markers.delete(uid); restData.delete(uid);
+  const m = markers.get(uid);
+  if(!m) return;
+  m.popup.remove();
+  m.marker.remove();
+  markers.delete(uid);
+  restData.delete(uid);
 }
 
+/* -------------------- Data sync -------------------- */
 function listenRestaurants(){
   onValue(ref(db, USERS), snap=>{
-    const live=new Set();
+    const live = new Set();
     if(snap.exists()){
       snap.forEach(child=>{
-        const uid=child.key, d=child.val();
-        if(!d||typeof d.lat!=='number') return;
+        const uid = child.key;
+        const d = child.val();
+        if(!d || typeof d.lat !== "number" || typeof d.lng !== "number") return;
         live.add(uid);
-        restData.set(uid,{...d,id:uid});
-        upsert(uid,{...d,id:uid});
+        const merged = { ...d, id: uid };
+        restData.set(uid, merged);
+        upsert(uid, merged);
       });
     }
-    markers.forEach((_,uid)=>{ if(!live.has(uid)) drop(uid); });
-    /* count only those with an actual deal */
-    let dealCount=0;
-    restData.forEach(d=>{ if((d.deal||'').trim()) dealCount++; });
-    dealsEl.textContent=dealCount;
+    for(const uid of markers.keys()){
+      if(!live.has(uid)) drop(uid);
+    }
+
+    // count only active deals (has title or desc or prices)
+    let dealCount = 0;
+    for(const d of restData.values()){
+      const ok = (d.dealTitle || "").trim() || (d.dealDesc || "").trim() || (d.origPrice || "").toString().trim() || (d.discPrice || "").toString().trim();
+      if(ok) dealCount++;
+    }
+    dealsEl.textContent = String(dealCount);
   });
 }
 
-async function pushMe(deal){
-  if(myLat===null) return;
-  if(!myRef){ myRef=ref(db,`${USERS}/${myId}`); }
-  const p={lat:myLat,lng:myLng,ts:serverTimestamp()};
-  if(deal!==undefined) p.deal=deal;
-  else if(myDeal) p.deal=myDeal;
-  await set(myRef,p);
+async function updateMyLocationOnly(){
+  if(!myId || myLat === null || myLng === null) return;
+  const r = ref(db, `${USERS}/${myId}`);
+  // IMPORTANT: do NOT overwrite deal fields during location updates.
+  await update(r, { lat: myLat, lng: myLng, lastSeen: serverTimestamp() });
+}
+
+/* -------------------- Geolocation -------------------- */
+async function initMap(){
+  map = new maplibregl.Map({
+    container:"map",
+    style:{
+      version:8,
+      sources:{osm:{type:"raster",
+        tiles:[
+          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        ],
+        tileSize:256
+      }},
+      layers:[{
+        id:"osm", type:"raster", source:"osm",
+        paint:{
+          "raster-saturation": .28,
+          "raster-hue-rotate": 105,
+          "raster-brightness-max": .55,
+          "raster-brightness-min": .06
+        }
+      }]
+    },
+    center:[4.35,50.85],
+    zoom:13,
+    maxZoom:19,
+    attributionControl:false,
+    fadeDuration:0
+  });
+
+  await new Promise(res=>map.on("load", res));
 }
 
 function startWatch(){
-  if(!navigator.geolocation){ toast('Geolocation not supported'); return; }
-  navigator.geolocation.watchPosition(
-    pos=>{ myLat=pos.coords.latitude; myLng=pos.coords.longitude; pushMe(); locateBtn.classList.add('on'); postBtn.disabled=false; },
-    err=>toast('Location: '+err.message),
-    {enableHighAccuracy:true,timeout:10000,maximumAge:4000}
+  if(!navigator.geolocation){
+    toast("Geolocation not supported");
+    return;
+  }
+  if(watchId !== null) return;
+
+  watchId = navigator.geolocation.watchPosition(
+    async pos=>{
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+
+      locateBtn.classList.add("on");
+
+      // enable posting only when logged in + location ready
+      openPostBtn.disabled = !(myId && myLat !== null);
+
+      // push location without overwriting deal
+      try { await updateMyLocationOnly(); } catch {}
+    },
+    err=>toast("Location: " + err.message),
+    { enableHighAccuracy:true, timeout:10000, maximumAge:4000 }
   );
 }
 
-locateBtn.addEventListener('click',()=>{
-  if(myLat!==null) map.flyTo({center:[myLng,myLat],zoom:Math.max(map.getZoom(),15),duration:600});
-  else toast('Location not ready yet');
+/* -------------------- Login flow -------------------- */
+function refreshLoginUI(){
+  const u = cleanUsername(myUsername);
+  emailPreview.textContent = emailFromUsername(u);
+
+  const loggedIn = !!(myId && u);
+  logoutBtn.style.display = loggedIn ? "block" : "none";
+  loginBtn.textContent = loggedIn ? "Continue" : "Continue";
+}
+
+function ensureLogin(){
+  // open login sheet if not logged in
+  if(!myId){
+    usernameInput.value = cleanUsername(myUsername);
+    refreshLoginUI();
+    openSheet(loginOverlay);
+    setTimeout(()=>usernameInput.focus(), 80);
+    return false;
+  }
+  return true;
+}
+
+usernameInput.addEventListener("input", ()=>{
+  const u = cleanUsername(usernameInput.value);
+  usernameInput.value = u;
+  emailPreview.textContent = emailFromUsername(u);
 });
 
-async function postDeal(){
-  const text=dealInput.value.trim();
-  if(!text||myLat===null) return;
-  postBtn.disabled=true;
+loginBtn.addEventListener("click", async ()=>{
+  const u = cleanUsername(usernameInput.value);
+  if(!u){
+    toast("Enter a username");
+    return;
+  }
+
+  myUsername = u;
+  myId = uidFromUsername(u);
+
+  localStorage.setItem("rp_username", myUsername);
+  localStorage.setItem("rp_uid", myId);
+
+  refreshLoginUI();
+  closeSheet(loginOverlay);
+  toast("Logged in as " + emailFromUsername(myUsername));
+
+  openPostBtn.disabled = !(myLat !== null);
+
+  // ensure record exists with minimal profile (do not overwrite deals)
   try{
-    myDeal=text;
-    const now=Date.now();
-    const updated={lat:myLat,lng:myLng,deal:text,ts:now,id:myId};
-    restData.set(myId,updated);
-    if(markers.has(myId)){
-      const {marker,popup}=markers.get(myId);
-      popup.setHTML(mkPopup(updated));
-      if(!popup.isOpen()) popup.setLngLat([myLng,myLat]).addTo(map);
-    }
-    dealInput.value='';
-    await pushMe(text);
-    toast('Deal posted 🎉');
+    await update(ref(db, `${USERS}/${myId}`), {
+      username: myUsername,
+      email: emailFromUsername(myUsername),
+      lastSeen: serverTimestamp()
+    });
+    if(myLat !== null && myLng !== null) await updateMyLocationOnly();
   }catch(e){
-    toast('Failed to post');
+    toast("Could not connect to database");
+  }
+});
+
+logoutBtn.addEventListener("click", ()=>{
+  localStorage.removeItem("rp_username");
+  localStorage.removeItem("rp_uid");
+  myUsername = "";
+  myId = "";
+  openPostBtn.disabled = true;
+  toast("Logged out");
+  refreshLoginUI();
+});
+
+/* -------------------- Post flow -------------------- */
+function updateWaPreview(){
+  const full = normalizeWa(waLocal.value);
+  waPreview.textContent = full || "92…";
+}
+waLocal.addEventListener("input", ()=>{
+  // keep only digits + allow leading 0
+  waLocal.value = digitsOnly(waLocal.value).slice(0, 11);
+  updateWaPreview();
+});
+
+function resetPostForm(){
+  restName.value = "";
+  dealTitle.value = "";
+  dealDesc.value = "";
+  origPrice.value = "";
+  discPrice.value = "";
+  waLocal.value = "";
+  updateWaPreview();
+  postHint.textContent = "Tip: Keep it short—customers decide fast.";
+}
+
+function validatePost(){
+  if(myLat === null || myLng === null) return "Location not ready yet";
+  if(!myId) return "Please login first";
+
+  const rn = restName.value.trim();
+  const t = dealTitle.value.trim();
+  const d = dealDesc.value.trim();
+  const op = digitsOnly(origPrice.value.trim());
+  const dp = digitsOnly(discPrice.value.trim());
+  const wa = normalizeWa(waLocal.value);
+
+  if(!rn) return "Restaurant name is required";
+  if(!t) return "Deal title is required";
+  if(!d) return "Deal description is required";
+  if(!op) return "Original price is required";
+  if(!dp) return "Discount price is required";
+  if(Number(dp) >= Number(op)) return "Discount price must be less than original price";
+  if(!wa) return "WhatsApp number is required";
+  if(wa.length < 11) return "WhatsApp number looks too short";
+
+  return "";
+}
+
+openPostBtn.addEventListener("click", ()=>{
+  if(!ensureLogin()) return;
+  whoami.textContent = emailFromUsername(myUsername);
+  openSheet(postOverlay);
+});
+
+closePostBtn.addEventListener("click", ()=>closeSheet(postOverlay));
+cancelPostBtn.addEventListener("click", ()=>closeSheet(postOverlay));
+
+submitPostBtn.addEventListener("click", async ()=>{
+  const err = validatePost();
+  if(err){
+    postHint.textContent = err;
+    postHint.style.color = "var(--danger)";
+    toast(err);
+    return;
+  }
+  postHint.style.color = "var(--muted2)";
+
+  const payload = {
+    username: myUsername,
+    email: emailFromUsername(myUsername),
+
+    restName: restName.value.trim(),
+    dealTitle: dealTitle.value.trim(),
+    dealDesc: dealDesc.value.trim(),
+    origPrice: digitsOnly(origPrice.value.trim()),
+    discPrice: digitsOnly(discPrice.value.trim()),
+    whatsapp: normalizeWa(waLocal.value),
+
+    lat: myLat,
+    lng: myLng,
+
+    ts: serverTimestamp(),      // authoritative
+    tsClient: Date.now(),       // immediate for UI
+    lastSeen: serverTimestamp()
+  };
+
+  submitPostBtn.disabled = true;
+  try{
+    // optimistic UI update
+    restData.set(myId, { ...payload, id: myId });
+    upsert(myId, { ...payload, id: myId });
+
+    await set(ref(db, `${USERS}/${myId}`), payload);
+
+    toast("Deal posted");
+    closeSheet(postOverlay);
+    resetPostForm();
+  }catch(e){
+    toast("Failed to post");
   }finally{
-    postBtn.disabled=(myLat===null);
-  }
-}
-
-postBtn.addEventListener('click', postDeal);
-dealInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); postDeal();}});
-
-async function initMap(){
-  map = new maplibregl.Map({
-    container:'map',
-    style:{
-      version:8,
-      sources:{osm:{type:'raster',
-        tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-               'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize:256}},
-      layers:[{id:'osm',type:'raster',source:'osm',
-        /* strong green tint to match theme */
-        paint:{'raster-saturation':.3,'raster-hue-rotate':100,'raster-brightness-max':.55,'raster-brightness-min':.05}}]
-    },
-    center:[4.35,50.85],zoom:13,maxZoom:19,attributionControl:false,fadeDuration:0
-  });
-  return new Promise(res=>map.on('load',res));
-}
-
-shareLocBtn.addEventListener('click', async()=>{
-  shareLocBtn.textContent='Getting location…'; shareLocBtn.disabled=true;
-  try{
-    const pos=await new Promise((res,rej)=>
-      navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:10000})
-    );
-    myLat=pos.coords.latitude; myLng=pos.coords.longitude;
-    await initMap();
-    map.flyTo({center:[myLng,myLat],zoom:15,duration:800});
-    listenRestaurants(); startWatch();
-    splash.style.transition='opacity .28s'; splash.style.opacity='0';
-    setTimeout(()=>{ splash.style.display='none'; },290);
-  }catch(e){
-    shareLocBtn.textContent='Try again'; shareLocBtn.disabled=false;
-    toast('Could not get location — check permissions');
+    submitPostBtn.disabled = false;
   }
 });
+
+/* -------------------- Map controls -------------------- */
+locateBtn.addEventListener("click", ()=>{
+  if(!map) return;
+  if(myLat !== null && myLng !== null){
+    map.flyTo({ center:[myLng, myLat], zoom:Math.max(map.getZoom(), 15), duration:600 });
+  }else{
+    toast("Location not ready yet");
+  }
+});
+
+/* -------------------- Boot -------------------- */
+(async function boot(){
+  // init map first (fast)
+  await initMap();
+  listenRestaurants();
+
+  // show login prompt if needed (non-blocking)
+  if(myUsername) usernameInput.value = cleanUsername(myUsername);
+  refreshLoginUI();
+  openSheet(loginOverlay);
+
+  // start location
+  startWatch();
+
+  // quick input is just a hint on compact bar
+  quickInput.value = "";
+
+  // if already logged in (localStorage), enable post when location arrives
+  if(myUsername){
+    myUsername = cleanUsername(myUsername);
+    myId = uidFromUsername(myUsername);
+    localStorage.setItem("rp_username", myUsername);
+    localStorage.setItem("rp_uid", myId);
+    refreshLoginUI();
+  }
+})();
+
+closeLoginBtn.addEventListener("click", ()=>closeSheet(loginOverlay));
+loginOverlay.addEventListener("click", (e)=>{ if(e.target === loginOverlay) closeSheet(loginOverlay); });
+postOverlay.addEventListener("click", (e)=>{ if(e.target === postOverlay) closeSheet(postOverlay); });
 </script>
 </body>
 </html>
