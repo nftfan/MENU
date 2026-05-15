@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>RotiPani — Deals Near Me</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a1f0e"/>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a1f0e;
+  --surface:#112a14;
+  --card:#162f1a;
+  --border:#1f4226;
+  --border2:#2a5c34;
+  --text:#f0f7f1;
+  --muted:#6b8f72;
+  --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;}
+
+/* ── TOPBAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:52px;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;z-index:600;gap:10px;
+}
+.logo{display:flex;align-items:center;gap:7px;}
+.logo-icon{width:30px;height:30px;border-radius:8px;background:var(--green);display:grid;place-items:center;font-size:16px;flex-shrink:0;}
+.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;color:#fff;}
+.logo-text span{color:var(--green);}
+.logo-sub{font-size:11px;color:var(--muted);font-weight:400;margin-left:2px;}
+.deals-pill{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:999px;padding:5px 12px 5px 10px;
+  font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;
+}
+#dealsCount{font-weight:700;color:var(--green);font-size:13px;}
+
+/* ── MAP fills everything below topbar ── */
+#map{position:fixed;top:52px;left:0;right:0;bottom:0;}
+
+/* ── FLOATING FOOD BUTTON ── */
+.food-fab{
+  position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));
+  right:16px;z-index:600;
+  width:58px;height:58px;border-radius:50%;
+  background:var(--green);border:none;cursor:pointer;
+  display:grid;place-items:center;font-size:28px;
+  box-shadow:0 4px 20px rgba(34,197,94,.45);
+  transition:transform .15s,box-shadow .15s;
+}
+.food-fab:active{transform:scale(.9);box-shadow:0 2px 8px rgba(34,197,94,.3);}
+.food-fab.spin{animation:fabspin .45s cubic-bezier(.4,0,.2,1);}
+@keyframes fabspin{0%{transform:scale(1) rotate(0);}50%{transform:scale(.85) rotate(180deg);}100%{transform:scale(1) rotate(360deg);}}
+
+/* ── LOCATE BUTTON ── */
+.locate-fab{
+  position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));
+  right:16px;z-index:600;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--surface);border:1.5px solid var(--border2);
+  cursor:pointer;display:grid;place-items:center;
+  color:var(--muted);transition:all .15s;
+  box-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+.locate-fab.on{border-color:var(--green);color:var(--green);}
+.locate-fab:active{transform:scale(.9);}
+.locate-fab svg{width:20px;height:20px;fill:currentColor;}
+
+/* ── NO DEALS PANEL ── */
+.no-deals{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;padding:28px 32px;
+  background:var(--card);border:1px solid var(--border2);border-radius:16px;
+  display:none;z-index:500;
+}
+.no-deals.show{display:block;}
+.no-deals .nd-icon{font-size:40px;margin-bottom:12px;}
+.no-deals h3{font-size:16px;font-weight:600;color:#fff;margin-bottom:6px;}
+.no-deals p{font-size:13px;color:var(--muted);line-height:1.55;}
+
+/* ── RADIUS BADGE ── */
+.radius-badge{
+  position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:var(--card);border:1px solid var(--border2);border-radius:999px;
+  padding:5px 14px;font-size:12px;color:var(--muted);z-index:500;
+  white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s;
+}
+.radius-badge.show{opacity:1;}
+
+/* ── SPLASH ── */
+.splash{
+  position:fixed;inset:0;background:var(--bg);z-index:900;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:22px;padding:36px 28px;text-align:center;
+}
+.splash-logo{width:72px;height:72px;border-radius:20px;background:var(--green);display:grid;place-items:center;font-size:36px;}
+.splash h1{font-size:26px;font-weight:700;line-height:1.2;color:#fff;}
+.splash h1 span{color:var(--green);}
+.splash p{font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;}
+.splash-btn{
+  background:var(--green);color:#0a1f0e;font-family:'DM Sans',sans-serif;
+  font-size:16px;font-weight:700;border:none;cursor:pointer;
+  border-radius:14px;padding:15px 0;width:100%;max-width:290px;transition:transform .1s;
+}
+.splash-btn:active{transform:scale(.97);}
+.splash-note{font-size:12px;color:var(--muted);}
+
+/* ── MAPLIBRE POPUP ── */
+.maplibregl-popup{pointer-events:auto;}
+.maplibregl-popup-content{
+  background:#112a14 !important;
+  border:1.5px solid #2a5c34 !important;
+  border-radius:10px !important;
+  padding:9px 11px 8px !important;
+  box-shadow:0 4px 18px rgba(0,0,0,.6) !important;
+  font-family:'DM Sans',sans-serif !important;
+  min-width:0 !important;max-width:190px !important;
+}
+.maplibregl-popup-tip{border-top-color:#2a5c34 !important;}
+.maplibregl-popup-close-button{display:none !important;}
+.maplibregl-ctrl-attrib{display:none !important;}
+.maplibregl-canvas{touch-action:none;}
+
+.pop-tag{display:inline-block;background:#0d3318;color:var(--green);font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px;margin-bottom:5px;letter-spacing:.3px;}
+.pop-deal{font-size:13px;font-weight:600;color:#fff;line-height:1.4;word-break:break-word;}
+.pop-dist{font-size:10px;color:#4a7a52;margin-top:4px;}
+.pop-time{font-size:10px;color:#4a7a52;margin-top:1px;}
+
+/* ── MARKER ── */
+.rmarker{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--surface);border:2.5px solid var(--green);
+  box-shadow:0 2px 10px rgba(0,0,0,.5);
+  cursor:pointer;position:relative;display:grid;place-items:center;font-size:16px;
+  transition:transform .15s;
+}
+.rmarker.highlight{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25),0 2px 10px rgba(0,0,0,.5);}
+.rmarker:active{transform:scale(.88);}
+.rmarker .ping{
+  position:absolute;inset:-5px;border-radius:50%;
+  border:2px solid var(--green);opacity:0;
+  animation:ping 3s ease-out infinite;
+}
+.rmarker.highlight .ping{border-color:#fff;animation-duration:1.5s;}
+@keyframes ping{0%{transform:scale(.8);opacity:.65;}100%{transform:scale(2.1);opacity:0;}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:60px;left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  background:var(--card);border:1px solid var(--border2);border-radius:999px;
+  padding:7px 18px;font-size:13px;color:var(--text);z-index:700;
+  opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo">🍛</div>
+  <h1>Roti<span>Pani</span> Deals</h1>
+  <p>Find the best food deals near you — only showing restaurants within 25 km.</p>
+  <button class="splash-btn" id="shareLocBtn">Find deals near me</button>
+  <div class="splash-note">Read-only · no account needed</div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🍛</div>
+    <div class="logo-text">Roti<span>Pani</span><span class="logo-sub"> deals</span></div>
+  </div>
+  <div class="deals-pill">
+    🏷️&nbsp;<span id="dealsCount">0</span>&nbsp;nearby
+  </div>
+</header>
+
+<div id="map"></div>
+
+<div class="radius-badge" id="radiusBadge">📍 Showing deals within 25 km</div>
+
+<!-- Floating buttons -->
+<button class="locate-fab" id="locateBtn" title="Centre on me">
+  <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6a1 1 0 0 1 1 1v1.07A9 9 0 0 1 20.93 11H22a1 1 0 0 1 0 2h-1.07A9 9 0 0 1 13 20.93V22a1 1 0 0 1-2 0v-1.07A9 9 0 0 1 3.07 13H2a1 1 0 0 1 0-2h1.07A9 9 0 0 1 11 3.07V2a1 1 0 0 1 1-1zm0 4a7 7 0 1 0 0 14A7 7 0 0 0 12 6z"/></svg>
+</button>
+
+<button class="food-fab" id="foodFab" title="Jump to a random deal">🍽️</button>
+
+<div class="no-deals" id="noDeals">
+  <div class="nd-icon">🔍</div>
+  <h3>No deals nearby</h3>
+  <p>No restaurants have posted deals within 25 km of you yet.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
+  authDomain:"trackingclients.firebaseapp.com",
+  databaseURL:"https://trackingclients-default-rtdb.firebaseio.com/",
+  projectId:"trackingclients",
+  storageBucket:"trackingclients.appspot.com",
+  messagingSenderId:"27490943622",
+  appId:"1:27490943622:web:d6c87547aa5df440508707"
+}, 'rotiPaniViewer');
+const db = getDatabase(app);
+const USERS = 'rotipani/restaurants';
+const MAX_KM = 25;
+
+let map, myLat=null, myLng=null;
+const markers  = new Map(); // id → { marker, popup, data }
+let nearbyIds  = [];        // ids within 25 km with a deal
+let lastRandIdx = -1;
+let highlightId = null;
+
+const splash      = document.getElementById('splash');
+const shareLocBtn = document.getElementById('shareLocBtn');
+const locateBtn   = document.getElementById('locateBtn');
+const foodFab     = document.getElementById('foodFab');
+const dealsEl     = document.getElementById('dealsCount');
+const noDeals     = document.getElementById('noDeals');
+const radiusBadge = document.getElementById('radiusBadge');
+const toastEl     = document.getElementById('toast');
+
+let toastT;
+function toast(t, ms=2600){
+  toastEl.textContent=t; toastEl.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),ms);
+}
+
+/* ── Haversine distance in km ── */
+function distKm(lat1,lng1,lat2,lng2){
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function fmtDist(km){
+  return km<1 ? Math.round(km*1000)+'m away' : km.toFixed(1)+' km away';
+}
+
+function fmtTs(ts){
+  if(!ts) return '';
+  const d=new Date(ts), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function mkPopup(data){
+  const deal=(data.deal||'').trim();
+  const dist=myLat!==null ? distKm(myLat,myLng,data.lat,data.lng) : null;
+  const distStr=dist!==null ? fmtDist(dist) : '';
+  const time=fmtTs(data.ts);
+  if(!deal) return `<div style="font-size:12px;color:#6b8f72;font-style:italic;">No deal posted</div>`;
+  return `<div class="pop-tag">🏷️ DEAL</div>
+    <div class="pop-deal">${esc(deal)}</div>
+    ${distStr?`<div class="pop-dist">📍 ${distStr}</div>`:''}
+    ${time?`<div class="pop-time">🕐 ${time}</div>`:''}`;
+}
+
+function mkEl(isHighlight){
+  const d=document.createElement('div');
+  d.className='rmarker'+(isHighlight?' highlight':'');
+  d.innerHTML='<div class="ping"></div>🍽️';
+  return d;
+}
+
+function setHighlight(uid){
+  // un-highlight previous
+  if(highlightId && markers.has(highlightId)){
+    const {marker} = markers.get(highlightId);
+    const el = marker.getElement();
+    el.classList.remove('highlight');
+  }
+  highlightId = uid;
+  if(uid && markers.has(uid)){
+    const {marker} = markers.get(uid);
+    marker.getElement().classList.add('highlight');
+  }
+}
+
+function upsert(uid, data){
+  const lngLat=[data.lng, data.lat];
+  const inRange = myLat!==null && distKm(myLat,myLng,data.lat,data.lng)<=MAX_KM;
+  const hasDeal = !!(data.deal||'').trim();
+
+  /* remove if out of range or no deal */
+  if(!inRange || !hasDeal){
+    drop(uid);
+    return;
+  }
+
+  if(markers.has(uid)){
+    const {marker,popup} = markers.get(uid);
+    marker.setLngLat(lngLat);
+    popup.setLngLat(lngLat);
+    popup.setHTML(mkPopup(data));
+    markers.get(uid).data = data;
+  } else {
+    const el = mkEl(false);
+    const popup = new maplibregl.Popup({
+      offset:[0,-20], closeButton:false, closeOnClick:false, maxWidth:'190px'
+    }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map);
+
+    const marker = new maplibregl.Marker({element:el, anchor:'center'})
+      .setLngLat(lngLat).addTo(map);
+
+    /* tap marker → fly to it and refresh popup */
+    el.addEventListener('click', ()=>{
+      map.flyTo({center:lngLat, zoom:Math.max(map.getZoom(),15), duration:600});
+      popup.setHTML(mkPopup(markers.get(uid)?.data||data));
+    });
+
+    markers.set(uid, {marker, popup, data});
+  }
+}
+
+function drop(uid){
+  if(!markers.has(uid)) return;
+  const {marker,popup}=markers.get(uid);
+  popup.remove(); marker.remove();
+  markers.delete(uid);
+}
+
+function refreshAll(allData){
+  /* upsert everything, drop stale */
+  const live=new Set(Object.keys(allData));
+  live.forEach(uid=>upsert(uid, {...allData[uid], id:uid}));
+  markers.forEach((_,uid)=>{ if(!live.has(uid)) drop(uid); });
+
+  /* rebuild nearby list */
+  nearbyIds = myLat===null ? [] :
+    Object.entries(allData)
+      .filter(([,d])=>(d.deal||'').trim() && distKm(myLat,myLng,d.lat,d.lng)<=MAX_KM)
+      .map(([uid])=>uid);
+
+  dealsEl.textContent = nearbyIds.length;
+  noDeals.classList.toggle('show', nearbyIds.length===0 && myLat!==null);
+}
+
+let allRestaurants = {};
+
+function listenDeals(){
+  onValue(ref(db, USERS), snap=>{
+    allRestaurants = snap.exists() ? snap.val() : {};
+    refreshAll(allRestaurants);
+  });
+}
+
+/* ── RANDOM DEAL button ── */
+foodFab.addEventListener('click', ()=>{
+  if(!nearbyIds.length){ toast('No deals nearby yet 😔'); return; }
+
+  /* pick a different random each time */
+  let idx;
+  if(nearbyIds.length===1){
+    idx=0;
+  } else {
+    do { idx=Math.floor(Math.random()*nearbyIds.length); } while(idx===lastRandIdx);
+  }
+  lastRandIdx=idx;
+  const uid=nearbyIds[idx];
+  const m=markers.get(uid);
+  if(!m) return;
+
+  /* spin animation */
+  foodFab.classList.remove('spin');
+  void foodFab.offsetWidth;
+  foodFab.classList.add('spin');
+  setTimeout(()=>foodFab.classList.remove('spin'),500);
+
+  setHighlight(uid);
+  const lngLat=[m.data.lng, m.data.lat];
+  map.flyTo({center:lngLat, zoom:16, duration:900});
+  m.popup.setHTML(mkPopup(m.data));
+  toast(`🍽️ Deal ${idx+1} of ${nearbyIds.length} nearby`);
+});
+
+/* ── LOCATE button ── */
+locateBtn.addEventListener('click', ()=>{
+  if(myLat!==null){
+    map.flyTo({center:[myLng,myLat], zoom:Math.max(map.getZoom(),14), duration:600});
+  } else {
+    toast('Location not ready yet');
+  }
+});
+
+/* ── GEOLOCATION — one-time get then watch ── */
+function startWatch(){
+  navigator.geolocation.watchPosition(
+    pos=>{
+      myLat=pos.coords.latitude; myLng=pos.coords.longitude;
+      locateBtn.classList.add('on');
+      /* re-filter with new position */
+      refreshAll(allRestaurants);
+    },
+    err=>toast('Location: '+err.message),
+    {enableHighAccuracy:true, timeout:10000, maximumAge:4000}
+  );
+}
+
+/* ── MAP ── */
+async function initMap(){
+  map = new maplibregl.Map({
+    container:'map',
+    style:{
+      version:8,
+      sources:{osm:{type:'raster',
+        tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+               'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize:256}},
+      layers:[{id:'osm',type:'raster',source:'osm',
+        paint:{'raster-saturation':.3,'raster-hue-rotate':100,'raster-brightness-max':.55,'raster-brightness-min':.05}}]
+    },
+    center:[4.35,50.85], zoom:13, maxZoom:19,
+    attributionControl:false, fadeDuration:0
+  });
+  return new Promise(res=>map.on('load',res));
+}
+
+/* ── SPLASH ── */
+shareLocBtn.addEventListener('click', async()=>{
+  shareLocBtn.textContent='Getting location…'; shareLocBtn.disabled=true;
+  try{
+    const pos = await new Promise((res,rej)=>
+      navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:10000})
+    );
+    myLat=pos.coords.latitude; myLng=pos.coords.longitude;
+
+    await initMap();
+    map.flyTo({center:[myLng,myLat], zoom:14, duration:800});
+
+    /* show 25km radius hint */
+    setTimeout(()=>{
+      radiusBadge.classList.add('show');
+      setTimeout(()=>radiusBadge.classList.remove('show'), 3500);
+    }, 1000);
+
+    listenDeals();
+    startWatch();
+
+    splash.style.transition='opacity .28s'; splash.style.opacity='0';
+    setTimeout(()=>{ splash.style.display='none'; }, 290);
+  }catch(e){
+    shareLocBtn.textContent='Try again'; shareLocBtn.disabled=false;
+    toast('Could not get location — check permissions');
+  }
+});
+</script>
+</body>
+</html>
