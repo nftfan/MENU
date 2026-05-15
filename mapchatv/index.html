@@ -21,20 +21,36 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;}
 
+/* TOPBAR */
 .topbar{
   position:fixed;top:0;left:0;right:0;height:52px;
   background:var(--bg);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 14px;z-index:600;gap:10px;
 }
-.logo{display:flex;align-items:center;gap:7px;}
+.logo{display:flex;align-items:center;gap:7px;min-width:0;}
 .logo-icon{width:30px;height:30px;border-radius:8px;background:var(--green);display:grid;place-items:center;font-size:16px;flex-shrink:0;}
-.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;color:#fff;}
+.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;color:#fff;white-space:nowrap;}
 .logo-text span{color:var(--green);}
 .logo-sub{font-size:11px;color:var(--muted);font-weight:400;margin-left:2px;}
-.deals-pill{
-  margin-left:auto;display:flex;align-items:center;gap:6px;
+
+.switch{
+  margin-left:auto;
+  display:flex;align-items:center;gap:8px;
   background:var(--card);border:1px solid var(--border2);
-  border-radius:999px;padding:5px 12px 5px 10px;
+  border-radius:999px;padding:4px;
+  flex-shrink:0;
+}
+.switch button{
+  border:none;cursor:pointer;
+  background:transparent;color:var(--muted);
+  font-size:12px;font-weight:700;
+  padding:6px 10px;border-radius:999px;
+}
+.switch button.on{background:#0d3318;color:#fff;}
+.deals-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:999px;padding:5px 10px;
   font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;
 }
 #dealsCount{font-weight:700;color:var(--green);font-size:13px;}
@@ -124,7 +140,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .pop-price{font-size:12px;margin-top:6px;color:#cfe7d2;}
 .pop-price s{opacity:.8;margin-right:6px;}
 .pop-meta{font-size:10px;color:#4a7a52;margin-top:5px;line-height:1.25;}
-
 .pop-actions{margin-top:8px;display:flex;gap:8px;}
 .pop-wa{
   flex:1;
@@ -135,7 +150,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   padding:8px 10px;border-radius:8px;
 }
 .pop-wa:active{transform:scale(.98);}
-.pop-wa span{font-size:13px;line-height:1;}
 
 .rmarker{
   width:34px;height:34px;border-radius:50%;
@@ -151,7 +165,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   border:2px solid var(--green);opacity:0;
   animation:ping 3s ease-out infinite;
 }
-.rmarker.highlight .ping{border-color:#fff;animation-duration:1.5s;}
 @keyframes ping{0%{transform:scale(.8);opacity:.65;}100%{transform:scale(2.1);opacity:0;}}
 
 .toast{
@@ -169,7 +182,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <div class="splash" id="splash">
   <div class="splash-logo">🍛</div>
   <h1>Roti<span>Pani</span> Deals</h1>
-  <p>Find the best food deals near you — only showing restaurants within 25 km.</p>
+  <p>Find the best food deals near you — show nearby (25 km) or view all.</p>
   <button class="splash-btn" id="shareLocBtn">Find deals near me</button>
   <div class="splash-note">Read-only · no account needed</div>
 </div>
@@ -179,12 +192,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
     <div class="logo-icon">🍛</div>
     <div class="logo-text">Roti<span>Pani</span><span class="logo-sub"> deals</span></div>
   </div>
-  <div class="deals-pill">🏷️&nbsp;<span id="dealsCount">0</span>&nbsp;nearby</div>
+
+  <div class="switch" title="Nearby or all deals">
+    <button id="nearBtn" class="on">Nearby</button>
+    <button id="allBtn">All</button>
+  </div>
+
+  <div class="deals-pill">🏷️ <span id="dealsCount">0</span></div>
 </header>
 
 <div id="map"></div>
 
-<div class="radius-badge" id="radiusBadge">📍 Showing deals within 25 km</div>
+<div class="radius-badge" id="radiusBadge">📍 Nearby mode: within 25 km</div>
 
 <button class="locate-fab" id="locateBtn" title="Centre on me" aria-label="Centre on me">
   <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6a1 1 0 0 1 1 1v1.07A9 9 0 0 1 20.93 11H22a1 1 0 0 1 0 2h-1.07A9 9 0 0 1 13 20.93V22a1 1 0 0 1-2 0v-1.07A9 9 0 0 1 3.07 13H2a1 1 0 0 1 0-2h1.07A9 9 0 0 1 11 3.07V2a1 1 0 0 1 1-1zm0 4a7 7 0 1 0 0 14A7 7 0 0 0 12 6z"/></svg>
@@ -217,13 +236,18 @@ const app = initializeApp({
 
 const db = getDatabase(app);
 
-/* If you migrated to the new schema, change to: 'rotipani/restaurantsV2' */
-const USERS = "rotipani/restaurants";
+/* IMPORTANT: if your post app uses restaurantsV2, set this to restaurantsV2 */
+const USERS = "rotipani/restaurantsV2";
 const MAX_KM = 25;
 
 let map, myLat=null, myLng=null;
+
+/* mode: "near" shows only within 25 km, "all" shows all deals */
+let mode = localStorage.getItem("rp_view_mode") || "near";
+
 const markers = new Map(); // id → { marker, popup, data }
 let nearbyIds = [];
+let allDealIds = [];
 let lastRandIdx = -1;
 let highlightId = null;
 
@@ -236,6 +260,9 @@ const noDeals     = document.getElementById("noDeals");
 const radiusBadge = document.getElementById("radiusBadge");
 const toastEl     = document.getElementById("toast");
 
+const nearBtn = document.getElementById("nearBtn");
+const allBtn = document.getElementById("allBtn");
+
 let toastT;
 function toast(t, ms=2600){
   toastEl.textContent=t;
@@ -243,6 +270,22 @@ function toast(t, ms=2600){
   clearTimeout(toastT);
   toastT=setTimeout(()=>toastEl.classList.remove("show"), ms);
 }
+
+function setMode(m){
+  mode = m;
+  localStorage.setItem("rp_view_mode", mode);
+  nearBtn.classList.toggle("on", mode==="near");
+  allBtn.classList.toggle("on", mode==="all");
+  radiusBadge.textContent = (mode==="near")
+    ? `📍 Nearby mode: within ${MAX_KM} km`
+    : `🌍 All mode: showing all deals`;
+
+  // re-render filtering without re-downloading
+  refreshAll(allRestaurants);
+}
+
+nearBtn.addEventListener("click", ()=>setMode("near"));
+allBtn.addEventListener("click", ()=>setMode("all"));
 
 /* Haversine distance (km) */
 function distKm(lat1,lng1,lat2,lng2){
@@ -257,16 +300,12 @@ function esc(s){
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-/* FIX: Firebase serverTimestamp() in RTDB is often an object like {".sv":"timestamp"} or may be missing.
-   We prefer numeric client timestamp if provided (tsClient), else numeric ts, else blank. */
 function toMillis(ts){
   if(ts == null) return null;
   if(typeof ts === "number") return ts;
-  // Some data might store { seconds, nanoseconds } style or other shapes; best-effort:
   if(typeof ts === "object"){
     if(typeof ts.milliseconds === "number") return ts.milliseconds;
     if(typeof ts.seconds === "number") return ts.seconds * 1000;
-    // If it's {".sv":"timestamp"} we cannot resolve client-side -> return null
     if(ts[".sv"] === "timestamp") return null;
   }
   const n = Number(ts);
@@ -280,18 +319,13 @@ function fmtTs(ms){
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/* Normalize WhatsApp for wa.me (digits only; keep last ~15 digits). */
 function waDigits(raw){
   const d = String(raw ?? "").replace(/\D/g,"");
-  // accept both "92xxxxxxxxxx" and "03xxxxxxxxx" etc; best-effort:
   if(!d) return "";
   if(d.startsWith("0")) return "92" + d.slice(1);
   if(d.startsWith("92")) return d;
-  // if someone saved without country, still try:
   return d;
 }
-
-/* Get deal fields across old/new schema */
 function hasDeal(d){
   const oldDeal = (d.deal || "").trim();
   const t = (d.dealTitle || "").trim();
@@ -323,9 +357,9 @@ function mkPopup(d){
   const tsMs = toMillis(d.tsClient) || toMillis(d.ts);
   const time = fmtTs(tsMs);
 
-  if(!hasDeal(d)){
-    return `<div style="font-size:12px;color:#6b8f72;font-style:italic;">No deal posted</div>`;
-  }
+  const modeLine = (mode==="near" && dist!=null)
+    ? `<div class="pop-meta">📍 ${esc(distStr)}${time?` · 🕐 ${esc(time)}`:""}</div>`
+    : `<div class="pop-meta">${time?`🕐 ${esc(time)}`:""}${(time && distStr)?` · `:""}${distStr?`📍 ${esc(distStr)}`:""}</div>`;
 
   const priceHtml = (op || dp)
     ? `<div class="pop-price">${op ? `<s>PKR ${esc(op)}</s>` : ""}${dp ? `<b>PKR ${esc(dp)}</b>` : ""}</div>`
@@ -334,7 +368,7 @@ function mkPopup(d){
   const waHtml = waLinkDigits
     ? `<div class="pop-actions">
          <a class="pop-wa" href="https://wa.me/${waLinkDigits}" target="_blank" rel="noopener">
-           <span>🟢</span> WhatsApp
+           🟢 WhatsApp
          </a>
        </div>`
     : "";
@@ -344,11 +378,7 @@ function mkPopup(d){
     <div class="pop-title">${esc(title)}</div>
     ${desc ? `<div class="pop-desc">${esc(desc)}</div>` : ""}
     ${priceHtml}
-    <div class="pop-meta">
-      ${distStr ? `📍 ${esc(distStr)}` : ""}
-      ${distStr && time ? ` · ` : ""}
-      ${time ? `🕐 ${esc(time)}` : ""}
-    </div>
+    ${modeLine}
     ${waHtml}
   `;
 }
@@ -359,7 +389,6 @@ function mkEl(){
   d.innerHTML='<div class="ping"></div>🍽️';
   return d;
 }
-
 function setHighlight(uid){
   if(highlightId && markers.has(highlightId)){
     markers.get(highlightId).marker.getElement().classList.remove("highlight");
@@ -370,25 +399,35 @@ function setHighlight(uid){
   }
 }
 
+function showMarker(uid){
+  const o = markers.get(uid);
+  if(!o) return;
+  // hide by CSS to avoid removing/recreating
+  o.marker.getElement().style.display = "";
+  // popup is always open; keep visible
+  if(!o.popup.isOpen()) o.popup.addTo(map);
+}
+function hideMarker(uid){
+  const o = markers.get(uid);
+  if(!o) return;
+  o.marker.getElement().style.display = "none";
+  o.popup.remove();
+}
+
+/* Always create markers for any deal (if it has coords+deal).
+   Then hide/show depending on mode & distance. */
 function upsert(uid, data){
-  // require valid coords
   if(!data || typeof data.lat !== "number" || typeof data.lng !== "number") { drop(uid); return; }
+  if(!hasDeal(data)) { drop(uid); return; }
 
   const lngLat = [data.lng, data.lat];
-  const inRange = myLat!==null && distKm(myLat,myLng,data.lat,data.lng) <= MAX_KM;
-
-  if(!inRange || !hasDeal(data)){
-    drop(uid);
-    return;
-  }
 
   if(markers.has(uid)){
     const o = markers.get(uid);
+    o.data = data;
     o.marker.setLngLat(lngLat);
     o.popup.setLngLat(lngLat);
-    o.data = data;
     o.popup.setHTML(mkPopup(data));
-    // keep highlight class if needed
     if(uid === highlightId) o.marker.getElement().classList.add("highlight");
   } else {
     const el = mkEl();
@@ -410,7 +449,6 @@ function upsert(uid, data){
     });
 
     markers.set(uid, { marker, popup, data });
-
     if(uid === highlightId) marker.getElement().classList.add("highlight");
   }
 }
@@ -422,6 +460,43 @@ function drop(uid){
   o.marker.remove();
   markers.delete(uid);
   if(highlightId === uid) highlightId = null;
+}
+
+function applyVisibility(){
+  // Build lists
+  nearbyIds = [];
+  allDealIds = [];
+
+  for(const [uid, o] of markers.entries()){
+    const d = o.data;
+    allDealIds.push(uid);
+
+    let inRange = true;
+    if(myLat!=null && myLng!=null){
+      inRange = distKm(myLat,myLng,d.lat,d.lng) <= MAX_KM;
+    }
+
+    if(inRange) nearbyIds.push(uid);
+
+    if(mode === "all"){
+      showMarker(uid);
+    }else{
+      // near mode: hide out-of-range when we know location
+      if(myLat==null) {
+        // no location yet: show all (user hasn’t granted location)
+        showMarker(uid);
+      } else {
+        inRange ? showMarker(uid) : hideMarker(uid);
+      }
+    }
+  }
+
+  const count = (mode==="all" || myLat==null) ? allDealIds.length : nearbyIds.length;
+  dealsEl.textContent = count;
+
+  // "no deals" only makes sense in near mode after location is known
+  const noNear = (mode==="near" && myLat!=null && nearbyIds.length===0);
+  noDeals.classList.toggle("show", noNear);
 }
 
 function refreshAll(allData){
@@ -436,15 +511,7 @@ function refreshAll(allData){
     if(!live.has(uid)) drop(uid);
   }
 
-  nearbyIds = (myLat===null) ? [] :
-    ids.filter(uid=>{
-      const d = obj[uid];
-      if(!d || typeof d.lat !== "number" || typeof d.lng !== "number") return false;
-      return hasDeal(d) && distKm(myLat,myLng,d.lat,d.lng) <= MAX_KM;
-    });
-
-  dealsEl.textContent = nearbyIds.length;
-  noDeals.classList.toggle("show", nearbyIds.length===0 && myLat!==null);
+  applyVisibility();
 }
 
 let allRestaurants = {};
@@ -456,15 +523,17 @@ function listenDeals(){
   });
 }
 
+/* Random deal uses current mode list */
 foodFab.addEventListener("click", ()=>{
-  if(!nearbyIds.length){ toast("No deals nearby yet"); return; }
+  const list = (mode==="all" || myLat==null) ? allDealIds : nearbyIds;
+  if(!list.length){ toast(mode==="all" ? "No deals posted yet" : "No deals nearby yet"); return; }
 
   let idx;
-  if(nearbyIds.length===1) idx = 0;
-  else { do { idx = Math.floor(Math.random()*nearbyIds.length); } while(idx===lastRandIdx); }
+  if(list.length===1) idx = 0;
+  else { do { idx = Math.floor(Math.random()*list.length); } while(idx===lastRandIdx); }
   lastRandIdx = idx;
 
-  const uid = nearbyIds[idx];
+  const uid = list[idx];
   const m = markers.get(uid);
   if(!m) return;
 
@@ -477,7 +546,7 @@ foodFab.addEventListener("click", ()=>{
   const lngLat = [m.data.lng, m.data.lat];
   map.flyTo({center:lngLat, zoom:16, duration:900});
   m.popup.setHTML(mkPopup(m.data));
-  toast(`🍽️ Deal ${idx+1} of ${nearbyIds.length} nearby`);
+  toast(`🍽️ Deal ${idx+1} of ${list.length}`);
 });
 
 locateBtn.addEventListener("click", ()=>{
@@ -491,7 +560,12 @@ function startWatch(){
     pos=>{
       myLat=pos.coords.latitude; myLng=pos.coords.longitude;
       locateBtn.classList.add("on");
-      refreshAll(allRestaurants);
+      // mode near/all visibility changes with new location
+      applyVisibility();
+      // update popup content (distance line) without rebuilding everything
+      for(const [uid,o] of markers.entries()){
+        o.popup.setHTML(mkPopup(o.data));
+      }
     },
     err=>toast("Location: "+err.message),
     {enableHighAccuracy:true, timeout:10000, maximumAge:4000}
@@ -540,6 +614,7 @@ shareLocBtn.addEventListener("click", async ()=>{
     await initMap();
     map.flyTo({center:[myLng,myLat], zoom:14, duration:800});
 
+    // show badge with current mode
     setTimeout(()=>{
       radiusBadge.classList.add("show");
       setTimeout(()=>radiusBadge.classList.remove("show"), 3500);
@@ -551,12 +626,18 @@ shareLocBtn.addEventListener("click", async ()=>{
     splash.style.transition="opacity .28s";
     splash.style.opacity="0";
     setTimeout(()=>{ splash.style.display="none"; }, 290);
+
+    // apply mode buttons from storage
+    setMode(mode);
   }catch(e){
     shareLocBtn.textContent="Try again";
     shareLocBtn.disabled=false;
     toast("Could not get location — check permissions");
   }
 });
+
+// Initialize mode buttons state early (before location)
+setMode(mode);
 </script>
 </body>
 </html>
