@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Nearby — share where you are</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#111111"/>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#111;--surface:#1a1a1a;--card:#222;--border:#2e2e2e;
+  --text:#f0f0f0;--muted:#777;--accent:#f5e642;--accent-dark:#c9bc1f;
+  --pop-bg:#fefce8;--pop-text:#1a1800;--pop-border:#e6d800;
+  --green:#4ade80;--red:#f87171;
+  --radius:14px;--input-h:48px;--bar-h:64px;
+  font-family:'DM Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);}
+body{display:flex;flex-direction:column;}
+
+/* ── TOP BAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;
+  height:54px;background:var(--bg);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  padding:0 14px;z-index:600;
+}
+.logo{font-weight:600;font-size:16px;letter-spacing:-.3px;color:var(--text);}
+.logo span{color:var(--accent);}
+.online-pill{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:999px;padding:4px 10px 4px 8px;font-size:12px;color:var(--muted);
+}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+#onlineCount{font-weight:600;color:var(--text);}
+
+/* ── MAP ── */
+#map{
+  position:fixed;top:54px;left:0;right:0;
+  bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
+}
+
+/* ── MESSAGE BAR ── */
+.msg-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--bar-h) + env(safe-area-inset-bottom));
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+  background:var(--bg);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;z-index:600;
+}
+.msg-input{
+  flex:1;height:var(--input-h);
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:15px;
+  padding:0 14px;outline:none;
+}
+.msg-input::placeholder{color:var(--muted);}
+.msg-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(245,230,66,.15);}
+.send-btn{
+  width:48px;height:48px;border-radius:var(--radius);
+  background:var(--accent);border:none;cursor:pointer;
+  display:grid;place-items:center;flex-shrink:0;
+  transition:transform .1s,opacity .1s;
+}
+.send-btn:active{transform:scale(.94);opacity:.85;}
+.send-btn svg{width:20px;height:20px;fill:var(--bg);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── LOCATE ME ── */
+.locate-btn{
+  width:48px;height:48px;border-radius:var(--radius);
+  background:var(--card);border:1px solid var(--border);
+  cursor:pointer;display:grid;place-items:center;flex-shrink:0;
+  color:var(--muted);transition:all .15s;
+}
+.locate-btn:active{transform:scale(.93);}
+.locate-btn.located{border-color:var(--accent);color:var(--accent);}
+.locate-btn svg{width:20px;height:20px;fill:currentColor;}
+
+/* ── SPLASH / PERMISSION ── */
+.splash{
+  position:fixed;inset:0;background:var(--bg);z-index:900;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:24px;padding:32px;text-align:center;
+}
+.splash-icon{font-size:56px;}
+.splash h1{font-size:26px;font-weight:600;line-height:1.2;}
+.splash h1 span{color:var(--accent);}
+.splash p{font-size:15px;color:var(--muted);line-height:1.6;max-width:300px;}
+.splash-btn{
+  background:var(--accent);color:var(--bg);font-family:'DM Sans',sans-serif;
+  font-size:16px;font-weight:600;border:none;cursor:pointer;
+  border-radius:var(--radius);padding:14px 32px;width:100%;max-width:280px;
+  transition:transform .1s;
+}
+.splash-btn:active{transform:scale(.97);}
+.splash-footer{font-size:12px;color:var(--muted);}
+
+/* ── POPUP (MapLibre override) ── */
+.maplibregl-popup-content{
+  background:var(--pop-bg) !important;
+  border:2px solid var(--pop-border) !important;
+  border-radius:12px !important;
+  padding:10px 13px 10px 11px !important;
+  box-shadow:0 4px 20px rgba(0,0,0,.3) !important;
+  font-family:'DM Sans',sans-serif !important;
+  max-width:220px;min-width:140px;
+}
+.maplibregl-popup-tip{border-top-color:var(--pop-border) !important;}
+.maplibregl-popup-close-button{
+  color:var(--pop-text) !important;font-size:18px !important;
+  padding:2px 6px !important;opacity:.5;
+}
+.maplibregl-popup-close-button:hover{opacity:1;}
+.maplibregl-ctrl-attrib{display:none !important;}
+
+/* ── CUSTOM POPUP HTML ── */
+.pop-name{font-size:11px;font-weight:600;color:#7a6e00;letter-spacing:.3px;margin-bottom:5px;}
+.pop-msg{font-size:14px;color:var(--pop-text);line-height:1.4;font-weight:500;}
+.pop-time{font-size:10px;color:#9a8e00;margin-top:5px;}
+
+/* ── USER MARKER ── */
+.user-marker{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid var(--accent);background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:600;color:var(--accent);
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  cursor:pointer;user-select:none;font-family:'DM Mono',monospace;
+  transition:transform .15s;position:relative;
+}
+.user-marker:active{transform:scale(.9);}
+.user-marker.me{border-color:var(--green);color:var(--green);}
+.user-marker .ping{
+  position:absolute;inset:-5px;border-radius:50%;
+  border:2px solid var(--accent);opacity:0;
+  animation:ping 2.5s ease-out infinite;
+}
+.user-marker.me .ping{border-color:var(--green);}
+@keyframes ping{0%{transform:scale(.9);opacity:.6;}100%{transform:scale(1.7);opacity:0;}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-8px);
+  background:var(--card);border:1px solid var(--border);border-radius:999px;
+  padding:8px 18px;font-size:13px;color:var(--text);z-index:700;
+  opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── maplibre overrides ── */
+.maplibregl-canvas{touch-action:none;}
+.maplibregl-map{font-family:'DM Sans',sans-serif;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-icon">📍</div>
+  <h1>Say hi to people <span>nearby</span></h1>
+  <p>Share your location and drop a message — see who else is around you right now.</p>
+  <button class="splash-btn" id="shareLocBtn">Share my location</button>
+  <div class="splash-footer">Your location updates live. No account needed.</div>
+</div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="logo">near<span>by</span></div>
+  <div class="online-pill">
+    <div class="online-dot"></div>
+    <span id="onlineCount">0</span>&nbsp;online
+  </div>
+</header>
+
+<div id="map"></div>
+
+<!-- MESSAGE BAR -->
+<div class="msg-bar" id="msgBar">
+  <button class="locate-btn" id="locateBtn" title="Centre on me">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7zm0 2a5 5 0 0 0-5 5c0 3.5 5 9.5 5 9.5s5-6 5-9.5a5 5 0 0 0-5-5zm0 2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+    </svg>
+  </button>
+  <input class="msg-input" id="msgInput" type="text" placeholder="Say something…" maxlength="140"/>
+  <button class="send-btn" id="sendBtn" disabled title="Send">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module">
+import { initializeApp }                   from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, serverTimestamp, remove, onDisconnect }
+                                           from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+/* ── Firebase ── */
+const app = initializeApp({
+  apiKey:"AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
+  authDomain:"trackingclients.firebaseapp.com",
+  databaseURL:"https://trackingclients-default-rtdb.firebaseio.com/",
+  projectId:"trackingclients",
+  storageBucket:"trackingclients.appspot.com",
+  messagingSenderId:"27490943622",
+  appId:"1:27490943622:web:d6c87547aa5df440508707"
+}, 'nearbyChatApp');
+const db = getDatabase(app);
+
+const USERS_PATH = 'nearby_chat/users';
+const MSG_PATH   = 'nearby_chat/messages';
+
+/* ── Session ── */
+const SESSION_KEY = 'nearby_session_id';
+let myId = localStorage.getItem(SESSION_KEY);
+if (!myId) {
+  myId = 'u_' + Math.random().toString(36).slice(2,10);
+  localStorage.setItem(SESSION_KEY, myId);
+}
+const myInitial = myId.slice(2,3).toUpperCase();
+
+/* ── State ── */
+let map, myLat = null, myLng = null;
+let myUserRef = null, myMarker = null;
+let markersMap  = new Map();   // userId → { marker, popup }
+let userDataMap = new Map();   // userId → { lat, lng, msg, ts, initial }
+let watchId = null;
+
+/* ── DOM ── */
+const splash    = document.getElementById('splash');
+const shareLocBtn = document.getElementById('shareLocBtn');
+const msgInput  = document.getElementById('msgInput');
+const sendBtn   = document.getElementById('sendBtn');
+const locateBtn = document.getElementById('locateBtn');
+const onlineCountEl = document.getElementById('onlineCount');
+const toastEl   = document.getElementById('toast');
+
+/* ── Toast ── */
+let toastTimer;
+function toast(msg, dur = 2500) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), dur);
+}
+
+/* ── Map init ── */
+async function initMap() {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: { osm: {
+        type: 'raster',
+        tiles: [
+          'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        ],
+        tileSize: 256
+      }},
+      layers: [{ id: 'osm', type: 'raster', source: 'osm',
+        paint: { 'raster-saturation': -0.5, 'raster-brightness-max': 0.7 }
+      }]
+    },
+    center: [4.35, 50.85],
+    zoom: 13,
+    maxZoom: 19,
+    attributionControl: false,
+    fadeDuration: 0
+  });
+  return new Promise(res => map.on('load', res));
+}
+
+/* ── Build marker element ── */
+function makeMarkerEl(initial, isMe) {
+  const div = document.createElement('div');
+  div.className = 'user-marker' + (isMe ? ' me' : '');
+  div.innerHTML = `<div class="ping"></div>${initial}`;
+  return div;
+}
+
+/* ── Build popup HTML ── */
+function popupHtml(data) {
+  const name = data.id === myId ? 'You' : 'Unknown user';
+  const msg  = data.msg || '';
+  const when = data.ts ? relTime(data.ts) : '';
+  return `
+    <div class="pop-name">${name}</div>
+    ${msg ? `<div class="pop-msg">"${escHtml(msg)}"</div>` : '<div class="pop-msg" style="color:#9a8e00;font-style:italic;">No message yet</div>'}
+    ${when ? `<div class="pop-time">${when}</div>` : ''}
+  `;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function relTime(ts) {
+  const d = Math.floor((Date.now() - ts) / 1000);
+  if (d < 5)  return 'just now';
+  if (d < 60) return `${d}s ago`;
+  if (d < 3600) return `${Math.floor(d/60)}m ago`;
+  return `${Math.floor(d/3600)}h ago`;
+}
+
+/* ── Render / update a single user marker ── */
+function upsertMarker(userId, data) {
+  const isMe = userId === myId;
+  const lngLat = [data.lng, data.lat];
+
+  if (markersMap.has(userId)) {
+    const { marker, popup } = markersMap.get(userId);
+    marker.setLngLat(lngLat);
+    if (popup.isOpen()) popup.setHTML(popupHtml(data));
+  } else {
+    const el = makeMarkerEl(data.initial || '?', isMe);
+    const popup = new maplibregl.Popup({
+      offset: [0, -22], closeButton: true, closeOnClick: false, maxWidth: '240px'
+    }).setHTML(popupHtml(data));
+
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat(lngLat)
+      .setPopup(popup)
+      .addTo(map);
+
+    el.addEventListener('click', () => {
+      if (popup.isOpen()) { popup.remove(); return; }
+      popup.setHTML(popupHtml(userDataMap.get(userId) || data));
+      marker.togglePopup();
+    });
+
+    markersMap.set(userId, { marker, popup });
+  }
+}
+
+function removeMarker(userId) {
+  if (!markersMap.has(userId)) return;
+  const { marker, popup } = markersMap.get(userId);
+  popup.remove();
+  marker.remove();
+  markersMap.delete(userId);
+}
+
+/* ── Firebase listeners ── */
+function listenUsers() {
+  onValue(ref(db, USERS_PATH), snap => {
+    const current = new Set();
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const uid = child.key;
+        const d   = child.val();
+        if (!d || typeof d.lat !== 'number' || typeof d.lng !== 'number') return;
+        current.add(uid);
+        userDataMap.set(uid, { ...d, id: uid });
+        upsertMarker(uid, { ...d, id: uid });
+      });
+    }
+    // Remove stale
+    markersMap.forEach((_, uid) => { if (!current.has(uid)) { removeMarker(uid); userDataMap.delete(uid); } });
+    onlineCountEl.textContent = current.size;
+
+    // Re-open my popup if it exists
+    if (myId && markersMap.has(myId)) {
+      const { popup } = markersMap.get(myId);
+      if (popup.isOpen()) popup.setHTML(popupHtml(userDataMap.get(myId)));
+    }
+  });
+}
+
+/* ── Write / update my record ── */
+async function writeMyPosition(lat, lng) {
+  if (!myUserRef) myUserRef = ref(db, `${USERS_PATH}/${myId}`);
+  const initial = myInitial;
+  const data = { lat, lng, initial, ts: serverTimestamp() };
+  if (msgInput.value.trim()) data.msg = msgInput.value.trim();
+  await set(myUserRef, data);
+  // Remove me when I disconnect
+  onDisconnect(myUserRef).remove();
+}
+
+/* ── Geolocation ── */
+function startWatching() {
+  if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      writeMyPosition(myLat, myLng);
+      locateBtn.classList.add('located');
+      sendBtn.disabled = false;
+    },
+    err => toast('Location error: ' + err.message),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+  );
+}
+
+/* ── LOCATE ME button ── */
+locateBtn.addEventListener('click', () => {
+  if (myLat !== null) {
+    map.flyTo({ center: [myLng, myLat], zoom: Math.max(map.getZoom(), 15), duration: 700 });
+  } else {
+    toast('Location not yet available');
+  }
+});
+
+/* ── SEND message ── */
+async function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || myLat === null) return;
+  sendBtn.disabled = true;
+
+  try {
+    // Update user record with latest message
+    if (!myUserRef) myUserRef = ref(db, `${USERS_PATH}/${myId}`);
+    await set(myUserRef, {
+      lat: myLat, lng: myLng,
+      initial: myInitial,
+      msg: text,
+      ts: serverTimestamp()
+    });
+    msgInput.value = '';
+    // Open my own popup
+    if (markersMap.has(myId)) {
+      const { marker, popup } = markersMap.get(myId);
+      popup.setHTML(popupHtml({ id: myId, lat: myLat, lng: myLng, msg: text }));
+      if (!popup.isOpen()) marker.togglePopup();
+    }
+    toast('Message sent ✓');
+  } catch(e) {
+    toast('Failed to send');
+  } finally {
+    sendBtn.disabled = (myLat === null);
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }});
+
+/* ── SHARE LOCATION splash button ── */
+shareLocBtn.addEventListener('click', async () => {
+  shareLocBtn.textContent = 'Getting location…';
+  shareLocBtn.disabled = true;
+  try {
+    await new Promise((res, rej) =>
+      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
+    );
+    await initMap();
+    listenUsers();
+    startWatching();
+    splash.style.transition = 'opacity .3s';
+    splash.style.opacity = '0';
+    setTimeout(() => { splash.style.display = 'none'; }, 300);
+  } catch(e) {
+    shareLocBtn.textContent = 'Try again';
+    shareLocBtn.disabled = false;
+    toast('Could not get location — check browser permissions');
+  }
+});
+
+/* ── Refresh relative timestamps every 30s ── */
+setInterval(() => {
+  markersMap.forEach(({ popup }, uid) => {
+    if (popup.isOpen()) {
+      const d = userDataMap.get(uid);
+      if (d) popup.setHTML(popupHtml(d));
+    }
+  });
+}, 30000);
+</script>
+</body>
+</html>
