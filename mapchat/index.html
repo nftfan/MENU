@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>RotiPani</title>
+<title>RotiPani — Post Deal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0a1f0e" />
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
@@ -20,13 +20,12 @@
   --muted:#77a282;
   --muted2:#5f8c6b;
   --green:#22c55e;
-  --green2:#16a34a;
   --danger:#ef4444;
 
   --top-h:50px;
-  --bar-h:64px;
+  --bar-h:68px;
 
-  --radius:14px;
+  --radius:16px;
   --radius-sm:12px;
   --shadow:0 10px 28px rgba(0,0,0,.42);
   --font: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -35,11 +34,13 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);}
 
-button,input,textarea{font-family:var(--font);}
+#map{
+  position:fixed;
+  top:var(--top-h); left:0; right:0;
+  bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
+}
 
-.small{font-size:12px;color:var(--muted);}
-hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
-
+/* Topbar */
 .topbar{
   position:fixed;top:0;left:0;right:0;height:var(--top-h);
   background:rgba(10,31,14,.92);
@@ -55,79 +56,45 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
 }
 .brand .name{font-weight:800;font-size:15px;letter-spacing:-.2px;white-space:nowrap;}
 .brand .name span{color:var(--green);}
-.pill{
+.userpill{
   margin-left:auto;
   display:flex;align-items:center;gap:6px;
   border:1px solid var(--border2);
   background:linear-gradient(180deg, rgba(22,47,26,.9), rgba(15,38,19,.9));
   border-radius:999px;
   padding:5px 10px;
-  font-size:11px;color:var(--muted);white-space:nowrap;
+  font-size:11px;color:var(--muted);
+  min-width:0;
 }
-.pill b{color:var(--green);font-size:12px;}
+.userpill b{color:var(--text);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;}
 
-#map{
-  position:fixed;
-  top:var(--top-h); left:0; right:0;
-  bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
-}
-
-/* Bottom compact bar */
+/* Bottom bar: only centered button */
 .bottom{
   position:fixed;left:0;right:0;bottom:0;z-index:650;
   height:calc(var(--bar-h) + env(safe-area-inset-bottom));
-  padding:8px 10px calc(10px + env(safe-area-inset-bottom));
+  padding:10px 12px calc(12px + env(safe-area-inset-bottom));
   background:rgba(10,31,14,.92);
   backdrop-filter:saturate(150%) blur(10px);
   border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;justify-content:center;
 }
-.btn-icon{
-  width:46px;height:46px;border-radius:var(--radius-sm);
-  background:var(--card);
-  border:1px solid var(--border2);
-  display:grid;place-items:center;
-  color:var(--muted);
-  cursor:pointer;
-  transition:transform .1s ease, border-color .15s ease, color .15s ease;
-}
-.btn-icon:active{transform:scale(.95);}
-.btn-icon.on{border-color:var(--green);color:var(--green);}
-.btn-icon svg{width:18px;height:18px;fill:currentColor;}
-
 .primary{
-  height:46px;
-  border-radius:var(--radius-sm);
+  width:min(420px, 92vw);
+  height:48px;
+  border-radius:14px;
   border:none;
   background:var(--green);
   color:#061a0a;
-  font-weight:800;
-  font-size:13px;
-  padding:0 14px;
+  font-weight:900;
+  font-size:14px;
   cursor:pointer;
   transition:transform .1s ease, opacity .15s ease;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  white-space:nowrap;
 }
-.primary:active{transform:scale(.98);}
+.primary:active{transform:scale(.99);}
 .primary:disabled{opacity:.35;cursor:not-allowed;}
 
-.input{
-  flex:1;
-  height:46px;
-  border-radius:var(--radius-sm);
-  border:1px solid var(--border2);
-  background:var(--card);
-  color:var(--text);
-  padding:0 12px;
-  outline:none;
-  font-size:13px;
-  min-width:0;
-}
-.input::placeholder{color:var(--muted2);}
-.input:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.12);}
-
-/* Modals */
+/* Sheets */
 .overlay{
   position:fixed; inset:0;
   background:rgba(0,0,0,.52);
@@ -146,10 +113,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
 }
 .sheet-h{
   padding:12px 12px 10px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
   border-bottom:1px solid var(--border);
 }
-.sheet-h .title{font-size:13px;font-weight:800;letter-spacing:-.2px;}
+.sheet-h .title{font-size:13px;font-weight:900;letter-spacing:-.2px;}
 .sheet-h .sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
 .sheet-h .x{
   width:38px;height:38px;border-radius:12px;
@@ -159,10 +126,17 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
   cursor:pointer;
 }
 .sheet-h .x:active{transform:scale(.97);}
-
 .sheet-b{padding:12px;}
+
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#0c2a14;border:1px solid var(--border2);
+  padding:6px 10px;border-radius:999px;
+  font-size:11px;color:var(--muted);
+}
+.badge code{color:var(--green);font-weight:900;background:transparent;}
+
 .grid{display:grid;gap:10px;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .label{font-size:11px;color:var(--muted);margin-bottom:6px;}
 .field input, .field textarea{
   width:100%;
@@ -174,34 +148,34 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
   font-size:13px;
   outline:none;
 }
-.field textarea{min-height:84px;resize:none;line-height:1.35;}
+.field textarea{min-height:90px;resize:none;line-height:1.35;}
 .field input:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.12);}
-
 .hint{font-size:11px;color:var(--muted2);line-height:1.35;}
-.badge{
-  display:inline-flex;align-items:center;gap:6px;
-  background:#0c2a14;border:1px solid var(--border2);
-  padding:6px 10px;border-radius:999px;
+
+.stepper{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border-top:1px solid var(--border);
+  background:rgba(0,0,0,.08);
+}
+.stepper .left{
   font-size:11px;color:var(--muted);
 }
-.badge b{color:var(--text);}
-.badge code{color:var(--green);font-weight:800;background:transparent;}
-
-.actions{display:flex;gap:10px;margin-top:12px;}
+.stepper .btns{display:flex;gap:8px;}
 .btn{
-  flex:1;
-  height:44px;border-radius:12px;
+  height:42px;
+  border-radius:12px;
   border:1px solid var(--border2);
   background:var(--card2);
   color:var(--text);
-  font-weight:800;font-size:13px;
+  font-weight:900;font-size:13px;
   cursor:pointer;
+  padding:0 12px;
 }
 .btn:active{transform:scale(.98);}
 .btn.green{background:var(--green);border:none;color:#061a0a;}
-.btn.ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn.ghost{background:transparent;border:1px solid var(--border2);}
 
-/* Toast */
 .toast{
   position:fixed;top:calc(var(--top-h) + 10px);left:50%;
   transform:translateX(-50%) translateY(-6px);
@@ -216,7 +190,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* Markers & popups */
+/* markers/popup */
 .maplibregl-ctrl-attrib{display:none !important;}
 .maplibregl-canvas{touch-action:none;}
 .maplibregl-popup{pointer-events:auto;}
@@ -227,13 +201,18 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
   padding:9px 10px !important;
   box-shadow:0 10px 26px rgba(0,0,0,.55) !important;
   font-family:var(--font) !important;
-  max-width:220px !important;
+  max-width:240px !important;
 }
 .maplibregl-popup-tip{border-top-color:#2a5c34 !important;}
 .maplibregl-popup-close-button{
   color:var(--muted) !important;font-size:18px !important;
   top:2px !important;right:6px !important;
 }
+.pop-title{font-size:13px;font-weight:900;color:#fff;line-height:1.2;}
+.pop-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35;}
+.pop-price{margin-top:6px;font-size:12px;}
+.pop-price s{color:#90b79a;opacity:.9;margin-right:6px;}
+.pop-time{font-size:10px;color:#4a7a52;margin-top:6px;}
 .pop-tag{
   display:inline-flex;align-items:center;gap:6px;
   background:#0d3318;color:var(--green);
@@ -241,32 +220,24 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
   padding:3px 8px;margin-bottom:6px;letter-spacing:.35px;
   border:1px solid rgba(42,92,52,.65);
 }
-.pop-title{font-size:13px;font-weight:900;color:#fff;line-height:1.2;}
-.pop-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
-.pop-price{margin-top:7px;font-size:12px;}
-.pop-price s{color:#90b79a;opacity:.9;margin-right:6px;}
-.pop-price b{color:#fff;}
-.pop-time{font-size:10px;color:#4a7a52;margin-top:6px;}
 .rmarker{
   width:34px;height:34px;border-radius:50%;
   background:rgba(15,38,19,.95);
   border:2.5px solid var(--green);
   box-shadow:0 2px 12px rgba(0,0,0,.5);
   cursor:pointer;position:relative;display:grid;place-items:center;
-  font-size:16px;transition:transform .1s;
+  font-size:16px;
 }
-.rmarker:active{transform:scale(.9);}
-.rmarker.me{border-color:#fff; box-shadow:0 2px 12px rgba(34,197,94,.26);}
+.rmarker.me{border-color:#fff;}
 .rmarker .ping{
   position:absolute;inset:-6px;border-radius:50%;
   border:2px solid var(--green);opacity:0;
   animation:ping 2.8s ease-out infinite;
 }
-.rmarker.me .ping{animation-duration:2.1s;}
 @keyframes ping{0%{transform:scale(.82);opacity:.65;}100%{transform:scale(2);opacity:0;}}
 
 @media (max-width:360px){
-  .row2{grid-template-columns:1fr; }
+  .userpill b{max-width:120px;}
 }
 </style>
 </head>
@@ -277,32 +248,24 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
     <div class="icon">🍛</div>
     <div class="name">Roti<span>Pani</span></div>
   </div>
-  <div class="pill"><span>🏷️</span><b id="dealsCount">0</b>&nbsp;deals</div>
+  <div class="userpill">👤 <b id="userLabel">Not logged in</b></div>
 </header>
 
 <div id="map"></div>
 
 <div class="bottom">
-  <button class="btn-icon" id="locateBtn" title="Center on me" aria-label="Center on me">
-    <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6a1 1 0 0 1 1 1v1.07A9 9 0 0 1 20.93 11H22a1 1 0 0 1 0 2h-1.07A9 9 0 0 1 13 20.93V22a1 1 0 0 1-2 0v-1.07A9 9 0 0 1 3.07 13H2a1 1 0 0 1 0-2h1.07A9 9 0 0 1 11 3.07V2a1 1 0 0 1 1-1zm0 4a7 7 0 1 0 0 14A7 7 0 0 0 12 6z"/></svg>
-  </button>
-
-  <input class="input" id="quickInput" placeholder="Tap Post to add a deal…" readonly />
-
-  <button class="primary" id="openPostBtn" disabled>
-    Post Deal
-  </button>
+  <button class="primary" id="openWizardBtn" disabled>Post Deal</button>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- LOGIN SHEET -->
+<!-- LOGIN -->
 <div class="overlay" id="loginOverlay" role="dialog" aria-modal="true">
   <div class="sheet">
     <div class="sheet-h">
       <div>
         <div class="title">Restaurant Login</div>
-        <div class="sub">Enter your username. We will use <b>@rotipani.net</b> automatically.</div>
+        <div class="sub">Enter your username. We automatically use <b>@rotipani.net</b>.</div>
       </div>
       <button class="x" id="closeLoginBtn" aria-label="Close">✕</button>
     </div>
@@ -316,89 +279,47 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0;opacity:.9}
           <div class="hint">Only letters/numbers/underscore/dot. No spaces.</div>
         </div>
 
-        <div class="actions">
-          <button class="btn ghost" id="logoutBtn" style="display:none;">Logout</button>
-          <button class="btn green" id="loginBtn">Continue</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn ghost" id="logoutBtn" style="display:none;flex:1;">Logout</button>
+          <button class="btn green" id="loginBtn" style="flex:1;">Continue</button>
         </div>
 
-        <div class="hint">
-          This is a lightweight login (no password). It’s best for demos. For production security, add Firebase Auth.
-        </div>
+        <div class="hint">For real production security, add Firebase Auth (this is passwordless demo login).</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- POST SHEET -->
-<div class="overlay" id="postOverlay" role="dialog" aria-modal="true">
+<!-- WIZARD -->
+<div class="overlay" id="wizardOverlay" role="dialog" aria-modal="true">
   <div class="sheet">
     <div class="sheet-h">
       <div>
-        <div class="title">Post a Deal</div>
-        <div class="sub">Your deal appears instantly on the map for nearby customers.</div>
+        <div class="title" id="stepTitle">Post a Deal</div>
+        <div class="sub" id="stepSub">Step 1 of 4</div>
       </div>
-      <button class="x" id="closePostBtn" aria-label="Close">✕</button>
+      <button class="x" id="closeWizardBtn" aria-label="Close">✕</button>
     </div>
 
-    <div class="sheet-b">
-      <div class="grid">
-        <div class="badge">
-          Logged in as <b id="whoami">—</b>
-        </div>
+    <div class="sheet-b" id="stepBody"></div>
 
-        <div class="field">
-          <div class="label">Restaurant name</div>
-          <input id="restName" placeholder="e.g. Al Rehman Restaurant" autocomplete="off" />
-        </div>
-
-        <div class="field">
-          <div class="label">Deal title</div>
-          <input id="dealTitle" placeholder="e.g. Biryani Friday Special" autocomplete="off" maxlength="60" />
-        </div>
-
-        <div class="field">
-          <div class="label">Deal description</div>
-          <textarea id="dealDesc" placeholder="e.g. Chicken biryani + raita, limited time offer…" maxlength="180"></textarea>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <div class="label">Original price (PKR)</div>
-            <input id="origPrice" placeholder="e.g. 800" inputmode="numeric" />
-          </div>
-          <div class="field">
-            <div class="label">Discount price (PKR)</div>
-            <input id="discPrice" placeholder="e.g. 550" inputmode="numeric" />
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="label">WhatsApp number</div>
-          <input id="waLocal" placeholder="03452233450" inputmode="numeric" />
-          <div class="hint">We automatically add country code <b>92</b>. Saved as: <b id="waPreview">92…</b></div>
-        </div>
-
-        <hr class="sep"/>
-
-        <div class="actions">
-          <button class="btn ghost" id="cancelPostBtn">Cancel</button>
-          <button class="btn green" id="submitPostBtn">Post</button>
-        </div>
-
-        <div class="hint" id="postHint">Tip: Keep it short—customers decide fast.</div>
+    <div class="stepper">
+      <div class="left" id="stepLeft">Step 1/4</div>
+      <div class="btns">
+        <button class="btn ghost" id="backBtn">Back</button>
+        <button class="btn green" id="nextBtn">Next</button>
       </div>
     </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* -------------------- Firebase -------------------- */
+/* Firebase */
 const app = initializeApp({
   apiKey:"AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
   authDomain:"trackingclients.firebaseapp.com",
@@ -407,29 +328,27 @@ const app = initializeApp({
   storageBucket:"trackingclients.appspot.com",
   messagingSenderId:"27490943622",
   appId:"1:27490943622:web:d6c87547aa5df440508707"
-}, "rotiPaniApp");
+}, "rotiPaniPostWizard");
 
 const db = getDatabase(app);
-const USERS = "rotipani/restaurantsV2"; // use a new path to avoid breaking old data
+const USERS = "rotipani/restaurantsV2"; // recommended new schema
 
-/* -------------------- State -------------------- */
+/* State */
 let map;
-let myLat = null, myLng = null;
-let myUsername = localStorage.getItem("rp_username") || "";
-let myId = localStorage.getItem("rp_uid") || ""; // stable id derived from username
+let myLat=null, myLng=null;
+let watchId=null;
 
+let myUsername = localStorage.getItem("rp_username") || "";
+let myId = localStorage.getItem("rp_uid") || "";
+
+/* Data for map markers (optional, but keeps “me” visible) */
 const markers = new Map();
 const restData = new Map();
 
-let watchId = null;
-
-/* -------------------- DOM -------------------- */
-const dealsEl = document.getElementById("dealsCount");
+/* DOM */
 const toastEl = document.getElementById("toast");
-
-const locateBtn = document.getElementById("locateBtn");
-const openPostBtn = document.getElementById("openPostBtn");
-const quickInput = document.getElementById("quickInput");
+const openWizardBtn = document.getElementById("openWizardBtn");
+const userLabel = document.getElementById("userLabel");
 
 const loginOverlay = document.getElementById("loginOverlay");
 const closeLoginBtn = document.getElementById("closeLoginBtn");
@@ -438,22 +357,16 @@ const emailPreview = document.getElementById("emailPreview");
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
-const postOverlay = document.getElementById("postOverlay");
-const closePostBtn = document.getElementById("closePostBtn");
-const cancelPostBtn = document.getElementById("cancelPostBtn");
-const submitPostBtn = document.getElementById("submitPostBtn");
-const whoami = document.getElementById("whoami");
+const wizardOverlay = document.getElementById("wizardOverlay");
+const closeWizardBtn = document.getElementById("closeWizardBtn");
+const stepTitle = document.getElementById("stepTitle");
+const stepSub = document.getElementById("stepSub");
+const stepLeft = document.getElementById("stepLeft");
+const stepBody = document.getElementById("stepBody");
+const backBtn = document.getElementById("backBtn");
+const nextBtn = document.getElementById("nextBtn");
 
-const restName = document.getElementById("restName");
-const dealTitle = document.getElementById("dealTitle");
-const dealDesc = document.getElementById("dealDesc");
-const origPrice = document.getElementById("origPrice");
-const discPrice = document.getElementById("discPrice");
-const waLocal = document.getElementById("waLocal");
-const waPreview = document.getElementById("waPreview");
-const postHint = document.getElementById("postHint");
-
-/* -------------------- UI helpers -------------------- */
+/* Toast */
 let toastT;
 function toast(t, ms=2400){
   toastEl.textContent = t;
@@ -462,118 +375,86 @@ function toast(t, ms=2400){
   toastT = setTimeout(()=>toastEl.classList.remove("show"), ms);
 }
 
+/* Helpers */
 function openSheet(el){ el.style.display="flex"; }
 function closeSheet(el){ el.style.display="none"; }
 
-function esc(s){
-  return String(s ?? "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-}
-
 function cleanUsername(u){
   u = String(u || "").trim().toLowerCase();
-  // allow letters, numbers, underscore, dot
   u = u.replace(/[^a-z0-9._]/g, "");
-  // avoid leading dots
   u = u.replace(/^\.+/,"");
   return u.slice(0, 24);
 }
-
-function emailFromUsername(u){
-  return u ? `${u}@rotipani.net` : "—";
-}
-
-function uidFromUsername(u){
-  // simple deterministic id: rp_<username>
-  return u ? `rp_${u}` : "";
-}
-
+function emailFromUsername(u){ return u ? `${u}@rotipani.net` : ""; }
+function uidFromUsername(u){ return u ? `rp_${u}` : ""; }
 function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
-
 function normalizeWa(local){
-  // input example: 03452233450
-  // store: 92 + (strip leading 0)
   let d = digitsOnly(local);
-  if (d.startsWith("0")) d = d.slice(1);
-  // clamp to typical PK lengths (best-effort)
+  if(d.startsWith("0")) d = d.slice(1);
   d = d.slice(0, 11);
   return d ? `92${d}` : "";
 }
-
-function fmtTs(val){
-  if(!val) return "";
-  const ts = (typeof val === "object" && val !== null && "toMillis" in val) ? val.toMillis() : val;
-  const d = new Date(ts);
+function esc(s){
+  return String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function fmtTs(ms){
+  if(!ms) return "";
+  const d = new Date(ms);
+  if(Number.isNaN(d.getTime())) return "";
   const p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/* -------------------- Popup rendering -------------------- */
+/* Map popup */
 function mkPopup(d){
-  const rn = (d.restName || "").trim();
-  const title = (d.dealTitle || "").trim();
-  const desc = (d.dealDesc || "").trim();
-  const op = (d.origPrice || "").toString().trim();
-  const dp = (d.discPrice || "").toString().trim();
-  const wa = (d.whatsapp || "").trim();
-
-  const hasDeal = title || desc || dp || op;
-
+  const rn = (d.restName||"").trim();
+  const title = (d.dealTitle||"").trim();
+  const desc = (d.dealDesc||"").trim();
+  const op = (d.origPrice||"").toString().trim();
+  const dp = (d.discPrice||"").toString().trim();
+  const wa = (d.whatsapp||"").trim();
   const time = d.tsClient ? fmtTs(d.tsClient) : "";
 
-  if(!hasDeal){
-    return `<div class="pop-sub"><i>No deal posted yet</i></div>`;
-  }
-
-  const priceLine = (op || dp)
-    ? `<div class="pop-price">${op?`<s>PKR ${esc(op)}</s>`:""}${dp?`<b>PKR ${esc(dp)}</b>`:""}</div>`
-    : "";
-
-  const waLine = wa ? `<div class="pop-sub" style="margin-top:6px">WhatsApp: <b>${esc(wa)}</b></div>` : "";
-
+  if(!title && !desc && !op && !dp) return `<div class="pop-sub"><i>No deal posted yet</i></div>`;
   return `
     <div class="pop-tag">🏷️ DEAL</div>
     <div class="pop-title">${esc(title || rn || "Deal")}</div>
     ${rn && title ? `<div class="pop-sub">${esc(rn)}</div>` : ""}
     ${desc ? `<div class="pop-sub" style="margin-top:6px">${esc(desc)}</div>` : ""}
-    ${priceLine}
-    ${waLine}
+    ${(op||dp) ? `<div class="pop-price">${op?`<s>PKR ${esc(op)}</s>`:""}${dp?`<b>PKR ${esc(dp)}</b>`:""}</div>` : ""}
+    ${wa ? `<div class="pop-sub" style="margin-top:6px">WhatsApp: <b>${esc(wa)}</b></div>` : ""}
     ${time ? `<div class="pop-time">${esc(time)}</div>` : ""}
   `;
 }
-
 function mkEl(isMe){
   const d=document.createElement("div");
   d.className="rmarker"+(isMe?" me":"");
   d.innerHTML = `<div class="ping"></div>${isMe ? "📍" : "🍽️"}`;
   return d;
 }
-
 function upsert(uid, data){
   const isMe = uid === myId;
   const lngLat = [data.lng, data.lat];
 
   if(markers.has(uid)){
-    const { marker, popup } = markers.get(uid);
+    const {marker, popup} = markers.get(uid);
     marker.setLngLat(lngLat);
     popup.setLngLat(lngLat);
     popup.setHTML(mkPopup(data));
     if(!popup.isOpen()) popup.addTo(map);
     return;
   }
-
   const el = mkEl(isMe);
   const popup = new maplibregl.Popup({
     offset:[0,-20],
-    closeButton: isMe,
-    closeOnClick: false,
-    maxWidth:"220px"
+    closeButton:isMe,
+    closeOnClick:false,
+    maxWidth:"240px"
   }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map);
 
-  const marker = new maplibregl.Marker({ element: el, anchor:"center" })
-    .setLngLat(lngLat)
-    .addTo(map);
+  const marker = new maplibregl.Marker({element:el, anchor:"center"})
+    .setLngLat(lngLat).addTo(map);
 
   el.addEventListener("click", ()=>{
     const latest = restData.get(uid) || data;
@@ -581,19 +462,16 @@ function upsert(uid, data){
     if(!popup.isOpen()) popup.setLngLat(lngLat).addTo(map);
   });
 
-  markers.set(uid, { marker, popup });
+  markers.set(uid, {marker, popup});
 }
-
 function drop(uid){
   const m = markers.get(uid);
   if(!m) return;
-  m.popup.remove();
-  m.marker.remove();
-  markers.delete(uid);
-  restData.delete(uid);
+  m.popup.remove(); m.marker.remove();
+  markers.delete(uid); restData.delete(uid);
 }
 
-/* -------------------- Data sync -------------------- */
+/* Sync (optional) */
 function listenRestaurants(){
   onValue(ref(db, USERS), snap=>{
     const live = new Set();
@@ -603,7 +481,7 @@ function listenRestaurants(){
         const d = child.val();
         if(!d || typeof d.lat !== "number" || typeof d.lng !== "number") return;
         live.add(uid);
-        const merged = { ...d, id: uid };
+        const merged = {...d, id: uid};
         restData.set(uid, merged);
         upsert(uid, merged);
       });
@@ -611,25 +489,10 @@ function listenRestaurants(){
     for(const uid of markers.keys()){
       if(!live.has(uid)) drop(uid);
     }
-
-    // count only active deals (has title or desc or prices)
-    let dealCount = 0;
-    for(const d of restData.values()){
-      const ok = (d.dealTitle || "").trim() || (d.dealDesc || "").trim() || (d.origPrice || "").toString().trim() || (d.discPrice || "").toString().trim();
-      if(ok) dealCount++;
-    }
-    dealsEl.textContent = String(dealCount);
   });
 }
 
-async function updateMyLocationOnly(){
-  if(!myId || myLat === null || myLng === null) return;
-  const r = ref(db, `${USERS}/${myId}`);
-  // IMPORTANT: do NOT overwrite deal fields during location updates.
-  await update(r, { lat: myLat, lng: myLng, lastSeen: serverTimestamp() });
-}
-
-/* -------------------- Geolocation -------------------- */
+/* Location */
 async function initMap(){
   map = new maplibregl.Map({
     container:"map",
@@ -642,8 +505,7 @@ async function initMap(){
         ],
         tileSize:256
       }},
-      layers:[{
-        id:"osm", type:"raster", source:"osm",
+      layers:[{id:"osm", type:"raster", source:"osm",
         paint:{
           "raster-saturation": .28,
           "raster-hue-rotate": 105,
@@ -658,246 +520,313 @@ async function initMap(){
     attributionControl:false,
     fadeDuration:0
   });
-
-  await new Promise(res=>map.on("load", res));
+  await new Promise(res=>map.on("load",res));
 }
-
+async function updateMyLocationOnly(){
+  if(!myId || myLat==null || myLng==null) return;
+  await update(ref(db, `${USERS}/${myId}`), { lat:myLat, lng:myLng, lastSeen: serverTimestamp() });
+}
 function startWatch(){
-  if(!navigator.geolocation){
-    toast("Geolocation not supported");
-    return;
-  }
-  if(watchId !== null) return;
-
+  if(!navigator.geolocation){ toast("Geolocation not supported"); return; }
+  if(watchId!=null) return;
   watchId = navigator.geolocation.watchPosition(
     async pos=>{
-      myLat = pos.coords.latitude;
-      myLng = pos.coords.longitude;
-
-      locateBtn.classList.add("on");
-
-      // enable posting only when logged in + location ready
-      openPostBtn.disabled = !(myId && myLat !== null);
-
-      // push location without overwriting deal
-      try { await updateMyLocationOnly(); } catch {}
+      myLat=pos.coords.latitude; myLng=pos.coords.longitude;
+      openWizardBtn.disabled = !(myId && myLat!=null);
+      try{ await updateMyLocationOnly(); }catch{}
     },
-    err=>toast("Location: " + err.message),
-    { enableHighAccuracy:true, timeout:10000, maximumAge:4000 }
+    err=>toast("Location: "+err.message),
+    {enableHighAccuracy:true, timeout:10000, maximumAge:4000}
   );
 }
 
-/* -------------------- Login flow -------------------- */
-function refreshLoginUI(){
-  const u = cleanUsername(myUsername);
-  emailPreview.textContent = emailFromUsername(u);
-
-  const loggedIn = !!(myId && u);
-  logoutBtn.style.display = loggedIn ? "block" : "none";
-  loginBtn.textContent = loggedIn ? "Continue" : "Continue";
+/* Login UI */
+function refreshUserUI(){
+  userLabel.textContent = myUsername ? emailFromUsername(myUsername) : "Not logged in";
+  emailPreview.textContent = myUsername ? emailFromUsername(myUsername) : "—";
+  logoutBtn.style.display = myId ? "block" : "none";
+  openWizardBtn.disabled = !(myId && myLat!=null);
 }
-
 function ensureLogin(){
-  // open login sheet if not logged in
   if(!myId){
     usernameInput.value = cleanUsername(myUsername);
-    refreshLoginUI();
     openSheet(loginOverlay);
-    setTimeout(()=>usernameInput.focus(), 80);
+    setTimeout(()=>usernameInput.focus(), 60);
     return false;
   }
   return true;
 }
 
 usernameInput.addEventListener("input", ()=>{
-  const u = cleanUsername(usernameInput.value);
-  usernameInput.value = u;
-  emailPreview.textContent = emailFromUsername(u);
+  usernameInput.value = cleanUsername(usernameInput.value);
+  emailPreview.textContent = emailFromUsername(usernameInput.value);
 });
-
 loginBtn.addEventListener("click", async ()=>{
   const u = cleanUsername(usernameInput.value);
-  if(!u){
-    toast("Enter a username");
-    return;
-  }
-
+  if(!u){ toast("Enter a username"); return; }
   myUsername = u;
   myId = uidFromUsername(u);
-
   localStorage.setItem("rp_username", myUsername);
   localStorage.setItem("rp_uid", myId);
-
-  refreshLoginUI();
   closeSheet(loginOverlay);
   toast("Logged in as " + emailFromUsername(myUsername));
+  refreshUserUI();
 
-  openPostBtn.disabled = !(myLat !== null);
-
-  // ensure record exists with minimal profile (do not overwrite deals)
   try{
     await update(ref(db, `${USERS}/${myId}`), {
       username: myUsername,
       email: emailFromUsername(myUsername),
       lastSeen: serverTimestamp()
     });
-    if(myLat !== null && myLng !== null) await updateMyLocationOnly();
-  }catch(e){
-    toast("Could not connect to database");
+    await updateMyLocationOnly();
+  }catch{
+    toast("DB error");
   }
 });
-
 logoutBtn.addEventListener("click", ()=>{
   localStorage.removeItem("rp_username");
   localStorage.removeItem("rp_uid");
-  myUsername = "";
-  myId = "";
-  openPostBtn.disabled = true;
+  myUsername=""; myId="";
+  refreshUserUI();
   toast("Logged out");
-  refreshLoginUI();
 });
 
-/* -------------------- Post flow -------------------- */
-function updateWaPreview(){
-  const full = normalizeWa(waLocal.value);
-  waPreview.textContent = full || "92…";
+closeLoginBtn.addEventListener("click", ()=>closeSheet(loginOverlay));
+loginOverlay.addEventListener("click", (e)=>{ if(e.target===loginOverlay) closeSheet(loginOverlay); });
+
+/* -------- Wizard (step-by-step) -------- */
+const wizard = {
+  step: 0,
+  data: {
+    restName: "",
+    dealTitle: "",
+    dealDesc: "",
+    origPrice: "",
+    discPrice: "",
+    waLocal: ""
+  }
+};
+const steps = [
+  {
+    title: "Restaurant info",
+    sub: "Step 1 of 4",
+    render(){
+      return `
+        <div class="grid">
+          <div class="badge">Logged in as <code>${esc(emailFromUsername(myUsername))}</code></div>
+          <div class="field">
+            <div class="label">Restaurant name</div>
+            <input id="s_restName" placeholder="e.g. Al Rehman Restaurant" value="${esc(wizard.data.restName)}" autocomplete="off"/>
+            <div class="hint">This name will appear on the deal popup.</div>
+          </div>
+        </div>
+      `;
+    },
+    read(){
+      wizard.data.restName = document.getElementById("s_restName").value.trim();
+    },
+    validate(){
+      return wizard.data.restName ? "" : "Restaurant name is required";
+    }
+  },
+  {
+    title: "Deal title",
+    sub: "Step 2 of 4",
+    render(){
+      return `
+        <div class="grid">
+          <div class="field">
+            <div class="label">Deal title</div>
+            <input id="s_title" placeholder="e.g. Biryani Friday Special" value="${esc(wizard.data.dealTitle)}" maxlength="60" autocomplete="off"/>
+            <div class="hint">Keep it short and clear.</div>
+          </div>
+        </div>
+      `;
+    },
+    read(){
+      wizard.data.dealTitle = document.getElementById("s_title").value.trim();
+    },
+    validate(){
+      return wizard.data.dealTitle ? "" : "Deal title is required";
+    }
+  },
+  {
+    title: "Description & prices",
+    sub: "Step 3 of 4",
+    render(){
+      return `
+        <div class="grid">
+          <div class="field">
+            <div class="label">Deal description</div>
+            <textarea id="s_desc" placeholder="e.g. Chicken biryani + raita, limited time offer…" maxlength="180">${esc(wizard.data.dealDesc)}</textarea>
+          </div>
+          <div class="field">
+            <div class="label">Original price (PKR)</div>
+            <input id="s_op" inputmode="numeric" placeholder="e.g. 800" value="${esc(wizard.data.origPrice)}"/>
+          </div>
+          <div class="field">
+            <div class="label">Discount price (PKR)</div>
+            <input id="s_dp" inputmode="numeric" placeholder="e.g. 550" value="${esc(wizard.data.discPrice)}"/>
+          </div>
+        </div>
+      `;
+    },
+    read(){
+      wizard.data.dealDesc = document.getElementById("s_desc").value.trim();
+      wizard.data.origPrice = digitsOnly(document.getElementById("s_op").value.trim());
+      wizard.data.discPrice = digitsOnly(document.getElementById("s_dp").value.trim());
+    },
+    validate(){
+      if(!wizard.data.dealDesc) return "Deal description is required";
+      if(!wizard.data.origPrice) return "Original price is required";
+      if(!wizard.data.discPrice) return "Discount price is required";
+      if(Number(wizard.data.discPrice) >= Number(wizard.data.origPrice)) return "Discount must be less than original price";
+      return "";
+    }
+  },
+  {
+    title: "WhatsApp & confirm",
+    sub: "Step 4 of 4",
+    render(){
+      const waFull = normalizeWa(wizard.data.waLocal);
+      return `
+        <div class="grid">
+          <div class="field">
+            <div class="label">WhatsApp number</div>
+            <input id="s_wa" inputmode="numeric" placeholder="03452233450" value="${esc(wizard.data.waLocal)}"/>
+            <div class="hint">We automatically add country code <b>92</b>. Saved as: <b>${esc(waFull || "92…")}</b></div>
+          </div>
+
+          <div class="badge">Review</div>
+          <div class="hint">
+            <b>${esc(wizard.data.restName)}</b><br/>
+            ${esc(wizard.data.dealTitle)}<br/>
+            PKR ${esc(wizard.data.origPrice)} → PKR ${esc(wizard.data.discPrice)}
+          </div>
+        </div>
+      `;
+    },
+    afterRender(){
+      const el = document.getElementById("s_wa");
+      el.addEventListener("input", ()=>{
+        el.value = digitsOnly(el.value).slice(0, 11);
+      });
+    },
+    read(){
+      wizard.data.waLocal = document.getElementById("s_wa").value.trim();
+    },
+    validate(){
+      const wa = normalizeWa(wizard.data.waLocal);
+      if(!wa) return "WhatsApp number is required";
+      if(wa.length < 11) return "WhatsApp number looks too short";
+      return "";
+    }
+  }
+];
+
+function renderStep(){
+  const s = steps[wizard.step];
+  stepTitle.textContent = s.title;
+  stepSub.textContent = s.sub;
+  stepLeft.textContent = `Step ${wizard.step+1}/${steps.length}`;
+
+  stepBody.innerHTML = s.render();
+
+  backBtn.disabled = wizard.step === 0;
+  nextBtn.textContent = (wizard.step === steps.length-1) ? "Post" : "Next";
+
+  // optional afterRender hook
+  if(typeof s.afterRender === "function") s.afterRender();
 }
-waLocal.addEventListener("input", ()=>{
-  // keep only digits + allow leading 0
-  waLocal.value = digitsOnly(waLocal.value).slice(0, 11);
-  updateWaPreview();
-});
 
-function resetPostForm(){
-  restName.value = "";
-  dealTitle.value = "";
-  dealDesc.value = "";
-  origPrice.value = "";
-  discPrice.value = "";
-  waLocal.value = "";
-  updateWaPreview();
-  postHint.textContent = "Tip: Keep it short—customers decide fast.";
-}
-
-function validatePost(){
-  if(myLat === null || myLng === null) return "Location not ready yet";
-  if(!myId) return "Please login first";
-
-  const rn = restName.value.trim();
-  const t = dealTitle.value.trim();
-  const d = dealDesc.value.trim();
-  const op = digitsOnly(origPrice.value.trim());
-  const dp = digitsOnly(discPrice.value.trim());
-  const wa = normalizeWa(waLocal.value);
-
-  if(!rn) return "Restaurant name is required";
-  if(!t) return "Deal title is required";
-  if(!d) return "Deal description is required";
-  if(!op) return "Original price is required";
-  if(!dp) return "Discount price is required";
-  if(Number(dp) >= Number(op)) return "Discount price must be less than original price";
-  if(!wa) return "WhatsApp number is required";
-  if(wa.length < 11) return "WhatsApp number looks too short";
-
-  return "";
-}
-
-openPostBtn.addEventListener("click", ()=>{
+function openWizard(){
   if(!ensureLogin()) return;
-  whoami.textContent = emailFromUsername(myUsername);
-  openSheet(postOverlay);
+  openSheet(wizardOverlay);
+  wizard.step = 0;
+  renderStep();
+}
+
+function closeWizard(){
+  closeSheet(wizardOverlay);
+}
+
+backBtn.addEventListener("click", ()=>{
+  steps[wizard.step].read();
+  if(wizard.step > 0){
+    wizard.step--;
+    renderStep();
+  }
 });
 
-closePostBtn.addEventListener("click", ()=>closeSheet(postOverlay));
-cancelPostBtn.addEventListener("click", ()=>closeSheet(postOverlay));
+nextBtn.addEventListener("click", async ()=>{
+  const s = steps[wizard.step];
+  s.read();
+  const err = s.validate();
+  if(err){ toast(err); return; }
 
-submitPostBtn.addEventListener("click", async ()=>{
-  const err = validatePost();
-  if(err){
-    postHint.textContent = err;
-    postHint.style.color = "var(--danger)";
-    toast(err);
+  if(wizard.step < steps.length-1){
+    wizard.step++;
+    renderStep();
     return;
   }
-  postHint.style.color = "var(--muted2)";
+
+  // Final Post
+  if(myLat==null || myLng==null){ toast("Location not ready"); return; }
 
   const payload = {
     username: myUsername,
     email: emailFromUsername(myUsername),
 
-    restName: restName.value.trim(),
-    dealTitle: dealTitle.value.trim(),
-    dealDesc: dealDesc.value.trim(),
-    origPrice: digitsOnly(origPrice.value.trim()),
-    discPrice: digitsOnly(discPrice.value.trim()),
-    whatsapp: normalizeWa(waLocal.value),
+    restName: wizard.data.restName,
+    dealTitle: wizard.data.dealTitle,
+    dealDesc: wizard.data.dealDesc,
+    origPrice: wizard.data.origPrice,
+    discPrice: wizard.data.discPrice,
+    whatsapp: normalizeWa(wizard.data.waLocal),
 
     lat: myLat,
     lng: myLng,
 
-    ts: serverTimestamp(),      // authoritative
-    tsClient: Date.now(),       // immediate for UI
+    ts: serverTimestamp(),
+    tsClient: Date.now(),
     lastSeen: serverTimestamp()
   };
 
-  submitPostBtn.disabled = true;
+  nextBtn.disabled = true;
   try{
-    // optimistic UI update
+    // optimistic map update
     restData.set(myId, { ...payload, id: myId });
     upsert(myId, { ...payload, id: myId });
 
     await set(ref(db, `${USERS}/${myId}`), payload);
-
     toast("Deal posted");
-    closeSheet(postOverlay);
-    resetPostForm();
+    closeWizard();
   }catch(e){
     toast("Failed to post");
   }finally{
-    submitPostBtn.disabled = false;
+    nextBtn.disabled = false;
   }
 });
 
-/* -------------------- Map controls -------------------- */
-locateBtn.addEventListener("click", ()=>{
-  if(!map) return;
-  if(myLat !== null && myLng !== null){
-    map.flyTo({ center:[myLng, myLat], zoom:Math.max(map.getZoom(), 15), duration:600 });
-  }else{
-    toast("Location not ready yet");
-  }
-});
+openWizardBtn.addEventListener("click", openWizard);
+closeWizardBtn.addEventListener("click", closeWizard);
+wizardOverlay.addEventListener("click", (e)=>{ if(e.target===wizardOverlay) closeWizard(); });
 
-/* -------------------- Boot -------------------- */
+/* Boot */
 (async function boot(){
-  // init map first (fast)
   await initMap();
   listenRestaurants();
-
-  // show login prompt if needed (non-blocking)
-  if(myUsername) usernameInput.value = cleanUsername(myUsername);
-  refreshLoginUI();
-  openSheet(loginOverlay);
-
-  // start location
   startWatch();
 
-  // quick input is just a hint on compact bar
-  quickInput.value = "";
+  // restore login if present
+  myUsername = cleanUsername(myUsername);
+  if(myUsername) myId = uidFromUsername(myUsername);
 
-  // if already logged in (localStorage), enable post when location arrives
-  if(myUsername){
-    myUsername = cleanUsername(myUsername);
-    myId = uidFromUsername(myUsername);
-    localStorage.setItem("rp_username", myUsername);
-    localStorage.setItem("rp_uid", myId);
-    refreshLoginUI();
-  }
+  refreshUserUI();
+
+  // if not logged in, show login sheet immediately
+  if(!myId) openSheet(loginOverlay);
 })();
-
-closeLoginBtn.addEventListener("click", ()=>closeSheet(loginOverlay));
-loginOverlay.addEventListener("click", (e)=>{ if(e.target === loginOverlay) closeSheet(loginOverlay); });
-postOverlay.addEventListener("click", (e)=>{ if(e.target === postOverlay) closeSheet(postOverlay); });
 </script>
 </body>
 </html>
