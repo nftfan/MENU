@@ -4,310 +4,463 @@
 <meta charset="utf-8" />
 <title>RotiPani — Post Deal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#0a1f0e" />
+<meta name="theme-color" content="#ffffff" />
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
 <style>
-:root{
-  --bg:#0a1f0e;
-  --surface:#0f2613;
-  --card:#132c17;
-  --card2:#162f1a;
-  --border:#1d3b24;
-  --border2:#2a5c34;
-  --text:#eef6ef;
-  --muted:#77a282;
-  --muted2:#5f8c6b;
-  --green:#22c55e;
-  --danger:#ef4444;
+:root {
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --card: #fafaf9;
+  --border: #e8e8e4;
+  --border-focus: #2d6a4f;
+  --text: #111210;
+  --text-2: #555750;
+  --text-3: #999990;
+  --accent: #2d6a4f;
+  --accent-light: #edf5f0;
+  --accent-mid: #d0e8db;
+  --danger: #c0392b;
+  --danger-light: #fdf2f1;
 
-  --top-h:50px;
-  --bar-h:68px;
+  --top-h: 60px;
+  --bar-h: 80px;
 
-  --radius:16px;
-  --radius-sm:12px;
-  --shadow:0 10px 28px rgba(0,0,0,.42);
-  --font: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-}
-
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);}
-
-#map{
-  position:fixed;
-  top:var(--top-h); left:0; right:0;
-  bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+  --font: 'Sora', system-ui, -apple-system, sans-serif;
+  --mono: 'DM Mono', monospace;
 }
 
-/* Topbar */
-.topbar{
-  position:fixed;top:0;left:0;right:0;height:var(--top-h);
-  background:rgba(10,31,14,.92);
-  backdrop-filter:saturate(150%) blur(10px);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 12px;z-index:600;gap:10px;
-}
-.brand{display:flex;align-items:center;gap:8px;min-width:0;}
-.brand .icon{
-  width:30px;height:30px;border-radius:10px;background:var(--green);
-  display:grid;place-items:center;font-size:16px;flex-shrink:0;
-  box-shadow:0 10px 20px rgba(34,197,94,.18);
-}
-.brand .name{font-weight:800;font-size:15px;letter-spacing:-.2px;white-space:nowrap;}
-.brand .name span{color:var(--green);}
-.userpill{
-  margin-left:auto;
-  display:flex;align-items:center;gap:6px;
-  border:1px solid var(--border2);
-  background:linear-gradient(180deg, rgba(22,47,26,.9), rgba(15,38,19,.9));
-  border-radius:999px;
-  padding:5px 10px;
-  font-size:11px;color:var(--muted);
-  min-width:0;
-}
-.userpill b{color:var(--text);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
 
-/* Bottom bar: only centered button */
-.bottom{
-  position:fixed;left:0;right:0;bottom:0;z-index:650;
-  height:calc(var(--bar-h) + env(safe-area-inset-bottom));
-  padding:10px 12px calc(12px + env(safe-area-inset-bottom));
-  background:rgba(10,31,14,.92);
-  backdrop-filter:saturate(150%) blur(10px);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
+/* ── Topbar ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--top-h);
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px;
+  z-index: 600; gap: 12px;
+  box-shadow: var(--shadow-sm);
 }
-.primary{
-  width:min(420px, 92vw);
-  height:48px;
-  border-radius:14px;
-  border:none;
-  background:var(--green);
-  color:#061a0a;
-  font-weight:900;
-  font-size:14px;
-  cursor:pointer;
-  transition:transform .1s ease, opacity .15s ease;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.primary:active{transform:scale(.99);}
-.primary:disabled{opacity:.35;cursor:not-allowed;}
 
-/* Sheets */
-.overlay{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.52);
-  z-index:900;
-  display:none;
-  align-items:flex-end;
-  padding:14px 12px calc(14px + env(safe-area-inset-bottom));
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--accent); display: grid; place-items: center;
+  font-size: 17px; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(45,106,79,.25);
 }
-.sheet{
-  width:100%;
-  background:linear-gradient(180deg, rgba(19,44,23,.98), rgba(15,38,19,.98));
-  border:1px solid var(--border2);
-  border-radius:18px;
-  box-shadow:var(--shadow);
-  overflow:hidden;
+.brand-name {
+  font-size: 15px; font-weight: 800; letter-spacing: -.4px;
+  color: var(--text);
 }
-.sheet-h{
-  padding:12px 12px 10px;
-  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-  border-bottom:1px solid var(--border);
+.brand-name span { color: var(--accent); }
+.brand-tag {
+  font-size: 10px; font-weight: 600; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--text-3);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 2px 7px; margin-left: 2px;
 }
-.sheet-h .title{font-size:13px;font-weight:900;letter-spacing:-.2px;}
-.sheet-h .sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
-.sheet-h .x{
-  width:38px;height:38px;border-radius:12px;
-  background:rgba(255,255,255,.04);
-  border:1px solid var(--border);
-  color:var(--muted);
-  cursor:pointer;
-}
-.sheet-h .x:active{transform:scale(.97);}
-.sheet-b{padding:12px;}
 
-.badge{
-  display:inline-flex;align-items:center;gap:6px;
-  background:#0c2a14;border:1px solid var(--border2);
-  padding:6px 10px;border-radius:999px;
-  font-size:11px;color:var(--muted);
+.userpill {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 14px 6px 10px;
+  cursor: pointer; transition: border-color .15s;
 }
-.badge code{color:var(--green);font-weight:900;background:transparent;}
+.userpill:hover { border-color: var(--accent-mid); }
+.userpill-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-light); border: 1px solid var(--accent-mid);
+  display: grid; place-items: center; font-size: 13px; flex-shrink: 0;
+}
+.userpill-name {
+  font-size: 11.5px; font-weight: 600; color: var(--text-2);
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
-.grid{display:grid;gap:10px;}
-.label{font-size:11px;color:var(--muted);margin-bottom:6px;}
-.field input, .field textarea{
-  width:100%;
-  border-radius:12px;
-  border:1px solid var(--border2);
-  background:rgba(10,31,14,.25);
-  color:var(--text);
-  padding:10px 11px;
-  font-size:13px;
-  outline:none;
+/* ── Map ── */
+#map {
+  position: fixed;
+  top: var(--top-h); left: 0; right: 0;
+  bottom: calc(var(--bar-h) + env(safe-area-inset-bottom));
 }
-.field textarea{min-height:90px;resize:none;line-height:1.35;}
-.field input:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.12);}
-.hint{font-size:11px;color:var(--muted2);line-height:1.35;}
 
-.stepper{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:10px 12px;border-top:1px solid var(--border);
-  background:rgba(0,0,0,.08);
+/* ── Bottom bar ── */
+.bottom {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 650;
+  height: calc(var(--bar-h) + env(safe-area-inset-bottom));
+  padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px;
+  box-shadow: 0 -2px 16px rgba(0,0,0,.05);
 }
-.stepper .left{
-  font-size:11px;color:var(--muted);
-}
-.stepper .btns{display:flex;gap:8px;}
-.btn{
-  height:42px;
-  border-radius:12px;
-  border:1px solid var(--border2);
-  background:var(--card2);
-  color:var(--text);
-  font-weight:900;font-size:13px;
-  cursor:pointer;
-  padding:0 12px;
-}
-.btn:active{transform:scale(.98);}
-.btn.green{background:var(--green);border:none;color:#061a0a;}
-.btn:disabled{opacity:.35;cursor:not-allowed;}
-.btn.ghost{background:transparent;border:1px solid var(--border2);}
 
-.toast{
-  position:fixed;top:calc(var(--top-h) + 10px);left:50%;
-  transform:translateX(-50%) translateY(-6px);
-  background:rgba(19,44,23,.95);
-  border:1px solid var(--border2);
-  border-radius:999px;
-  padding:8px 14px;
-  font-size:12px;color:var(--text);
-  z-index:950;
-  opacity:0;pointer-events:none;transition:all .2s;
-  white-space:nowrap;
+.btn-primary {
+  flex: 1; max-width: 480px; height: 50px;
+  border-radius: var(--radius); border: none;
+  background: var(--accent);
+  color: #fff; font-family: var(--font);
+  font-weight: 700; font-size: 14px; letter-spacing: -.1px;
+  cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, opacity .15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 2px 8px rgba(45,106,79,.3);
 }
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.btn-primary:hover { box-shadow: 0 4px 16px rgba(45,106,79,.35); transform: translateY(-1px); }
+.btn-primary:active { transform: scale(.99) translateY(0); box-shadow: 0 1px 4px rgba(45,106,79,.2); }
+.btn-primary:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-primary svg { flex-shrink: 0; }
 
-/* markers/popup */
-.maplibregl-ctrl-attrib{display:none !important;}
-.maplibregl-canvas{touch-action:none;}
-.maplibregl-popup{pointer-events:auto;}
-.maplibregl-popup-content{
-  background:rgba(15,38,19,.96) !important;
-  border:1px solid #2a5c34 !important;
-  border-radius:12px !important;
-  padding:9px 10px !important;
-  box-shadow:0 10px 26px rgba(0,0,0,.55) !important;
-  font-family:var(--font) !important;
-  max-width:240px !important;
+/* ── Overlay / Sheet ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(17,18,16,.4);
+  backdrop-filter: blur(4px);
+  z-index: 900; display: none; align-items: flex-end;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  animation: fadeIn .2s ease;
 }
-.maplibregl-popup-tip{border-top-color:#2a5c34 !important;}
-.maplibregl-popup-close-button{
-  color:var(--muted) !important;font-size:18px !important;
-  top:2px !important;right:6px !important;
-}
-.pop-title{font-size:13px;font-weight:900;color:#fff;line-height:1.2;}
-.pop-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35;}
-.pop-price{margin-top:6px;font-size:12px;}
-.pop-price s{color:#90b79a;opacity:.9;margin-right:6px;}
-.pop-time{font-size:10px;color:#4a7a52;margin-top:6px;}
-.pop-tag{
-  display:inline-flex;align-items:center;gap:6px;
-  background:#0d3318;color:var(--green);
-  font-size:10px;font-weight:900;border-radius:7px;
-  padding:3px 8px;margin-bottom:6px;letter-spacing:.35px;
-  border:1px solid rgba(42,92,52,.65);
-}
-.rmarker{
-  width:34px;height:34px;border-radius:50%;
-  background:rgba(15,38,19,.95);
-  border:2.5px solid var(--green);
-  box-shadow:0 2px 12px rgba(0,0,0,.5);
-  cursor:pointer;position:relative;display:grid;place-items:center;
-  font-size:16px;
-}
-.rmarker.me{border-color:#fff;}
-.rmarker .ping{
-  position:absolute;inset:-6px;border-radius:50%;
-  border:2px solid var(--green);opacity:0;
-  animation:ping 2.8s ease-out infinite;
-}
-@keyframes ping{0%{transform:scale(.82);opacity:.65;}100%{transform:scale(2);opacity:0;}}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-@media (max-width:360px){
-  .userpill b{max-width:120px;}
+.sheet {
+  width: 100%; max-width: 520px; margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: slideUp .22s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Sheet header */
+.sheet-header {
+  padding: 18px 20px 16px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.sheet-header-left { min-width: 0; }
+.sheet-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: 4px;
+}
+.sheet-title { font-size: 16px; font-weight: 800; letter-spacing: -.3px; color: var(--text); }
+.sheet-sub { font-size: 12px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+
+.btn-close {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text-3); cursor: pointer;
+  display: grid; place-items: center; font-size: 18px;
+  transition: background .12s, color .12s;
+}
+.btn-close:hover { background: var(--border); color: var(--text-2); }
+
+/* Sheet body */
+.sheet-body { padding: 20px; display: grid; gap: 14px; }
+
+/* Form fields */
+.field-label {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .2px;
+  color: var(--text-2); margin-bottom: 7px;
+  display: flex; align-items: center; gap: 6px;
+}
+.field-label .req { color: var(--accent); }
+.field-input {
+  width: 100%; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text); font-family: var(--font);
+  padding: 11px 14px; font-size: 13px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  line-height: 1.4;
+}
+.field-input::placeholder { color: var(--text-3); }
+.field-input:focus {
+  border-color: var(--accent); background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(45,106,79,.1);
+}
+textarea.field-input { min-height: 90px; resize: none; }
+.field-hint { font-size: 11px; color: var(--text-3); margin-top: 5px; line-height: 1.45; }
+
+/* Info badge */
+.info-badge {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-mid);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+}
+.info-badge-icon { font-size: 18px; flex-shrink: 0; }
+.info-badge-text { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.info-badge-text strong { color: var(--text); font-weight: 700; }
+.info-badge-mono {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  color: var(--accent); letter-spacing: -.2px;
+}
+
+/* Review card */
+.review-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px;
+}
+.review-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.review-row + .review-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.review-key { font-size: 11px; color: var(--text-3); font-weight: 600; letter-spacing: .2px; text-transform: uppercase; }
+.review-val { font-size: 13px; color: var(--text); font-weight: 600; text-align: right; }
+.price-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.price-orig { font-size: 12px; color: var(--text-3); text-decoration: line-through; }
+.price-disc { font-size: 13px; color: var(--accent); font-weight: 800; }
+.price-arrow { color: var(--text-3); font-size: 10px; }
+
+/* Price row */
+.price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Stepper footer */
+.sheet-footer {
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.step-dots { display: flex; gap: 5px; }
+.step-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border); transition: background .2s, width .2s;
+}
+.step-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+.footer-btns { display: flex; gap: 8px; }
+
+.btn-ghost {
+  height: 44px; padding: 0 18px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text-2); font-family: var(--font);
+  font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.btn-ghost:hover { border-color: var(--accent-mid); color: var(--text); }
+.btn-ghost:disabled { opacity: .35; cursor: not-allowed; }
+
+.btn-next {
+  height: 44px; padding: 0 22px; border-radius: var(--radius-sm);
+  border: none; background: var(--accent);
+  color: #fff; font-family: var(--font);
+  font-weight: 700; font-size: 13px; cursor: pointer;
+  transition: transform .1s, box-shadow .1s, opacity .15s;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 2px 6px rgba(45,106,79,.25);
+}
+.btn-next:hover { box-shadow: 0 4px 12px rgba(45,106,79,.3); transform: translateY(-1px); }
+.btn-next:active { transform: scale(.98); }
+.btn-next:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Toast */
+.toast {
+  position: fixed; top: calc(var(--top-h) + 12px); left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: var(--text); color: #fff;
+  border-radius: 999px; padding: 9px 18px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: -.1px;
+  z-index: 9999; opacity: 0; pointer-events: none;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 7px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--accent); }
+.toast.error { background: var(--danger); }
+
+/* Map styles */
+.maplibregl-ctrl-attrib { display: none !important; }
+.maplibregl-canvas { touch-action: none; }
+.maplibregl-popup { pointer-events: auto; }
+.maplibregl-popup-content {
+  background: rgba(255,255,255,.98) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: var(--font) !important;
+  max-width: 240px !important;
+}
+.maplibregl-popup-tip { border-top-color: var(--border) !important; }
+.maplibregl-popup-close-button {
+  color: var(--text-3) !important; font-size: 18px !important;
+  top: 6px !important; right: 10px !important;
+  width: 24px !important; height: 24px !important;
+  border-radius: 6px !important; background: var(--bg) !important;
+}
+
+/* Popup content */
+.pop-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent-light); color: var(--accent);
+  font-size: 10px; font-weight: 800; letter-spacing: .7px;
+  text-transform: uppercase; border-radius: 6px;
+  padding: 3px 8px; margin-bottom: 8px;
+  border: 1px solid var(--accent-mid);
+}
+.pop-name { font-size: 14px; font-weight: 800; letter-spacing: -.2px; color: var(--text); }
+.pop-rest { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.pop-desc { font-size: 12px; color: var(--text-2); margin-top: 7px; line-height: 1.45; }
+.pop-prices {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.pop-orig { font-size: 12px; color: var(--text-3); text-decoration: line-through; }
+.pop-disc { font-size: 14px; font-weight: 800; color: var(--accent); }
+.pop-sep { font-size: 10px; color: var(--border); }
+.pop-wa { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+.pop-wa b { color: var(--text-2); font-family: var(--mono); }
+.pop-time { font-size: 10px; color: var(--text-3); margin-top: 5px; }
+.pop-empty { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+/* Map markers */
+.rmarker {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent);
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  cursor: pointer; position: relative; display: grid; place-items: center;
+  font-size: 16px; transition: transform .15s;
+}
+.rmarker:active { transform: scale(.95); }
+.rmarker.me { border-color: var(--text); border-width: 2.5px; }
+.rmarker .ping {
+  position: absolute; inset: -7px; border-radius: 50%;
+  border: 2px solid var(--accent); opacity: 0;
+  animation: ping 3s ease-out infinite;
+}
+@keyframes ping { 0%{transform:scale(.8);opacity:.6;} 100%{transform:scale(2.2);opacity:0;} }
+
+/* Login sheet specifics */
+.auth-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text-3); font-size: 11px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+  .userpill-name { max-width: 100px; }
+  .topbar { padding: 0 14px; }
+  .sheet-body { padding: 16px; }
+  .sheet-header { padding: 14px 16px 12px; }
 }
 </style>
 </head>
 
 <body>
+
+<!-- ── Topbar ── -->
 <header class="topbar">
   <div class="brand">
-    <div class="icon">🍛</div>
-    <div class="name">Roti<span>Pani</span></div>
+    <div class="brand-icon">🍛</div>
+    <div class="brand-name">Roti<span>Pani</span></div>
+    <span class="brand-tag">Business</span>
   </div>
-  <div class="userpill">👤 <b id="userLabel">Not logged in</b></div>
+  <div class="userpill" id="userPill">
+    <div class="userpill-dot">👤</div>
+    <span class="userpill-name" id="userLabel">Sign in</span>
+  </div>
 </header>
 
+<!-- ── Map ── -->
 <div id="map"></div>
 
+<!-- ── Bottom Bar ── -->
 <div class="bottom">
-  <button class="primary" id="openWizardBtn" disabled>Post Deal</button>
+  <button class="btn-primary" id="openWizardBtn" disabled>
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    Post a Deal
+  </button>
 </div>
 
+<!-- ── Toast ── -->
 <div class="toast" id="toast"></div>
 
-<!-- LOGIN -->
+<!-- ── Login Sheet ── -->
 <div class="overlay" id="loginOverlay" role="dialog" aria-modal="true">
   <div class="sheet">
-    <div class="sheet-h">
-      <div>
-        <div class="title">Restaurant Login</div>
-        <div class="sub">Enter your username. We automatically use <b>@rotipani.net</b>.</div>
+    <div class="sheet-header">
+      <div class="sheet-header-left">
+        <div class="sheet-eyebrow">Restaurant Access</div>
+        <div class="sheet-title">Sign In</div>
+        <div class="sheet-sub">Enter your username — <strong>@rotipani.net</strong> is added automatically.</div>
       </div>
-      <button class="x" id="closeLoginBtn" aria-label="Close">✕</button>
+      <button class="btn-close" id="closeLoginBtn" aria-label="Close">×</button>
     </div>
-    <div class="sheet-b">
-      <div class="grid">
-        <div class="badge">Account: <code id="emailPreview">—</code></div>
 
-        <div class="field">
-          <div class="label">Username</div>
-          <input id="usernameInput" placeholder="e.g. alrahman" autocomplete="off" inputmode="text" />
-          <div class="hint">Only letters/numbers/underscore/dot. No spaces.</div>
+    <div class="sheet-body">
+      <div class="info-badge">
+        <div class="info-badge-icon">🔗</div>
+        <div class="info-badge-text">
+          Account: <span class="info-badge-mono" id="emailPreview">—</span>
         </div>
+      </div>
 
-        <div style="display:flex;gap:10px;">
-          <button class="btn ghost" id="logoutBtn" style="display:none;flex:1;">Logout</button>
-          <button class="btn green" id="loginBtn" style="flex:1;">Continue</button>
-        </div>
+      <div>
+        <div class="field-label">Username <span class="req">*</span></div>
+        <input class="field-input" id="usernameInput" placeholder="e.g. alrahman" autocomplete="off" inputmode="text" />
+        <div class="field-hint">Only letters, numbers, underscores, and dots. No spaces.</div>
+      </div>
 
-        <div class="hint">For real production security, add Firebase Auth (this is passwordless demo login).</div>
+      <div class="auth-divider">Passwordless demo login</div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="btn-ghost" id="logoutBtn" style="display:none;flex:1;">Sign Out</button>
+        <button class="btn-next" id="loginBtn" style="flex:1;justify-content:center;">
+          Continue
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- WIZARD -->
+<!-- ── Wizard Sheet ── -->
 <div class="overlay" id="wizardOverlay" role="dialog" aria-modal="true">
   <div class="sheet">
-    <div class="sheet-h">
-      <div>
-        <div class="title" id="stepTitle">Post a Deal</div>
-        <div class="sub" id="stepSub">Step 1 of 4</div>
+    <div class="sheet-header">
+      <div class="sheet-header-left">
+        <div class="sheet-eyebrow" id="stepEyebrow">New Deal</div>
+        <div class="sheet-title" id="stepTitle">Restaurant Info</div>
+        <div class="sheet-sub" id="stepSub">Step 1 of 4</div>
       </div>
-      <button class="x" id="closeWizardBtn" aria-label="Close">✕</button>
+      <button class="btn-close" id="closeWizardBtn" aria-label="Close">×</button>
     </div>
 
-    <div class="sheet-b" id="stepBody"></div>
+    <div class="sheet-body" id="stepBody"></div>
 
-    <div class="stepper">
-      <div class="left" id="stepLeft">Step 1/4</div>
-      <div class="btns">
-        <button class="btn ghost" id="backBtn">Back</button>
-        <button class="btn green" id="nextBtn">Next</button>
+    <div class="sheet-footer">
+      <div class="step-dots" id="stepDots">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+      <div class="footer-btns">
+        <button class="btn-ghost" id="backBtn">Back</button>
+        <button class="btn-next" id="nextBtn">
+          Next
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -319,7 +472,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getDatabase, ref, onValue, set, update, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* Firebase */
 const app = initializeApp({
   apiKey:"AIzaSyD_c9jMxAA6dtyk_EXAHnH09OEAoalUADA",
   authDomain:"trackingclients.firebaseapp.com",
@@ -328,503 +480,449 @@ const app = initializeApp({
   storageBucket:"trackingclients.appspot.com",
   messagingSenderId:"27490943622",
   appId:"1:27490943622:web:d6c87547aa5df440508707"
-}, "rotiPaniPostWizard");
+}, "rotiPaniPostWizardV2");
 
 const db = getDatabase(app);
-const USERS = "rotipani/restaurantsV2"; // recommended new schema
+const USERS = "rotipani/restaurantsV2";
 
-/* State */
-let map;
-let myLat=null, myLng=null;
-let watchId=null;
-
+let map, myLat=null, myLng=null, watchId=null;
 let myUsername = localStorage.getItem("rp_username") || "";
 let myId = localStorage.getItem("rp_uid") || "";
 
-/* Data for map markers (optional, but keeps “me” visible) */
-const markers = new Map();
-const restData = new Map();
+const markers = new Map(), restData = new Map();
 
-/* DOM */
-const toastEl = document.getElementById("toast");
+/* ── DOM refs ── */
+const toastEl       = document.getElementById("toast");
 const openWizardBtn = document.getElementById("openWizardBtn");
-const userLabel = document.getElementById("userLabel");
+const userLabel     = document.getElementById("userLabel");
+const userPill      = document.getElementById("userPill");
 
-const loginOverlay = document.getElementById("loginOverlay");
+const loginOverlay  = document.getElementById("loginOverlay");
 const closeLoginBtn = document.getElementById("closeLoginBtn");
 const usernameInput = document.getElementById("usernameInput");
-const emailPreview = document.getElementById("emailPreview");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+const emailPreview  = document.getElementById("emailPreview");
+const loginBtn      = document.getElementById("loginBtn");
+const logoutBtn     = document.getElementById("logoutBtn");
 
 const wizardOverlay = document.getElementById("wizardOverlay");
-const closeWizardBtn = document.getElementById("closeWizardBtn");
-const stepTitle = document.getElementById("stepTitle");
-const stepSub = document.getElementById("stepSub");
-const stepLeft = document.getElementById("stepLeft");
-const stepBody = document.getElementById("stepBody");
-const backBtn = document.getElementById("backBtn");
-const nextBtn = document.getElementById("nextBtn");
+const closeWizardBtn= document.getElementById("closeWizardBtn");
+const stepEyebrow   = document.getElementById("stepEyebrow");
+const stepTitle     = document.getElementById("stepTitle");
+const stepSub       = document.getElementById("stepSub");
+const stepBody      = document.getElementById("stepBody");
+const stepDots      = document.getElementById("stepDots");
+const backBtn       = document.getElementById("backBtn");
+const nextBtn       = document.getElementById("nextBtn");
 
-/* Toast */
+/* ── Toast ── */
 let toastT;
-function toast(t, ms=2400){
-  toastEl.textContent = t;
-  toastEl.classList.add("show");
+function toast(msg, type="", ms=2600) {
+  toastEl.textContent = msg;
+  toastEl.className = "toast show" + (type ? " "+type : "");
   clearTimeout(toastT);
-  toastT = setTimeout(()=>toastEl.classList.remove("show"), ms);
+  toastT = setTimeout(()=>{ toastEl.className="toast"; }, ms);
 }
 
-/* Helpers */
-function openSheet(el){ el.style.display="flex"; }
-function closeSheet(el){ el.style.display="none"; }
+/* ── Helpers ── */
+const openSheet  = el => el.style.display="flex";
+const closeSheet = el => el.style.display="none";
 
-function cleanUsername(u){
-  u = String(u || "").trim().toLowerCase();
-  u = u.replace(/[^a-z0-9._]/g, "");
-  u = u.replace(/^\.+/,"");
-  return u.slice(0, 24);
+function cleanUsername(u) {
+  return String(u||"").trim().toLowerCase()
+    .replace(/[^a-z0-9._]/g,"").replace(/^\.+/,"").slice(0,24);
 }
-function emailFromUsername(u){ return u ? `${u}@rotipani.net` : ""; }
-function uidFromUsername(u){ return u ? `rp_${u}` : ""; }
-function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
-function normalizeWa(local){
+const emailFromUsername = u => u ? `${u}@rotipani.net` : "";
+const uidFromUsername   = u => u ? `rp_${u}` : "";
+const digitsOnly        = s => String(s||"").replace(/\D/g,"");
+function normalizeWa(local) {
   let d = digitsOnly(local);
-  if(d.startsWith("0")) d = d.slice(1);
-  d = d.slice(0, 11);
-  return d ? `92${d}` : "";
+  if(d.startsWith("0")) d=d.slice(1);
+  return d ? `92${d.slice(0,10)}` : "";
 }
-function esc(s){
-  return String(s ?? "")
+function esc(s) {
+  return String(s??"")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
-function fmtTs(ms){
+function fmtTs(ms) {
   if(!ms) return "";
-  const d = new Date(ms);
-  if(Number.isNaN(d.getTime())) return "";
+  const d=new Date(ms);
+  if(isNaN(d)) return "";
   const p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/* Map popup */
-function mkPopup(d){
-  const rn = (d.restName||"").trim();
-  const title = (d.dealTitle||"").trim();
-  const desc = (d.dealDesc||"").trim();
-  const op = (d.origPrice||"").toString().trim();
-  const dp = (d.discPrice||"").toString().trim();
-  const wa = (d.whatsapp||"").trim();
-  const time = d.tsClient ? fmtTs(d.tsClient) : "";
-
-  if(!title && !desc && !op && !dp) return `<div class="pop-sub"><i>No deal posted yet</i></div>`;
+/* ── Popup HTML ── */
+function mkPopup(d) {
+  const title=esc(d.dealTitle||""), desc=esc(d.dealDesc||"");
+  const rn=esc(d.restName||""), op=esc(d.origPrice||""), dp=esc(d.discPrice||"");
+  const wa=esc(d.whatsapp||""), time=d.tsClient?fmtTs(d.tsClient):"";
+  if(!title&&!desc&&!op&&!dp) return `<div class="pop-empty">No deal posted yet</div>`;
   return `
-    <div class="pop-tag">🏷️ DEAL</div>
-    <div class="pop-title">${esc(title || rn || "Deal")}</div>
-    ${rn && title ? `<div class="pop-sub">${esc(rn)}</div>` : ""}
-    ${desc ? `<div class="pop-sub" style="margin-top:6px">${esc(desc)}</div>` : ""}
-    ${(op||dp) ? `<div class="pop-price">${op?`<s>PKR ${esc(op)}</s>`:""}${dp?`<b>PKR ${esc(dp)}</b>`:""}</div>` : ""}
-    ${wa ? `<div class="pop-sub" style="margin-top:6px">WhatsApp: <b>${esc(wa)}</b></div>` : ""}
-    ${time ? `<div class="pop-time">${esc(time)}</div>` : ""}
+    <div class="pop-chip">🏷️ Deal Active</div>
+    <div class="pop-name">${title||rn||"Deal"}</div>
+    ${rn&&title?`<div class="pop-rest">${rn}</div>`:""}
+    ${desc?`<div class="pop-desc">${desc}</div>`:""}
+    ${op||dp?`<div class="pop-prices">
+      ${op?`<span class="pop-orig">PKR ${op}</span><span class="pop-sep">→</span>`:""}
+      ${dp?`<span class="pop-disc">PKR ${dp}</span>`:""}
+    </div>`:""}
+    ${wa?`<div class="pop-wa">WhatsApp <b>${wa}</b></div>`:""}
+    ${time?`<div class="pop-time">${time}</div>`:""}
   `;
 }
-function mkEl(isMe){
-  const d=document.createElement("div");
-  d.className="rmarker"+(isMe?" me":"");
-  d.innerHTML = `<div class="ping"></div>${isMe ? "📍" : "🍽️"}`;
+
+/* ── Marker element ── */
+function mkEl(isMe) {
+  const d = document.createElement("div");
+  d.className = "rmarker" + (isMe?" me":"");
+  d.innerHTML = `<div class="ping"></div>${isMe?"📍":"🍽️"}`;
   return d;
 }
-function upsert(uid, data){
-  const isMe = uid === myId;
-  const lngLat = [data.lng, data.lat];
 
-  if(markers.has(uid)){
-    const {marker, popup} = markers.get(uid);
+/* ── Upsert / drop markers ── */
+function upsert(uid, data) {
+  const lngLat = [data.lng, data.lat];
+  if(markers.has(uid)) {
+    const {marker,popup} = markers.get(uid);
     marker.setLngLat(lngLat);
-    popup.setLngLat(lngLat);
-    popup.setHTML(mkPopup(data));
+    popup.setLngLat(lngLat).setHTML(mkPopup(data));
     if(!popup.isOpen()) popup.addTo(map);
     return;
   }
-  const el = mkEl(isMe);
+  const el = mkEl(uid===myId);
   const popup = new maplibregl.Popup({
-    offset:[0,-20],
-    closeButton:isMe,
-    closeOnClick:false,
-    maxWidth:"240px"
+    offset:[0,-22], closeButton:uid===myId, closeOnClick:false, maxWidth:"240px"
   }).setHTML(mkPopup(data)).setLngLat(lngLat).addTo(map);
 
   const marker = new maplibregl.Marker({element:el, anchor:"center"})
     .setLngLat(lngLat).addTo(map);
 
   el.addEventListener("click", ()=>{
-    const latest = restData.get(uid) || data;
+    const latest = restData.get(uid)||data;
     popup.setHTML(mkPopup(latest));
     if(!popup.isOpen()) popup.setLngLat(lngLat).addTo(map);
   });
-
-  markers.set(uid, {marker, popup});
+  markers.set(uid,{marker,popup});
 }
-function drop(uid){
-  const m = markers.get(uid);
-  if(!m) return;
+function drop(uid) {
+  const m = markers.get(uid); if(!m) return;
   m.popup.remove(); m.marker.remove();
   markers.delete(uid); restData.delete(uid);
 }
 
-/* Sync (optional) */
-function listenRestaurants(){
+/* ── Firebase listeners ── */
+function listenRestaurants() {
   onValue(ref(db, USERS), snap=>{
     const live = new Set();
-    if(snap.exists()){
+    if(snap.exists()) {
       snap.forEach(child=>{
-        const uid = child.key;
-        const d = child.val();
-        if(!d || typeof d.lat !== "number" || typeof d.lng !== "number") return;
+        const uid=child.key, d=child.val();
+        if(!d||typeof d.lat!=="number"||typeof d.lng!=="number") return;
         live.add(uid);
-        const merged = {...d, id: uid};
-        restData.set(uid, merged);
-        upsert(uid, merged);
+        const merged={...d,id:uid};
+        restData.set(uid,merged); upsert(uid,merged);
       });
     }
-    for(const uid of markers.keys()){
-      if(!live.has(uid)) drop(uid);
-    }
+    for(const uid of markers.keys()) if(!live.has(uid)) drop(uid);
   });
 }
 
-/* Location */
-async function initMap(){
+/* ── Map init ── */
+async function initMap() {
   map = new maplibregl.Map({
     container:"map",
     style:{
       version:8,
       sources:{osm:{type:"raster",
-        tiles:[
-          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        ],
+        tiles:["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png"],
         tileSize:256
       }},
-      layers:[{id:"osm", type:"raster", source:"osm",
+      layers:[{id:"osm",type:"raster",source:"osm",
         paint:{
-          "raster-saturation": .28,
-          "raster-hue-rotate": 105,
-          "raster-brightness-max": .55,
-          "raster-brightness-min": .06
+          "raster-saturation":-0.15,
+          "raster-brightness-max":0.92,
+          "raster-brightness-min":0.12,
+          "raster-contrast":0.08
         }
       }]
     },
-    center:[4.35,50.85],
-    zoom:13,
-    maxZoom:19,
-    attributionControl:false,
-    fadeDuration:0
+    center:[4.35,50.85], zoom:13, maxZoom:19,
+    attributionControl:false, fadeDuration:0
   });
   await new Promise(res=>map.on("load",res));
 }
-async function updateMyLocationOnly(){
-  if(!myId || myLat==null || myLng==null) return;
-  await update(ref(db, `${USERS}/${myId}`), { lat:myLat, lng:myLng, lastSeen: serverTimestamp() });
+
+async function updateMyLocation() {
+  if(!myId||myLat==null||myLng==null) return;
+  await update(ref(db,`${USERS}/${myId}`),{lat:myLat,lng:myLng,lastSeen:serverTimestamp()});
 }
-function startWatch(){
-  if(!navigator.geolocation){ toast("Geolocation not supported"); return; }
+
+function startWatch() {
+  if(!navigator.geolocation){toast("Geolocation not supported","error");return;}
   if(watchId!=null) return;
   watchId = navigator.geolocation.watchPosition(
     async pos=>{
       myLat=pos.coords.latitude; myLng=pos.coords.longitude;
       openWizardBtn.disabled = !(myId && myLat!=null);
-      try{ await updateMyLocationOnly(); }catch{}
+      try{ await updateMyLocation(); }catch{}
     },
-    err=>toast("Location: "+err.message),
-    {enableHighAccuracy:true, timeout:10000, maximumAge:4000}
+    err=>toast("Location: "+err.message,"error"),
+    {enableHighAccuracy:true,timeout:10000,maximumAge:4000}
   );
 }
 
-/* Login UI */
-function refreshUserUI(){
-  userLabel.textContent = myUsername ? emailFromUsername(myUsername) : "Not logged in";
+/* ── Auth UI ── */
+function refreshUserUI() {
+  userLabel.textContent = myUsername ? emailFromUsername(myUsername) : "Sign in";
   emailPreview.textContent = myUsername ? emailFromUsername(myUsername) : "—";
-  logoutBtn.style.display = myId ? "block" : "none";
+  logoutBtn.style.display = myId ? "flex" : "none";
   openWizardBtn.disabled = !(myId && myLat!=null);
 }
-function ensureLogin(){
+function ensureLogin() {
   if(!myId){
     usernameInput.value = cleanUsername(myUsername);
     openSheet(loginOverlay);
-    setTimeout(()=>usernameInput.focus(), 60);
+    setTimeout(()=>usernameInput.focus(),60);
     return false;
   }
   return true;
 }
 
-usernameInput.addEventListener("input", ()=>{
+usernameInput.addEventListener("input",()=>{
   usernameInput.value = cleanUsername(usernameInput.value);
   emailPreview.textContent = emailFromUsername(usernameInput.value);
 });
+
 loginBtn.addEventListener("click", async ()=>{
   const u = cleanUsername(usernameInput.value);
-  if(!u){ toast("Enter a username"); return; }
-  myUsername = u;
-  myId = uidFromUsername(u);
-  localStorage.setItem("rp_username", myUsername);
-  localStorage.setItem("rp_uid", myId);
+  if(!u){ toast("Enter a username","error"); return; }
+  myUsername=u; myId=uidFromUsername(u);
+  localStorage.setItem("rp_username",myUsername);
+  localStorage.setItem("rp_uid",myId);
   closeSheet(loginOverlay);
-  toast("Logged in as " + emailFromUsername(myUsername));
+  toast("Signed in as "+emailFromUsername(myUsername),"success");
   refreshUserUI();
-
   try{
-    await update(ref(db, `${USERS}/${myId}`), {
-      username: myUsername,
-      email: emailFromUsername(myUsername),
-      lastSeen: serverTimestamp()
+    await update(ref(db,`${USERS}/${myId}`),{
+      username:myUsername, email:emailFromUsername(myUsername), lastSeen:serverTimestamp()
     });
-    await updateMyLocationOnly();
-  }catch{
-    toast("DB error");
-  }
+    await updateMyLocation();
+  }catch{ toast("Database error","error"); }
 });
-logoutBtn.addEventListener("click", ()=>{
-  localStorage.removeItem("rp_username");
-  localStorage.removeItem("rp_uid");
+
+logoutBtn.addEventListener("click",()=>{
+  localStorage.removeItem("rp_username"); localStorage.removeItem("rp_uid");
   myUsername=""; myId="";
   refreshUserUI();
-  toast("Logged out");
+  closeSheet(loginOverlay);
+  toast("Signed out");
 });
 
-closeLoginBtn.addEventListener("click", ()=>closeSheet(loginOverlay));
-loginOverlay.addEventListener("click", (e)=>{ if(e.target===loginOverlay) closeSheet(loginOverlay); });
+closeLoginBtn.addEventListener("click",()=>closeSheet(loginOverlay));
+loginOverlay.addEventListener("click",e=>{ if(e.target===loginOverlay) closeSheet(loginOverlay); });
+userPill.addEventListener("click",()=>{ openSheet(loginOverlay); setTimeout(()=>usernameInput.focus(),60); });
 
-/* -------- Wizard (step-by-step) -------- */
+/* ── Wizard ── */
 const wizard = {
   step: 0,
-  data: {
-    restName: "",
-    dealTitle: "",
-    dealDesc: "",
-    origPrice: "",
-    discPrice: "",
-    waLocal: ""
-  }
+  data: { restName:"", dealTitle:"", dealDesc:"", origPrice:"", discPrice:"", waLocal:"" }
 };
+
 const steps = [
   {
-    title: "Restaurant info",
-    sub: "Step 1 of 4",
+    eyebrow:"Step 1 of 4", title:"Restaurant Info", sub:"Your restaurant name as it appears on the map.",
     render(){
       return `
-        <div class="grid">
-          <div class="badge">Logged in as <code>${esc(emailFromUsername(myUsername))}</code></div>
-          <div class="field">
-            <div class="label">Restaurant name</div>
-            <input id="s_restName" placeholder="e.g. Al Rehman Restaurant" value="${esc(wizard.data.restName)}" autocomplete="off"/>
-            <div class="hint">This name will appear on the deal popup.</div>
-          </div>
+        <div class="info-badge">
+          <div class="info-badge-icon">👤</div>
+          <div class="info-badge-text">Signed in as <strong class="info-badge-mono">${esc(emailFromUsername(myUsername))}</strong></div>
+        </div>
+        <div>
+          <div class="field-label">Restaurant name <span class="req">*</span></div>
+          <input class="field-input" id="s_restName" placeholder="e.g. Al Rehman Restaurant" value="${esc(wizard.data.restName)}" autocomplete="off"/>
+          <div class="field-hint">This name will appear in the deal popup on the map.</div>
         </div>
       `;
     },
-    read(){
-      wizard.data.restName = document.getElementById("s_restName").value.trim();
-    },
-    validate(){
-      return wizard.data.restName ? "" : "Restaurant name is required";
-    }
+    read(){ wizard.data.restName = document.getElementById("s_restName").value.trim(); },
+    validate(){ return wizard.data.restName?"":"Restaurant name is required"; }
   },
   {
-    title: "Deal title",
-    sub: "Step 2 of 4",
+    eyebrow:"Step 2 of 4", title:"Deal Title", sub:"Give your deal a clear, catchy headline.",
     render(){
       return `
-        <div class="grid">
-          <div class="field">
-            <div class="label">Deal title</div>
-            <input id="s_title" placeholder="e.g. Biryani Friday Special" value="${esc(wizard.data.dealTitle)}" maxlength="60" autocomplete="off"/>
-            <div class="hint">Keep it short and clear.</div>
-          </div>
+        <div>
+          <div class="field-label">Deal title <span class="req">*</span></div>
+          <input class="field-input" id="s_title" placeholder="e.g. Biryani Friday Special" value="${esc(wizard.data.dealTitle)}" maxlength="60" autocomplete="off"/>
+          <div class="field-hint">Keep it short and clear — max 60 characters.</div>
         </div>
       `;
     },
-    read(){
-      wizard.data.dealTitle = document.getElementById("s_title").value.trim();
-    },
-    validate(){
-      return wizard.data.dealTitle ? "" : "Deal title is required";
-    }
+    read(){ wizard.data.dealTitle = document.getElementById("s_title").value.trim(); },
+    validate(){ return wizard.data.dealTitle?"":"Deal title is required"; }
   },
   {
-    title: "Description & prices",
-    sub: "Step 3 of 4",
+    eyebrow:"Step 3 of 4", title:"Description & Pricing", sub:"Describe the offer and set your prices.",
     render(){
       return `
-        <div class="grid">
-          <div class="field">
-            <div class="label">Deal description</div>
-            <textarea id="s_desc" placeholder="e.g. Chicken biryani + raita, limited time offer…" maxlength="180">${esc(wizard.data.dealDesc)}</textarea>
+        <div>
+          <div class="field-label">Deal description <span class="req">*</span></div>
+          <textarea class="field-input" id="s_desc" placeholder="e.g. Chicken biryani + raita, limited time offer…" maxlength="180">${esc(wizard.data.dealDesc)}</textarea>
+        </div>
+        <div class="price-row">
+          <div>
+            <div class="field-label">Original price (PKR) <span class="req">*</span></div>
+            <input class="field-input" id="s_op" inputmode="numeric" placeholder="800" value="${esc(wizard.data.origPrice)}"/>
           </div>
-          <div class="field">
-            <div class="label">Original price (PKR)</div>
-            <input id="s_op" inputmode="numeric" placeholder="e.g. 800" value="${esc(wizard.data.origPrice)}"/>
-          </div>
-          <div class="field">
-            <div class="label">Discount price (PKR)</div>
-            <input id="s_dp" inputmode="numeric" placeholder="e.g. 550" value="${esc(wizard.data.discPrice)}"/>
+          <div>
+            <div class="field-label">Deal price (PKR) <span class="req">*</span></div>
+            <input class="field-input" id="s_dp" inputmode="numeric" placeholder="550" value="${esc(wizard.data.discPrice)}"/>
           </div>
         </div>
       `;
     },
     read(){
-      wizard.data.dealDesc = document.getElementById("s_desc").value.trim();
+      wizard.data.dealDesc  = document.getElementById("s_desc").value.trim();
       wizard.data.origPrice = digitsOnly(document.getElementById("s_op").value.trim());
       wizard.data.discPrice = digitsOnly(document.getElementById("s_dp").value.trim());
     },
     validate(){
-      if(!wizard.data.dealDesc) return "Deal description is required";
+      if(!wizard.data.dealDesc)  return "Deal description is required";
       if(!wizard.data.origPrice) return "Original price is required";
-      if(!wizard.data.discPrice) return "Discount price is required";
-      if(Number(wizard.data.discPrice) >= Number(wizard.data.origPrice)) return "Discount must be less than original price";
+      if(!wizard.data.discPrice) return "Deal price is required";
+      if(Number(wizard.data.discPrice)>=Number(wizard.data.origPrice))
+        return "Deal price must be less than original";
       return "";
     }
   },
   {
-    title: "WhatsApp & confirm",
-    sub: "Step 4 of 4",
+    eyebrow:"Step 4 of 4", title:"WhatsApp & Confirm", sub:"Add your contact and review the deal before posting.",
     render(){
       const waFull = normalizeWa(wizard.data.waLocal);
+      const savings = wizard.data.origPrice && wizard.data.discPrice
+        ? Number(wizard.data.origPrice)-Number(wizard.data.discPrice) : null;
       return `
-        <div class="grid">
-          <div class="field">
-            <div class="label">WhatsApp number</div>
-            <input id="s_wa" inputmode="numeric" placeholder="03452233450" value="${esc(wizard.data.waLocal)}"/>
-            <div class="hint">We automatically add country code <b>92</b>. Saved as: <b>${esc(waFull || "92…")}</b></div>
+        <div>
+          <div class="field-label">WhatsApp number <span class="req">*</span></div>
+          <input class="field-input" id="s_wa" inputmode="numeric" placeholder="03452233450" value="${esc(wizard.data.waLocal)}"/>
+          <div class="field-hint">Country code <strong>+92</strong> added automatically → <strong>${esc(waFull||"92…")}</strong></div>
+        </div>
+        <div class="review-card">
+          <div class="review-row">
+            <span class="review-key">Restaurant</span>
+            <span class="review-val">${esc(wizard.data.restName)}</span>
           </div>
-
-          <div class="badge">Review</div>
-          <div class="hint">
-            <b>${esc(wizard.data.restName)}</b><br/>
-            ${esc(wizard.data.dealTitle)}<br/>
-            PKR ${esc(wizard.data.origPrice)} → PKR ${esc(wizard.data.discPrice)}
+          <div class="review-row">
+            <span class="review-key">Deal</span>
+            <span class="review-val">${esc(wizard.data.dealTitle)}</span>
           </div>
+          <div class="review-row">
+            <span class="review-key">Price</span>
+            <div class="price-badge">
+              <span class="price-orig">PKR ${esc(wizard.data.origPrice)}</span>
+              <span class="price-arrow">→</span>
+              <span class="price-disc">PKR ${esc(wizard.data.discPrice)}</span>
+            </div>
+          </div>
+          ${savings?`<div class="review-row">
+            <span class="review-key">Savings</span>
+            <span class="review-val" style="color:var(--accent)">PKR ${savings}</span>
+          </div>`:""}
         </div>
       `;
     },
     afterRender(){
       const el = document.getElementById("s_wa");
-      el.addEventListener("input", ()=>{
-        el.value = digitsOnly(el.value).slice(0, 11);
-      });
+      el.addEventListener("input",()=>{ el.value=digitsOnly(el.value).slice(0,11); });
     },
-    read(){
-      wizard.data.waLocal = document.getElementById("s_wa").value.trim();
-    },
+    read(){ wizard.data.waLocal = document.getElementById("s_wa").value.trim(); },
     validate(){
       const wa = normalizeWa(wizard.data.waLocal);
       if(!wa) return "WhatsApp number is required";
-      if(wa.length < 11) return "WhatsApp number looks too short";
+      if(wa.length<11) return "WhatsApp number is too short";
       return "";
     }
   }
 ];
 
-function renderStep(){
-  const s = steps[wizard.step];
-  stepTitle.textContent = s.title;
-  stepSub.textContent = s.sub;
-  stepLeft.textContent = `Step ${wizard.step+1}/${steps.length}`;
-
-  stepBody.innerHTML = s.render();
-
-  backBtn.disabled = wizard.step === 0;
-  nextBtn.textContent = (wizard.step === steps.length-1) ? "Post" : "Next";
-
-  // optional afterRender hook
-  if(typeof s.afterRender === "function") s.afterRender();
+function updateDots() {
+  const dots = stepDots.querySelectorAll(".step-dot");
+  dots.forEach((d,i)=>d.classList.toggle("active",i===wizard.step));
 }
 
-function openWizard(){
+function renderStep() {
+  const s = steps[wizard.step];
+  stepEyebrow.textContent = s.eyebrow;
+  stepTitle.textContent   = s.title;
+  stepSub.textContent     = s.sub;
+  stepBody.innerHTML      = s.render();
+  backBtn.disabled        = wizard.step===0;
+  const isLast = wizard.step===steps.length-1;
+  nextBtn.innerHTML = isLast
+    ? `Post Deal <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>`
+    : `Next <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+  updateDots();
+  if(typeof s.afterRender==="function") s.afterRender();
+}
+
+function openWizard() {
   if(!ensureLogin()) return;
   openSheet(wizardOverlay);
-  wizard.step = 0;
-  renderStep();
+  wizard.step=0; renderStep();
 }
+function closeWizard() { closeSheet(wizardOverlay); }
 
-function closeWizard(){
-  closeSheet(wizardOverlay);
-}
-
-backBtn.addEventListener("click", ()=>{
+backBtn.addEventListener("click",()=>{
   steps[wizard.step].read();
-  if(wizard.step > 0){
-    wizard.step--;
-    renderStep();
-  }
+  if(wizard.step>0){ wizard.step--; renderStep(); }
 });
 
 nextBtn.addEventListener("click", async ()=>{
   const s = steps[wizard.step];
   s.read();
   const err = s.validate();
-  if(err){ toast(err); return; }
+  if(err){ toast(err,"error"); return; }
 
-  if(wizard.step < steps.length-1){
-    wizard.step++;
-    renderStep();
-    return;
-  }
+  if(wizard.step<steps.length-1){ wizard.step++; renderStep(); return; }
 
-  // Final Post
-  if(myLat==null || myLng==null){ toast("Location not ready"); return; }
+  if(myLat==null||myLng==null){ toast("Location not ready","error"); return; }
 
   const payload = {
-    username: myUsername,
-    email: emailFromUsername(myUsername),
-
-    restName: wizard.data.restName,
-    dealTitle: wizard.data.dealTitle,
-    dealDesc: wizard.data.dealDesc,
-    origPrice: wizard.data.origPrice,
-    discPrice: wizard.data.discPrice,
-    whatsapp: normalizeWa(wizard.data.waLocal),
-
-    lat: myLat,
-    lng: myLng,
-
-    ts: serverTimestamp(),
-    tsClient: Date.now(),
-    lastSeen: serverTimestamp()
+    username:myUsername, email:emailFromUsername(myUsername),
+    restName:wizard.data.restName,
+    dealTitle:wizard.data.dealTitle, dealDesc:wizard.data.dealDesc,
+    origPrice:wizard.data.origPrice, discPrice:wizard.data.discPrice,
+    whatsapp:normalizeWa(wizard.data.waLocal),
+    lat:myLat, lng:myLng,
+    ts:serverTimestamp(), tsClient:Date.now(), lastSeen:serverTimestamp()
   };
 
-  nextBtn.disabled = true;
+  nextBtn.disabled=true;
   try{
-    // optimistic map update
-    restData.set(myId, { ...payload, id: myId });
-    upsert(myId, { ...payload, id: myId });
-
-    await set(ref(db, `${USERS}/${myId}`), payload);
-    toast("Deal posted");
+    restData.set(myId,{...payload,id:myId});
+    upsert(myId,{...payload,id:myId});
+    await set(ref(db,`${USERS}/${myId}`),payload);
+    toast("Deal posted successfully","success",3000);
     closeWizard();
-  }catch(e){
-    toast("Failed to post");
+  }catch{
+    toast("Failed to post deal","error");
   }finally{
-    nextBtn.disabled = false;
+    nextBtn.disabled=false;
   }
 });
 
 openWizardBtn.addEventListener("click", openWizard);
 closeWizardBtn.addEventListener("click", closeWizard);
-wizardOverlay.addEventListener("click", (e)=>{ if(e.target===wizardOverlay) closeWizard(); });
+wizardOverlay.addEventListener("click",e=>{ if(e.target===wizardOverlay) closeWizard(); });
 
-/* Boot */
+/* ── Boot ── */
 (async function boot(){
   await initMap();
   listenRestaurants();
   startWatch();
-
-  // restore login if present
   myUsername = cleanUsername(myUsername);
   if(myUsername) myId = uidFromUsername(myUsername);
-
   refreshUserUI();
-
-  // if not logged in, show login sheet immediately
   if(!myId) openSheet(loginOverlay);
 })();
 </script>
