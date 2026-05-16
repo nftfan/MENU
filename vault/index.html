@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Vault</title>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+  /* =========================================================
+     Pure black theme · grey-only UI · max font 11px · no shadows
+     ========================================================= */
+  :root {
+    --bg:        #000000;
+    --bg-1:      #0a0a0a;   /* cards, header */
+    --bg-2:      #121212;   /* hover */
+    --bg-3:      #1a1a1a;   /* active / inputs */
+    --bd:        #1f1f1f;   /* hairline borders */
+    --bd-hi:     #2a2a2a;
+    --tx:        #a0a0a0;   /* body text - grey */
+    --tx-dim:    #707070;
+    --tx-faint:  #505050;
+    --tx-hi:     #cfcfcf;   /* titles, hovers */
+    --tx-on:     #e8e8e8;   /* selected */
+  }
+
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none !important;          /* enforce: no shadows */
+    text-shadow: none !important;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--tx);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.4;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* enforce max font size globally */
+  body, body * { font-size: 11px !important; }
+  /* small helper text */
+  .micro, .micro * { font-size: 10px !important; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+  ::selection { background: var(--bg-3); color: var(--tx-hi); }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-3); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bd-hi); }
+
+  button {
+    font: inherit;
+    background: transparent;
+    border: none;
+    color: var(--tx);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  input[type=text], input[type=url], input[type=search] {
+    width: 100%;
+    background: var(--bg-1);
+    border: 1px solid var(--bd);
+    color: var(--tx-hi);
+    padding: 8px 10px;
+    font: inherit;
+    outline: none;
+  }
+  input:focus { border-color: var(--bd-hi); background: var(--bg-3); }
+  input::placeholder { color: var(--tx-faint); }
+
+  /* ============= top bar ============= */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--bd);
+    height: 38px;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    gap: 4px;
+  }
+  .topbar .brand {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--tx-hi);
+    margin-right: 8px;
+    letter-spacing: 0.08em;
+  }
+  .topbar .brand i {
+    color: var(--tx-hi);
+  }
+
+  .icon-btn {
+    width: 26px; height: 26px;
+    border: 1px solid var(--bd);
+    color: var(--tx-dim);
+    background: var(--bg);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .icon-btn:hover { background: var(--bg-2); color: var(--tx-hi); border-color: var(--bd-hi); }
+  .icon-btn.active { color: var(--tx-hi); background: var(--bg-3); border-color: var(--bd-hi); }
+  .icon-btn i { font-size: 13px !important; }   /* icons render slightly bigger by glyph; this is fine because <i> uses icon font */
+
+  .top-right { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+
+  .select {
+    background: var(--bg-1);
+    border: 1px solid var(--bd);
+    color: var(--tx);
+    height: 26px;
+    padding: 0 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--tx-dim) 50%),
+                      linear-gradient(135deg, var(--tx-dim) 50%, transparent 50%);
+    background-position: calc(100% - 12px) center, calc(100% - 8px) center;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    padding-right: 22px;
+  }
+  .select:hover { color: var(--tx-hi); border-color: var(--bd-hi); }
+
+  /* ============= vault tabs ============= */
+  .vtabs {
+    display: flex; align-items: stretch;
+    height: 30px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--bd);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .vtabs::-webkit-scrollbar { display: none; }
+  .vtab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 12px;
+    color: var(--tx-dim);
+    border-right: 1px solid var(--bd);
+    position: relative;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .12s, background .12s;
+  }
+  .vtab:hover { color: var(--tx-hi); background: var(--bg-1); }
+  .vtab.active { color: var(--tx-hi); background: var(--bg-1); }
+  .vtab.active::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+    height: 1px; background: var(--tx-hi);
+  }
+  .vtab .tab-close {
+    color: var(--tx-faint); margin-left: 2px;
+    opacity: 0; transition: opacity .12s, color .12s;
+  }
+  .vtab:hover .tab-close, .vtab.active .tab-close { opacity: 1; }
+  .vtab .tab-close:hover { color: var(--tx-hi); }
+  .vtab.add-tab { color: var(--tx-dim); }
+  .vtab.add-tab:hover { color: var(--tx-hi); }
+
+  /* ============= search ============= */
+  .search-wrap {
+    position: relative; padding: 8px 10px; border-bottom: 1px solid var(--bd);
+    display: none;
+  }
+  .search-wrap.show { display: block; }
+  .search-wrap input {
+    padding-left: 28px;
+  }
+  .search-wrap .search-ic {
+    position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+    color: var(--tx-faint);
+  }
+
+  /* ============= breadcrumb ============= */
+  .crumbs {
+    display: flex; align-items: center; gap: 2px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--bd);
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+  .crumbs::-webkit-scrollbar { display: none; }
+  .crumb {
+    color: var(--tx-dim);
+    padding: 2px 6px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .crumb:hover { color: var(--tx-hi); }
+  .crumb.active { color: var(--tx-hi); }
+  .crumb-sep { color: var(--tx-faint); }
+
+  /* ============= layout ============= */
+  .layout { display: flex; min-height: calc(100vh - 95px); }
+  .sidebar {
+    width: 240px; min-width: 240px;
+    border-right: 1px solid var(--bd);
+    background: var(--bg);
+    display: none;
+    overflow-y: auto;
+  }
+  .sidebar.show { display: block; }
+  .sb-head {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--bd);
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--tx-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  main { flex: 1; min-width: 0; }
+
+  /* page header */
+  .ph {
+    padding: 14px 12px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .ph-title {
+    color: var(--tx-hi);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: 0.02em;
+  }
+  .ph-count { color: var(--tx-faint); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .section-label {
+    padding: 8px 12px 4px;
+    color: var(--tx-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--bd);
+    margin-top: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label:first-of-type { border-top: none; margin-top: 0; }
+
+  /* ============= GRID view ============= */
+  .grid {
+    display: grid;
+    gap: 6px;
+    padding: 4px 10px 80px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .grid.pinned-strip {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .grid.pinned-strip::-webkit-scrollbar { display: none; }
+  .grid.pinned-strip .card { flex: 0 0 160px; }
+
+  .card {
+    position: relative;
+    background: var(--bg-1);
+    border: 1px solid var(--bd);
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    min-height: 72px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .card:hover { background: var(--bg-2); border-color: var(--bd-hi); }
+
+  .card-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .card-ic {
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-ic i { font-size: 14px !important; }
+  .card-actions {
+    display: inline-flex; gap: 2px;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .card:hover .card-actions, .card.touched .card-actions { opacity: 1; }
+  .ca {
+    width: 20px; height: 20px;
+    border: 1px solid var(--bd);
+    color: var(--tx-faint);
+    background: var(--bg-1);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ca i { font-size: 10px !important; }
+  .ca:hover { color: var(--tx-hi); border-color: var(--bd-hi); background: var(--bg-3); }
+  .ca.active { color: var(--tx-hi); border-color: var(--bd-hi); }
+  .ca.del:hover { color: var(--tx-hi); }
+
+  .card-title {
+    color: var(--tx-hi);
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .card-sub {
+    color: var(--tx-faint);
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pinned-dot {
+    width: 5px; height: 5px;
+    background: var(--tx-hi);
+    margin-left: 6px;
+    align-self: center;
+  }
+
+  /* Image thumbnail card (files that are images) */
+  .card.thumb { padding: 0; }
+  .card.thumb .thumb-img {
+    height: 100px;
+    background: var(--bg-3) center/cover no-repeat;
+    border-bottom: 1px solid var(--bd);
+  }
+  .card.thumb .thumb-body { padding: 6px 8px; }
+  .card.thumb .card-actions { position: absolute; top: 4px; right: 4px; }
+
+  /* uploading placeholder */
+  .card.uploading { pointer-events: none; }
+  .upbar {
+    height: 2px; background: var(--bd); margin-top: 4px;
+  }
+  .upbar > div {
+    height: 100%; background: var(--tx-hi); width: 0%; transition: width .2s;
+  }
+
+  /* ============= LIST view ============= */
+  .list {
+    padding: 0 10px 80px;
+  }
+  .list-head {
+    display: grid;
+    grid-template-columns: 22px 1fr 60px 80px 100px 90px;
+    gap: 6px;
+    padding: 6px 8px;
+    color: var(--tx-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--bd);
+    align-items: center;
+  }
+  .list-row {
+    display: grid;
+    grid-template-columns: 22px 1fr 60px 80px 100px 90px;
+    gap: 6px;
+    padding: 6px 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--bd);
+    cursor: pointer;
+    transition: background .1s;
+    position: relative;
+  }
+  .list-row:hover { background: var(--bg-1); }
+  .list-row .card-ic { width: 18px; height: 18px; }
+  .list-row .card-ic i { font-size: 12px !important; }
+  .list-row .lr-name { color: var(--tx-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+  .list-row .lr-type, .list-row .lr-date, .list-row .lr-info { color: var(--tx-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list-row .lr-actions { display: inline-flex; gap: 2px; justify-content: flex-end; opacity: 0; }
+  .list-row:hover .lr-actions, .list-row.touched .lr-actions { opacity: 1; }
+  .list-row .lr-pin { color: var(--tx-hi); }
+  @media (max-width: 640px) {
+    .list-head { grid-template-columns: 22px 1fr 70px 70px; }
+    .list-head > .col-type, .list-head > .col-info { display: none; }
+    .list-row { grid-template-columns: 22px 1fr 70px 70px; }
+    .list-row .lr-type, .list-row .lr-info { display: none; }
+  }
+
+  /* ============= empty / loading ============= */
+  .empty { padding: 60px 20px; text-align: center; color: var(--tx-dim); }
+  .empty i { font-size: 32px !important; color: var(--tx-faint); display: inline-block; margin-bottom: 8px; }
+  .empty h3 { color: var(--tx-hi); margin-bottom: 4px; font-weight: 500; }
+  .empty p { color: var(--tx-faint); }
+
+  .loading { padding: 60px; text-align: center; color: var(--tx-faint); }
+  .spin {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--bd);
+    border-top-color: var(--tx-hi);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    display: inline-block; vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============= FAB ============= */
+  .fab {
+    position: fixed;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: 16px;
+    width: 36px; height: 36px;
+    background: var(--bg-3);
+    border: 1px solid var(--bd-hi);
+    color: var(--tx-hi);
+    display: grid; place-items: center;
+    z-index: 60;
+    cursor: pointer;
+  }
+  .fab:hover { background: var(--bg-2); color: var(--tx-on); }
+  .fab i { font-size: 14px !important; }
+
+  /* ============= sidebar tree ============= */
+  .tree { padding: 6px 4px 20px; }
+  .tree-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px;
+    color: var(--tx-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .tree-row:hover { background: var(--bg-1); color: var(--tx-hi); }
+  .tree-row.is-current { background: var(--bg-2); color: var(--tx-hi); }
+  .tree-caret { width: 12px; text-align: center; color: var(--tx-faint); transition: transform .12s; flex-shrink: 0; }
+  .tree-caret.open { transform: rotate(90deg); }
+  .tree-caret.empty { visibility: hidden; }
+  .tree-icon { width: 14px; text-align: center; flex-shrink: 0; }
+  .tree-icon i { font-size: 11px !important; }
+  .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-children { padding-left: 12px; border-left: 1px solid var(--bd); margin-left: 8px; display: none; }
+  .tree-children.open { display: block; }
+  .tree-pin { color: var(--tx-hi); }
+
+  /* ============= modal ============= */
+  .backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .backdrop.show { display: flex; }
+  @media (min-width: 600px) { .backdrop { align-items: center; } }
+
+  .modal {
+    background: var(--bg-1);
+    border: 1px solid var(--bd);
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .modal-title { color: var(--tx-hi); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .modal-sub { color: var(--tx-dim); margin-bottom: 12px; }
+  .field { margin-bottom: 10px; }
+  .field-label {
+    display: block; color: var(--tx-faint);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .type-picker {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 4px; margin-bottom: 10px;
+  }
+  .type-opt {
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    color: var(--tx-dim);
+    padding: 8px 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .type-opt i { font-size: 14px !important; color: var(--tx-dim); }
+  .type-opt:hover { border-color: var(--bd-hi); color: var(--tx-hi); }
+  .type-opt:hover i { color: var(--tx-hi); }
+  .type-opt.active { background: var(--bg-3); color: var(--tx-hi); border-color: var(--bd-hi); }
+  .type-opt.active i { color: var(--tx-hi); }
+  .type-opt:disabled { opacity: .3; cursor: not-allowed; }
+
+  /* icon row in modal (preview + buttons) */
+  .icon-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+  }
+  .icon-preview {
+    width: 32px; height: 32px;
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    display: grid; place-items: center;
+  }
+  .icon-preview i { font-size: 16px !important; }
+
+  /* color swatches strip */
+  .color-strip {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .swatch {
+    width: 18px; height: 18px;
+    border: 1px solid var(--bd);
+    cursor: pointer;
+  }
+  .swatch.active { border-color: var(--tx-hi); }
+  .color-input-wrap {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--bd);
+    background: var(--bg);
+    padding: 2px;
+  }
+  .color-input-wrap input[type=color] {
+    width: 14px; height: 14px;
+    border: none; background: transparent; cursor: pointer;
+    padding: 0;
+  }
+
+  /* icon picker grid */
+  .icon-search {
+    position: relative; margin-bottom: 6px;
+  }
+  .icon-search > i {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--tx-faint);
+  }
+  .icon-search input { padding-left: 26px; }
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    max-height: 160px;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    padding: 4px;
+  }
+  @media (max-width: 400px) {
+    .icon-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+  .icon-pick {
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--tx-dim);
+    display: grid; place-items: center;
+    cursor: pointer;
+  }
+  .icon-pick i { font-size: 13px !important; }
+  .icon-pick:hover { background: var(--bg-2); color: var(--tx-hi); }
+  .icon-pick.active { background: var(--bg-3); color: var(--tx-hi); border-color: var(--bd-hi); }
+
+  /* file drop */
+  .file-drop {
+    background: var(--bg);
+    border: 1px dashed var(--bd-hi);
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--tx-dim);
+  }
+  .file-drop:hover, .file-drop.dragover {
+    border-color: var(--tx-hi); color: var(--tx-hi);
+    background: var(--bg-1);
+  }
+  .file-drop i { font-size: 18px !important; display: block; margin-bottom: 4px; }
+  .file-drop input { display: none; }
+
+  .file-preview {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--bd);
+  }
+  .file-preview-thumb {
+    width: 32px; height: 32px;
+    background: var(--bg-3) center/cover no-repeat;
+    display: grid; place-items: center;
+    color: var(--tx-dim);
+    flex-shrink: 0;
+  }
+  .file-preview-info { flex: 1; min-width: 0; }
+  .file-preview-name { color: var(--tx-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-preview-size { color: var(--tx-faint); }
+
+  /* buttons */
+  .actions { display: flex; gap: 6px; margin-top: 12px; }
+  .btn {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    color: var(--tx);
+    padding: 8px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--bg-2); color: var(--tx-hi); border-color: var(--bd-hi); }
+  .btn.primary { background: var(--bg-3); color: var(--tx-hi); border-color: var(--bd-hi); }
+  .btn.primary:hover { background: var(--bg-2); color: var(--tx-on); }
+  .btn i { font-size: 11px !important; }
+
+  /* drop overlay */
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+  }
+  .drop-overlay.show { display: flex; }
+  .drop-inner {
+    border: 1px dashed var(--tx-hi);
+    padding: 30px 50px;
+    color: var(--tx-hi);
+    text-align: center;
+  }
+  .drop-inner i { font-size: 28px !important; display: block; margin-bottom: 6px; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(40px);
+    background: var(--bg-3);
+    border: 1px solid var(--bd-hi);
+    color: var(--tx-hi);
+    padding: 8px 14px;
+    z-index: 250;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    max-width: calc(100vw - 32px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* lightbox */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 280;
+    background: rgba(0,0,0,0.95);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; cursor: zoom-out;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 90vh; }
+  .lightbox-close {
+    position: absolute; top: 16px; right: 16px;
+  }
+
+  /* mobile */
+  @media (max-width: 540px) {
+    .topbar .brand-text { display: none; }
+    .ph { padding: 10px 10px 4px; }
+    .grid { grid-template-columns: repeat(2, 1fr); padding: 4px 10px 80px; }
+    .sidebar { position: fixed; left: 0; top: 68px; bottom: 0; z-index: 80; background: var(--bg-1); }
+  }
+
+  /* utility */
+  .row { display: flex; align-items: center; gap: 6px; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- =================== TOP BAR =================== -->
+<div class="topbar">
+  <button class="icon-btn" id="sidebarBtn" title="Tree"><i class="ph ph-list"></i></button>
+  <span class="brand">
+    <i class="ph-bold ph-vault"></i>
+    <span class="brand-text">VAULT</span>
+  </span>
+
+  <div class="top-right">
+    <select class="select" id="sortSelect" title="Sort">
+      <option value="date-desc">Latest first</option>
+      <option value="date-asc">Oldest first</option>
+      <option value="name-asc">Name A→Z</option>
+      <option value="name-desc">Name Z→A</option>
+      <option value="type">Type</option>
+    </select>
+    <button class="icon-btn" id="viewBtn" title="View"><i class="ph ph-grid-four"></i></button>
+    <button class="icon-btn" id="searchBtn" title="Search"><i class="ph ph-magnifying-glass"></i></button>
+    <button class="icon-btn" id="homeBtn" title="Home"><i class="ph ph-house"></i></button>
+  </div>
+</div>
+
+<!-- =================== VAULT TABS =================== -->
+<div class="vtabs" id="vtabs"></div>
+
+<!-- =================== SEARCH =================== -->
+<div class="search-wrap" id="searchWrap">
+  <i class="ph ph-magnifying-glass search-ic"></i>
+  <input type="search" id="searchInput" placeholder="Search across everything…" />
+</div>
+
+<!-- =================== BREADCRUMB =================== -->
+<div class="crumbs" id="crumbs"></div>
+
+<!-- =================== LAYOUT =================== -->
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <span>Tree</span>
+      <span id="sbVault" style="text-transform:none; letter-spacing:0; color:var(--tx-dim);"></span>
+    </div>
+    <div class="tree" id="tree"></div>
+  </aside>
+
+  <main>
+    <div class="ph">
+      <div class="ph-title" id="phTitle">—</div>
+      <div class="ph-count" id="phCount"></div>
+    </div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<!-- =================== DROP OVERLAY =================== -->
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-inner">
+    <i class="ph ph-cloud-arrow-up"></i>
+    <div>Drop to upload to current location</div>
+  </div>
+</div>
+
+<!-- =================== FAB =================== -->
+<button class="fab" id="fab" title="Add (Ctrl+N)"><i class="ph-bold ph-plus"></i></button>
+
+<!-- Hidden file input -->
+<input type="file" id="hiddenFile" multiple style="display:none;" />
+
+<!-- =================== ADD MODAL =================== -->
+<div class="backdrop" id="addBackdrop">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">NEW ITEM</div>
+    <div class="modal-sub" id="modalSub"></div>
+
+    <div class="type-picker" id="typePicker">
+      <button class="type-opt" data-type="category">
+        <i class="ph-bold ph-squares-four"></i><span>Category</span>
+      </button>
+      <button class="type-opt" data-type="folder">
+        <i class="ph-bold ph-folder"></i><span>Folder</span>
+      </button>
+      <button class="type-opt" data-type="url">
+        <i class="ph-bold ph-link"></i><span>URL</span>
+      </button>
+      <button class="type-opt" data-type="file">
+        <i class="ph-bold ph-file-arrow-up"></i><span>File</span>
+      </button>
+    </div>
+
+    <div class="field" id="nameField">
+      <label class="field-label" id="nameLabel">Name</label>
+      <input type="text" id="nameInput" placeholder="Give it a name…" autocomplete="off" />
+    </div>
+
+    <div class="field hide" id="urlField">
+      <label class="field-label">URL</label>
+      <input type="url" id="urlInput" placeholder="https://…" autocomplete="off" />
+    </div>
+
+    <div class="field hide" id="fileField">
+      <label class="field-label">File</label>
+      <label class="file-drop" id="fileDrop">
+        <i class="ph ph-cloud-arrow-up"></i>
+        <div>Drop a file or click to pick</div>
+        <input type="file" id="fileInput" />
+      </label>
+      <div id="filePreview"></div>
+    </div>
+
+    <div class="field" id="iconField">
+      <label class="field-label">Icon & color</label>
+      <div class="icon-row">
+        <div class="icon-preview" id="iconPreview"><i class="ph-bold ph-folder"></i></div>
+        <div class="color-input-wrap" title="Pick color">
+          <input type="color" id="colorPicker" value="#a0a0a0" />
+        </div>
+        <input type="text" id="colorHex" value="#a0a0a0" maxlength="7" style="width: 70px;" />
+      </div>
+      <div class="color-strip" id="colorStrip"></div>
+      <div class="icon-search">
+        <i class="ph ph-magnifying-glass"></i>
+        <input type="text" id="iconSearch" placeholder="Search icons…" autocomplete="off" />
+      </div>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="cancelBtn"><i class="ph ph-x"></i>Cancel</button>
+      <button class="btn primary" id="saveBtn"><i class="ph ph-check"></i>Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== VAULT MODAL =================== -->
+<div class="backdrop" id="vaultBackdrop">
+  <div class="modal">
+    <div class="modal-title">NEW VAULT</div>
+    <div class="modal-sub">A separate space with its own categories.</div>
+    <div class="field">
+      <label class="field-label">Name</label>
+      <input type="text" id="vaultName" placeholder="Personal, Work, Research…" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Icon & color</label>
+      <div class="icon-row">
+        <div class="icon-preview" id="vaultPreview"><i class="ph-bold ph-vault"></i></div>
+        <div class="color-input-wrap">
+          <input type="color" id="vaultColor" value="#a0a0a0" />
+        </div>
+      </div>
+      <div class="icon-search">
+        <i class="ph ph-magnifying-glass"></i>
+        <input type="text" id="vaultIconSearch" placeholder="Search icons…" autocomplete="off" />
+      </div>
+      <div class="icon-grid" id="vaultIconGrid"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="vaultCancel"><i class="ph ph-x"></i>Cancel</button>
+      <button class="btn primary" id="vaultSave"><i class="ph ph-check"></i>Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== LIGHTBOX =================== -->
+<div class="lightbox" id="lightbox">
+  <button class="icon-btn lightbox-close" id="lightboxClose"><i class="ph ph-x"></i></button>
+  <img id="lightboxImg" alt="" />
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg">—</span></div>
+
+<!-- =================== FIREBASE + APP =================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getDatabase, ref as dbRef, set, remove, onValue
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import {
+    getStorage, ref as stRef, uploadBytesResumable, getDownloadURL, deleteObject
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuBB-Cha7eLG1O7SxOTfFt8e6hVAWjkxI",
+    authDomain: "tokentransfer-4a9b3.firebaseapp.com",
+    databaseURL: "https://tokentransfer-4a9b3-default-rtdb.firebaseio.com",
+    projectId: "tokentransfer-4a9b3",
+    storageBucket: "tokentransfer-4a9b3.firebasestorage.app",
+    messagingSenderId: "205455490321",
+    appId: "1:205455490321:web:9919f5dde059316c9320b0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const storage = getStorage(app);
+
+  const ROOT = 'vaultApp';
+
+  // -------- State --------
+  let vaults = {};
+  let allData = {};
+  let currentVaultId = null;
+  let path = [];
+  let searchQ = '';
+  let view = localStorage.getItem('vault.view') || 'grid';     // 'grid' | 'list'
+  let sortBy = localStorage.getItem('vault.sort') || 'date-desc';
+  let activeUploads = new Map(); // tempId -> {name, progress, parentPath}
+  let selectedType = 'category';
+  let selectedIcon = 'squares-four';
+  let selectedColor = '#a0a0a0';
+  let pendingFile = null;
+  let editingVaultIcon = 'vault';
+  let editingVaultColor = '#a0a0a0';
+  let initialBoot = true;
+
+  const ICONS = ('squares-four grid-four stack cube cube-focus sphere infinity shapes hexagon circle square ' +
+    'star star-four heart heart-straight fire flame sparkle crown trophy medal seal-check check-circle thumbs-up ' +
+    'arrow-right arrow-up-right arrow-square-out rocket rocket-launch lightning target crosshair ' +
+    'tag tag-simple bookmark bookmarks flag flag-banner push-pin push-pin-simple ' +
+    'folder folder-simple folder-star folder-notch folder-open folder-plus folder-lock archive package tray suitcase backpack ' +
+    'file file-text file-code file-pdf file-image file-audio file-video file-zip file-arrow-up clipboard clipboard-text note note-pencil notebook notepad ' +
+    'book book-open book-bookmark books newspaper article scroll graduation-cap student ' +
+    'link link-simple globe globe-hemisphere-west planet compass map-trifold map-pin navigation-arrow share-network browsers browser monitor ' +
+    'user user-circle users users-three chat chat-circle chats envelope envelope-simple phone phone-call video-camera microphone at ' +
+    'briefcase toolbox wrench hammer gear gear-six sliders sliders-horizontal funnel list-bullets list-checks kanban table calendar calendar-check clock clock-countdown hourglass timer ' +
+    'currency-dollar currency-eur currency-gbp wallet credit-card bank coins piggy-bank shopping-cart shopping-bag storefront receipt gift ticket ' +
+    'code code-block terminal terminal-window brackets-curly brackets-square git-branch git-commit github-logo database hard-drive cloud cloud-arrow-up cloud-arrow-down cpu plugs plug ' +
+    'brain atom flask test-tube dna microscope tree-structure chart-line chart-bar chart-pie chart-donut trend-up trend-down calculator ' +
+    'palette paint-brush pen pen-nib pencil eraser eyedropper image image-square images crop magic-wand sticker ' +
+    'play play-circle pause stop skip-forward skip-back music-note music-notes headphones speaker-high vinyl-record radio television film-slate camera ' +
+    'game-controller dice-five puzzle-piece smiley smiley-wink basketball soccer-ball football tennis-ball barbell person-simple-run person-simple-bike ' +
+    'fork-knife coffee pizza hamburger cake cookie wine beer-bottle martini bowl-food ice-cream egg cherries carrot bread ' +
+    'leaf plant tree tree-evergreen tree-palm flower flower-lotus sun moon moon-stars cloud-sun cloud-rain cloud-snow snowflake rainbow mountains waves drop ' +
+    'airplane car taxi train boat bicycle motorcycle scooter gas-pump traffic-cone bed house house-line buildings building warehouse ' +
+    'dog cat bird butterfly fish horse rabbit ' +
+    'lock lock-simple lock-key key shield shield-check shield-warning fingerprint eye eye-slash password user-check ' +
+    'bell bell-simple warning warning-circle info question prohibit ' +
+    'first-aid heartbeat pill syringe stethoscope tooth virus bandaids ' +
+    'couch chair lamp door window toilet bathtub desktop laptop mouse keyboard device-mobile device-tablet watch printer battery-full battery-charging lightbulb ' +
+    'ghost alien robot skull diamond gem umbrella sunglasses t-shirt sneaker baby vault treasure-chest'
+  ).split(/\s+/).filter(Boolean);
+  const UNIQ_ICONS = [...new Set(ICONS)];
+
+  const DEFAULT_ICONS = { category: 'squares-four', folder: 'folder', url: 'link', file: 'file', vault: 'vault' };
+  const DEFAULT_COLOR = '#a0a0a0';
+
+  // Color swatches — all grey (per requirement)
+  const SWATCHES = ['#505050', '#707070', '#909090', '#a0a0a0', '#b8b8b8', '#cfcfcf', '#e8e8e8', '#ffffff'];
+
+  // -------- Helpers --------
+  const $ = id => document.getElementById(id);
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function escape(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s) { return escape(s); }
+  function humanSize(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024**2) return (n/1024).toFixed(1) + ' KB';
+    if (n < 1024**3) return (n/1024/1024).toFixed(1) + ' MB';
+    return (n/1024/1024/1024).toFixed(2) + ' GB';
+  }
+  function humanDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const sameYear = d.getFullYear() === now.getFullYear();
+    const opts = sameYear ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' };
+    return d.toLocaleDateString(undefined, opts);
+  }
+  function iconForMime(mime = '', name = '') {
+    const m = mime.toLowerCase();
+    if (m.startsWith('image/')) return 'file-image';
+    if (m.startsWith('video/')) return 'file-video';
+    if (m.startsWith('audio/')) return 'file-audio';
+    if (m === 'application/pdf') return 'file-pdf';
+    if (/(zip|compressed|tar|rar|7z)/.test(m)) return 'file-zip';
+    if (/(json|javascript|xml|html|css)/.test(m)) return 'file-code';
+    if (m.startsWith('text/')) return 'file-text';
+    return 'file';
+  }
+
+  // -------- Firebase wiring --------
+  onValue(dbRef(db, ROOT), (snap) => {
+    const v = snap.val() || {};
+    vaults = v.vaults || {};
+    allData = v.data || {};
+
+    if (initialBoot && Object.keys(vaults).length === 0) {
+      initialBoot = false;
+      const id = uid();
+      set(dbRef(db, `${ROOT}/vaults/${id}`), {
+        name: 'My Vault', icon: 'vault', iconColor: DEFAULT_COLOR, createdAt: Date.now()
+      });
+      return;
+    }
+    initialBoot = false;
+
+    if (!currentVaultId || !vaults[currentVaultId]) {
+      const sorted = Object.keys(vaults).sort((a,b)=> (vaults[a].createdAt||0)-(vaults[b].createdAt||0));
+      currentVaultId = sorted[0] || null;
+      path = [];
+    }
+    render();
+  });
+
+  // -------- Data helpers --------
+  function currentCats() { return allData[currentVaultId] || {}; }
+  function nodeAt(p) {
+    if (!currentVaultId) return null;
+    const cats = currentCats();
+    if (p.length === 0) return { items: cats };
+    let n = cats[p[0]];
+    for (let i = 1; i < p.length; i++) {
+      if (!n || !n.items || !n.items[p[i]]) return null;
+      n = n.items[p[i]];
+    }
+    return n;
+  }
+  function currentItems() {
+    const n = nodeAt(path);
+    if (!n) return {};
+    return n.items || {};
+  }
+  function childrenRefPath(p) {
+    let s = `${ROOT}/data/${currentVaultId}`;
+    if (p.length === 0) return s;
+    s += `/${p[0]}`;
+    for (let i = 1; i < p.length; i++) s += `/items/${p[i]}`;
+    return s + '/items';
+  }
+  function nodeRefPath(id, p = path) {
+    if (p.length === 0) return `${ROOT}/data/${currentVaultId}/${id}`;
+    return `${childrenRefPath(p)}/${id}`;
+  }
+  function fullPathRef(fullPath) {
+    let s = `${ROOT}/data/${currentVaultId}/${fullPath[0]}`;
+    for (let i = 1; i < fullPath.length; i++) s += `/items/${fullPath[i]}`;
+    return s;
+  }
+  function allowedTypes() {
+    return path.length === 0 ? ['category'] : ['folder', 'url', 'file'];
+  }
+  function pathTitles() {
+    const out = [];
+    const cats = currentCats();
+    if (path.length === 0) return out;
+    let n = cats[path[0]]; if (!n) return out;
+    out.push({ id: path[0], name: n.name, icon: n.icon, type: 'category', iconColor: n.iconColor });
+    for (let i = 1; i < path.length; i++) {
+      if (!n.items || !n.items[path[i]]) break;
+      n = n.items[path[i]];
+      out.push({ id: path[i], name: n.name, icon: n.icon, type: n.type, iconColor: n.iconColor });
+    }
+    return out;
+  }
+  function findAllPinned() {
+    const out = [];
+    (function walk(items, parents) {
+      for (const [id, item] of Object.entries(items || {})) {
+        if (item.pinned) out.push({ id, item, fullPath: [...parents, id] });
+        if (item.items) walk(item.items, [...parents, id]);
+      }
+    })(currentCats(), []);
+    return out;
+  }
+  function flatSearch(q) {
+    const out = [];
+    (function walk(items, parents) {
+      for (const [id, item] of Object.entries(items || {})) {
+        const matchName = (item.name || '').toLowerCase().includes(q);
+        const matchUrl = (item.url || '').toLowerCase().includes(q);
+        if (matchName || matchUrl) out.push({ id, item, fullPath: [...parents, id] });
+        if (item.items) walk(item.items, [...parents, id]);
+      }
+    })(currentCats(), []);
+    return out;
+  }
+  function sortEntries(entries) {
+    const arr = entries.slice();
+    if (sortBy === 'name-asc' || sortBy === 'name-desc') {
+      arr.sort((a, b) => (a.item.name || '').localeCompare(b.item.name || ''));
+      if (sortBy === 'name-desc') arr.reverse();
+    } else if (sortBy === 'type') {
+      const order = { category: 0, folder: 1, url: 2, file: 3 };
+      arr.sort((a, b) => {
+        const ta = order[a.item.type] ?? 99;
+        const tb = order[b.item.type] ?? 99;
+        if (ta !== tb) return ta - tb;
+        return (a.item.name || '').localeCompare(b.item.name || '');
+      });
+    } else {
+      // date
+      arr.sort((a, b) => (b.item.createdAt || 0) - (a.item.createdAt || 0));
+      if (sortBy === 'date-asc') arr.reverse();
+    }
+    return arr;
+  }
+
+  // -------- Render --------
+  function render() {
+    renderTabs();
+    renderCrumbs();
+    renderContent();
+    renderTree();
+    $('viewBtn').querySelector('i').className = view === 'grid' ? 'ph ph-list' : 'ph ph-grid-four';
+    $('sortSelect').value = sortBy;
+  }
+
+  function renderTabs() {
+    const ids = Object.keys(vaults).sort((a,b)=> (vaults[a].createdAt||0)-(vaults[b].createdAt||0));
+    const canClose = ids.length > 1;
+    let html = '';
+    for (const id of ids) {
+      const v = vaults[id];
+      const active = id === currentVaultId;
+      const color = v.iconColor || DEFAULT_COLOR;
+      html += `<div class="vtab ${active ? 'active' : ''}" data-vault="${id}">
+        <i class="ph-bold ph-${escapeAttr(v.icon || 'vault')}" style="color:${escapeAttr(color)};font-size:11px;"></i>
+        <span>${escape(v.name)}</span>
+        ${canClose ? `<span class="tab-close" data-close="${id}"><i class="ph ph-x"></i></span>` : ''}
+      </div>`;
+    }
+    html += `<div class="vtab add-tab" id="addVaultTab" title="New vault"><i class="ph-bold ph-plus"></i></div>`;
+    $('vtabs').innerHTML = html;
+
+    $('vtabs').querySelectorAll('.vtab[data-vault]').forEach(t => {
+      t.addEventListener('click', e => {
+        if (e.target.closest('.tab-close')) return;
+        if (t.dataset.vault === currentVaultId) return;
+        currentVaultId = t.dataset.vault;
+        path = []; searchQ = ''; $('searchInput').value = '';
+        $('searchWrap').classList.remove('show');
+        render();
+      });
+      t.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showVaultMenu(t.dataset.vault, e.clientX, e.clientY);
+      });
+    });
+    $('vtabs').querySelectorAll('[data-close]').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteVault(b.dataset.close);
+      });
+    });
+    $('addVaultTab').addEventListener('click', openVaultModal);
+  }
+
+  function renderCrumbs() {
+    const v = vaults[currentVaultId] || { name: 'Vault', icon: 'vault' };
+    const titles = pathTitles();
+    let html = `<button class="crumb ${path.length === 0 ? 'active' : ''}" data-idx="-1">
+      <i class="ph-bold ph-${escapeAttr(v.icon || 'vault')}" style="color:${escapeAttr(v.iconColor || DEFAULT_COLOR)}"></i>${escape(v.name)}
+    </button>`;
+    titles.forEach((t, i) => {
+      const isLast = i === titles.length - 1;
+      html += `<span class="crumb-sep"><i class="ph ph-caret-right"></i></span>`;
+      html += `<button class="crumb ${isLast ? 'active' : ''}" data-idx="${i}">
+        <i class="ph ph-${escapeAttr(t.icon || 'folder')}" style="color:${escapeAttr(t.iconColor || DEFAULT_COLOR)}"></i>${escape(t.name)}
+      </button>`;
+    });
+    $('crumbs').innerHTML = html;
+    $('crumbs').querySelectorAll('.crumb').forEach(b => {
+      b.addEventListener('click', () => {
+        const idx = parseInt(b.dataset.idx, 10);
+        path = idx === -1 ? [] : path.slice(0, idx + 1);
+        searchQ = ''; $('searchInput').value = '';
+        render();
+      });
+    });
+  }
+
+  function renderContent() {
+    const ce = $('content'); ce.innerHTML = '';
+
+    // header
+    const v = vaults[currentVaultId] || {};
+    if (searchQ) {
+      $('phTitle').innerHTML = `<i class="ph ph-magnifying-glass"></i>Search "${escape(searchQ)}"`;
+    } else if (path.length === 0) {
+      $('phTitle').innerHTML = `<i class="ph-bold ph-${escapeAttr(v.icon || 'vault')}" style="color:${escapeAttr(v.iconColor || DEFAULT_COLOR)}"></i>${escape(v.name || 'Vault')} · categories`;
+    } else {
+      const t = pathTitles().slice(-1)[0];
+      $('phTitle').innerHTML = `<i class="ph-bold ph-${escapeAttr(t.icon || 'folder')}" style="color:${escapeAttr(t.iconColor || DEFAULT_COLOR)}"></i>${escape(t.name)}`;
+    }
+
+    // Pinned shelf at root (no search)
+    if (!searchQ && path.length === 0) {
+      const pinned = findAllPinned();
+      if (pinned.length > 0) {
+        const sectionLabel = document.createElement('div');
+        sectionLabel.className = 'section-label';
+        sectionLabel.innerHTML = `<i class="ph-fill ph-push-pin"></i><span>Pinned</span><span style="color:var(--tx-faint);"> · ${pinned.length}</span>`;
+        ce.appendChild(sectionLabel);
+
+        const strip = document.createElement('div');
+        strip.className = 'grid pinned-strip';
+        strip.innerHTML = pinned.map(p => cardHtml(p.id, p.item, p.fullPath, false)).join('');
+        ce.appendChild(strip);
+        attachCardEvents(strip);
+      }
+    }
+
+    // Uploads at current path
+    if (!searchQ) {
+      const ups = [...activeUploads.entries()]
+        .filter(([, info]) => JSON.stringify(info.parentPath) === JSON.stringify(path));
+      if (ups.length > 0) {
+        const lbl = document.createElement('div');
+        lbl.className = 'section-label';
+        lbl.innerHTML = `<i class="ph ph-cloud-arrow-up"></i><span>Uploading · ${ups.length}</span>`;
+        ce.appendChild(lbl);
+        const ucontainer = document.createElement('div');
+        ucontainer.className = view === 'grid' ? 'grid' : 'list';
+        if (view === 'list') {
+          ucontainer.innerHTML = ups.map(([tid, info]) => uploadListHtml(tid, info)).join('');
+        } else {
+          ucontainer.innerHTML = ups.map(([tid, info]) => uploadCardHtml(tid, info)).join('');
+        }
+        ce.appendChild(ucontainer);
+      }
+    }
+
+    // Main content
+    let entries;
+    if (searchQ) {
+      entries = flatSearch(searchQ);
+    } else {
+      entries = Object.entries(currentItems()).map(([id, item]) => ({ id, item, fullPath: [...path, id] }));
+    }
+    entries = sortEntries(entries);
+    $('phCount').textContent = `${entries.length} item${entries.length === 1 ? '' : 's'}`;
+
+    if (entries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.innerHTML = `
+        <i class="ph-thin ph-${path.length === 0 && !searchQ ? 'squares-four' : 'folder-open'}"></i>
+        <h3>${searchQ ? 'Nothing found' : 'Nothing here yet'}</h3>
+        <p>${searchQ ? 'Try a different term.' : (path.length === 0 ? 'Press + to add a category.' : 'Press + to add folders, URLs, or files.')}</p>
+      `;
+      ce.appendChild(empty);
+      return;
+    }
+
+    const sectionLabel = document.createElement('div');
+    sectionLabel.className = 'section-label';
+    sectionLabel.innerHTML = `<span>${searchQ ? 'Results' : 'All items'}</span><span style="color:var(--tx-faint);"> · ${entries.length}</span>`;
+    ce.appendChild(sectionLabel);
+
+    if (view === 'grid') {
+      const g = document.createElement('div');
+      g.className = 'grid';
+      g.innerHTML = entries.map(e => cardHtml(e.id, e.item, e.fullPath, false)).join('');
+      ce.appendChild(g);
+      attachCardEvents(g);
+    } else {
+      const wrap = document.createElement('div');
+      wrap.className = 'list';
+      wrap.innerHTML = `
+        <div class="list-head">
+          <div></div>
+          <div>Name</div>
+          <div class="col-type">Type</div>
+          <div>Added</div>
+          <div class="col-info">Info</div>
+          <div></div>
+        </div>
+        ${entries.map(e => listRowHtml(e.id, e.item, e.fullPath)).join('')}
+      `;
+      ce.appendChild(wrap);
+      attachCardEvents(wrap);
+    }
+  }
+
+  function uploadCardHtml(tempId, info) {
+    return `
+      <div class="card uploading" data-temp="${tempId}">
+        <div class="card-top">
+          <div class="card-ic"><div class="spin"></div></div>
+        </div>
+        <div class="card-title">${escape(info.name)}</div>
+        <div class="card-sub">${Math.round(info.progress)}% uploading</div>
+        <div class="upbar"><div style="width:${info.progress}%"></div></div>
+      </div>`;
+  }
+  function uploadListHtml(tempId, info) {
+    return `
+      <div class="list-row uploading" data-temp="${tempId}">
+        <div class="card-ic"><div class="spin" style="margin-right:0;"></div></div>
+        <div class="lr-name">${escape(info.name)}</div>
+        <div class="lr-type">file</div>
+        <div class="lr-date">…</div>
+        <div class="lr-info">${Math.round(info.progress)}%</div>
+        <div></div>
+      </div>`;
+  }
+
+  function cardHtml(id, item, fullPath, _isPinnedShelf) {
+    const type = item.type || (fullPath.length === 1 ? 'category' : 'folder');
+    const ic = item.icon || DEFAULT_ICONS[type] || 'folder';
+    const color = item.iconColor || DEFAULT_COLOR;
+    let sub = '';
+    if (type === 'url') {
+      try { sub = new URL(item.url).hostname.replace(/^www\./, ''); } catch { sub = item.url || ''; }
+    } else if (type === 'file') {
+      sub = `${humanSize(item.size)} · ${item.mime || 'file'}`;
+    } else {
+      const c = item.items ? Object.keys(item.items).length : 0;
+      sub = `${c} item${c === 1 ? '' : 's'}`;
+    }
+    const isImage = type === 'file' && (item.mime || '').startsWith('image/') && item.url;
+    const pinned = !!item.pinned;
+    const dataUrl = (type === 'url' || type === 'file') ? `data-url="${escapeAttr(item.url || '')}"` : '';
+
+    if (isImage) {
+      return `
+        <div class="card thumb" data-type="${type}" data-name="${escapeAttr(item.name)}"
+             data-mime="${escapeAttr(item.mime || '')}"
+             data-fullpath='${escapeAttr(JSON.stringify(fullPath))}' ${dataUrl}>
+          <div class="card-actions">
+            <button class="ca pin ${pinned ? 'active' : ''}" title="Pin"><i class="${pinned ? 'ph-fill' : 'ph'} ph-push-pin"></i></button>
+            <button class="ca color" title="Color"><i class="ph ph-palette"></i></button>
+            <button class="ca dl" title="Download"><i class="ph ph-download-simple"></i></button>
+            <button class="ca del" title="Delete"><i class="ph ph-trash"></i></button>
+          </div>
+          <div class="thumb-img" style="background-image:url('${escapeAttr(item.url)}')"></div>
+          <div class="thumb-body">
+            <div class="card-title">${escape(item.name)}${pinned ? '<span class="pinned-dot"></span>' : ''}</div>
+            <div class="card-sub">${escape(sub)}</div>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="card ${type}" data-type="${type}" data-name="${escapeAttr(item.name)}"
+           data-mime="${escapeAttr(item.mime || '')}"
+           data-fullpath='${escapeAttr(JSON.stringify(fullPath))}' ${dataUrl}>
+        <div class="card-top">
+          <div class="card-ic"><i class="ph-bold ph-${escapeAttr(ic)}" style="color:${escapeAttr(color)}"></i></div>
+          <div class="card-actions">
+            <button class="ca pin ${pinned ? 'active' : ''}" title="Pin"><i class="${pinned ? 'ph-fill' : 'ph'} ph-push-pin"></i></button>
+            <button class="ca color" title="Color"><i class="ph ph-palette"></i></button>
+            ${type === 'url' ? `<button class="ca open" title="Open"><i class="ph ph-arrow-square-out"></i></button>` : ''}
+            ${type === 'file' ? `<button class="ca dl" title="Download"><i class="ph ph-download-simple"></i></button>` : ''}
+            <button class="ca del" title="Delete"><i class="ph ph-trash"></i></button>
+          </div>
+        </div>
+        <div class="card-title">${escape(item.name)}${pinned ? '<span class="pinned-dot"></span>' : ''}</div>
+        <div class="card-sub">${escape(sub)}</div>
+      </div>
+    `;
+  }
+
+  function listRowHtml(id, item, fullPath) {
+    const type = item.type || (fullPath.length === 1 ? 'category' : 'folder');
+    const ic = item.icon || DEFAULT_ICONS[type] || 'folder';
+    const color = item.iconColor || DEFAULT_COLOR;
+    const pinned = !!item.pinned;
+    const dataUrl = (type === 'url' || type === 'file') ? `data-url="${escapeAttr(item.url || '')}"` : '';
+    let info = '';
+    if (type === 'url') {
+      try { info = new URL(item.url).hostname.replace(/^www\./, ''); } catch { info = item.url || ''; }
+    } else if (type === 'file') {
+      info = humanSize(item.size);
+    } else {
+      const c = item.items ? Object.keys(item.items).length : 0;
+      info = `${c} item${c === 1 ? '' : 's'}`;
+    }
+    return `
+      <div class="list-row" data-type="${type}" data-name="${escapeAttr(item.name)}"
+           data-mime="${escapeAttr(item.mime || '')}"
+           data-fullpath='${escapeAttr(JSON.stringify(fullPath))}' ${dataUrl}>
+        <div class="card-ic"><i class="ph-bold ph-${escapeAttr(ic)}" style="color:${escapeAttr(color)}"></i></div>
+        <div class="lr-name">${pinned ? '<i class="ph-fill ph-push-pin lr-pin"></i>' : ''}${escape(item.name)}</div>
+        <div class="lr-type">${escape(type)}</div>
+        <div class="lr-date">${escape(humanDate(item.createdAt))}</div>
+        <div class="lr-info">${escape(info)}</div>
+        <div class="lr-actions">
+          <button class="ca pin ${pinned ? 'active' : ''}" title="Pin"><i class="${pinned ? 'ph-fill' : 'ph'} ph-push-pin"></i></button>
+          <button class="ca color" title="Color"><i class="ph ph-palette"></i></button>
+          ${type === 'url' ? `<button class="ca open" title="Open"><i class="ph ph-arrow-square-out"></i></button>` : ''}
+          ${type === 'file' ? `<button class="ca dl" title="Download"><i class="ph ph-download-simple"></i></button>` : ''}
+          <button class="ca del" title="Delete"><i class="ph ph-trash"></i></button>
+        </div>
+      </div>`;
+  }
+
+  function attachCardEvents(scope) {
+    scope.querySelectorAll('.card:not(.uploading), .list-row:not(.uploading)').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('.ca')) return;
+        const type = el.dataset.type;
+        const fp = JSON.parse(el.dataset.fullpath);
+        if (type === 'url') {
+          window.open(el.dataset.url, '_blank', 'noopener');
+        } else if (type === 'file') {
+          const url = el.dataset.url;
+          const mime = el.dataset.mime || '';
+          if (mime.startsWith('image/')) openLightbox(url);
+          else window.open(url, '_blank', 'noopener');
+        } else {
+          path = fp; searchQ = ''; $('searchInput').value = '';
+          $('searchWrap').classList.remove('show');
+          render();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+    scope.querySelectorAll('.ca.del').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const row = b.closest('.card, .list-row');
+        const fp = JSON.parse(row.dataset.fullpath);
+        deleteItem(fp, row.dataset.name);
+      });
+    });
+    scope.querySelectorAll('.ca.open').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const row = b.closest('.card, .list-row');
+        if (row.dataset.type === 'url') window.open(row.dataset.url, '_blank', 'noopener');
+      });
+    });
+    scope.querySelectorAll('.ca.dl').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const row = b.closest('.card, .list-row');
+        const a = document.createElement('a');
+        a.href = row.dataset.url; a.download = row.dataset.name; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+    });
+    scope.querySelectorAll('.ca.pin').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const row = b.closest('.card, .list-row');
+        const fp = JSON.parse(row.dataset.fullpath);
+        togglePin(fp, b.classList.contains('active'));
+      });
+    });
+    scope.querySelectorAll('.ca.color').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const row = b.closest('.card, .list-row');
+        const fp = JSON.parse(row.dataset.fullpath);
+        pickColorFor(fp);
+      });
+    });
+  }
+
+  function renderTree() {
+    const v = vaults[currentVaultId] || { name: 'Vault', icon: 'vault' };
+    $('sbVault').innerHTML = `<i class="ph-bold ph-${escapeAttr(v.icon || 'vault')}" style="color:${escapeAttr(v.iconColor || DEFAULT_COLOR)}"></i> ${escape(v.name)}`;
+    const cats = currentCats();
+    const treeEl = $('tree');
+    if (Object.keys(cats).length === 0) {
+      treeEl.innerHTML = `<div style="padding:20px;text-align:center;color:var(--tx-faint);">Empty vault.</div>`;
+      return;
+    }
+    treeEl.innerHTML = renderTreeChildren(cats, []);
+    treeEl.querySelectorAll('.tree-row').forEach(row => {
+      row.addEventListener('click', e => {
+        const caretEl = e.target.closest('.tree-caret');
+        const fp = JSON.parse(row.dataset.fullpath);
+        const type = row.dataset.type;
+        if (caretEl && !caretEl.classList.contains('empty')) {
+          const next = row.parentElement.querySelector(':scope > .tree-children');
+          if (next) {
+            caretEl.classList.toggle('open');
+            next.classList.toggle('open');
+          }
+          return;
+        }
+        if (type === 'url') {
+          window.open(row.dataset.url, '_blank', 'noopener');
+        } else if (type === 'file') {
+          const url = row.dataset.url, mime = row.dataset.mime || '';
+          if (mime.startsWith('image/')) openLightbox(url); else window.open(url, '_blank', 'noopener');
+        } else {
+          path = fp; searchQ = ''; $('searchInput').value = '';
+          $('searchWrap').classList.remove('show');
+          render();
+          if (window.innerWidth < 540) $('sidebar').classList.remove('show');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+  }
+  function renderTreeChildren(items, parents) {
+    let html = '';
+    for (const [id, item] of Object.entries(items)) {
+      const fp = [...parents, id];
+      const type = item.type || (parents.length === 0 ? 'category' : 'folder');
+      const ic = item.icon || DEFAULT_ICONS[type] || 'folder';
+      const color = item.iconColor || DEFAULT_COLOR;
+      const hasChildren = item.items && Object.keys(item.items).length > 0;
+      const isCurrent = JSON.stringify(fp) === JSON.stringify(path);
+      const onPath = path.length > parents.length && path[parents.length] === id;
+      const caret = hasChildren
+        ? `<span class="tree-caret ${onPath ? 'open' : ''}"><i class="ph-bold ph-caret-right"></i></span>`
+        : `<span class="tree-caret empty"></span>`;
+      const dataUrl = (type === 'url' || type === 'file') ? `data-url="${escapeAttr(item.url || '')}"` : '';
+      html += `
+        <div class="tree-node">
+          <div class="tree-row ${isCurrent ? 'is-current' : ''}"
+               data-type="${type}" data-fullpath='${escapeAttr(JSON.stringify(fp))}'
+               data-mime="${escapeAttr(item.mime || '')}" ${dataUrl}>
+            ${caret}
+            <span class="tree-icon"><i class="ph-bold ph-${escapeAttr(ic)}" style="color:${escapeAttr(color)}"></i></span>
+            <span class="tree-label">${escape(item.name)}</span>
+            ${item.pinned ? `<i class="ph-fill ph-push-pin tree-pin"></i>` : ''}
+          </div>
+          ${hasChildren ? `<div class="tree-children ${onPath ? 'open' : ''}">${renderTreeChildren(item.items, fp)}</div>` : ''}
+        </div>`;
+    }
+    return html;
+  }
+
+  // -------- Modal: add item --------
+  function openAddModal(forceType) {
+    if (!currentVaultId) return;
+    const allowed = allowedTypes();
+    selectedType = forceType && allowed.includes(forceType) ? forceType : allowed[0];
+    selectedIcon = DEFAULT_ICONS[selectedType];
+    selectedColor = DEFAULT_COLOR;
+    pendingFile = null;
+    $('filePreview').innerHTML = '';
+    $('fileInput').value = '';
+    $('nameInput').value = '';
+    $('urlInput').value = '';
+    $('iconSearch').value = '';
+
+    $('typePicker').querySelectorAll('.type-opt').forEach(b => {
+      const t = b.dataset.type;
+      b.disabled = !allowed.includes(t);
+      b.classList.toggle('active', t === selectedType);
+    });
+    updateModalForType();
+
+    if (path.length === 0) {
+      $('modalSub').textContent = 'Categories sit at the top level.';
+    } else {
+      const titles = pathTitles();
+      $('modalSub').textContent = `Adding to "${titles[titles.length - 1].name}"`;
+    }
+    renderSwatches();
+    $('addBackdrop').classList.add('show');
+    setTimeout(() => $('nameInput').focus(), 60);
+  }
+  function closeAdd() { $('addBackdrop').classList.remove('show'); pendingFile = null; }
+
+  function updateModalForType() {
+    $('urlField').classList.toggle('hide', selectedType !== 'url');
+    $('fileField').classList.toggle('hide', selectedType !== 'file');
+    $('iconField').classList.toggle('hide', selectedType === 'file');
+    $('nameLabel').textContent = selectedType === 'url' ? 'Label' : (selectedType === 'file' ? 'Display name (optional)' : 'Name');
+    $('nameInput').placeholder = selectedType === 'file' ? 'Auto-filled from file' : 'Give it a name…';
+    $('modalTitle').textContent = `NEW ${selectedType.toUpperCase()}`;
+    selectedIcon = DEFAULT_ICONS[selectedType];
+    $('iconSearch').value = '';
+    paintIconGrid($('iconGrid'), '', () => selectedIcon, (n) => { selectedIcon = n; updateIconPreview(); });
+    updateIconPreview();
+  }
+  function updateIconPreview() {
+    $('iconPreview').innerHTML = `<i class="ph-bold ph-${escapeAttr(selectedIcon)}" style="color:${escapeAttr(selectedColor)}"></i>`;
+    $('colorPicker').value = selectedColor;
+    $('colorHex').value = selectedColor;
+  }
+  function paintIconGrid(gridEl, filter, getActive, onPick) {
+    const q = (filter || '').trim().toLowerCase();
+    const list = q ? UNIQ_ICONS.filter(n => n.includes(q)) : UNIQ_ICONS;
+    gridEl.innerHTML = list.map(name => `
+      <button class="icon-pick ${getActive() === name ? 'active' : ''}" data-icon="${escapeAttr(name)}">
+        <i class="ph-bold ph-${escapeAttr(name)}"></i>
+      </button>
+    `).join('');
+    gridEl.querySelectorAll('.icon-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        const ic = b.dataset.icon;
+        onPick(ic);
+        gridEl.querySelectorAll('.icon-pick').forEach(x => x.classList.toggle('active', x.dataset.icon === ic));
+      });
+    });
+  }
+  function renderSwatches() {
+    $('colorStrip').innerHTML = SWATCHES.map(c => `
+      <button class="swatch ${c === selectedColor ? 'active' : ''}" data-c="${c}" style="background:${c}"></button>
+    `).join('');
+    $('colorStrip').querySelectorAll('.swatch').forEach(b => {
+      b.addEventListener('click', () => {
+        selectedColor = b.dataset.c;
+        $('colorStrip').querySelectorAll('.swatch').forEach(x => x.classList.toggle('active', x.dataset.c === selectedColor));
+        updateIconPreview();
+      });
+    });
+  }
+
+  $('iconSearch').addEventListener('input', () => {
+    paintIconGrid($('iconGrid'), $('iconSearch').value, () => selectedIcon, n => { selectedIcon = n; updateIconPreview(); });
+  });
+  $('colorPicker').addEventListener('input', () => {
+    selectedColor = $('colorPicker').value;
+    updateIconPreview(); renderSwatches();
+  });
+  $('colorHex').addEventListener('change', () => {
+    let v = $('colorHex').value.trim();
+    if (!/^#[0-9a-f]{6}$/i.test(v)) { $('colorHex').value = selectedColor; return; }
+    selectedColor = v; updateIconPreview(); renderSwatches();
+  });
+
+  // File input
+  function handleFile(file) {
+    pendingFile = file;
+    if (!$('nameInput').value) $('nameInput').value = file.name;
+    const isImg = file.type.startsWith('image/');
+    let bg = '';
+    if (isImg) {
+      const url = URL.createObjectURL(file);
+      bg = `style="background-image:url('${url}')"`;
+    }
+    $('filePreview').innerHTML = `
+      <div class="file-preview">
+        <div class="file-preview-thumb" ${bg}>
+          ${!isImg ? `<i class="ph-bold ph-${iconForMime(file.type, file.name)}"></i>` : ''}
+        </div>
+        <div class="file-preview-info">
+          <div class="file-preview-name">${escape(file.name)}</div>
+          <div class="file-preview-size">${humanSize(file.size)} · ${escape(file.type || 'file')}</div>
+        </div>
+        <button class="ca" id="filePreviewClear"><i class="ph ph-x"></i></button>
+      </div>`;
+    $('filePreviewClear').addEventListener('click', () => {
+      pendingFile = null;
+      $('filePreview').innerHTML = '';
+      $('fileInput').value = '';
+    });
+  }
+  $('fileInput').addEventListener('change', () => {
+    if ($('fileInput').files && $('fileInput').files[0]) handleFile($('fileInput').files[0]);
+  });
+  $('fileDrop').addEventListener('dragover', e => { e.preventDefault(); $('fileDrop').classList.add('dragover'); });
+  $('fileDrop').addEventListener('dragleave', () => $('fileDrop').classList.remove('dragover'));
+  $('fileDrop').addEventListener('drop', e => {
+    e.preventDefault(); $('fileDrop').classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  $('typePicker').querySelectorAll('.type-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.disabled) return;
+      selectedType = b.dataset.type;
+      $('typePicker').querySelectorAll('.type-opt').forEach(x => x.classList.toggle('active', x === b));
+      updateModalForType();
+    });
+  });
+
+  // -------- Save / CRUD --------
+  async function saveItem() {
+    if (selectedType === 'file') {
+      if (!pendingFile) { toast('Pick a file first'); return; }
+      const displayName = $('nameInput').value.trim() || pendingFile.name;
+      const file = pendingFile;
+      const parentPath = [...path];
+      closeAdd();
+      uploadFile(file, displayName, parentPath);
+      return;
+    }
+    const name = $('nameInput').value.trim();
+    if (!name) { toast('Name is required'); $('nameInput').focus(); return; }
+    let url = '';
+    if (selectedType === 'url') {
+      url = $('urlInput').value.trim();
+      if (!url) { toast('URL is required'); $('urlInput').focus(); return; }
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    }
+    const id = uid();
+    const item = {
+      type: selectedType, name,
+      icon: selectedIcon,
+      iconColor: selectedColor,
+      createdAt: Date.now()
+    };
+    if (selectedType === 'url') item.url = url;
+    try {
+      await set(dbRef(db, nodeRefPath(id)), item);
+      toast(`${selectedType[0].toUpperCase() + selectedType.slice(1)} added`);
+      closeAdd();
+    } catch (e) { console.error(e); toast('Failed'); }
+  }
+
+  async function uploadFile(file, displayName, parentPath) {
+    if (!currentVaultId) return;
+    const tempId = 'tmp_' + uid();
+    activeUploads.set(tempId, { name: displayName, progress: 0, parentPath });
+    if (JSON.stringify(parentPath) === JSON.stringify(path)) renderContent();
+
+    const id = uid();
+    const safeName = file.name.replace(/[^\w.\-]/g, '_');
+    const storagePath = `vaults/${currentVaultId}/${id}_${safeName}`;
+    const ref = stRef(storage, storagePath);
+    const task = uploadBytesResumable(ref, file, { contentType: file.type || 'application/octet-stream' });
+
+    task.on('state_changed',
+      snap => {
+        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
+        const info = activeUploads.get(tempId);
+        if (!info) return;
+        info.progress = pct;
+        if (JSON.stringify(parentPath) === JSON.stringify(path)) {
+          const card = document.querySelector(`.uploading[data-temp="${tempId}"]`);
+          if (card) {
+            const bar = card.querySelector('.upbar > div');
+            if (bar) bar.style.width = pct + '%';
+            const sub = card.querySelector('.card-sub') || card.querySelector('.lr-info');
+            if (sub) sub.textContent = view === 'grid' ? `${Math.round(pct)}% uploading` : `${Math.round(pct)}%`;
+          } else { renderContent(); }
+        }
+      },
+      err => {
+        console.error(err); activeUploads.delete(tempId);
+        if (JSON.stringify(parentPath) === JSON.stringify(path)) renderContent();
+        toast('Upload failed');
+      },
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          const item = {
+            type: 'file',
+            name: displayName,
+            icon: iconForMime(file.type, file.name),
+            iconColor: DEFAULT_COLOR,
+            url, storagePath,
+            size: file.size, mime: file.type || '',
+            createdAt: Date.now()
+          };
+          await set(dbRef(db, nodeRefPath(id, parentPath)), item);
+          activeUploads.delete(tempId);
+          toast('Uploaded');
+        } catch (e) {
+          console.error(e); activeUploads.delete(tempId);
+          if (JSON.stringify(parentPath) === JSON.stringify(path)) renderContent();
+          toast('Upload finished but save failed');
+        }
+      }
+    );
+  }
+
+  async function deleteItem(fullPath, name) {
+    if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
+    let node = currentCats()[fullPath[0]];
+    for (let i = 1; i < fullPath.length; i++) {
+      if (!node || !node.items) { node = null; break; }
+      node = node.items[fullPath[i]];
+    }
+    const storagePaths = [];
+    (function collect(n) {
+      if (!n) return;
+      if (n.type === 'file' && n.storagePath) storagePaths.push(n.storagePath);
+      if (n.items) for (const c of Object.values(n.items)) collect(c);
+    })(node);
+    try {
+      await remove(dbRef(db, fullPathRef(fullPath)));
+      for (const sp of storagePaths) {
+        try { await deleteObject(stRef(storage, sp)); } catch (e) { console.warn(e); }
+      }
+      toast(storagePaths.length ? `Deleted (+${storagePaths.length} file${storagePaths.length === 1 ? '' : 's'})` : 'Deleted');
+    } catch (e) { console.error(e); toast('Failed'); }
+  }
+  async function togglePin(fullPath, isPinned) {
+    try {
+      const target = `${fullPathRef(fullPath)}/pinned`;
+      if (isPinned) { await set(dbRef(db, target), null); toast('Unpinned'); }
+      else { await set(dbRef(db, target), true); toast('Pinned'); }
+    } catch (e) { console.error(e); toast('Failed'); }
+  }
+
+  // Pick color for an existing item via native picker (no extra modal)
+  function pickColorFor(fullPath) {
+    // find current
+    let node = currentCats()[fullPath[0]];
+    for (let i = 1; i < fullPath.length; i++) {
+      if (!node || !node.items) { node = null; break; }
+      node = node.items[fullPath[i]];
+    }
+    const current = (node && node.iconColor) || DEFAULT_COLOR;
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = current;
+    inp.style.position = 'fixed'; inp.style.left = '-9999px';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', async () => {
+      const v = inp.value;
+      try {
+        await set(dbRef(db, `${fullPathRef(fullPath)}/iconColor`), v);
+        toast('Color updated');
+      } catch (e) { toast('Failed'); }
+      inp.remove();
+    }, { once: true });
+    inp.click();
+  }
+
+  // -------- Vault CRUD --------
+  function openVaultModal() {
+    $('vaultName').value = '';
+    editingVaultIcon = 'vault'; editingVaultColor = DEFAULT_COLOR;
+    $('vaultColor').value = editingVaultColor;
+    $('vaultIconSearch').value = '';
+    paintIconGrid($('vaultIconGrid'), '', () => editingVaultIcon, n => {
+      editingVaultIcon = n;
+      $('vaultPreview').innerHTML = `<i class="ph-bold ph-${escapeAttr(n)}" style="color:${escapeAttr(editingVaultColor)}"></i>`;
+    });
+    $('vaultPreview').innerHTML = `<i class="ph-bold ph-${escapeAttr(editingVaultIcon)}" style="color:${editingVaultColor}"></i>`;
+    $('vaultBackdrop').classList.add('show');
+    setTimeout(() => $('vaultName').focus(), 60);
+  }
+  function closeVaultModal() { $('vaultBackdrop').classList.remove('show'); }
+
+  $('vaultIconSearch').addEventListener('input', () => {
+    paintIconGrid($('vaultIconGrid'), $('vaultIconSearch').value, () => editingVaultIcon, n => {
+      editingVaultIcon = n;
+      $('vaultPreview').innerHTML = `<i class="ph-bold ph-${escapeAttr(n)}" style="color:${escapeAttr(editingVaultColor)}"></i>`;
+    });
+  });
+  $('vaultColor').addEventListener('input', () => {
+    editingVaultColor = $('vaultColor').value;
+    $('vaultPreview').innerHTML = `<i class="ph-bold ph-${escapeAttr(editingVaultIcon)}" style="color:${escapeAttr(editingVaultColor)}"></i>`;
+  });
+
+  async function saveVault() {
+    const name = $('vaultName').value.trim();
+    if (!name) { toast('Name is required'); $('vaultName').focus(); return; }
+    const id = uid();
+    try {
+      await set(dbRef(db, `${ROOT}/vaults/${id}`), {
+        name, icon: editingVaultIcon, iconColor: editingVaultColor, createdAt: Date.now()
+      });
+      currentVaultId = id; path = [];
+      toast('Vault created');
+      closeVaultModal();
+    } catch (e) { console.error(e); toast('Failed'); }
+  }
+  async function deleteVault(id) {
+    const v = vaults[id]; if (!v) return;
+    if (Object.keys(vaults).length <= 1) { toast('Need at least one vault'); return; }
+    if (!confirm(`Delete vault "${v.name}" and everything inside?`)) return;
+    const sps = [];
+    (function walk(items) {
+      for (const it of Object.values(items || {})) {
+        if (it.type === 'file' && it.storagePath) sps.push(it.storagePath);
+        if (it.items) walk(it.items);
+      }
+    })(allData[id] || {});
+    try {
+      await remove(dbRef(db, `${ROOT}/vaults/${id}`));
+      await remove(dbRef(db, `${ROOT}/data/${id}`));
+      for (const sp of sps) { try { await deleteObject(stRef(storage, sp)); } catch (e) { console.warn(e); } }
+      if (currentVaultId === id) { currentVaultId = null; path = []; }
+      toast(sps.length ? `Vault deleted (+${sps.length} files)` : 'Vault deleted');
+    } catch (e) { console.error(e); toast('Failed'); }
+  }
+
+  function showVaultMenu(id, x, y) {
+    // simple inline menu via confirm/prompt for tiny code surface
+    const v = vaults[id]; if (!v) return;
+    const action = prompt(`Vault "${v.name}":\n[r] Rename\n[c] Change color\n[d] Delete\n\nType r/c/d:`);
+    if (!action) return;
+    if (action === 'r') {
+      const name = prompt('New name:', v.name);
+      if (name) set(dbRef(db, `${ROOT}/vaults/${id}/name`), name.trim());
+    } else if (action === 'c') {
+      const inp = document.createElement('input');
+      inp.type = 'color'; inp.value = v.iconColor || DEFAULT_COLOR;
+      inp.style.position = 'fixed'; inp.style.left = '-9999px';
+      document.body.appendChild(inp);
+      inp.addEventListener('change', () => {
+        set(dbRef(db, `${ROOT}/vaults/${id}/iconColor`), inp.value);
+        inp.remove();
+      }, { once: true });
+      inp.click();
+    } else if (action === 'd') {
+      deleteVault(id);
+    }
+  }
+
+  // -------- Lightbox --------
+  function openLightbox(url) {
+    $('lightboxImg').src = url;
+    $('lightbox').classList.add('show');
+  }
+  function closeLightbox() {
+    $('lightbox').classList.remove('show');
+    $('lightboxImg').src = '';
+  }
+  $('lightbox').addEventListener('click', closeLightbox);
+  $('lightboxClose').addEventListener('click', e => { e.stopPropagation(); closeLightbox(); });
+
+  // -------- Toast --------
+  let toastTimer;
+  function toast(msg) {
+    $('toastMsg').textContent = msg;
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('show'), 1800);
+  }
+
+  // -------- Events --------
+  $('fab').addEventListener('click', () => {
+    // simple: if root, just open category modal; else show small chooser
+    if (path.length === 0) { openAddModal('category'); return; }
+    // tiny menu via confirm-less prompt: open with default type folder; user can switch in modal
+    openAddModal();
+  });
+  $('cancelBtn').addEventListener('click', closeAdd);
+  $('saveBtn').addEventListener('click', saveItem);
+  $('addBackdrop').addEventListener('click', e => { if (e.target === $('addBackdrop')) closeAdd(); });
+  $('vaultCancel').addEventListener('click', closeVaultModal);
+  $('vaultSave').addEventListener('click', saveVault);
+  $('vaultBackdrop').addEventListener('click', e => { if (e.target === $('vaultBackdrop')) closeVaultModal(); });
+
+  $('viewBtn').addEventListener('click', () => {
+    view = view === 'grid' ? 'list' : 'grid';
+    localStorage.setItem('vault.view', view);
+    renderContent();
+    $('viewBtn').querySelector('i').className = view === 'grid' ? 'ph ph-list' : 'ph ph-grid-four';
+  });
+  $('sortSelect').addEventListener('change', () => {
+    sortBy = $('sortSelect').value;
+    localStorage.setItem('vault.sort', sortBy);
+    renderContent();
+  });
+  $('searchBtn').addEventListener('click', () => {
+    const open = $('searchWrap').classList.toggle('show');
+    if (open) setTimeout(() => $('searchInput').focus(), 40);
+    else { $('searchInput').value = ''; searchQ = ''; renderContent(); }
+  });
+  $('homeBtn').addEventListener('click', () => {
+    path = []; searchQ = ''; $('searchInput').value = '';
+    $('searchWrap').classList.remove('show');
+    render();
+  });
+  $('sidebarBtn').addEventListener('click', () => $('sidebar').classList.toggle('show'));
+
+  let searchDeb;
+  $('searchInput').addEventListener('input', () => {
+    clearTimeout(searchDeb);
+    searchDeb = setTimeout(() => { searchQ = $('searchInput').value.trim().toLowerCase(); renderContent(); }, 120);
+  });
+
+  $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveItem(); if (e.key === 'Escape') closeAdd(); });
+  $('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveItem(); if (e.key === 'Escape') closeAdd(); });
+  $('vaultName').addEventListener('keydown', e => { if (e.key === 'Enter') saveVault(); if (e.key === 'Escape') closeVaultModal(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if ($('lightbox').classList.contains('show')) closeLightbox();
+      else if ($('addBackdrop').classList.contains('show')) closeAdd();
+      else if ($('vaultBackdrop').classList.contains('show')) closeVaultModal();
+      else if ($('searchWrap').classList.contains('show')) {
+        $('searchWrap').classList.remove('show'); $('searchInput').value = '';
+        searchQ = ''; renderContent();
+      }
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); $('searchBtn').click(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAddModal(); }
+  });
+
+  // Long-press on mobile
+  let pressTimer;
+  document.addEventListener('touchstart', e => {
+    const el = e.target.closest('.card, .list-row');
+    if (!el) return;
+    pressTimer = setTimeout(() => {
+      document.querySelectorAll('.touched').forEach(x => x.classList.remove('touched'));
+      el.classList.add('touched');
+    }, 400);
+  }, { passive: true });
+  document.addEventListener('touchend', () => clearTimeout(pressTimer));
+  document.addEventListener('touchmove', () => clearTimeout(pressTimer));
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.card, .list-row')) {
+      document.querySelectorAll('.touched').forEach(x => x.classList.remove('touched'));
+    }
+  });
+
+  // Drag-and-drop upload
+  let dragCount = 0;
+  window.addEventListener('dragenter', e => {
+    if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    if ($('addBackdrop').classList.contains('show')) return;
+    dragCount++;
+    $('dropOverlay').classList.add('show');
+  });
+  window.addEventListener('dragleave', () => {
+    dragCount = Math.max(0, dragCount - 1);
+    if (dragCount === 0) $('dropOverlay').classList.remove('show');
+  });
+  window.addEventListener('dragover', e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+  });
+  window.addEventListener('drop', e => {
+    dragCount = 0;
+    $('dropOverlay').classList.remove('show');
+    if ($('addBackdrop').classList.contains('show')) return;
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    if (path.length === 0) { toast('Open a category first'); return; }
+    Array.from(e.dataTransfer.files).forEach(f => uploadFile(f, f.name, [...path]));
+  });
+
+  $('hiddenFile').addEventListener('change', () => {
+    Array.from($('hiddenFile').files || []).forEach(f => uploadFile(f, f.name, [...path]));
+    $('hiddenFile').value = '';
+  });
+
+  // Initial loading state
+  $('content').innerHTML = `<div class="loading"><span class="spin"></span>Loading…</div>`;
+</script>
+
+</body>
+</html>
