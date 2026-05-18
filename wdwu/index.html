@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>USDC Withdraw Dashboard</title>
+
+<style>
+body{
+font-family:Arial;
+background:#f7f7f7;
+margin:0;
+padding:20px;
+}
+
+.card{
+background:white;
+border-radius:12px;
+padding:15px;
+margin-bottom:15px;
+border:1px solid #ddd;
+}
+
+.title{
+font-weight:bold;
+font-size:16px;
+margin-bottom:5px;
+}
+
+.address{
+font-size:12px;
+color:#777;
+word-break:break-all;
+margin-bottom:10px;
+}
+
+.balance{
+font-size:20px;
+color:#6a3cff;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+button{
+padding:10px 16px;
+border:none;
+border-radius:8px;
+background:#6a3cff;
+color:white;
+cursor:pointer;
+}
+
+button:disabled{
+opacity:.5;
+}
+</style>
+</head>
+
+<body>
+
+<button onclick="connectWallet()" id="connectBtn">
+Connect Wallet
+</button>
+
+<br><br>
+
+<div id="wallets"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+
+<script>
+
+const USDC =
+"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+
+const SALES = [
+
+{
+name:"NFTFAN SALE",
+address:"0xaf2d132c8773bca3821c24ecf64e844e202a12e8"
+},
+
+{
+name:"POLDOG SALE",
+address:"0xB1A37c277986E13Aa6c4f0763c2F06C4E9527D54"
+},
+
+{
+name:"QuickNFT SALE",
+address:"0x098745B08F85aD8Dc8801a107eE0d4204460828E"
+},
+
+{
+name:"PhotoNFT SALE",
+address:"0xb7d9E197905A0Fe7A59d82029eEFCBfDa631E2CC"
+}
+
+];
+
+const ERC20_ABI = [
+
+{
+constant:true,
+inputs:[
+{name:"account",type:"address"}
+],
+name:"balanceOf",
+outputs:[
+{name:"",type:"uint256"}
+],
+type:"function"
+}
+
+];
+
+const SALE_ABI = [
+
+{
+inputs:[],
+name:"withdrawUSDC",
+outputs:[],
+stateMutability:"nonpayable",
+type:"function"
+}
+
+];
+
+let web3;
+let user;
+
+async function connectWallet(){
+
+if(!window.ethereum){
+alert("Install wallet");
+return;
+}
+
+web3=new Web3(window.ethereum);
+
+const acc=
+await ethereum.request({
+method:"eth_requestAccounts"
+});
+
+user=acc[0];
+
+document.getElementById(
+"connectBtn"
+).innerHTML="Connected";
+
+loadBalances();
+
+}
+
+async function loadBalances(){
+
+const container=
+document.getElementById(
+"wallets"
+);
+
+container.innerHTML="";
+
+const usdc=
+new web3.eth.Contract(
+ERC20_ABI,
+USDC
+);
+
+for(let sale of SALES){
+
+let balance="0";
+
+try{
+
+const raw=
+await usdc.methods
+.balanceOf(
+sale.address
+)
+.call();
+
+balance=
+(raw/1000000)
+.toLocaleString();
+
+}catch(e){}
+
+container.innerHTML+=`
+
+<div class="card">
+
+<div class="title">
+${sale.name}
+</div>
+
+<div class="address">
+${sale.address}
+</div>
+
+<div class="balance"
+id="b_${sale.address}">
+${balance} USDC
+</div>
+
+<button
+onclick="
+withdrawUSDC(
+'${sale.address}'
+)">
+Withdraw USDC
+</button>
+
+</div>
+
+`;
+
+}
+
+}
+
+async function withdrawUSDC(
+contractAddress
+){
+
+try{
+
+const contract=
+new web3.eth.Contract(
+SALE_ABI,
+contractAddress
+);
+
+await contract.methods
+.withdrawUSDC()
+.send({
+from:user
+});
+
+alert(
+"USDC withdrawn"
+);
+
+loadBalances();
+
+}catch(e){
+
+alert(
+e.message
+);
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
