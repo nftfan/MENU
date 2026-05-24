@@ -1,0 +1,501 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BETBIT // MIND_MATCH</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#04070a; --panel:#0a1410; --panel2:#0d1a14; --line:#163326;
+    --neon:#39ff14; --neon-dim:#1f8a12; --neon-soft:#0e2a16;
+    --cyan:#00ffe0; --magenta:#ff2bd6; --amber:#ffd23f;
+    --muted:#4f6b58; --text:#c8ffd6; --red:#ff3b5c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:'Share Tech Mono',monospace;
+    background:
+      radial-gradient(900px 500px at 50% -10%, rgba(57,255,20,.10), transparent 60%),
+      radial-gradient(700px 600px at 110% 120%, rgba(0,255,224,.06), transparent 55%),
+      var(--bg);
+    color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;
+    padding:14px;font-size:12px;-webkit-font-smoothing:antialiased;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.18) 3px, rgba(0,0,0,0) 4px);
+    mix-blend-mode:multiply;opacity:.5;}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
+    background:radial-gradient(circle at 50% 40%, transparent 60%, rgba(0,0,0,.55) 100%);}
+
+  .container{width:100%;max-width:390px;position:relative;z-index:1;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;letter-spacing:2px;color:var(--neon);
+        text-shadow:0 0 6px rgba(57,255,20,.8),0 0 18px rgba(57,255,20,.4);}
+  .logo .blink{animation:blink 1.05s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .net-pill{font-size:9px;color:var(--cyan);letter-spacing:1px;border:1px solid rgba(0,255,224,.4);
+            border-radius:3px;padding:3px 7px;text-shadow:0 0 6px rgba(0,255,224,.6);}
+
+  .tabs{display:flex;gap:6px;margin-bottom:11px;}
+  .tab{flex:1;text-align:center;padding:7px 4px;font-size:10px;letter-spacing:1px;cursor:pointer;
+       background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:4px;text-transform:uppercase;transition:.15s;}
+  .tab:hover{color:var(--text);border-color:var(--neon-dim);}
+  .tab.active{color:var(--neon);border-color:var(--neon);box-shadow:0 0 10px rgba(57,255,20,.25),inset 0 0 12px rgba(57,255,20,.08);text-shadow:0 0 6px rgba(57,255,20,.7);}
+
+  .wallet-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+              background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:8px 10px;margin-bottom:11px;}
+  .wallet-info{font-size:10px;line-height:1.5;}
+  .wallet-info .addr{color:var(--neon);text-shadow:0 0 5px rgba(57,255,20,.5);}
+  .wallet-info .bal{color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);}
+  .dot.ok{background:var(--neon);box-shadow:0 0 7px var(--neon);}
+  .btn-wallet{font-family:'Share Tech Mono';background:transparent;color:var(--cyan);border:1px solid var(--cyan);
+              border-radius:4px;padding:8px 11px;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap;
+              text-shadow:0 0 6px rgba(0,255,224,.5);box-shadow:0 0 8px rgba(0,255,224,.15);transition:.15s;}
+  .btn-wallet:hover{background:rgba(0,255,224,.08);}
+  .btn-wallet.connected{color:var(--muted);border-color:var(--line);text-shadow:none;box-shadow:none;}
+
+  /* terminal screen (the graph box) */
+  .screen{position:relative;background:
+            repeating-linear-gradient(0deg, rgba(57,255,20,.025) 0 1px, transparent 1px 22px),
+            linear-gradient(180deg,#06120c,#040a07);
+          border:1px solid var(--neon-dim);border-radius:8px;padding:16px 15px;min-height:150px;margin-bottom:12px;
+          box-shadow:0 0 18px rgba(57,255,20,.12),inset 0 0 30px rgba(57,255,20,.05);overflow:hidden;}
+  .corner{position:absolute;width:11px;height:11px;border:1px solid var(--neon);opacity:.7;}
+  .c-tl{top:6px;left:6px;border-right:none;border-bottom:none;}
+  .c-tr{top:6px;right:6px;border-left:none;border-bottom:none;}
+  .c-bl{bottom:6px;left:6px;border-right:none;border-top:none;}
+  .c-br{bottom:6px;right:6px;border-left:none;border-top:none;}
+  .screen-head{display:flex;justify-content:space-between;font-size:9px;color:var(--neon-dim);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;}
+  .screen-head .live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+               background:var(--neon);box-shadow:0 0 7px var(--neon);margin-right:5px;animation:blink 1.4s steps(1) infinite;}
+
+  .tline{font-size:12px;line-height:1.6;color:var(--neon);margin:0 0 12px;min-height:1.6em;
+         text-shadow:0 0 7px rgba(57,255,20,.5);white-space:pre-wrap;}
+  .tline .em{color:var(--cyan);text-shadow:0 0 6px rgba(0,255,224,.5);}
+  .caret{display:inline-block;width:8px;background:var(--neon);box-shadow:0 0 8px var(--neon);margin-left:1px;animation:cbl .8s steps(1) infinite;}
+  @keyframes cbl{50%{opacity:0;}}
+
+  /* the 10 words grid */
+  .wordgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:4px;}
+  .word{opacity:0;transform:scale(.85);transition:opacity .3s,transform .3s,box-shadow .2s,color .2s;
+        text-align:center;padding:9px 6px;font-size:12px;letter-spacing:1px;border-radius:5px;
+        border:1px solid var(--line);background:#08120d;color:var(--text);text-transform:uppercase;}
+  .word.show{opacity:1;transform:scale(1);}
+  .word.lit{color:var(--neon);border-color:var(--neon);box-shadow:0 0 12px rgba(57,255,20,.45),inset 0 0 10px rgba(57,255,20,.1);text-shadow:0 0 6px rgba(57,255,20,.7);}
+  .word.reveal-hit{color:#04070a;background:var(--neon);border-color:var(--neon);box-shadow:0 0 16px rgba(57,255,20,.7);font-weight:700;animation:pop .4s;}
+  .word.reveal-pick{color:var(--amber);border-color:var(--amber);box-shadow:0 0 14px rgba(255,210,63,.5);}
+  @keyframes pop{0%{transform:scale(.8);}60%{transform:scale(1.12);}100%{transform:scale(1);}}
+
+  /* commit hash line */
+  .commit{font-size:9px;color:var(--muted);letter-spacing:.5px;margin:10px 0 0;word-break:break-all;line-height:1.4;}
+  .commit b{color:var(--neon-dim);}
+
+  /* guess input */
+  .guessbox{margin-bottom:10px;}
+  .guess-label{font-size:9.5px;color:var(--neon-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+  .guess-input{width:100%;font-family:'Share Tech Mono';background:#08120d;border:1px solid var(--neon-dim);
+               color:var(--neon);border-radius:5px;padding:12px;font-size:14px;letter-spacing:2px;text-transform:uppercase;
+               text-align:center;text-shadow:0 0 7px rgba(57,255,20,.5);outline:none;box-shadow:inset 0 0 14px rgba(57,255,20,.07);}
+  .guess-input:focus{border-color:var(--neon);box-shadow:0 0 14px rgba(57,255,20,.3),inset 0 0 14px rgba(57,255,20,.1);}
+  .guess-input::placeholder{color:var(--muted);letter-spacing:1px;}
+  /* quick-pick chips so they can tap instead of type */
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .chip{font-size:9px;letter-spacing:.5px;padding:5px 8px;border-radius:3px;border:1px solid var(--line);
+        background:#08120d;color:var(--muted);cursor:pointer;text-transform:uppercase;transition:.12s;}
+  .chip:hover{color:var(--neon);border-color:var(--neon-dim);}
+  .chip.sel{color:var(--neon);border-color:var(--neon);box-shadow:0 0 9px rgba(57,255,20,.35);}
+
+  .btn-submit{font-family:'Orbitron',sans-serif;font-weight:800;width:100%;letter-spacing:2px;
+              background:transparent;color:var(--neon);border:1px solid var(--neon);border-radius:6px;
+              padding:12px 0;font-size:12px;cursor:pointer;text-transform:uppercase;
+              text-shadow:0 0 8px rgba(57,255,20,.7);box-shadow:0 0 14px rgba(57,255,20,.2),inset 0 0 16px rgba(57,255,20,.06);transition:.15s;}
+  .btn-submit:hover:not(:disabled){background:rgba(57,255,20,.1);box-shadow:0 0 22px rgba(57,255,20,.45);}
+  .btn-submit:disabled{color:var(--muted);border-color:var(--line);text-shadow:none;box-shadow:none;cursor:not-allowed;}
+  .btn-again{font-family:'Orbitron';font-weight:800;width:100%;letter-spacing:2px;background:transparent;color:var(--cyan);
+             border:1px solid var(--cyan);border-radius:6px;padding:12px 0;font-size:12px;cursor:pointer;text-transform:uppercase;
+             text-shadow:0 0 8px rgba(0,255,224,.6);box-shadow:0 0 14px rgba(0,255,224,.18);}
+
+  .hint{font-size:9.5px;color:var(--muted);text-align:center;margin:8px 0 0;letter-spacing:.5px;line-height:1.5;}
+
+  /* result banner */
+  .result{display:none;text-align:center;padding:14px;border-radius:8px;margin-bottom:12px;animation:rin .4s;}
+  @keyframes rin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .result.win{display:block;border:1px solid var(--neon);background:var(--neon-soft);box-shadow:0 0 18px rgba(57,255,20,.3);}
+  .result.lose{display:block;border:1px solid var(--red);background:rgba(255,59,92,.08);box-shadow:0 0 18px rgba(255,59,92,.2);}
+  .result .r-big{font-family:'Orbitron';font-weight:900;font-size:12px;letter-spacing:3px;}
+  .result.win .r-big{color:var(--neon);text-shadow:0 0 10px rgba(57,255,20,.8);}
+  .result.lose .r-big{color:var(--red);text-shadow:0 0 10px rgba(255,59,92,.6);}
+  .result .r-sub{font-size:10px;color:var(--text);margin-top:7px;line-height:1.5;}
+  .result .r-sub b{color:var(--amber);}
+
+  /* history */
+  .h-title{font-size:9px;color:var(--neon-dim);letter-spacing:1.5px;text-transform:uppercase;margin:2px 0 9px;}
+  .h-card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px;margin-bottom:9px;}
+  .h-when{font-size:9px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px;display:flex;justify-content:space-between;}
+  .h-line{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;padding:3px 0;}
+  .h-line .k{color:var(--muted);}
+  .h-line .v{color:var(--text);text-transform:uppercase;letter-spacing:1px;}
+  .h-badge{font-family:'Orbitron';font-weight:800;font-size:9px;letter-spacing:1.5px;padding:3px 9px;border-radius:3px;}
+  .h-badge.win{color:var(--neon);border:1px solid var(--neon-dim);background:var(--neon-soft);text-shadow:0 0 5px rgba(57,255,20,.5);}
+  .h-badge.lose{color:var(--red);border:1px solid rgba(255,59,92,.4);background:rgba(255,59,92,.08);}
+  .empty{color:var(--muted);text-align:center;padding:22px 0;font-size:10px;letter-spacing:.5px;}
+
+  #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono';
+         background:#06120c;border:1px solid var(--neon-dim);color:var(--neon);font-size:11px;
+         padding:10px 16px;border-radius:5px;z-index:120;display:none;max-width:92%;text-align:center;
+         box-shadow:0 0 16px rgba(57,255,20,.25);text-shadow:0 0 6px rgba(57,255,20,.5);letter-spacing:.5px;}
+  #toast.err{border-color:var(--red);color:#ffd2d8;box-shadow:0 0 16px rgba(255,59,92,.3);text-shadow:none;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <div class="logo">BET<span style="color:var(--cyan);">BIT</span> // MIND_MATCH<span class="blink">_</span></div>
+    <span class="net-pill">⬡ POLYGON</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabPlay" onclick="showTab('play')">▶ Play</div>
+    <div class="tab" id="tabHistory" onclick="showTab('history')">▤ History</div>
+  </div>
+
+  <div class="wallet-bar">
+    <div class="wallet-info">
+      <div class="addr" id="walletAddr">NOT_CONNECTED</div>
+      <div class="bal"><span class="dot" id="netDot"></span><span id="walletBal">—</span></div>
+    </div>
+    <button class="btn-wallet" id="connectBtn" onclick="connectWallet()">CONNECT</button>
+  </div>
+
+  <!-- ===== PLAY VIEW ===== -->
+  <div id="view-play">
+    <div class="screen">
+      <span class="corner c-tl"></span><span class="corner c-tr"></span>
+      <span class="corner c-bl"></span><span class="corner c-br"></span>
+      <div class="screen-head"><span class="live">SYSTEM READY</span><span id="roundTag">ROUND //</span></div>
+      <div id="tzone"></div>
+      <div class="wordgrid" id="wordgrid"></div>
+      <div class="commit" id="commitLine"></div>
+    </div>
+
+    <!-- result banner (after submit) -->
+    <div class="result" id="result">
+      <div class="r-big" id="resultBig"></div>
+      <div class="r-sub" id="resultSub"></div>
+    </div>
+
+    <!-- guess input -->
+    <div class="guessbox" id="guessBox" style="display:none;">
+      <div class="guess-label">// TYPE THE WORD YOU THINK I PICKED</div>
+      <input class="guess-input" id="guessInput" type="text" autocomplete="off" spellcheck="false"
+             placeholder="enter word…" oninput="onGuessInput()" onkeydown="if(event.key==='Enter')submitGuess()">
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="submitGuess()" style="display:none;" disabled>// SUBMIT GUESS</button>
+    <button class="btn-again" id="againBtn" onclick="newRound()" style="display:none;">↻ NEW ROUND</button>
+    <div class="hint" id="hint">Connect wallet to begin. I'll show 10 words and secretly pick one.</div>
+  </div>
+
+  <!-- ===== HISTORY VIEW ===== -->
+  <div id="view-history" style="display:none;">
+    <div class="h-title">// YOUR ATTEMPTS</div>
+    <div id="historyBody"><div class="empty">NO ATTEMPTS YET_</div></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- ===================== APP (module) ===================== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, onValue, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+  authDomain: "betbtc-6d881.firebaseapp.com",
+  databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+  projectId: "betbtc-6d881",
+  storageBucket: "betbtc-6d881.firebasestorage.app",
+  messagingSenderId: "962176232122",
+  appId: "1:962176232122:web:a277d922543c3378033083",
+  measurementId: "G-V4XNB7K1E0"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const POLYGON = { chainIdHex:"0x89", chainName:"Polygon Mainnet",
+  nativeCurrency:{name:"POL",symbol:"POL",decimals:18},
+  rpcUrls:["https://polygon-rpc.com"], blockExplorerUrls:["https://polygonscan.com"] };
+
+window.__w3 = { db, ref, push, onValue, serverTimestamp, ethers:window.ethers, POLYGON };
+window.dispatchEvent(new Event("w3ready"));
+</script>
+
+<!-- ===================== GAME LOGIC ===================== -->
+<script>
+let W3=null;
+window.addEventListener("w3ready", ()=>{ W3=window.__w3; boot(); });
+
+/* word bank — 10 are drawn from here each round */
+const WORD_BANK = [
+  "NEON","CIPHER","MATRIX","PULSE","VAPOR","GLITCH","NEXUS","PHANTOM","CIRCUIT","ZENITH",
+  "ORBIT","RAZOR","ECHO","COBALT","PRISM","VERTEX","PLASMA","BINARY","SPECTRE","QUANTUM",
+  "VOLT","NOVA","CRYPT","FLUX","HELIX","ONYX","RIFT","SABLE","TURBO","WIRE"
+];
+
+let provider=null, signer=null, account=null, onPolygon=false;
+let round=null;        // {words[], pickIndex, pickWord, commit, salt}
+let guess="", phase="idle"; // idle | guessing | done
+
+function toast(msg,kind){ const t=document.getElementById("toast"); t.textContent=msg; t.className=kind||""; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",4200); }
+function shortAddr(a){ return a?a.slice(0,6)+"…"+a.slice(-4):""; }
+function trimErr(m){ m=String(m||""); return m.length>90?m.slice(0,90)+"…":m; }
+
+function showTab(which){
+  document.getElementById("view-play").style.display=which==="play"?"block":"none";
+  document.getElementById("view-history").style.display=which==="history"?"block":"none";
+  document.getElementById("tabPlay").className="tab"+(which==="play"?" active":"");
+  document.getElementById("tabHistory").className="tab"+(which==="history"?" active":"");
+}
+window.showTab=showTab;
+
+function boot(){
+  // wallet listeners
+  if(window.ethereum){
+    window.ethereum.on?.("accountsChanged",()=>location.reload());
+    window.ethereum.on?.("chainChanged",()=>location.reload());
+  }
+  // start a round immediately so the screen has life; gameplay locks until wallet connect
+  newRound();
+}
+
+/* ---- crypto helpers for fair commit (so users can verify the pick wasn't changed) ---- */
+function randHex(bytes){ const a=new Uint8Array(bytes); crypto.getRandomValues(a); return [...a].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+async function sha256(str){
+  const buf=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ---- build a new round ---- */
+async function newRound(){
+  // pick 10 distinct words
+  const pool=[...WORD_BANK];
+  const words=[];
+  for(let i=0;i<10;i++){ words.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  // secretly + FAIRLY pick one now (locked before the guess), with a salted hash commitment
+  const pickIndex=Math.floor(Math.random()*10);
+  const pickWord=words[pickIndex];
+  const salt=randHex(16);
+  const commit=await sha256(salt+"|"+pickWord);
+
+  round={ words, pickIndex, pickWord, salt, commit };
+  guess=""; phase="idle";
+
+  // reset UI
+  document.getElementById("result").className="result";
+  document.getElementById("guessBox").style.display="none";
+  document.getElementById("submitBtn").style.display="none";
+  document.getElementById("againBtn").style.display="none";
+  document.getElementById("guessInput").value="";
+  document.getElementById("guessInput").disabled=false;
+  document.getElementById("roundTag").textContent="ROUND // "+commit.slice(0,6).toUpperCase();
+  document.getElementById("commitLine").innerHTML="";
+
+  renderWords(false);
+  runIntro();
+}
+
+/* ---- typewriter intro then reveal words ---- */
+function runIntro(){
+  const zone=document.getElementById("tzone");
+  zone.innerHTML="";
+  const line=document.createElement("div"); line.className="tline";
+  line.innerHTML='<span class="txt"></span>'; zone.appendChild(line);
+  const span=line.querySelector(".txt");
+  const caret=document.createElement("span"); caret.className="caret"; caret.innerHTML="&nbsp;"; line.appendChild(caret);
+
+  const msg="I will show you 10 words. I have already picked ONE of them in secret. Read them, then type the word you think I picked. Match it and you WIN.";
+  let ci=0;
+  const t=setInterval(()=>{
+    span.innerHTML=highlightEm(msg.slice(0,++ci));
+    if(ci>=msg.length){
+      clearInterval(t); caret.remove();
+      flashWords();
+    }
+  }, 18);
+}
+function highlightEm(s){
+  return s.replace(/\b(10 words|ONE|WIN|secret)\b/g,'<span class="em">$1</span>');
+}
+
+/* ---- render the 10 words ---- */
+function renderWords(){
+  const grid=document.getElementById("wordgrid"); grid.innerHTML="";
+  round.words.forEach((w,i)=>{
+    const d=document.createElement("div"); d.className="word"; d.id="word-"+i; d.textContent=w;
+    grid.appendChild(d);
+  });
+}
+/* stagger them in, do a quick "scanning" flash, then open guessing */
+function flashWords(){
+  round.words.forEach((w,i)=>setTimeout(()=>document.getElementById("word-"+i).classList.add("show"), 60*i));
+  const total=60*10+250;
+  // a sweep that lights each word briefly (the "machine is thinking" effect — purely cosmetic)
+  setTimeout(()=>{
+    let k=0;
+    const sweep=setInterval(()=>{
+      document.querySelectorAll(".word").forEach(el=>el.classList.remove("lit"));
+      if(k<10){ document.getElementById("word-"+k).classList.add("lit"); k++; }
+      else{ clearInterval(sweep); document.querySelectorAll(".word").forEach(el=>el.classList.remove("lit")); openGuessing(); }
+    }, 70);
+  }, total);
+}
+
+function openGuessing(){
+  phase="guessing";
+  // show the commitment hash so the pick is provably locked
+  document.getElementById("commitLine").innerHTML=
+    `<b>PICK COMMITTED:</b> sha256 = ${round.commit.slice(0,40)}…<br><span style="color:var(--muted)">(revealed after you guess — proves I can't change my pick)</span>`;
+  // build quick-pick chips
+  const chips=document.getElementById("chips"); chips.innerHTML="";
+  round.words.forEach(w=>{
+    const c=document.createElement("div"); c.className="chip"; c.textContent=w;
+    c.onclick=()=>{ document.getElementById("guessInput").value=w; onGuessInput(); };
+    chips.appendChild(c);
+  });
+  document.getElementById("guessBox").style.display="block";
+  document.getElementById("submitBtn").style.display="block";
+  refreshSubmit();
+}
+
+function onGuessInput(){
+  guess=document.getElementById("guessInput").value.trim().toUpperCase();
+  document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("sel", c.textContent===guess));
+  refreshSubmit();
+}
+window.onGuessInput=onGuessInput;
+
+function refreshSubmit(){
+  const btn=document.getElementById("submitBtn"); const hint=document.getElementById("hint");
+  const valid=round.words.includes(guess);
+  if(!account){ btn.disabled=true; hint.textContent="Connect wallet to submit your guess."; return; }
+  if(!onPolygon){ btn.disabled=true; hint.textContent="Switch to Polygon to submit."; return; }
+  btn.disabled=!valid;
+  hint.textContent= valid ? "Locked on \""+guess+"\" — submit to reveal my pick." : "Type or tap one of the 10 words.";
+}
+
+/* ---- submit + reveal ---- */
+async function submitGuess(){
+  if(phase!=="guessing") return;
+  if(!account){ toast("Connect wallet first.","err"); return; }
+  if(!onPolygon){ toast("Switch to Polygon.","err"); return; }
+  if(!round.words.includes(guess)){ toast("Pick one of the 10 words.","err"); return; }
+
+  phase="done";
+  const won = (guess===round.pickWord);
+
+  // reveal on the grid
+  const pickEl=document.getElementById("word-"+round.pickIndex);
+  pickEl.classList.add(won?"reveal-hit":"reveal-pick");
+  if(!won){
+    const gi=round.words.indexOf(guess);
+    if(gi>=0) document.getElementById("word-"+gi).style.opacity=".4";
+  }
+
+  // result banner
+  const r=document.getElementById("result");
+  r.className="result "+(won?"win":"lose");
+  document.getElementById("resultBig").textContent=won?"◈ MATCH — YOU WIN ◈":"✕ NO MATCH";
+  document.getElementById("resultSub").innerHTML = won
+    ? `My pick was <b>${round.pickWord}</b>. Your guess matched!`
+    : `My pick was <b>${round.pickWord}</b>. You guessed ${guess}.`;
+
+  // prove the commitment: show salt so anyone can verify sha256(salt|pick)==commit
+  document.getElementById("commitLine").innerHTML=
+    `<b>REVEAL:</b> pick=${round.pickWord} · salt=${round.salt}<br><span style="color:var(--muted)">verify: sha256("salt|PICK") = ${round.commit.slice(0,24)}…</span>`;
+
+  // lock inputs, swap buttons
+  document.getElementById("guessInput").disabled=true;
+  document.getElementById("submitBtn").style.display="none";
+  document.getElementById("againBtn").style.display="block";
+  document.getElementById("hint").textContent= won ? "Nice read. Start a new round." : "So close. Try another round.";
+
+  // log to firebase
+  logAttempt(won);
+}
+window.submitGuess=submitGuess;
+
+/* ---- wallet ---- */
+async function connectWallet(){
+  if(!window.ethereum){ toast("No wallet found. Install MetaMask.","err"); return; }
+  try{
+    const eth=window.ethereum;
+    await eth.request({method:"eth_requestAccounts"});
+    await ensurePolygon(eth);
+    provider=new W3.ethers.providers.Web3Provider(eth,"any");
+    signer=provider.getSigner();
+    account=(await signer.getAddress()).toLowerCase();
+    const net=await provider.getNetwork(); onPolygon=(net.chainId===137);
+    await refreshWalletUI(); loadHistory(); refreshSubmit();
+    toast("WALLET LINKED","");
+  }catch(e){ console.error(e); toast(trimErr(e?.message||"Connection failed"),"err"); }
+}
+window.connectWallet=connectWallet;
+
+async function ensurePolygon(eth){
+  try{ await eth.request({method:"wallet_switchEthereumChain",params:[{chainId:W3.POLYGON.chainIdHex}]}); }
+  catch(err){
+    if(err.code===4902||err?.data?.originalError?.code===4902){ await eth.request({method:"wallet_addEthereumChain",params:[W3.POLYGON]}); }
+    else throw err;
+  }
+}
+async function refreshWalletUI(){
+  document.getElementById("walletAddr").textContent=shortAddr(account).toUpperCase();
+  document.getElementById("netDot").className="dot"+(onPolygon?" ok":"");
+  const cb=document.getElementById("connectBtn"); cb.textContent=onPolygon?"● POLYGON":"WRONG NET"; cb.classList.add("connected");
+  try{ const b=await provider.getBalance(account); document.getElementById("walletBal").textContent=parseFloat(W3.ethers.utils.formatEther(b)).toFixed(3)+" POL"; }
+  catch(e){ document.getElementById("walletBal").textContent="—"; }
+}
+
+/* ---- firebase: log + history ---- */
+function logAttempt(won){
+  if(!account) return;
+  W3.push(W3.ref(W3.db,`mindmatch/${account}`), {
+    at:W3.serverTimestamp(), localAt:Date.now(),
+    words:round.words, pick:round.pickWord, guess:guess, win:won, commit:round.commit
+  }).catch(()=>{});
+}
+function loadHistory(){
+  if(!account) return;
+  W3.onValue(W3.ref(W3.db,`mindmatch/${account}`), (snap)=>renderHistory(snap.val()||{}));
+}
+function renderHistory(map){
+  const body=document.getElementById("historyBody");
+  const keys=Object.keys(map);
+  if(!keys.length){ body.innerHTML='<div class="empty">NO ATTEMPTS YET_</div>'; return; }
+  keys.sort((a,b)=>(map[b]?.localAt||0)-(map[a]?.localAt||0));
+  body.innerHTML=keys.map(k=>{
+    const s=map[k]; const when=s.localAt?new Date(s.localAt).toLocaleString():"—";
+    return `<div class="h-card">
+      <div class="h-when"><span>◇ ${when}</span><span class="h-badge ${s.win?'win':'lose'}">${s.win?'WIN':'MISS'}</span></div>
+      <div class="h-line"><span class="k">your guess</span><span class="v">${esc(s.guess)}</span></div>
+      <div class="h-line"><span class="k">my pick</span><span class="v" style="color:var(--amber)">${esc(s.pick)}</span></div>
+    </div>`;
+  }).join('');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+window.newRound=newRound;
+</script>
+</body>
+</html>
