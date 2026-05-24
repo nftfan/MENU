@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BTC Game · Owner Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0B0E11; --card:#181A20; --card2:#21262d; --line:#2b2f36;
+    --yellow:#FCD535; --green:#2ebd85; --red:#f6465d; --muted:#848E9C; --text:#EAECEF; --purple:#8247E5;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Roboto,system-ui,sans-serif;background:var(--bg);color:var(--text);
+       margin:0;padding:18px;display:flex;justify-content:center;}
+  .container{width:100%;max-width:560px;}
+  h1{font-size:18px;color:var(--yellow);margin:0 0 2px;}
+  .sub{font-size:11px;color:var(--purple);font-weight:700;letter-spacing:.5px;margin-bottom:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 10px;}
+
+  /* wallet bar */
+  .wallet-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+              background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:14px;}
+  .wallet-info{font-size:12px;line-height:1.5;}
+  .wallet-info .addr{font-weight:700;font-variant-numeric:tabular-nums;}
+  .wallet-info .bal{color:var(--muted);}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:4px;}
+  .dot.ok{background:var(--green);}
+  .btn-wallet{background:var(--purple);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;}
+  .btn-wallet.connected{background:var(--card);border:1px solid var(--line);color:var(--muted);}
+
+  .owner-banner{font-size:12px;border-radius:8px;padding:9px 12px;margin-bottom:14px;display:none;}
+  .owner-banner.ok{background:rgba(46,189,133,.12);border:1px solid var(--green);color:#d6f7e9;}
+  .owner-banner.bad{background:rgba(246,70,93,.12);border:1px solid var(--red);color:#ffd7dd;}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .stat{background:var(--card2);border-radius:9px;padding:10px;text-align:center;}
+  .stat .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+  .stat .v.pool{color:var(--yellow);}
+
+  label{display:block;font-size:11px;color:var(--muted);margin:8px 0 4px;}
+  input[type=text],input[type=number]{width:100%;background:#0f1318;border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:10px;font-size:13px;font-family:inherit;font-variant-numeric:tabular-nums;}
+  .btn{border:none;border-radius:8px;padding:11px 14px;font-weight:800;font-size:13px;cursor:pointer;transition:opacity .15s;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-pay{background:var(--green);color:#fff;width:100%;margin-top:10px;}
+  .btn-warn{background:var(--red);color:#fff;}
+  .btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--line);}
+  .btn-yellow{background:var(--yellow);color:#000;}
+  .row2{display:flex;gap:10px;}
+  .row2 > *{flex:1;}
+
+  /* winners table */
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);}
+  th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;}
+  td.wallet{font-family:monospace;font-size:11px;}
+  .pill{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;}
+  .pill.pending{background:rgba(252,213,53,.15);color:var(--yellow);}
+  .pill.paid{background:rgba(46,189,133,.15);color:var(--green);}
+  .btn-mini{background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 10px;font-weight:800;font-size:11px;cursor:pointer;}
+  .btn-mini:disabled{opacity:.4;cursor:not-allowed;}
+  .empty{color:var(--muted);text-align:center;padding:16px 0;font-size:12px;}
+  .muted{color:var(--muted);font-size:11px;}
+  a{color:var(--purple);}
+
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#23262f;border:1px solid var(--line);
+         color:var(--text);font-size:12px;padding:11px 18px;border-radius:8px;z-index:60;display:none;max-width:92%;text-align:center;}
+  #toast.err{border-color:var(--red);color:#ffd7dd;}
+  #toast.ok{border-color:var(--green);color:#d6f7e9;}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .gate{opacity:.4;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Owner Dashboard</h1>
+  <div class="sub">⬡ BTC 20s PREDICTION · POLYGON</div>
+
+  <!-- wallet -->
+  <div class="wallet-bar">
+    <div class="wallet-info">
+      <div class="addr" id="walletAddr">Not connected</div>
+      <div class="bal"><span class="dot" id="netDot"></span><span id="walletBal">—</span></div>
+    </div>
+    <button class="btn-wallet" id="connectBtn" onclick="connectWallet()">Connect Owner Wallet</button>
+  </div>
+
+  <div class="owner-banner" id="ownerBanner"></div>
+
+  <!-- stats -->
+  <div class="card">
+    <h2>Contract</h2>
+    <div class="stats">
+      <div class="stat"><div class="v pool" id="poolBal">—</div><div class="l">Pool (POL)</div></div>
+      <div class="stat"><div class="v" id="prizesAfford">—</div><div class="l">Prizes affordable</div></div>
+      <div class="stat"><div class="v" id="pausedState">—</div><div class="l">Status</div></div>
+    </div>
+    <div class="stats" style="margin-top:10px;">
+      <div class="stat"><div class="v" id="tEntries">—</div><div class="l">Entries</div></div>
+      <div class="stat"><div class="v" id="tCollected">—</div><div class="l">Collected POL</div></div>
+      <div class="stat"><div class="v" id="tPaid">—</div><div class="l">Prizes paid POL</div></div>
+    </div>
+    <div class="muted" style="margin-top:10px;">Contract: <a id="contractLink" target="_blank" rel="noopener"></a></div>
+  </div>
+
+  <!-- winners queue -->
+  <div class="card gate" id="winnersCard">
+    <h2>Pending Winners (Firebase)</h2>
+    <table>
+      <thead><tr><th>Wallet</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+      <tbody id="winnersBody"><tr><td colspan="4" class="empty">Connect owner wallet to load.</td></tr></tbody>
+    </table>
+    <div class="muted" style="margin-top:8px;">Each "Pay 5 POL" calls <code>payPrize(wallet)</code>, then marks the entry paid in Firebase.</div>
+  </div>
+
+  <!-- manual pay -->
+  <div class="card gate" id="payCard">
+    <h2>Pay a Prize Manually</h2>
+    <label>Winner wallet address</label>
+    <input type="text" id="manualWinner" placeholder="0x…" spellcheck="false">
+    <button class="btn btn-pay" id="manualPayBtn" onclick="payPrizeManual()">Pay 5 POL Prize (payPrize)</button>
+
+    <label style="margin-top:16px;">Custom amount (POL) — uses payCustom</label>
+    <div class="row2">
+      <input type="number" id="customAmt" placeholder="e.g. 2.5" step="0.0001" min="0">
+      <button class="btn btn-yellow" id="customPayBtn" onclick="payCustom()" style="flex:0 0 auto;padding-left:18px;padding-right:18px;">Send</button>
+    </div>
+  </div>
+
+  <!-- funds / controls -->
+  <div class="card gate" id="adminCard">
+    <h2>Funds &amp; Controls</h2>
+    <label>Emergency withdraw amount (POL) — leave blank or 0 to withdraw ALL</label>
+    <div class="row2">
+      <input type="number" id="withdrawAmt" placeholder="0 = all" step="0.0001" min="0">
+      <button class="btn btn-warn" id="withdrawBtn" onclick="withdraw()" style="flex:0 0 auto;padding-left:18px;padding-right:18px;">Withdraw</button>
+    </div>
+    <div class="row2" style="margin-top:14px;">
+      <button class="btn btn-ghost" id="pauseBtn" onclick="setPaused(true)">Pause entries</button>
+      <button class="btn btn-ghost" id="resumeBtn" onclick="setPaused(false)">Resume entries</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:14px;" onclick="refreshContract()">↻ Refresh contract stats</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, update }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+  authDomain: "betbtc-6d881.firebaseapp.com",
+  databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+  projectId: "betbtc-6d881",
+  storageBucket: "betbtc-6d881.firebasestorage.app",
+  messagingSenderId: "962176232122",
+  appId: "1:962176232122:web:a277d922543c3378033083",
+  measurementId: "G-V4XNB7K1E0"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+window.__w3 = {
+  db, ref, onValue, update, ethers: window.ethers,
+  CONTRACT_ADDRESS: "0x0F5E390c06e5448B42F44BcAa3854931857A3c61",
+  POLYGON: {
+    chainIdHex: "0x89",
+    chainName: "Polygon Mainnet",
+    nativeCurrency: { name:"POL", symbol:"POL", decimals:18 },
+    rpcUrls: ["https://polygon-rpc.com"],
+    blockExplorerUrls: ["https://polygonscan.com"]
+  },
+  ABI: [
+    "function owner() view returns (address)",
+    "function paused() view returns (bool)",
+    "function poolBalance() view returns (uint256)",
+    "function prizesAffordable() view returns (uint256)",
+    "function totalEntries() view returns (uint256)",
+    "function totalCollected() view returns (uint256)",
+    "function totalPrizesPaid() view returns (uint256)",
+    "function PRIZE_AMOUNT() view returns (uint256)",
+    "function payPrize(address winner)",
+    "function payCustom(address to, uint256 amountWei)",
+    "function emergencyWithdraw(uint256 amountWei)",
+    "function setPaused(bool _paused)"
+  ]
+};
+window.dispatchEvent(new Event("w3ready"));
+</script>
+
+<script>
+let W3=null;
+window.addEventListener("w3ready", ()=>{ W3=window.__w3; init(); });
+
+let provider=null, signer=null, account=null, contract=null, isOwner=false, onPolygon=false;
+const explorer = "https://polygonscan.com";
+
+function toast(msg, kind){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className=kind||""; t.style.display="block";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 5000);
+}
+function shortAddr(a){ return a?a.slice(0,6)+"…"+a.slice(-4):""; }
+function trimErr(m){ m=String(m||""); return m.length>110?m.slice(0,110)+"…":m; }
+function explainErr(e){
+  if(e?.code===4001 || /denied|rejected/i.test(e?.message||"")) return "Transaction rejected.";
+  return trimErr(e?.reason || e?.data?.message || e?.message || "Transaction failed");
+}
+
+function init(){
+  document.getElementById("contractLink").textContent = W3.CONTRACT_ADDRESS;
+  document.getElementById("contractLink").href = `${explorer}/address/${W3.CONTRACT_ADDRESS}`;
+  subscribeWinners(); // read-only; works even before connecting
+  if(window.ethereum){
+    window.ethereum.on?.("accountsChanged", ()=>location.reload());
+    window.ethereum.on?.("chainChanged", ()=>location.reload());
+  }
+}
+
+/* ---------- wallet ---------- */
+async function connectWallet(){
+  if(!window.ethereum){ toast("No wallet found. Install MetaMask.", "err"); return; }
+  try{
+    const eth=window.ethereum;
+    await eth.request({ method:"eth_requestAccounts" });
+    await ensurePolygon(eth);
+    provider=new W3.ethers.providers.Web3Provider(eth,"any");
+    signer=provider.getSigner();
+    account=(await signer.getAddress()).toLowerCase();
+    contract=new W3.ethers.Contract(W3.CONTRACT_ADDRESS, W3.ABI, signer);
+    const net=await provider.getNetwork();
+    onPolygon=(net.chainId===137);
+
+    await refreshWalletUI();
+    await checkOwner();
+    await refreshContract();
+    toast("Wallet connected", "ok");
+  }catch(e){ console.error(e); toast(explainErr(e), "err"); }
+}
+window.connectWallet=connectWallet;
+
+async function ensurePolygon(eth){
+  try{ await eth.request({ method:"wallet_switchEthereumChain", params:[{chainId:W3.POLYGON.chainIdHex}] }); }
+  catch(err){
+    if(err.code===4902 || err?.data?.originalError?.code===4902){
+      await eth.request({ method:"wallet_addEthereumChain", params:[W3.POLYGON] });
+    } else throw err;
+  }
+}
+
+async function refreshWalletUI(){
+  document.getElementById("walletAddr").textContent=shortAddr(account);
+  const dot=document.getElementById("netDot"); dot.className="dot"+(onPolygon?" ok":"");
+  const cb=document.getElementById("connectBtn"); cb.textContent=onPolygon?"● Polygon":"Wrong network"; cb.classList.add("connected");
+  try{ const b=await provider.getBalance(account); document.getElementById("walletBal").textContent=parseFloat(W3.ethers.utils.formatEther(b)).toFixed(3)+" POL"; }
+  catch(e){ document.getElementById("walletBal").textContent="—"; }
+}
+
+async function checkOwner(){
+  const banner=document.getElementById("ownerBanner");
+  try{
+    const o=(await contract.owner()).toLowerCase();
+    isOwner=(o===account);
+    if(isOwner){
+      banner.className="owner-banner ok"; banner.style.display="block";
+      banner.textContent="✓ You are the contract owner. Owner actions enabled.";
+      document.querySelectorAll(".gate").forEach(el=>el.classList.remove("gate"));
+    }else{
+      banner.className="owner-banner bad"; banner.style.display="block";
+      banner.textContent=`✗ This wallet is NOT the owner. Owner is ${shortAddr(o)}. Connect the deployer wallet to pay/withdraw.`;
+    }
+  }catch(e){
+    banner.className="owner-banner bad"; banner.style.display="block";
+    banner.textContent="Could not read owner() — check the contract address & network.";
+  }
+}
+
+/* ---------- contract stats ---------- */
+async function refreshContract(){
+  const readProvider = provider || new W3.ethers.providers.JsonRpcProvider(W3.POLYGON.rpcUrls[0]);
+  const ro = new W3.ethers.Contract(W3.CONTRACT_ADDRESS, W3.ABI, readProvider);
+  try{
+    const [bal, affordable, paused, te, tc, tp] = await Promise.all([
+      ro.poolBalance(), ro.prizesAffordable(), ro.paused(),
+      ro.totalEntries(), ro.totalCollected(), ro.totalPrizesPaid()
+    ]);
+    const f = (x)=>parseFloat(W3.ethers.utils.formatEther(x));
+    document.getElementById("poolBal").textContent      = f(bal).toFixed(3);
+    document.getElementById("prizesAfford").textContent = affordable.toString();
+    document.getElementById("pausedState").textContent  = paused ? "Paused" : "Active";
+    document.getElementById("pausedState").style.color  = paused ? "var(--red)" : "var(--green)";
+    document.getElementById("tEntries").textContent     = te.toString();
+    document.getElementById("tCollected").textContent   = f(tc).toFixed(2);
+    document.getElementById("tPaid").textContent        = f(tp).toFixed(2);
+  }catch(e){ console.error(e); toast("Couldn't read contract stats.", "err"); }
+}
+window.refreshContract=refreshContract;
+
+/* ---------- winners queue (Firebase) ---------- */
+let winnersCache={};
+function subscribeWinners(){
+  W3.onValue(W3.ref(W3.db, "winners"), (snap)=>{
+    winnersCache = snap.val() || {};
+    renderWinners();
+  });
+}
+function renderWinners(){
+  const body=document.getElementById("winnersBody");
+  const keys=Object.keys(winnersCache);
+  // newest first
+  keys.sort((a,b)=>(winnersCache[b]?.at||0)-(winnersCache[a]?.at||0));
+  if(!keys.length){ body.innerHTML='<tr><td colspan="4" class="empty">No winners queued.</td></tr>'; return; }
+  body.innerHTML = keys.map(k=>{
+    const w=winnersCache[k];
+    const paid=!!w.paid;
+    return `<tr>
+      <td class="wallet"><a href="${explorer}/address/${w.wallet}" target="_blank" rel="noopener">${shortAddr(w.wallet)}</a></td>
+      <td class="muted">${w.reason||'5 wins'}</td>
+      <td><span class="pill ${paid?'paid':'pending'}">${paid?'PAID':'PENDING'}</span></td>
+      <td style="text-align:right;">${paid?'':`<button class="btn-mini" ${(!isOwner)?'disabled':''} onclick="payWinner('${k}','${w.wallet}')">Pay 5 POL</button>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function payWinner(key, wallet){
+  if(!ensureReady()) return;
+  await doPayPrize(wallet, key);
+}
+window.payWinner=payWinner;
+
+/* ---------- owner actions ---------- */
+function ensureReady(){
+  if(!account){ toast("Connect your wallet first.", "err"); return false; }
+  if(!onPolygon){ toast("Switch to Polygon.", "err"); return false; }
+  if(!isOwner){ toast("Only the owner wallet can do this.", "err"); return false; }
+  return true;
+}
+
+async function doPayPrize(wallet, fbKey){
+  if(!W3.ethers.utils.isAddress(wallet)){ toast("Invalid winner address.", "err"); return; }
+  try{
+    toast("Confirm payPrize in your wallet…");
+    const tx=await contract.payPrize(wallet);
+    toast("Paying… waiting for confirmation.");
+    const rcpt=await tx.wait();
+    if(fbKey){
+      W3.update(W3.ref(W3.db, `winners/${fbKey}`), { paid:true, payoutTx:rcpt.transactionHash, paidAt:Date.now() });
+    }
+    toast("Prize paid ✓ 5 POL sent.", "ok");
+    refreshContract(); refreshWalletUI();
+  }catch(e){ console.error(e); toast(explainErr(e), "err"); }
+}
+
+async function payPrizeManual(){
+  if(!ensureReady()) return;
+  const w=document.getElementById("manualWinner").value.trim();
+  if(!W3.ethers.utils.isAddress(w)){ toast("Enter a valid 0x address.", "err"); return; }
+  // try to match an existing pending firebase entry so it gets marked paid
+  const match=Object.keys(winnersCache).find(k=>(winnersCache[k].wallet||"").toLowerCase()===w.toLowerCase() && !winnersCache[k].paid);
+  await doPayPrize(w, match||null);
+}
+window.payPrizeManual=payPrizeManual;
+
+async function payCustom(){
+  if(!ensureReady()) return;
+  const w=document.getElementById("manualWinner").value.trim();
+  const amt=document.getElementById("customAmt").value;
+  if(!W3.ethers.utils.isAddress(w)){ toast("Enter a valid winner address above.", "err"); return; }
+  if(!amt || Number(amt)<=0){ toast("Enter a custom amount in POL.", "err"); return; }
+  try{
+    const wei=W3.ethers.utils.parseEther(String(amt));
+    toast("Confirm payCustom in your wallet…");
+    const tx=await contract.payCustom(w, wei);
+    await tx.wait();
+    toast(`Sent ${amt} POL ✓`, "ok");
+    refreshContract(); refreshWalletUI();
+  }catch(e){ console.error(e); toast(explainErr(e), "err"); }
+}
+window.payCustom=payCustom;
+
+async function withdraw(){
+  if(!ensureReady()) return;
+  const amt=document.getElementById("withdrawAmt").value;
+  let wei;
+  try{ wei = (!amt || Number(amt)<=0) ? W3.ethers.constants.Zero : W3.ethers.utils.parseEther(String(amt)); }
+  catch(e){ toast("Invalid amount.", "err"); return; }
+  const label = wei.isZero() ? "the FULL balance" : `${amt} POL`;
+  if(!confirm(`Withdraw ${label} to the owner wallet?`)) return;
+  try{
+    toast("Confirm withdrawal in your wallet…");
+    const tx=await contract.emergencyWithdraw(wei);
+    await tx.wait();
+    toast("Withdrawal complete ✓", "ok");
+    refreshContract(); refreshWalletUI();
+  }catch(e){ console.error(e); toast(explainErr(e), "err"); }
+}
+window.withdraw=withdraw;
+
+async function setPaused(state){
+  if(!ensureReady()) return;
+  try{
+    toast(`Confirm ${state?'pause':'resume'} in your wallet…`);
+    const tx=await contract.setPaused(state);
+    await tx.wait();
+    toast(state?"Entries paused.":"Entries resumed.", "ok");
+    refreshContract();
+  }catch(e){ console.error(e); toast(explainErr(e), "err"); }
+}
+window.setPaused=setPaused;
+</script>
+</body>
+</html>
