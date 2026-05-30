@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,7 +200,7 @@
     <div class="prompt-row">
       <span class="prompt-sign">&gt;</span>
       <input id="input" type="text" autocomplete="off" autofocus
-             placeholder="type a topic — world, tech, bitcoin, mars…">
+             placeholder="type a topic — world, tech, bitcoin, mars…  (press ENTER on empty to load more)">
       <button id="send">SEND</button>
     </div>
   </div>
@@ -212,6 +211,9 @@ const DEFAULT_SERVER_URL='https://newviwe-production.up.railway.app';
 const SERVER_KEY='newswire_server_url_v1';
 let SERVER_URL=(localStorage.getItem(SERVER_KEY)||DEFAULT_SERVER_URL).replace(/\/+$/,'');
 
+const MAX_HEADLINES=30;   // hard cap per topic
+const BATCH_SIZE=5;       // headlines loaded per ENTER
+
 const feed=document.getElementById('feed');
 const input=document.getElementById('input');
 const send=document.getElementById('send');
@@ -221,6 +223,11 @@ const sweep=document.getElementById('sweep');
 
 let busy=false;
 let soundOn=true;
+
+/* ---- pagination state ---- */
+let currentTopic=null;   // topic currently on screen
+let fullNews=[];         // full list (up to MAX_HEADLINES) for current topic
+let shownCount=0;        // how many headlines have been typed so far
 
 /* ---- Web Audio typing sound (synthesized, no files) ---- */
 let audioCtx=null;
@@ -295,6 +302,14 @@ function showIdleCursor(){
   feed.appendChild(idleEl);scrollDown();
 }
 function hideIdleCursor(){ if(idleEl){idleEl.remove();idleEl=null;} }
+
+/* "press ENTER for more" hint (only while more headlines remain) */
+let hintEl=null;
+function clearHint(){ if(hintEl){hintEl.remove();hintEl=null;} }
+function hasMore(){
+  return currentTopic && shownCount>0 &&
+         shownCount<fullNews.length && shownCount<MAX_HEADLINES;
+}
 
 function addLine(text,cls=''){
   const d=document.createElement('div');
@@ -378,35 +393,16 @@ async function getNews(topic){
       }
     }catch(e){}
   }
-  return items?items.filter(a=>a.title).slice(0,5):null;
+  // keep up to MAX_HEADLINES so we can page through them 5 at a time
+  return items?items.filter(a=>a.title).slice(0,MAX_HEADLINES):null;
 }
 
-async function handle(topic){
-  if(busy) return;
-  busy=true;input.disabled=true;send.disabled=true;
-  ensureAudio();beep(880,0.08);
-
-  /* === CLEAR SCREEN + start typing from the top every time === */
-  clearScreen();
-
-  addLine('user@wire:~$ '+topic,'user');
-  const think=thinkingLine('accessing newswire — query "'+topic+'"');
-
-  let news;
-  try{ news=await getNews(topic); }catch(e){ news=null; }
-  think.stop();
-
-  if(!news||!news.length){
-    const l=addLine('','err');
-    await typeInto(l,'>> SIGNAL LOST. No headlines found for "'+topic+'". Check the server (click [srv: config]) or try another topic.',12);
-    finish();return;
-  }
-
-  const head=addLine('','sys');
-  await typeInto(head,'>> '+news.length+' transmissions decoded // '+topic.toUpperCase(),14);
-
-  for(let i=0;i<news.length;i++){
-    const a=news[i];
+/* type the next batch of up to BATCH_SIZE headlines (no screen clear) */
+async function renderBatch(){
+  const start=shownCount;
+  const end=Math.min(start+BATCH_SIZE, fullNews.length, MAX_HEADLINES);
+  for(let i=start;i<end;i++){
+    const a=fullNews[i];
     const row=document.createElement('div');row.className='headline';
     const idx=document.createElement('span');idx.className='idx';
     idx.textContent=String(i+1).padStart(2,'0')+'.';
@@ -425,23 +421,78 @@ async function handle(topic){
     scrollDown();
     await new Promise(r=>setTimeout(r,90));
   }
+  shownCount=end;
+}
 
-  const done=addLine('','sys');
-  await typeInto(done,'>> end of feed. type another topic to continue ▌',14);
+/* NEW TOPIC: clear screen, fetch up to 30, type the first 5 */
+async function handle(topic){
+  if(busy) return;
+  busy=true;input.disabled=true;send.disabled=true;
+  ensureAudio();beep(880,0.08);
+
+  /* === CLEAR SCREEN + start typing from the top === */
+  clearScreen();
+
+  addLine('user@wire:~$ '+topic,'user');
+  const think=thinkingLine('accessing newswire — query "'+topic+'"');
+
+  let news;
+  try{ news=await getNews(topic); }catch(e){ news=null; }
+  think.stop();
+
+  if(!news||!news.length){
+    currentTopic=null;fullNews=[];shownCount=0;
+    const l=addLine('','err');
+    await typeInto(l,'>> SIGNAL LOST. No headlines found for "'+topic+'". Check the server (click [srv: config]) or try another topic.',12);
+    finish();return;
+  }
+
+  currentTopic=topic;
+  fullNews=news;
+  shownCount=0;
+
+  const head=addLine('','sys');
+  await typeInto(head,'>> '+fullNews.length+' transmissions on the wire // '+topic.toUpperCase(),14);
+
+  await renderBatch();   // first 5
+  finish();
+}
+
+/* SAME TOPIC: append the next 5 (triggered by ENTER on empty input) */
+async function loadMore(){
+  if(busy) return;
+  if(!hasMore()) return;
+  busy=true;input.disabled=true;send.disabled=true;
+  ensureAudio();beep(880,0.08);
+
+  hideIdleCursor();
+  clearHint();
+
+  await renderBatch();   // next 5
   finish();
 }
 
 function finish(){
   busy=false;input.disabled=false;send.disabled=false;input.focus();
   beep(660,0.1);
+  clearHint();
+  // no "end of feed" line — just a subtle hint while more remain
+  if(hasMore()){
+    hintEl=addLine('','sys');
+    hintEl.textContent='>> press ENTER for '+BATCH_SIZE+' more ▌';
+  }
   showIdleCursor();
 }
 
 function submit(){
+  if(busy) return;
   const v=input.value.trim();
-  if(!v||busy) return;
-  input.value='';
-  handle(v);
+  if(v){
+    input.value='';
+    handle(v);            // new topic
+  }else{
+    loadMore();           // ENTER on empty input → next 5 on same topic
+  }
 }
 send.addEventListener('click',submit);
 input.addEventListener('keydown',e=>{
