@@ -25,6 +25,8 @@
     --a1b:#3a63d6;
     --b1:#ff7d54;      /* link B accent */
     --b1b:#e05a2f;
+    --c1:#9d7bff;      /* link C accent */
+    --c1b:#6f49e0;
     --line:rgba(255,255,255,.08);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -62,15 +64,15 @@
   header p{color:var(--muted);font-size:13.5px;margin:6px 0 0;}
 
   .grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
+    display:flex;
+    flex-direction:column;
     gap:12px;
-    max-width:480px;margin:0 auto;
+    max-width:420px;margin:0 auto;
   }
   .tile{
     position:relative;
-    display:flex;align-items:center;gap:10px;
-    padding:16px 14px;
+    display:flex;align-items:center;gap:12px;
+    padding:18px 16px;
     border-radius:16px;
     text-decoration:none;color:var(--ink);
     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
@@ -79,13 +81,13 @@
     transition:transform .12s ease, box-shadow .2s ease, border-color .2s ease;
     animation:rise .5s ease both;
   }
-  .tile:active{transform:scale(.96);}
+  .tile:active{transform:scale(.97);}
   .dot{
-    flex:0 0 auto;width:34px;height:34px;border-radius:11px;
-    display:grid;place-items:center;font-size:16px;
+    flex:0 0 auto;width:38px;height:38px;border-radius:12px;
+    display:grid;place-items:center;font-size:18px;
   }
-  .tile .name{font-family:'Space Mono',monospace;font-weight:700;font-size:16px;letter-spacing:.02em;}
-  .tile .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .tile .name{font-family:'Space Mono',monospace;font-weight:700;font-size:17px;letter-spacing:.02em;}
+  .tile .sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
   .txt{display:flex;flex-direction:column;line-height:1.1;min-width:0;}
 
   /* Link A styling */
@@ -94,6 +96,9 @@
   /* Link B styling */
   .b .dot{background:linear-gradient(135deg,var(--b1),var(--b1b));box-shadow:0 6px 16px rgba(255,125,84,.4);}
   .b:active{border-color:var(--b1);box-shadow:0 8px 24px rgba(255,125,84,.25);}
+  /* Link C styling */
+  .c .dot{background:linear-gradient(135deg,var(--c1),var(--c1b));box-shadow:0 6px 16px rgba(157,123,255,.4);}
+  .c:active{border-color:var(--c1);box-shadow:0 8px 24px rgba(157,123,255,.25);}
 
   footer{text-align:center;color:var(--muted);font-size:11px;margin-top:26px;}
 
@@ -105,7 +110,7 @@
   <header>
     <div class="logo">AI</div>
     <h1>AI Photo Hub</h1>
-    <p>Quick launch · Image Generator &amp; Photo Editor</p>
+    <p>Quick launch · Generate · Edit · Create</p>
   </header>
 
   <main class="grid" id="grid"></main>
@@ -113,30 +118,21 @@
   <footer>Tap a tile to open the tool</footer>
 
 <script>
-  const LINK_A = "https://photoeditorai.io/ai-image-generator/";
-  const LINK_B = "https://ezremove.ai/ai-photo-editor/";
+  const LINKS = [
+    { cls:"a", icon:"✨", name:"aia", sub:"Image Generator", url:"https://photoeditorai.io/ai-image-generator/" },
+    { cls:"b", icon:"🧽", name:"aib", sub:"Photo Editor",    url:"https://ezremove.ai/ai-photo-editor/" },
+    { cls:"c", icon:"🎨", name:"aic", sub:"AI Create",       url:"https://ezcreate.ai/" }
+  ];
 
   const grid = document.getElementById("grid");
-  let frag = "";
-
-  for (let i = 1; i <= 10; i++) {
-    // aia# -> Link A
-    frag += `
-      <a class="tile a" href="${LINK_A}">
-        <span class="dot">✨</span>
-        <span class="txt"><span class="name">aia${i}</span><span class="sub">Image Generator</span></span>
-      </a>`;
-    // aib# -> Link B
-    frag += `
-      <a class="tile b" href="${LINK_B}">
-        <span class="dot">🧽</span>
-        <span class="txt"><span class="name">aib${i}</span><span class="sub">Photo Editor</span></span>
-      </a>`;
-  }
-  grid.innerHTML = frag;
+  grid.innerHTML = LINKS.map(l => `
+    <a class="tile ${l.cls}" href="${l.url}">
+      <span class="dot">${l.icon}</span>
+      <span class="txt"><span class="name">${l.name}</span><span class="sub">${l.sub}</span></span>
+    </a>`).join("");
 
   // Stagger the entrance animation
-  [...grid.children].forEach((el, n) => el.style.animationDelay = (n * 28) + "ms");
+  [...grid.children].forEach((el, n) => el.style.animationDelay = (n * 60) + "ms");
 
   // Keep links inside the standalone app window instead of bouncing to Safari
   grid.addEventListener("click", (e) => {
