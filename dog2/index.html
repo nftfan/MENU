@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>IPTV TV Style</title>
+
+<title>Fast TV IPTV</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -12,80 +13,85 @@
 html, body {
     margin: 0;
     height: 100%;
-    background: #111;
-    font-family: Arial, sans-serif;
+    background: #0f0f0f;
+    font-family: Arial;
+    overflow: hidden;
     color: white;
 }
 
 /* =========================
-   TV SCREEN AREA (TOP)
+   TV SCREEN (TOP)
    ========================= */
-.tv-container {
+.tv {
     position: relative;
     width: 100%;
-    height: 55vh;
-    background: #2a2a2a; /* 🧱 GREY TV FRAME */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 58vh;
+    background: #1c1c1c;
+    border-top: 1px solid #444; /* 🔥 thin grey TV line */
     overflow: hidden;
 }
 
-/* VIDEO INSIDE TV */
+/* VIDEO (1px UP EFFECT) */
 video {
     width: 100%;
-    height: 100%;
-    object-fit: contain; /* full video visible */
-    background: #2a2a2a; /* match TV frame */
+    height: calc(100% + 1px); /* 🔥 requested shift */
+    margin-top: -1px;         /* subtle TV lift */
+    object-fit: cover;
+    background: black;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* FADE ANIMATION CLASS */
+.fade-out {
+    opacity: 0;
+    transform: scale(1.01);
 }
 
 /* =========================
-   CONTROLS AREA
+   CONTROLS
    ========================= */
 .controls {
-    height: 45vh;
-    padding: 12px;
-    background: #0f0f0f;
-    box-sizing: border-box;
+    height: 42vh;
+    padding: 14px;
+    background: #0a0a0a;
 }
 
-/* MODERN DROPDOWNS */
+/* DROPDOWNS */
 select {
     width: 100%;
     padding: 12px;
     margin-bottom: 10px;
     border-radius: 10px;
-    border: 1px solid #333;
-    background: #1a1a1a;
+    border: 1px solid #222;
+    background: #151515;
     color: white;
-    font-size: 14px;
 }
 
-/* BUTTONS */
-.buttons {
-    display: flex;
-    gap: 10px;
-}
-
-button {
-    flex: 1;
-    padding: 12px;
+/* =========================
+   RANDOM BUTTON ONLY (CIRCLE)
+   ========================= */
+.random-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
     border: none;
-    border-radius: 12px;
-    background: #1e1e1e;
+    background: radial-gradient(circle, #2a2a2a, #111);
     color: white;
     font-size: 14px;
+    margin: 10px auto 0;
+    display: block;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.6);
 }
 
-button:active {
-    background: #333;
-    transform: scale(0.98);
+.random-btn:active {
+    transform: scale(0.92);
 }
 
-.title {
+/* labels */
+.label {
     font-size: 12px;
     opacity: 0.6;
-    margin-bottom: 5px;
+    margin: 6px 0;
 }
 
 </style>
@@ -93,26 +99,19 @@ button:active {
 
 <body>
 
-<!-- ================= TV SCREEN ================= -->
-<div class="tv-container">
-    <video id="video" controls autoplay playsinline></video>
+<div class="tv">
+    <video id="video" autoplay playsinline controls></video>
 </div>
 
-<!-- ================= CONTROLS ================= -->
 <div class="controls">
 
-    <div class="title">Category</div>
+    <div class="label">Category</div>
     <select id="category"></select>
 
-    <div class="title">Channel</div>
+    <div class="label">Channel</div>
     <select id="channel"></select>
 
-    <div class="buttons">
-        <button onclick="prev()">⟨ Prev</button>
-        <button onclick="next()">Next ⟩</button>
-        <button onclick="randomCh()">Shuffle</button>
-        <button onclick="toggle()">Play</button>
-    </div>
+    <button class="random-btn" onclick="randomChannel()">RANDOM</button>
 
 </div>
 
@@ -128,7 +127,7 @@ const video = document.getElementById("video");
 const categorySel = document.getElementById("category");
 const channelSel = document.getElementById("channel");
 
-let hls;
+let hls = null;
 
 /* =========================
    PARSER
@@ -194,64 +193,82 @@ function applyFilter() {
         .join("");
 
     index = 0;
-    play();
+    play(true);
 }
 
 /* =========================
-   PLAY ENGINE
+   ⚡ PRELOAD ENGINE (NEXT CHANNEL)
    ========================= */
-function play() {
+let preloaded = null;
+
+function preloadNext() {
+    if (!filtered.length) return;
+
+    const nextIndex = (index + 1) % filtered.length;
+    const next = filtered[nextIndex];
+
+    if (next.url.includes(".m3u8") && Hls.isSupported()) {
+        const temp = new Hls({ maxBufferLength: 5 });
+        temp.loadSource(next.url);
+        temp.attachMedia(document.createElement("video"));
+        preloaded = temp;
+    }
+}
+
+/* =========================
+   🚀 FAST SWITCH + ANIMATION
+   ========================= */
+function play(skipAnim = false) {
     if (!filtered.length) return;
 
     const ch = filtered[index];
     channelSel.value = index;
 
-    if (hls) hls.destroy();
-
-    if (ch.url.includes(".m3u8") && Hls.isSupported()) {
-
-        hls = new Hls({
-            lowLatencyMode: true,
-            maxBufferLength: 2
-        });
-
-        hls.loadSource(ch.url);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().catch(()=>{});
-        });
-
-    } else {
-        video.src = ch.url;
-        video.play().catch(()=>{});
+    if (!skipAnim) {
+        video.classList.add("fade-out");
     }
+
+    setTimeout(() => {
+
+        if (hls) hls.destroy();
+
+        if (ch.url.includes(".m3u8") && Hls.isSupported()) {
+
+            hls = new Hls({
+                lowLatencyMode: true,
+                maxBufferLength: 2
+            });
+
+            hls.loadSource(ch.url);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(()=>{});
+            });
+
+        } else {
+            video.src = ch.url;
+            video.play().catch(()=>{});
+        }
+
+        video.classList.remove("fade-out");
+
+        // 🔥 preload next channel AFTER switch
+        setTimeout(preloadNext, 300);
+
+    }, skipAnim ? 0 : 180);
 }
 
 /* =========================
-   CONTROLS
+   RANDOM ONLY BUTTON
    ========================= */
-function next() {
-    index = (index + 1) % filtered.length;
-    play();
-}
-
-function prev() {
-    index = (index - 1 + filtered.length) % filtered.length;
-    play();
-}
-
-function randomCh() {
+function randomChannel() {
     index = Math.floor(Math.random() * filtered.length);
     play();
 }
 
-function toggle() {
-    video.paused ? video.play() : video.pause();
-}
-
 /* =========================
-   EVENTS
+   FILTER EVENTS
    ========================= */
 categorySel.addEventListener("change", applyFilter);
 
