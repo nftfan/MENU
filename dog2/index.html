@@ -2,177 +2,187 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>Ipatch Mobile IPTV</title>
+<title>IPTV Modern Player</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-<!-- iPhone APP MODE -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <style>
-/* RESET */
 html, body {
     margin: 0;
-    padding: 0;
-    background: black;
     height: 100%;
+    background: #0a0a0a;
+    font-family: system-ui, -apple-system, Arial;
     overflow: hidden;
-    font-family: Arial, sans-serif;
-    color: #fff;
+    color: white;
 }
 
-/* 📱 FULLSCREEN VIDEO (iPhone FIX) */
+/* =========================
+   VIDEO (NO CROPPING, NO BARS)
+   ========================= */
 video {
-    position: fixed;
-    top: 0;
-    left: 0;
-
     width: 100vw;
-    height: 100vh;
-    height: -webkit-fill-available; /* 🔥 iOS fix */
-
-    object-fit: cover; /* 🔥 removes black bars */
+    height: 55vh;
     background: black;
+    object-fit: contain; /* ✅ FULL VIDEO VISIBLE */
+    display: block;
 }
 
-/* CONTROLS */
-.controls {
+/* =========================
+   UI WRAPPER
+   ========================= */
+.ui {
     position: absolute;
     bottom: 0;
     width: 100%;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
+    height: 45vh;
+    background: rgba(20,20,20,0.75);
+    backdrop-filter: blur(15px);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    padding: 14px;
+    box-sizing: border-box;
 }
 
+/* =========================
+   MODERN DROPDOWNS
+   ========================= */
 select {
-    padding: 10px;
-    border-radius: 6px;
-    border: none;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #151515;
+    color: white;
     font-size: 14px;
+    outline: none;
 }
 
+/* =========================
+   BUTTON ROW (MODERN STYLE)
+   ========================= */
 .buttons {
     display: flex;
     gap: 10px;
-    justify-content: space-between;
 }
 
 button {
     flex: 1;
     padding: 12px;
+    border-radius: 14px;
     border: none;
-    border-radius: 8px;
-    background: #1c1c1c;
+    background: linear-gradient(145deg, #1f1f1f, #141414);
     color: white;
     font-size: 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    transition: 0.2s;
 }
 
 button:active {
-    background: #333;
+    transform: scale(0.97);
+    background: #2a2a2a;
+}
+
+/* =========================
+   TITLE STYLE (optional feel)
+   ========================= */
+.title {
+    font-size: 13px;
+    opacity: 0.6;
+    margin-bottom: 6px;
 }
 </style>
 </head>
 
 <body>
 
-<video id="video" controls autoplay playsinline webkit-playsinline></video>
+<video id="video" controls autoplay playsinline></video>
 
-<div class="controls">
+<div class="ui">
 
+    <div class="title">Category</div>
     <select id="category"></select>
+
+    <div class="title">Channel</div>
     <select id="channel"></select>
 
     <div class="buttons">
         <button onclick="prevChannel()">⟨ Prev</button>
         <button onclick="nextChannel()">Next ⟩</button>
-        <button onclick="randomChannel()">Random</button>
-        <button onclick="togglePlay()">Play/Pause</button>
+        <button onclick="randomChannel()">Shuffle</button>
+        <button onclick="togglePlay()">Play</button>
     </div>
 
 </div>
 
 <script>
 
-const PLAYLIST_URL = "https://iptv-org.github.io/iptv/index.category.m3u";
+const URL = "https://iptv-org.github.io/iptv/index.category.m3u";
 
 let channels = [];
 let filtered = [];
-let currentIndex = 0;
+let index = 0;
 
 const video = document.getElementById("video");
 const categorySel = document.getElementById("category");
 const channelSel = document.getElementById("channel");
 
-/* 🔥 HLS INSTANCE (reused properly) */
-let hls = null;
+let hls;
 
-function initHLS() {
-    if (hls) hls.destroy();
-
-    hls = new Hls({
-        lowLatencyMode: true,
-        maxBufferLength: 2,
-        backBufferLength: 0
-    });
-
-    hls.attachMedia(video);
-}
-
-/* PARSER */
+/* =========================
+   PARSER
+   ========================= */
 function parseM3U(text) {
-    const lines = text.split("\n");
-    let result = [];
-    let current = null;
+    let out = [];
+    let cur = null;
 
-    for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
+    text.split("\n").forEach(l => {
+        l = l.trim();
+        if (!l) return;
 
-        if (line.startsWith("#EXTINF")) {
-            const match = line.match(/#EXTINF:-?\d+\s*(.*),(.*)/);
-            if (!match) continue;
-
-            const meta = match[1];
-            const name = match[2]?.trim() || "Unnamed";
+        if (l.startsWith("#EXTINF")) {
+            const m = l.match(/#EXTINF:-?\d+\s*(.*),(.*)/);
+            if (!m) return;
 
             let group = "Other";
-            const g = meta.match(/group-title="(.*?)"/);
+            const g = m[1].match(/group-title="(.*?)"/);
             if (g) group = g[1];
 
-            current = { name, group };
-        } 
-        else if (!line.startsWith("#") && current) {
-            current.url = line;
-            result.push(current);
-            current = null;
+            cur = { name: m[2], group };
         }
-    }
-    return result;
+        else if (!l.startsWith("#") && cur) {
+            cur.url = l;
+            out.push(cur);
+            cur = null;
+        }
+    });
+
+    return out;
 }
 
-/* LOAD */
-async function loadPlaylist() {
-    const res = await fetch(PLAYLIST_URL);
+/* =========================
+   LOAD
+   ========================= */
+async function load() {
+    const res = await fetch(URL);
     const text = await res.text();
 
     channels = parseM3U(text);
 
     const groups = [...new Set(channels.map(c => c.group))].sort();
 
-    categorySel.innerHTML = `<option>All</option>` +
+    categorySel.innerHTML =
+        `<option value="All">All Channels</option>` +
         groups.map(g => `<option>${g}</option>`).join("");
 
     applyFilter();
 }
 
-/* FILTER */
+/* =========================
+   FILTER
+   ========================= */
 function applyFilter() {
     const cat = categorySel.value;
 
@@ -184,23 +194,30 @@ function applyFilter() {
         .map((c, i) => `<option value="${i}">${c.name}</option>`)
         .join("");
 
-    currentIndex = 0;
-    playChannel();
+    index = 0;
+    play();
 }
 
-/* 🚀 PLAY (iPhone optimized) */
-function playChannel() {
+/* =========================
+   PLAY ENGINE
+   ========================= */
+function play() {
     if (!filtered.length) return;
 
-    const ch = filtered[currentIndex];
-    channelSel.value = currentIndex;
+    const ch = filtered[index];
+    channelSel.value = index;
 
-    initHLS();
+    if (hls) hls.destroy();
 
-    if (ch.url.endsWith(".m3u8") && Hls.isSupported()) {
+    if (ch.url.includes(".m3u8") && Hls.isSupported()) {
+
+        hls = new Hls({
+            lowLatencyMode: true,
+            maxBufferLength: 2
+        });
 
         hls.loadSource(ch.url);
-        hls.startLoad();
+        hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.play().catch(()=>{});
@@ -212,39 +229,40 @@ function playChannel() {
     }
 }
 
-/* CONTROLS */
+/* =========================
+   CONTROLS
+   ========================= */
 function nextChannel() {
-    if (!filtered.length) return;
-    currentIndex = (currentIndex + 1) % filtered.length;
-    playChannel();
+    index = (index + 1) % filtered.length;
+    play();
 }
 
 function prevChannel() {
-    if (!filtered.length) return;
-    currentIndex = (currentIndex - 1 + filtered.length) % filtered.length;
-    playChannel();
+    index = (index - 1 + filtered.length) % filtered.length;
+    play();
 }
 
 function randomChannel() {
-    if (!filtered.length) return;
-    currentIndex = Math.floor(Math.random() * filtered.length);
-    playChannel();
+    index = Math.floor(Math.random() * filtered.length);
+    play();
 }
 
 function togglePlay() {
-    if (video.paused) video.play();
-    else video.pause();
+    video.paused ? video.play() : video.pause();
 }
 
-/* EVENTS */
+/* =========================
+   EVENTS
+   ========================= */
 categorySel.addEventListener("change", applyFilter);
+
 channelSel.addEventListener("change", () => {
-    currentIndex = parseInt(channelSel.value);
-    playChannel();
+    index = parseInt(channelSel.value);
+    play();
 });
 
 /* START */
-loadPlaylist();
+load();
 
 </script>
 
