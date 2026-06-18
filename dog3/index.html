@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>IPTV Remote</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0e0e;
+  --surface: #161616;
+  --border: #242424;
+  --accent: #e8ff00;
+  --accent-dim: rgba(232,255,0,0.12);
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.3);
+  --red: #ff3a00;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 28px 50px;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* TOP: brand */
+.brand {
+  text-align: center;
+}
+.brand-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.brand-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #333;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.status-dot.online {
+  background: #00e676;
+  box-shadow: 0 0 8px rgba(0,230,118,0.6);
+}
+.status-dot.firing {
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(255,58,0,0.8);
+}
+
+/* MIDDLE: big channel display */
+.display {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 20px 18px;
+  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+}
+.display::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+}
+
+.display-label {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.display-channel {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.1;
+  min-height: 36px;
+  transition: opacity 0.2s;
+}
+.display-category {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-top: 6px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+/* BOTTOM: remote buttons */
+.remote-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* BIG RANDOM BUTTON */
+.btn-random {
+  width: 100%;
+  height: 100px;
+  border-radius: 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.btn-random::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(232,255,0,0.15), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-random:hover::before { opacity: 1; }
+.btn-random:active {
+  transform: scale(0.97);
+  background: rgba(232,255,0,0.22);
+}
+
+.btn-random.sending {
+  animation: pulse-send 0.5s ease;
+}
+@keyframes pulse-send {
+  0%   { box-shadow: 0 0 0 0 rgba(232,255,0,0.6); }
+  50%  { box-shadow: 0 0 30px 10px rgba(232,255,0,0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(232,255,0,0); }
+}
+
+.dice-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+/* SMALL UTILITY ROW */
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+.btn-small {
+  flex: 1;
+  height: 52px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-small:hover { border-color: #333; color: rgba(255,255,255,0.5); }
+.btn-small:active { transform: scale(0.96); }
+
+/* Sent feedback toast */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 100px;
+  padding: 8px 20px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 999;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Send count */
+.send-count {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.18);
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+  <!-- TOP -->
+  <div class="brand">
+    <div class="brand-logo">IPTV Remote</div>
+    <div class="brand-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">CONNECTING</span>
+    </div>
+  </div>
+
+  <!-- DISPLAY -->
+  <div class="display">
+    <div class="display-label">Last command sent</div>
+    <div class="display-channel" id="disp-action">—</div>
+    <div class="display-category" id="disp-time">waiting</div>
+  </div>
+
+  <!-- REMOTE -->
+  <div class="remote-body">
+    <button class="btn-random" id="btn-random" onclick="sendRandom()">
+      <span class="dice-icon">⚄</span>
+      RANDOM
+    </button>
+
+    <div class="btn-row">
+      <button class="btn-small" onclick="sendRandom()">SHUFFLE</button>
+      <button class="btn-small" onclick="sendRandom()">ZAP</button>
+    </div>
+
+    <div class="send-count" id="send-count">0 SIGNALS SENT</div>
+  </div>
+
+</div>
+
+<div id="toast">SIGNAL SENT</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+    authDomain: "betbtc-6d881.firebaseapp.com",
+    databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+    projectId: "betbtc-6d881",
+    storageBucket: "betbtc-6d881.firebasestorage.app",
+    messagingSenderId: "962176232122",
+    appId: "1:962176232122:web:a277d922543c3378033083",
+    measurementId: "G-V4XNB7K1E0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const cmdRef = ref(db, "iptv/command");
+
+  const dot = document.getElementById("status-dot");
+  const statusText = document.getElementById("status-text");
+  const dispAction = document.getElementById("disp-action");
+  const dispTime = document.getElementById("disp-time");
+  const btn = document.getElementById("btn-random");
+  const toast = document.getElementById("toast");
+  const countEl = document.getElementById("send-count");
+
+  let sendCount = 0;
+  let toastTimer = null;
+
+  // Mark as connected
+  setTimeout(() => {
+    dot.classList.add("online");
+    statusText.textContent = "CONNECTED";
+  }, 1200);
+
+  window.sendRandom = async function () {
+    // Visual feedback
+    dot.classList.remove("online");
+    dot.classList.add("firing");
+    statusText.textContent = "SENDING";
+    btn.classList.add("sending");
+
+    dispAction.textContent = "RANDOM CHANNEL";
+    dispTime.textContent = new Date().toLocaleTimeString();
+
+    try {
+      await set(cmdRef, {
+        action: "random",
+        ts: Date.now()
+      });
+
+      sendCount++;
+      countEl.textContent = `${sendCount} SIGNAL${sendCount !== 1 ? "S" : ""} SENT`;
+
+      // Toast
+      clearTimeout(toastTimer);
+      toast.classList.add("show");
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+
+    } catch (e) {
+      dispAction.textContent = "ERROR";
+      dispTime.textContent = e.message;
+    }
+
+    setTimeout(() => {
+      btn.classList.remove("sending");
+      dot.classList.remove("firing");
+      dot.classList.add("online");
+      statusText.textContent = "CONNECTED";
+    }, 600);
+  };
+</script>
+
+</body>
+</html>
