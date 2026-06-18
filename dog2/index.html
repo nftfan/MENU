@@ -1,123 +1,236 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
 <title>Fast TV IPTV</title>
-
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+    authDomain: "betbtc-6d881.firebaseapp.com",
+    databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+    projectId: "betbtc-6d881",
+    storageBucket: "betbtc-6d881.firebasestorage.app",
+    messagingSenderId: "962176232122",
+    appId: "1:962176232122:web:a277d922543c3378033083",
+    measurementId: "G-V4XNB7K1E0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const cmdRef = ref(db, "iptv/command");
+
+  let lastTimestamp = 0;
+
+  onValue(cmdRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    // Only react to NEW commands (avoid firing on page load)
+    if (data.ts && data.ts > lastTimestamp) {
+      lastTimestamp = data.ts;
+
+      if (data.action === "random") {
+        window.randomChannel && window.randomChannel();
+        showRemoteFlash();
+      }
+    }
+  });
+
+  function showRemoteFlash() {
+    const dot = document.getElementById("remote-dot");
+    if (!dot) return;
+    dot.classList.add("active");
+    setTimeout(() => dot.classList.remove("active"), 800);
+  }
+</script>
 <style>
-
 html, body {
-    margin: 0;
-    height: 100%;
-    background: #0f0f0f;
-    font-family: Arial;
-    overflow: hidden;
-    color: white;
+  margin: 0;
+  height: 100%;
+  background: #0a0a0a;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  color: white;
 }
 
-/* =========================
-   TV SCREEN (TOP)
-   ========================= */
 .tv {
-    position: relative;
-    width: 100%;
-    height: 58vh;
-    background: #1c1c1c;
-    border-top: 1px solid #444; /* 🔥 thin grey TV line */
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 58vh;
+  background: #111;
+  overflow: hidden;
 }
 
-/* VIDEO (1px UP EFFECT) */
+/* Remote indicator dot */
+#remote-dot {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #333;
+  transition: background 0.1s, box-shadow 0.1s;
+  z-index: 10;
+}
+#remote-dot.active {
+  background: #ff3a00;
+  box-shadow: 0 0 12px #ff3a00, 0 0 30px rgba(255,58,0,0.4);
+}
+
+/* Channel info overlay */
+#ch-info {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+#ch-info.show { opacity: 1; }
+
+#ch-name {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+}
+#ch-cat {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 video {
-    width: 100%;
-    height: calc(100% + 1px); /* 🔥 requested shift */
-    margin-top: -1px;         /* subtle TV lift */
-    object-fit: cover;
-    background: black;
-    transition: opacity 0.25s ease, transform 0.25s ease;
+  width: 100%;
+  height: calc(100% + 1px);
+  margin-top: -1px;
+  object-fit: cover;
+  background: black;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-/* FADE ANIMATION CLASS */
 .fade-out {
-    opacity: 0;
-    transform: scale(1.01);
+  opacity: 0;
+  transform: scale(1.01);
 }
 
-/* =========================
-   CONTROLS
-   ========================= */
+/* CONTROLS */
 .controls {
-    height: 42vh;
-    padding: 14px;
-    background: #0a0a0a;
+  height: 42vh;
+  padding: 14px 16px;
+  background: #0a0a0a;
+  box-sizing: border-box;
 }
 
-/* DROPDOWNS */
-select {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 10px;
-    border: 1px solid #222;
-    background: #151515;
-    color: white;
-}
-
-/* =========================
-   RANDOM BUTTON ONLY (CIRCLE)
-   ========================= */
-.random-btn {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    border: none;
-    background: radial-gradient(circle, #2a2a2a, #111);
-    color: white;
-    font-size: 14px;
-    margin: 10px auto 0;
-    display: block;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.6);
-}
-
-.random-btn:active {
-    transform: scale(0.92);
-}
-
-/* labels */
 .label {
-    font-size: 12px;
-    opacity: 0.6;
-    margin: 6px 0;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin: 8px 0 4px;
 }
 
+select {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+  border: 1px solid #1e1e1e;
+  background: #131313;
+  color: white;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+select:focus { border-color: #333; }
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.random-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #1e1e1e;
+  background: #161616;
+  color: white;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.random-btn:hover { background: #1e1e1e; border-color: #333; }
+.random-btn:active { transform: scale(0.97); }
+
+/* Remote connected badge */
+#remote-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.25);
+  margin-top: 12px;
+}
+#remote-badge .dot { 
+  width: 6px; height: 6px; 
+  border-radius: 50%; 
+  background: #2a2a2a;
+  transition: background 0.3s;
+}
+#remote-badge.linked .dot { background: #00e676; }
+#remote-badge.linked { color: rgba(255,255,255,0.45); }
 </style>
 </head>
 
 <body>
 
 <div class="tv">
-    <video id="video" autoplay playsinline controls></video>
+  <div id="remote-dot"></div>
+
+  <div id="ch-info">
+    <div id="ch-name">—</div>
+    <div id="ch-cat">—</div>
+  </div>
+
+  <video id="video" autoplay playsinline controls></video>
 </div>
 
 <div class="controls">
+  <div class="label">Category</div>
+  <select id="category"></select>
 
-    <div class="label">Category</div>
-    <select id="category"></select>
+  <div class="label">Channel</div>
+  <select id="channel"></select>
 
-    <div class="label">Channel</div>
-    <select id="channel"></select>
+  <div class="btn-row">
+    <button class="random-btn" onclick="randomChannel()">⟳ RANDOM</button>
+  </div>
 
-    <button class="random-btn" onclick="randomChannel()">RANDOM</button>
-
+  <div id="remote-badge">
+    <div class="dot"></div>
+    REMOTE STANDBY
+  </div>
 </div>
 
 <script>
-
-const URL = "https://iptv-org.github.io/iptv/index.category.m3u";
+const M3U_URL = "https://iptv-org.github.io/iptv/index.category.m3u";
 
 let channels = [];
 let filtered = [];
@@ -126,161 +239,120 @@ let index = 0;
 const video = document.getElementById("video");
 const categorySel = document.getElementById("category");
 const channelSel = document.getElementById("channel");
+const badge = document.getElementById("remote-badge");
+const chInfo = document.getElementById("ch-info");
+const chName = document.getElementById("ch-name");
+const chCat = document.getElementById("ch-cat");
 
 let hls = null;
+let infoTimer = null;
 
-/* =========================
-   PARSER
-   ========================= */
+// Mark remote as linked after Firebase loads
+setTimeout(() => {
+  badge.classList.add("linked");
+  badge.querySelector("span") && (badge.querySelector("span").textContent = "REMOTE LINKED");
+  badge.innerHTML = '<div class="dot"></div> REMOTE LINKED';
+}, 2000);
+
 function parseM3U(text) {
-    let out = [];
-    let cur = null;
-
-    text.split("\n").forEach(l => {
-        l = l.trim();
-        if (!l) return;
-
-        if (l.startsWith("#EXTINF")) {
-            const m = l.match(/#EXTINF:-?\d+\s*(.*),(.*)/);
-            if (!m) return;
-
-            let group = "Other";
-            const g = m[1].match(/group-title="(.*?)"/);
-            if (g) group = g[1];
-
-            cur = { name: m[2], group };
-        }
-        else if (!l.startsWith("#") && cur) {
-            cur.url = l;
-            out.push(cur);
-            cur = null;
-        }
-    });
-
-    return out;
+  let out = [];
+  let cur = null;
+  text.split("\n").forEach(l => {
+    l = l.trim();
+    if (!l) return;
+    if (l.startsWith("#EXTINF")) {
+      const m = l.match(/#EXTINF:-?\d+\s*(.*),(.*)/);
+      if (!m) return;
+      let group = "Other";
+      const g = m[1].match(/group-title="(.*?)"/);
+      if (g) group = g[1];
+      cur = { name: m[2].trim(), group };
+    } else if (!l.startsWith("#") && cur) {
+      cur.url = l;
+      out.push(cur);
+      cur = null;
+    }
+  });
+  return out;
 }
 
-/* =========================
-   LOAD
-   ========================= */
 async function load() {
-    const res = await fetch(URL);
-    const text = await res.text();
-
-    channels = parseM3U(text);
-
-    const groups = [...new Set(channels.map(c => c.group))].sort();
-
-    categorySel.innerHTML =
-        `<option>All</option>` +
-        groups.map(g => `<option>${g}</option>`).join("");
-
-    applyFilter();
+  const res = await fetch(M3U_URL);
+  const text = await res.text();
+  channels = parseM3U(text);
+  const groups = [...new Set(channels.map(c => c.group))].sort();
+  categorySel.innerHTML = `<option>All</option>` + groups.map(g => `<option>${g}</option>`).join("");
+  applyFilter();
 }
 
-/* =========================
-   FILTER
-   ========================= */
 function applyFilter() {
-    const cat = categorySel.value;
-
-    filtered = cat === "All"
-        ? channels
-        : channels.filter(c => c.group === cat);
-
-    channelSel.innerHTML = filtered
-        .map((c, i) => `<option value="${i}">${c.name}</option>`)
-        .join("");
-
-    index = 0;
-    play(true);
+  const cat = categorySel.value;
+  filtered = cat === "All" ? channels : channels.filter(c => c.group === cat);
+  channelSel.innerHTML = filtered.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
+  index = 0;
+  play(true);
 }
 
-/* =========================
-   ⚡ PRELOAD ENGINE (NEXT CHANNEL)
-   ========================= */
+function showChannelInfo(ch) {
+  chName.textContent = ch.name;
+  chCat.textContent = ch.group;
+  chInfo.classList.add("show");
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(() => chInfo.classList.remove("show"), 3500);
+}
+
 let preloaded = null;
 
 function preloadNext() {
-    if (!filtered.length) return;
-
-    const nextIndex = (index + 1) % filtered.length;
-    const next = filtered[nextIndex];
-
-    if (next.url.includes(".m3u8") && Hls.isSupported()) {
-        const temp = new Hls({ maxBufferLength: 5 });
-        temp.loadSource(next.url);
-        temp.attachMedia(document.createElement("video"));
-        preloaded = temp;
-    }
+  if (!filtered.length) return;
+  const nextIndex = (index + 1) % filtered.length;
+  const next = filtered[nextIndex];
+  if (next.url.includes(".m3u8") && Hls.isSupported()) {
+    const temp = new Hls({ maxBufferLength: 5 });
+    temp.loadSource(next.url);
+    temp.attachMedia(document.createElement("video"));
+    preloaded = temp;
+  }
 }
 
-/* =========================
-   🚀 FAST SWITCH + ANIMATION
-   ========================= */
 function play(skipAnim = false) {
-    if (!filtered.length) return;
+  if (!filtered.length) return;
+  const ch = filtered[index];
+  channelSel.value = index;
+  showChannelInfo(ch);
 
-    const ch = filtered[index];
-    channelSel.value = index;
+  if (!skipAnim) video.classList.add("fade-out");
 
-    if (!skipAnim) {
-        video.classList.add("fade-out");
+  setTimeout(() => {
+    if (hls) hls.destroy();
+
+    if (ch.url.includes(".m3u8") && Hls.isSupported()) {
+      hls = new Hls({ lowLatencyMode: true, maxBufferLength: 2 });
+      hls.loadSource(ch.url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+    } else {
+      video.src = ch.url;
+      video.play().catch(() => {});
     }
 
-    setTimeout(() => {
-
-        if (hls) hls.destroy();
-
-        if (ch.url.includes(".m3u8") && Hls.isSupported()) {
-
-            hls = new Hls({
-                lowLatencyMode: true,
-                maxBufferLength: 2
-            });
-
-            hls.loadSource(ch.url);
-            hls.attachMedia(video);
-
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(()=>{});
-            });
-
-        } else {
-            video.src = ch.url;
-            video.play().catch(()=>{});
-        }
-
-        video.classList.remove("fade-out");
-
-        // 🔥 preload next channel AFTER switch
-        setTimeout(preloadNext, 300);
-
-    }, skipAnim ? 0 : 180);
+    video.classList.remove("fade-out");
+    setTimeout(preloadNext, 300);
+  }, skipAnim ? 0 : 180);
 }
 
-/* =========================
-   RANDOM ONLY BUTTON
-   ========================= */
-function randomChannel() {
-    index = Math.floor(Math.random() * filtered.length);
-    play();
-}
+window.randomChannel = function () {
+  index = Math.floor(Math.random() * filtered.length);
+  play();
+};
 
-/* =========================
-   FILTER EVENTS
-   ========================= */
 categorySel.addEventListener("change", applyFilter);
-
 channelSel.addEventListener("change", () => {
-    index = parseInt(channelSel.value);
-    play();
+  index = parseInt(channelSel.value);
+  play();
 });
 
-/* START */
 load();
-
 </script>
-
 </body>
 </html>
