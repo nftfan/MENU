@@ -2,646 +2,357 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Fast TV</title>
+<title>Fast TV IPTV</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+    authDomain: "betbtc-6d881.firebaseapp.com",
+    databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+    projectId: "betbtc-6d881",
+    storageBucket: "betbtc-6d881.firebasestorage.app",
+    messagingSenderId: "962176232122",
+    appId: "1:962176232122:web:a277d922543c3378033083",
+    measurementId: "G-V4XNB7K1E0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const cmdRef = ref(db, "iptv/command");
+
+  let lastTimestamp = 0;
+
+  onValue(cmdRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    // Only react to NEW commands (avoid firing on page load)
+    if (data.ts && data.ts > lastTimestamp) {
+      lastTimestamp = data.ts;
+
+      if (data.action === "random") {
+        window.randomChannel && window.randomChannel();
+        showRemoteFlash();
+      }
+    }
+  });
+
+  function showRemoteFlash() {
+    const dot = document.getElementById("remote-dot");
+    if (!dot) return;
+    dot.classList.add("active");
+    setTimeout(() => dot.classList.remove("active"), 800);
+  }
+</script>
+<style>
 html, body {
-  width: 100%; height: 100%;
-  background: #000;
+  margin: 0;
+  height: 100%;
+  background: #0a0a0a;
   font-family: 'Courier New', monospace;
   overflow: hidden;
-  color: #fff;
+  color: white;
 }
 
-/* ── VIDEO POOL ─────────────────────────── */
-#pool {
-  position: fixed;
-  inset: 0;
-  background: #000;
+.tv {
+  position: relative;
+  width: 100%;
+  height: 58vh;
+  background: #111;
+  overflow: hidden;
 }
 
-#pool video {
+/* Remote indicator dot */
+#remote-dot {
   position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: contain;
-  background: #000;
-  opacity: 0;
-  transition: opacity 0.28s ease;
-  pointer-events: none;
-}
-
-#pool video.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ── OSD OVERLAY ─────────────────────────── */
-#osd {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  padding: 18px 22px 22px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.82));
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
+  top: 12px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #333;
+  transition: background 0.1s, box-shadow 0.1s;
   z-index: 10;
 }
+#remote-dot.active {
+  background: #ff3a00;
+  box-shadow: 0 0 12px #ff3a00, 0 0 30px rgba(255,58,0,0.4);
+}
 
-#osd.visible { opacity: 1; }
+/* Channel info overlay */
+#ch-info {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+#ch-info.show { opacity: 1; }
 
-#osd-left {}
 #ch-name {
-  font-size: clamp(16px, 2.4vw, 26px);
+  font-size: 13px;
   font-weight: bold;
-  letter-spacing: 0.04em;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.9);
-  line-height: 1.1;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
 }
 #ch-cat {
-  font-size: clamp(9px, 1.1vw, 12px);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #e8ff00;
-  margin-top: 4px;
-  opacity: 0.85;
-}
-
-#osd-right {
-  text-align: right;
-  font-size: 11px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
   letter-spacing: 0.12em;
-  opacity: 0.4;
-}
-
-/* ── IR DOT ─────────────────────────── */
-#ir {
-  position: fixed;
-  top: 14px; right: 16px;
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: #222;
-  z-index: 20;
-  transition: background 0.1s, box-shadow 0.1s;
-}
-#ir.flash {
-  background: #ff3a00;
-  box-shadow: 0 0 14px #ff3a00, 0 0 36px rgba(255,58,0,0.3);
-}
-
-/* ── CONTROLS (bottom strip, hidden by default) ── */
-#controls {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(0,0,0,0.92);
-  backdrop-filter: blur(12px);
-  padding: 14px 16px 20px;
-  z-index: 30;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-}
-#controls.open { transform: translateY(0); }
-
-.ctrl-label {
-  font-size: 9px;
-  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
-  margin-bottom: 6px;
 }
+
+video {
+  width: 100%;
+  height: calc(100% + 1px);
+  margin-top: -1px;
+  object-fit: cover;
+  background: black;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fade-out {
+  opacity: 0;
+  transform: scale(1.01);
+}
+
+/* CONTROLS */
+.controls {
+  height: 42vh;
+  padding: 14px 16px;
+  background: #0a0a0a;
+  box-sizing: border-box;
+}
+
+.label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin: 8px 0 4px;
+}
+
 select {
   width: 100%;
   padding: 10px 12px;
-  margin-bottom: 10px;
+  margin-bottom: 2px;
   border-radius: 6px;
   border: 1px solid #1e1e1e;
-  background: #111;
-  color: #fff;
+  background: #131313;
+  color: white;
   font-size: 13px;
   font-family: inherit;
   outline: none;
   appearance: none;
+  cursor: pointer;
 }
-.ctrl-btns {
+select:focus { border-color: #333; }
+
+.btn-row {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 14px;
 }
-.ctrl-btn {
+
+.random-btn {
   flex: 1;
-  padding: 11px;
-  border-radius: 7px;
-  border: 1px solid #222;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #1e1e1e;
   background: #161616;
-  color: rgba(255,255,255,0.6);
-  font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  cursor: pointer;
-}
-.ctrl-btn:active { transform: scale(0.96); }
-
-/* ── TOGGLE HANDLE ─────────────────── */
-#toggle-handle {
-  position: fixed;
-  bottom: 14px; right: 16px;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.6);
-  border: 1px solid #333;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
-  z-index: 40;
-  backdrop-filter: blur(8px);
-  transition: background 0.2s;
-}
-#toggle-handle:hover { background: rgba(255,255,255,0.08); }
-
-/* ── LOADING HINT ─────────────────── */
-#hint {
-  position: fixed;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  color: white;
   font-size: 11px;
-  letter-spacing: 0.2em;
-  color: rgba(255,255,255,0.2);
-  text-transform: uppercase;
-  z-index: 5;
-  pointer-events: none;
-  transition: opacity 0.5s;
+  letter-spacing: 0.15em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
-#hint.hidden { opacity: 0; }
+.random-btn:hover { background: #1e1e1e; border-color: #333; }
+.random-btn:active { transform: scale(0.97); }
+
+/* Remote connected badge */
+#remote-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.25);
+  margin-top: 12px;
+}
+#remote-badge .dot { 
+  width: 6px; height: 6px; 
+  border-radius: 50%; 
+  background: #2a2a2a;
+  transition: background 0.3s;
+}
+#remote-badge.linked .dot { background: #00e676; }
+#remote-badge.linked { color: rgba(255,255,255,0.45); }
 </style>
 </head>
+
 <body>
 
-<div id="pool"></div>
-<div id="ir"></div>
-<div id="hint">Loading channels…</div>
+<div class="tv">
+  <div id="remote-dot"></div>
 
-<div id="osd">
-  <div id="osd-left">
+  <div id="ch-info">
     <div id="ch-name">—</div>
     <div id="ch-cat">—</div>
   </div>
-  <div id="osd-right" id="osd-right">
-    <div id="ch-num">—</div>
-  </div>
+
+  <video id="video" autoplay playsinline controls></video>
 </div>
 
-<div id="toggle-handle" onclick="toggleControls()">☰</div>
-
-<div id="controls">
-  <div class="ctrl-label">Category</div>
+<div class="controls">
+  <div class="label">Category</div>
   <select id="category"></select>
-  <div class="ctrl-label">Channel</div>
+
+  <div class="label">Channel</div>
   <select id="channel"></select>
-  <div class="ctrl-btns">
-    <button class="ctrl-btn" onclick="randomChannel()">⟳ RANDOM</button>
-    <button class="ctrl-btn" onclick="toggleControls()">✕ CLOSE</button>
+
+  <div class="btn-row">
+    <button class="random-btn" onclick="randomChannel()">⟳ RANDOM</button>
+  </div>
+
+  <div id="remote-badge">
+    <div class="dot"></div>
+    REMOTE STANDBY
   </div>
 </div>
-
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
-  authDomain: "betbtc-6d881.firebaseapp.com",
-  databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
-  projectId: "betbtc-6d881",
-  storageBucket: "betbtc-6d881.firebasestorage.app",
-  messagingSenderId: "962176232122",
-  appId: "1:962176232122:web:a277d922543c3378033083"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const cmdRef = ref(db, "iptv/command");
-const nowRef = ref(db, "iptv/nowPlaying");
-
-window._pushNowPlaying = function(ch) {
-  set(nowRef, { name: ch.name, group: ch.group, url: ch.url }).catch(() => {});
-};
-
-let lastTs = 0;
-
-onValue(cmdRef, snap => {
-  const d = snap.val();
-  if (!d || !d.ts || d.ts <= lastTs) return;
-  lastTs = d.ts;
-
-  flashIR();
-
-  if (d.action === "random")       window._tvRandom && window._tvRandom();
-  if (d.action === "bookmark_play") window._tvPlayBookmarks && window._tvPlayBookmarks(d.bookmarks);
-  if (d.action === "next")         window._tvNext && window._tvNext();
-  if (d.action === "back")         window._tvBack && window._tvBack();
-  if (d.action === "play_index")   window._tvPlayIndex && window._tvPlayIndex(d.index, d.list);
-});
-
-function flashIR() {
-  const ir = document.getElementById("ir");
-  ir.classList.add("flash");
-  setTimeout(() => ir.classList.remove("flash"), 700);
-}
-</script>
 
 <script>
-// ══════════════════════════════════════════════
-//  CONFIGURATION
-// ══════════════════════════════════════════════
-const M3U_URL   = "https://iptv-org.github.io/iptv/index.category.m3u";
-const POOL_SIZE = 5;   // simultaneous hidden video buffers
-const STALL_MS  = 4000; // auto-skip stalled channel after N ms
-const OSD_MS    = 4000; // OSD visible duration
+const M3U_URL = "https://iptv-org.github.io/iptv/index.category.m3u";
 
-// ══════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════
-let allChannels = [];
-let filtered    = [];
-let currentIdx  = 0;
-let osdTimer    = null;
-let stallTimer  = null;
-let bookmarkMode = false;
-let bookmarkList = [];
-let bookmarkPos  = 0;
+let channels = [];
+let filtered = [];
+let index = 0;
 
-// ══════════════════════════════════════════════
-//  VIDEO POOL
-// ══════════════════════════════════════════════
-const pool = document.getElementById("pool");
+const video = document.getElementById("video");
+const categorySel = document.getElementById("category");
+const channelSel = document.getElementById("channel");
+const badge = document.getElementById("remote-badge");
+const chInfo = document.getElementById("ch-info");
+const chName = document.getElementById("ch-name");
+const chCat = document.getElementById("ch-cat");
 
-// Each slot: { el: <video>, hls: HlsInstance|null, url: string|null, ready: bool }
-const slots = [];
-let activeSlot = 0;
+let hls = null;
+let infoTimer = null;
 
-function createSlot() {
-  const el = document.createElement("video");
-  el.autoplay = true;
-  el.playsinline = true;
-  el.muted = false;
-  el.preload = "auto";
-  pool.appendChild(el);
-  return { el, hls: null, url: null, ready: false };
-}
-
-for (let i = 0; i < POOL_SIZE; i++) slots.push(createSlot());
-
-// Make slot 0 active (has audio)
-function activateSlot(i) {
-  slots.forEach((s, idx) => {
-    s.el.classList.toggle("active", idx === i);
-    // mute all non-active so no audio bleed
-    s.el.muted = (idx !== i);
-  });
-  activeSlot = i;
-}
-
-activateSlot(0);
-
-// ── Load a URL into a specific slot ──────────────
-function loadIntoSlot(slotIdx, url, onReady) {
-  const s = slots[slotIdx];
-  s.ready = false;
-  s.url = url;
-
-  // Destroy old HLS
-  if (s.hls) { s.hls.destroy(); s.hls = null; }
-
-  const el = s.el;
-  el.removeAttribute("src");
-  el.load();
-
-  if (!url) return;
-
-  function markReady() {
-    s.ready = true;
-    onReady && onReady();
-  }
-
-  if (url.includes(".m3u8") && Hls.isSupported()) {
-    const h = new Hls({
-      lowLatencyMode: true,
-      maxBufferLength: 8,
-      maxMaxBufferLength: 16,
-      startLevel: -1,
-      abrEwmaDefaultEstimate: 2000000
-    });
-    h.loadSource(url);
-    h.attachMedia(el);
-    h.on(Hls.Events.MANIFEST_PARSED, () => {
-      el.play().catch(() => {});
-      // Give it a moment to buffer before marking ready
-      setTimeout(markReady, 600);
-    });
-    h.on(Hls.Events.ERROR, (_, data) => {
-      if (data.fatal) markReady(); // still mark so we skip gracefully
-    });
-    s.hls = h;
-  } else {
-    el.src = url;
-    el.play().catch(() => {});
-    el.addEventListener("canplay", function handler() {
-      el.removeEventListener("canplay", handler);
-      markReady();
-    }, { once: true });
-    // Fallback if canplay never fires
-    setTimeout(markReady, 1500);
-  }
-}
-
-// ══════════════════════════════════════════════
-//  CHANNEL LIST
-// ══════════════════════════════════════════════
-async function loadM3U() {
-  const res  = await fetch(M3U_URL);
-  const text = await res.text();
-  allChannels = parseM3U(text);
-
-  const groups = [...new Set(allChannels.map(c => c.group))].sort();
-  const catSel = document.getElementById("category");
-  catSel.innerHTML = `<option>All</option>` + groups.map(g => `<option>${g}</option>`).join("");
-
-  applyFilter(true);
-  document.getElementById("hint").classList.add("hidden");
-}
+// Mark remote as linked after Firebase loads
+setTimeout(() => {
+  badge.classList.add("linked");
+  badge.querySelector("span") && (badge.querySelector("span").textContent = "REMOTE LINKED");
+  badge.innerHTML = '<div class="dot"></div> REMOTE LINKED';
+}, 2000);
 
 function parseM3U(text) {
-  const out = [];
+  let out = [];
   let cur = null;
-  for (const raw of text.split("\n")) {
-    const l = raw.trim();
-    if (!l) continue;
+  text.split("\n").forEach(l => {
+    l = l.trim();
+    if (!l) return;
     if (l.startsWith("#EXTINF")) {
       const m = l.match(/#EXTINF:-?\d+\s*(.*),(.*)/);
-      if (!m) continue;
+      if (!m) return;
+      let group = "Other";
       const g = m[1].match(/group-title="(.*?)"/);
-      cur = { name: m[2].trim(), group: g ? g[1] : "Other" };
+      if (g) group = g[1];
+      cur = { name: m[2].trim(), group };
     } else if (!l.startsWith("#") && cur) {
       cur.url = l;
       out.push(cur);
       cur = null;
     }
-  }
+  });
   return out;
 }
 
-function applyFilter(firstLoad = false) {
-  const cat = document.getElementById("category").value;
-  filtered = cat === "All" ? allChannels : allChannels.filter(c => c.group === cat);
-
-  const ch = document.getElementById("channel");
-  ch.innerHTML = filtered.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
-
-  currentIdx = 0;
-  if (!firstLoad) switchTo(currentIdx);
-  else primePipeline();
-}
-
-// ══════════════════════════════════════════════
-//  PRIME PIPELINE — fill pool on startup
-// ══════════════════════════════════════════════
-function primePipeline() {
-  if (!filtered.length) return;
-  // Pick a random start
-  currentIdx = Math.floor(Math.random() * filtered.length);
-
-  // Load into all slots
-  for (let i = 0; i < POOL_SIZE; i++) {
-    const chIdx = (currentIdx + i) % filtered.length;
-    const isActive = (i === 0);
-    loadIntoSlot(i, filtered[chIdx].url, isActive ? () => onActiveReady(0) : null);
-  }
-  activateSlot(0);
-  showOSD(filtered[currentIdx]);
-  syncSelects();
-}
-
-// ══════════════════════════════════════════════
-//  SWITCH LOGIC — instant swap + refill
-// ══════════════════════════════════════════════
-// Queue of next slots that are ready
-let nextReadyQueue = []; // indices into slots[] that are pre-buffered
-
-function onActiveReady(slotIdx) {
-  // Nothing special needed; active slot is already showing
-}
-
-// The "next" slot index (round-robin through pool)
-let fillSlot = 1; // which pool slot to fill next
-
-function refillPool() {
-  // Fill slots that aren't the active one
-  let filled = 0;
-  for (let i = 1; i < POOL_SIZE; i++) {
-    const si = (activeSlot + i) % POOL_SIZE;
-    const chIdx = (currentIdx + i) % filtered.length;
-    const ch = filtered[chIdx];
-    if (slots[si].url !== ch.url) {
-      loadIntoSlot(si, ch.url, null);
-    }
-    filled++;
-  }
-}
-
-function switchTo(targetChIdx, forceFresh = false) {
-  if (!filtered.length) return;
-  targetChIdx = ((targetChIdx % filtered.length) + filtered.length) % filtered.length;
-  currentIdx = targetChIdx;
-
-  const ch = filtered[currentIdx];
-  syncSelects();
-  showOSD(ch);
-  clearStallTimer();
-
-  // Find a slot that already has this URL buffered
-  const prebuiltSlot = slots.findIndex((s, i) => i !== activeSlot && s.url === ch.url && s.ready);
-
-  if (!forceFresh && prebuiltSlot !== -1) {
-    // ── INSTANT SWITCH ──────────────────────────
-    slots[prebuiltSlot].el.currentTime = Math.max(0, slots[prebuiltSlot].el.currentTime - 0.1);
-    slots[prebuiltSlot].el.play().catch(() => {});
-    activateSlot(prebuiltSlot);
-  } else {
-    // ── FALLBACK: load fresh into active slot ───
-    const target = activeSlot; // reuse current slot
-    loadIntoSlot(target, ch.url, () => {
-      slots[target].el.play().catch(() => {});
-    });
-    activateSlot(target);
-  }
-
-  // Stall detection — if video doesn't progress, skip
-  startStallTimer();
-
-  // Refill pool with next channels
-  setTimeout(refillPool, 400);
-}
-
-// ══════════════════════════════════════════════
-//  STALL DETECTION — auto-skip broken channels
-// ══════════════════════════════════════════════
-function startStallTimer() {
-  clearStallTimer();
-  const slotEl = slots[activeSlot].el;
-  const checkTime = slotEl.currentTime;
-
-  stallTimer = setTimeout(() => {
-    const newTime = slots[activeSlot].el.currentTime;
-    if (newTime === checkTime || slots[activeSlot].el.paused) {
-      // Stalled — silently skip to next
-      switchTo(currentIdx + 1);
-    }
-  }, STALL_MS);
-}
-
-function clearStallTimer() {
-  if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
-}
-
-// ══════════════════════════════════════════════
-//  OSD
-// ══════════════════════════════════════════════
-const osd = document.getElementById("osd");
-function showOSD(ch) {
-  document.getElementById("ch-name").textContent = ch.name;
-  document.getElementById("ch-cat").textContent  = ch.group;
-  document.getElementById("ch-num").textContent  = `#${currentIdx + 1}`;
-  osd.classList.add("visible");
-  clearTimeout(osdTimer);
-  osdTimer = setTimeout(() => osd.classList.remove("visible"), OSD_MS);
-  // Push to Firebase so remote knows what's playing
-  window._pushNowPlaying && window._pushNowPlaying(ch);
-}
-
-// ══════════════════════════════════════════════
-//  SELECTS SYNC
-// ══════════════════════════════════════════════
-function syncSelects() {
-  const chSel = document.getElementById("channel");
-  if (chSel) chSel.value = currentIdx;
-}
-
-// ══════════════════════════════════════════════
-//  PUBLIC API (called by Firebase listener)
-// ══════════════════════════════════════════════
-window._tvRandom = function() {
-  if (bookmarkMode && bookmarkList.length) {
-    bookmarkPos = Math.floor(Math.random() * bookmarkList.length);
-    switchToBookmark(bookmarkPos);
-  } else {
-    switchTo(Math.floor(Math.random() * filtered.length));
-  }
-};
-
-window._tvNext = function() {
-  if (bookmarkMode && bookmarkList.length) {
-    bookmarkPos = (bookmarkPos + 1) % bookmarkList.length;
-    switchToBookmark(bookmarkPos);
-  } else {
-    switchTo(currentIdx + 1);
-  }
-};
-
-window._tvBack = function() {
-  if (bookmarkMode && bookmarkList.length) {
-    bookmarkPos = (bookmarkPos - 1 + bookmarkList.length) % bookmarkList.length;
-    switchToBookmark(bookmarkPos);
-  } else {
-    switchTo(currentIdx - 1);
-  }
-};
-
-window._tvPlayBookmarks = function(bookmarks) {
-  if (!bookmarks || !bookmarks.length) return;
-  bookmarkList = bookmarks;
-  bookmarkMode = true;
-  bookmarkPos  = 0;
-  switchToBookmark(0);
-};
-
-window._tvPlayIndex = function(idx, list) {
-  if (list) {
-    bookmarkList = list;
-    bookmarkMode = true;
-    bookmarkPos  = idx;
-    switchToBookmark(idx);
-  } else {
-    bookmarkMode = false;
-    switchTo(idx);
-  }
-};
-
-function switchToBookmark(pos) {
-  const bm = bookmarkList[pos];
-  if (!bm) return;
-  // Find channel in filtered list by URL
-  const idx = filtered.findIndex(c => c.url === bm.url);
-  if (idx !== -1) {
-    currentIdx = idx;
-    syncSelects();
-    showOSD(filtered[idx]);
-    clearStallTimer();
-    // Load directly
-    loadIntoSlot(activeSlot, bm.url, () => {
-      slots[activeSlot].el.play().catch(() => {});
-    });
-    startStallTimer();
-    setTimeout(refillPool, 400);
-  } else {
-    // Channel not in current filter — load directly anyway
-    const fakeCh = { name: bm.name || "Bookmark", group: "Bookmarks", url: bm.url };
-    showOSD(fakeCh);
-    loadIntoSlot(activeSlot, bm.url, () => {
-      slots[activeSlot].el.play().catch(() => {});
-    });
-    startStallTimer();
-  }
-}
-
-// ══════════════════════════════════════════════
-//  UI EVENTS
-// ══════════════════════════════════════════════
-window.randomChannel = function() {
-  bookmarkMode = false;
-  switchTo(Math.floor(Math.random() * filtered.length));
-};
-
-window.toggleControls = function() {
-  document.getElementById("controls").classList.toggle("open");
-};
-
-document.getElementById("category").addEventListener("change", () => {
-  bookmarkMode = false;
+async function load() {
+  const res = await fetch(M3U_URL);
+  const text = await res.text();
+  channels = parseM3U(text);
+  const groups = [...new Set(channels.map(c => c.group))].sort();
+  categorySel.innerHTML = `<option>All</option>` + groups.map(g => `<option>${g}</option>`).join("");
   applyFilter();
+}
+
+function applyFilter() {
+  const cat = categorySel.value;
+  filtered = cat === "All" ? channels : channels.filter(c => c.group === cat);
+  channelSel.innerHTML = filtered.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
+  index = 0;
+  play(true);
+}
+
+function showChannelInfo(ch) {
+  chName.textContent = ch.name;
+  chCat.textContent = ch.group;
+  chInfo.classList.add("show");
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(() => chInfo.classList.remove("show"), 3500);
+}
+
+let preloaded = null;
+
+function preloadNext() {
+  if (!filtered.length) return;
+  const nextIndex = (index + 1) % filtered.length;
+  const next = filtered[nextIndex];
+  if (next.url.includes(".m3u8") && Hls.isSupported()) {
+    const temp = new Hls({ maxBufferLength: 5 });
+    temp.loadSource(next.url);
+    temp.attachMedia(document.createElement("video"));
+    preloaded = temp;
+  }
+}
+
+function play(skipAnim = false) {
+  if (!filtered.length) return;
+  const ch = filtered[index];
+  channelSel.value = index;
+  showChannelInfo(ch);
+
+  if (!skipAnim) video.classList.add("fade-out");
+
+  setTimeout(() => {
+    if (hls) hls.destroy();
+
+    if (ch.url.includes(".m3u8") && Hls.isSupported()) {
+      hls = new Hls({ lowLatencyMode: true, maxBufferLength: 2 });
+      hls.loadSource(ch.url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+    } else {
+      video.src = ch.url;
+      video.play().catch(() => {});
+    }
+
+    video.classList.remove("fade-out");
+    setTimeout(preloadNext, 300);
+  }, skipAnim ? 0 : 180);
+}
+
+window.randomChannel = function () {
+  index = Math.floor(Math.random() * filtered.length);
+  play();
+};
+
+categorySel.addEventListener("change", applyFilter);
+channelSel.addEventListener("change", () => {
+  index = parseInt(channelSel.value);
+  play();
 });
 
-document.getElementById("channel").addEventListener("change", function() {
-  bookmarkMode = false;
-  switchTo(parseInt(this.value));
-});
-
-// Click video to show OSD
-pool.addEventListener("click", () => {
-  if (filtered[currentIdx]) showOSD(filtered[currentIdx]);
-});
-
-// ══════════════════════════════════════════════
-//  BOOT
-// ══════════════════════════════════════════════
-loadM3U();
+load();
 </script>
 </body>
 </html>
