@@ -4,362 +4,750 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-<title>IPTV Remote</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet"/>
-
+<title>TV Remote</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0e0e0e;
-  --surface: #161616;
-  --border: #242424;
-  --accent: #e8ff00;
-  --accent-dim: rgba(232,255,0,0.12);
-  --text: #ffffff;
-  --muted: rgba(255,255,255,0.3);
-  --red: #ff3a00;
+  --bg:       #0c0c0c;
+  --card:     #141414;
+  --border:   #1f1f1f;
+  --border2:  #2a2a2a;
+  --accent:   #e8ff00;
+  --accent-bg: rgba(232,255,0,0.09);
+  --accent-glow: rgba(232,255,0,0.25);
+  --red:      #ff3a00;
+  --muted:    rgba(255,255,255,0.28);
+  --text:     #ffffff;
+  --green:    #00e676;
 }
 
 html, body {
-  height: 100%;
+  height: 100%; width: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Share Tech Mono', monospace;
+  font-family: 'DM Mono', monospace;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
-/* Grain overlay */
-body::before {
-  content: '';
+/* ── PAGES ─────────────────────────────────── */
+.page {
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 1000;
-  opacity: 0.6;
-}
-
-.shell {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 40px 28px 50px;
-  max-width: 380px;
-  margin: 0 auto;
+  padding: 0;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1), opacity 0.32s;
+  overflow: hidden;
+}
+.page.hidden {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
-/* TOP: brand */
-.brand {
-  text-align: center;
+/* ════════════════════════════════════════════
+   PAGE 1 — MAIN REMOTE
+   ════════════════════════════════════════════ */
+#page-remote {
+  background: var(--bg);
 }
-.brand-logo {
+
+.remote-header {
+  padding: 44px 24px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.remote-brand {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.4em;
+  font-size: 13px;
+  letter-spacing: 0.5em;
   color: var(--muted);
-  text-transform: uppercase;
 }
-.brand-status {
+.conn-badge {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 10px;
+  gap: 6px;
+  font-size: 9px;
   letter-spacing: 0.2em;
   color: var(--muted);
 }
-.status-dot {
-  width: 7px;
-  height: 7px;
+.conn-dot {
+  width: 7px; height: 7px;
   border-radius: 50%;
-  background: #333;
+  background: #2a2a2a;
   transition: background 0.4s, box-shadow 0.4s;
+  flex-shrink: 0;
 }
-.status-dot.online {
-  background: #00e676;
-  box-shadow: 0 0 8px rgba(0,230,118,0.6);
-}
-.status-dot.firing {
-  background: var(--red);
-  box-shadow: 0 0 14px rgba(255,58,0,0.8);
-}
+.conn-dot.on  { background: var(--green); box-shadow: 0 0 8px rgba(0,230,118,0.5); }
+.conn-dot.tx  { background: var(--red);   box-shadow: 0 0 12px rgba(255,58,0,0.7); }
 
-/* MIDDLE: big channel display */
-.display {
-  width: 100%;
-  background: var(--surface);
+/* ── DISPLAY SCREEN ── */
+.screen {
+  margin: 24px 20px 0;
+  background: #0e0e0e;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px 20px 18px;
-  min-height: 100px;
+  border-radius: 14px;
+  padding: 16px 18px 14px;
+  min-height: 88px;
   position: relative;
   overflow: hidden;
 }
-.display::after {
+.screen::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
 }
-
-.display-label {
+.screen-lbl {
   font-size: 9px;
   letter-spacing: 0.25em;
-  color: var(--muted);
   text-transform: uppercase;
-  margin-bottom: 10px;
+  color: var(--muted);
+  margin-bottom: 8px;
 }
-.display-channel {
+.screen-action {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
+  font-size: 26px;
   letter-spacing: 0.04em;
-  color: var(--text);
-  line-height: 1.1;
-  min-height: 36px;
+  line-height: 1;
+  min-height: 30px;
   transition: opacity 0.2s;
 }
-.display-category {
+.screen-sub {
   font-size: 10px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.15em;
   color: var(--accent);
-  margin-top: 6px;
-  text-transform: uppercase;
-  opacity: 0.8;
+  margin-top: 5px;
+  min-height: 14px;
+  opacity: 0.75;
+}
+.screen-count {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.15);
 }
 
-/* BOTTOM: remote buttons */
-.remote-body {
-  width: 100%;
+/* ── MODE PILL ── */
+.mode-row {
+  margin: 16px 20px 0;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  gap: 6px;
 }
+.mode-pill {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.mode-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.mode-pill:active { transform: scale(0.96); }
 
-/* BIG RANDOM BUTTON */
+/* ── BIG RANDOM BTN ── */
 .btn-random {
-  width: 100%;
-  height: 100px;
-  border-radius: 16px;
+  margin: 18px 20px 0;
+  width: calc(100% - 40px);
+  height: 110px;
+  border-radius: 18px;
   border: 1px solid var(--accent);
-  background: var(--accent-dim);
+  background: var(--accent-bg);
   color: var(--accent);
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 36px;
-  letter-spacing: 0.12em;
+  font-size: 42px;
+  letter-spacing: 0.1em;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: background 0.15s, transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
 }
-
-.btn-random::before {
+.btn-random::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(232,255,0,0.15), transparent 70%);
+  background: radial-gradient(circle at 50% 120%, var(--accent-glow), transparent 60%);
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s;
 }
-.btn-random:hover::before { opacity: 1; }
-.btn-random:active {
-  transform: scale(0.97);
-  background: rgba(232,255,0,0.22);
+.btn-random:hover::after { opacity: 1; }
+.btn-random:active { transform: scale(0.97); background: rgba(232,255,0,0.16); }
+.btn-random.tx {
+  animation: glow-pulse 0.5s ease;
 }
+@keyframes glow-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%  { box-shadow: 0 0 28px 8px var(--accent-glow); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.dice { font-size: 34px; line-height: 1; }
 
-.btn-random.sending {
-  animation: pulse-send 0.5s ease;
-}
-@keyframes pulse-send {
-  0%   { box-shadow: 0 0 0 0 rgba(232,255,0,0.6); }
-  50%  { box-shadow: 0 0 30px 10px rgba(232,255,0,0.15); }
-  100% { box-shadow: 0 0 0 0 rgba(232,255,0,0); }
-}
-
-.dice-icon {
-  font-size: 32px;
-  line-height: 1;
-}
-
-/* SMALL UTILITY ROW */
-.btn-row {
+/* ── BOOKMARK / NAV ROW ── */
+.nav-row {
+  margin: 14px 20px 0;
   display: flex;
   gap: 10px;
 }
-.btn-small {
+.nav-btn {
   flex: 1;
-  height: 52px;
-  border-radius: 10px;
+  height: 58px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--card);
   color: var(--muted);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: border-color 0.2s, color 0.2s, transform 0.1s;
 }
-.btn-small:hover { border-color: #333; color: rgba(255,255,255,0.5); }
-.btn-small:active { transform: scale(0.96); }
+.nav-btn:active { transform: scale(0.95); }
+.nav-btn:hover  { border-color: var(--border2); color: rgba(255,255,255,0.5); }
+.nav-btn.wide   { flex: 2; }
+.nav-btn .icon  { font-size: 18px; line-height: 1; }
+.nav-btn .lbl   { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
 
-/* Sent feedback toast */
+.nav-btn.bm-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ── BOOKMARKS SECTION ── */
+.bm-bar {
+  margin: 14px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bm-bar-lbl {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bm-count-chip {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  background: var(--border);
+  padding: 3px 9px;
+  border-radius: 100px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ── TOAST ── */
 #toast {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  transform: translateX(-50%) translateY(10px);
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
   border-radius: 100px;
-  padding: 8px 20px;
-  font-size: 11px;
-  letter-spacing: 0.15em;
+  padding: 9px 22px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   color: var(--muted);
   opacity: 0;
   transition: opacity 0.2s, transform 0.2s;
   white-space: nowrap;
   pointer-events: none;
   z-index: 999;
+  text-transform: uppercase;
 }
 #toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-/* Send count */
-.send-count {
+/* ════════════════════════════════════════════
+   PAGE 2 — BOOKMARKS LIST
+   ════════════════════════════════════════════ */
+#page-bookmarks {
+  background: var(--bg);
+}
+
+.bm-header {
+  padding: 48px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.bm-back {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.bm-back:active { transform: scale(0.94); }
+.bm-title-wrap {}
+.bm-page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+.bm-page-sub {
   font-size: 9px;
   letter-spacing: 0.2em;
-  color: rgba(255,255,255,0.18);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.bm-actions {
+  padding: 10px 20px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.bm-action-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bm-action-btn:hover  { border-color: var(--border2); color: rgba(255,255,255,0.5); }
+.bm-action-btn:active { transform: scale(0.96); }
+.bm-action-btn.accent {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.bm-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 30px;
+}
+.bm-list::-webkit-scrollbar { width: 3px; }
+.bm-list::-webkit-scrollbar-track { background: transparent; }
+.bm-list::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+
+.bm-item {
+  display: flex;
+  align-items: center;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bm-item:hover  { background: rgba(255,255,255,0.03); }
+.bm-item:active { background: rgba(255,255,255,0.06); }
+.bm-item.playing {
+  background: var(--accent-bg);
+}
+.bm-item-num {
+  font-size: 10px;
+  color: rgba(255,255,255,0.2);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.bm-item-info { flex: 1; min-width: 0; }
+.bm-item-name {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bm-item.playing .bm-item-name { color: var(--accent); }
+.bm-item-cat {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+.bm-item-del {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid #222;
+  background: transparent;
+  color: rgba(255,255,255,0.25);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+.bm-item-del:hover  { border-color: var(--red); color: var(--red); }
+.bm-item-del:active { transform: scale(0.92); }
+
+.bm-empty {
+  padding: 60px 24px;
   text-align: center;
+  color: rgba(255,255,255,0.18);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  line-height: 1.8;
 }
 </style>
 </head>
-
 <body>
 
-<div class="shell">
+<!-- ══ PAGE 1: REMOTE ══════════════════════════ -->
+<div class="page" id="page-remote">
 
-  <!-- TOP -->
-  <div class="brand">
-    <div class="brand-logo">IPTV Remote</div>
-    <div class="brand-status">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="status-text">CONNECTING</span>
+  <div class="remote-header">
+    <div class="remote-brand">TV Remote</div>
+    <div class="conn-badge">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-txt">CONNECTING</span>
     </div>
   </div>
 
-  <!-- DISPLAY -->
-  <div class="display">
-    <div class="display-label">Last command sent</div>
-    <div class="display-channel" id="disp-action">—</div>
-    <div class="display-category" id="disp-time">waiting</div>
+  <!-- Screen -->
+  <div class="screen">
+    <div class="screen-lbl">Last signal</div>
+    <div class="screen-action" id="scr-action">—</div>
+    <div class="screen-sub"    id="scr-sub">standby</div>
+    <div class="screen-count"  id="scr-count">0 TX</div>
   </div>
 
-  <!-- REMOTE -->
-  <div class="remote-body">
-    <button class="btn-random" id="btn-random" onclick="sendRandom()">
-      <span class="dice-icon">⚄</span>
-      RANDOM
+  <!-- Mode pills -->
+  <div class="mode-row">
+    <button class="mode-pill active" id="pill-all"  onclick="setMode('all')">ALL CHANNELS</button>
+    <button class="mode-pill"        id="pill-bm"   onclick="setMode('bookmarks')" id="pill-bm">BOOKMARKS</button>
+  </div>
+
+  <!-- BIG RANDOM -->
+  <button class="btn-random" id="btn-random" onclick="sendRandom()">
+    <span class="dice">⚄</span>
+    RANDOM
+  </button>
+
+  <!-- NAV ROW: back | bookmark | next -->
+  <div class="nav-row">
+    <button class="nav-btn" onclick="sendBack()">
+      <span class="icon">◀</span>
+      <span class="lbl">Back</span>
     </button>
+    <button class="nav-btn wide" id="btn-bm" onclick="bookmarkCurrent()">
+      <span class="icon">☆</span>
+      <span class="lbl">Bookmark</span>
+    </button>
+    <button class="nav-btn" onclick="sendNext()">
+      <span class="icon">▶</span>
+      <span class="lbl">Next</span>
+    </button>
+  </div>
 
-    <div class="btn-row">
-      <button class="btn-small" onclick="sendRandom()">SHUFFLE</button>
-      <button class="btn-small" onclick="sendRandom()">ZAP</button>
-    </div>
+  <!-- Bookmarks bar -->
+  <div class="bm-bar">
+    <div class="bm-bar-lbl">Bookmarks</div>
+    <div class="bm-count-chip" id="bm-chip">0 saved</div>
+  </div>
 
-    <div class="send-count" id="send-count">0 SIGNALS SENT</div>
+  <!-- Open bookmarks page -->
+  <div class="nav-row" style="margin-top:8px">
+    <button class="nav-btn wide" onclick="openPage('page-bookmarks')" style="height:46px;flex-direction:row;gap:8px;">
+      <span class="icon" style="font-size:14px">★</span>
+      <span class="lbl" style="font-size:9px">MANAGE BOOKMARKS</span>
+    </button>
   </div>
 
 </div>
 
-<div id="toast">SIGNAL SENT</div>
+<!-- ══ PAGE 2: BOOKMARKS ═══════════════════════ -->
+<div class="page hidden" id="page-bookmarks">
+  <div class="bm-header">
+    <button class="bm-back" onclick="openPage('page-remote')">←</button>
+    <div class="bm-title-wrap">
+      <div class="bm-page-title">Bookmarks</div>
+      <div class="bm-page-sub" id="bm-sub">0 channels saved</div>
+    </div>
+  </div>
+
+  <div class="bm-actions">
+    <button class="bm-action-btn accent" onclick="playAllBookmarks()">▶ PLAY ALL</button>
+    <button class="bm-action-btn" onclick="clearBookmarks()">✕ CLEAR ALL</button>
+  </div>
+
+  <div class="bm-list" id="bm-list"></div>
+</div>
+
+<div id="toast"></div>
 
 <!-- Firebase -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
-    authDomain: "betbtc-6d881.firebaseapp.com",
-    databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
-    projectId: "betbtc-6d881",
-    storageBucket: "betbtc-6d881.firebasestorage.app",
-    messagingSenderId: "962176232122",
-    appId: "1:962176232122:web:a277d922543c3378033083",
-    measurementId: "G-V4XNB7K1E0"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyA6w6auszWRniQfZCjb4nXE_bq9Mzt9dOs",
+  authDomain: "betbtc-6d881.firebaseapp.com",
+  databaseURL: "https://betbtc-6d881-default-rtdb.firebaseio.com",
+  projectId: "betbtc-6d881",
+  storageBucket: "betbtc-6d881.firebasestorage.app",
+  messagingSenderId: "962176232122",
+  appId: "1:962176232122:web:a277d922543c3378033083"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const cmdRef = ref(db, "iptv/command");
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+const cmdRef = ref(db, "iptv/command");
+const nowRef = ref(db, "iptv/nowPlaying");
 
-  const dot = document.getElementById("status-dot");
-  const statusText = document.getElementById("status-text");
-  const dispAction = document.getElementById("disp-action");
-  const dispTime = document.getElementById("disp-time");
-  const btn = document.getElementById("btn-random");
-  const toast = document.getElementById("toast");
-  const countEl = document.getElementById("send-count");
+const connDot = document.getElementById("conn-dot");
+const connTxt = document.getElementById("conn-txt");
+const scrAction = document.getElementById("scr-action");
+const scrSub    = document.getElementById("scr-sub");
+const scrCount  = document.getElementById("scr-count");
+const btnRandom = document.getElementById("btn-random");
+const btnBm     = document.getElementById("btn-bm");
+const toast     = document.getElementById("toast");
 
-  let sendCount = 0;
-  let toastTimer = null;
+let txCount   = 0;
+let toastTimer = null;
+let currentMode = "all"; // "all" | "bookmarks"
+let bookmarks  = loadBookmarks();
+let currentPlaying = null; // {name, url, group} from nowPlaying
+let bookmarkPlayPos = 0;
 
-  // Mark as connected
+// ── Connect ─────────────────────────
+setTimeout(() => {
+  connDot.classList.add("on");
+  connTxt.textContent = "CONNECTED";
+}, 1000);
+
+// ── Watch nowPlaying (TV pushes this) ──
+onValue(nowRef, snap => {
+  const d = snap.val();
+  if (!d) return;
+  currentPlaying = d;
+  updateBookmarkBtn();
+});
+
+// ── Send helpers ─────────────────────
+async function send(payload) {
+  connDot.classList.remove("on");
+  connDot.classList.add("tx");
+  connTxt.textContent = "SENDING";
+  btnRandom.classList.add("tx");
+
+  try {
+    await set(cmdRef, { ...payload, ts: Date.now() });
+    txCount++;
+    scrCount.textContent = `${txCount} TX`;
+    scrSub.textContent   = new Date().toLocaleTimeString();
+    showToast("SIGNAL SENT");
+  } catch (e) {
+    scrAction.textContent = "ERROR";
+    showToast("SEND FAILED");
+  }
+
   setTimeout(() => {
-    dot.classList.add("online");
-    statusText.textContent = "CONNECTED";
-  }, 1200);
+    btnRandom.classList.remove("tx");
+    connDot.classList.remove("tx");
+    connDot.classList.add("on");
+    connTxt.textContent = "CONNECTED";
+  }, 550);
+}
 
-  window.sendRandom = async function () {
-    // Visual feedback
-    dot.classList.remove("online");
-    dot.classList.add("firing");
-    statusText.textContent = "SENDING";
-    btn.classList.add("sending");
+// ── ACTIONS ──────────────────────────
+window.sendRandom = async function() {
+  if (currentMode === "bookmarks") {
+    if (!bookmarks.length) { showToast("NO BOOKMARKS YET"); return; }
+    bookmarkPlayPos = Math.floor(Math.random() * bookmarks.length);
+    scrAction.textContent = "RANDOM BOOKMARK";
+    await send({ action: "play_index", index: bookmarkPlayPos, list: bookmarks });
+  } else {
+    scrAction.textContent = "RANDOM CHANNEL";
+    await send({ action: "random" });
+  }
+};
 
-    dispAction.textContent = "RANDOM CHANNEL";
-    dispTime.textContent = new Date().toLocaleTimeString();
+window.sendNext = async function() {
+  if (currentMode === "bookmarks") {
+    if (!bookmarks.length) { showToast("NO BOOKMARKS"); return; }
+    bookmarkPlayPos = (bookmarkPlayPos + 1) % bookmarks.length;
+    scrAction.textContent = `NEXT · ${bookmarks[bookmarkPlayPos]?.name || ""}`;
+    await send({ action: "play_index", index: bookmarkPlayPos, list: bookmarks });
+  } else {
+    scrAction.textContent = "NEXT CHANNEL";
+    await send({ action: "next" });
+  }
+};
 
-    try {
-      await set(cmdRef, {
-        action: "random",
-        ts: Date.now()
-      });
+window.sendBack = async function() {
+  if (currentMode === "bookmarks") {
+    if (!bookmarks.length) { showToast("NO BOOKMARKS"); return; }
+    bookmarkPlayPos = (bookmarkPlayPos - 1 + bookmarks.length) % bookmarks.length;
+    scrAction.textContent = `PREV · ${bookmarks[bookmarkPlayPos]?.name || ""}`;
+    await send({ action: "play_index", index: bookmarkPlayPos, list: bookmarks });
+  } else {
+    scrAction.textContent = "PREV CHANNEL";
+    await send({ action: "back" });
+  }
+};
 
-      sendCount++;
-      countEl.textContent = `${sendCount} SIGNAL${sendCount !== 1 ? "S" : ""} SENT`;
+window.bookmarkCurrent = function() {
+  if (!currentPlaying) { showToast("NOTHING PLAYING"); return; }
+  const exists = bookmarks.find(b => b.url === currentPlaying.url);
+  if (exists) {
+    // Remove
+    bookmarks = bookmarks.filter(b => b.url !== currentPlaying.url);
+    showToast("BOOKMARK REMOVED");
+  } else {
+    bookmarks.push({ name: currentPlaying.name, group: currentPlaying.group, url: currentPlaying.url });
+    showToast("BOOKMARKED ★");
+  }
+  saveBookmarks();
+  updateBookmarkBtn();
+  updateBmChip();
+  renderBmList();
+};
 
-      // Toast
-      clearTimeout(toastTimer);
-      toast.classList.add("show");
-      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+window.setMode = function(mode) {
+  currentMode = mode;
+  document.getElementById("pill-all").classList.toggle("active", mode === "all");
+  document.getElementById("pill-bm").classList.toggle("active",  mode === "bookmarks");
+  document.getElementById("btn-bm").classList.toggle("bm-active", mode === "bookmarks");
+  bookmarkPlayPos = 0;
+};
 
-    } catch (e) {
-      dispAction.textContent = "ERROR";
-      dispTime.textContent = e.message;
-    }
+window.playAllBookmarks = async function() {
+  if (!bookmarks.length) { showToast("NO BOOKMARKS"); return; }
+  setMode("bookmarks");
+  bookmarkPlayPos = 0;
+  scrAction.textContent = "PLAY BOOKMARKS";
+  openPage("page-remote");
+  await send({ action: "play_index", index: 0, list: bookmarks });
+};
 
-    setTimeout(() => {
-      btn.classList.remove("sending");
-      dot.classList.remove("firing");
-      dot.classList.add("online");
-      statusText.textContent = "CONNECTED";
-    }, 600);
-  };
+window.clearBookmarks = function() {
+  if (!confirm("Clear all bookmarks?")) return;
+  bookmarks = [];
+  saveBookmarks();
+  updateBmChip();
+  renderBmList();
+  updateBookmarkBtn();
+};
+
+window.playBookmark = async function(idx) {
+  bookmarkPlayPos = idx;
+  setMode("bookmarks");
+  scrAction.textContent = bookmarks[idx]?.name || "BOOKMARK";
+  openPage("page-remote");
+  await send({ action: "play_index", index: idx, list: bookmarks });
+};
+
+window.removeBookmark = function(idx, e) {
+  e.stopPropagation();
+  bookmarks.splice(idx, 1);
+  saveBookmarks();
+  updateBmChip();
+  renderBmList();
+  updateBookmarkBtn();
+  showToast("REMOVED");
+};
+
+// ── Bookmark persistence ─────────────
+function loadBookmarks() {
+  try { return JSON.parse(localStorage.getItem("iptv_bookmarks") || "[]"); }
+  catch { return []; }
+}
+function saveBookmarks() {
+  localStorage.setItem("iptv_bookmarks", JSON.stringify(bookmarks));
+}
+
+function updateBmChip() {
+  document.getElementById("bm-chip").textContent = `${bookmarks.length} saved`;
+  document.getElementById("bm-sub").textContent  = `${bookmarks.length} channels saved`;
+}
+
+function updateBookmarkBtn() {
+  const btn = document.getElementById("btn-bm");
+  if (!currentPlaying) { btn.querySelector(".icon").textContent = "☆"; return; }
+  const isBookmarked = bookmarks.some(b => b.url === currentPlaying.url);
+  btn.querySelector(".icon").textContent = isBookmarked ? "★" : "☆";
+  btn.classList.toggle("bm-active", isBookmarked);
+}
+
+function renderBmList() {
+  const list = document.getElementById("bm-list");
+  if (!bookmarks.length) {
+    list.innerHTML = `<div class="bm-empty">NO BOOKMARKS YET<br><br>TAP ☆ WHILE WATCHING<br>TO BOOKMARK A CHANNEL</div>`;
+    return;
+  }
+  list.innerHTML = bookmarks.map((b, i) => `
+    <div class="bm-item ${currentPlaying?.url === b.url ? 'playing' : ''}" onclick="playBookmark(${i})">
+      <div class="bm-item-num">${i + 1}</div>
+      <div class="bm-item-info">
+        <div class="bm-item-name">${escHtml(b.name)}</div>
+        <div class="bm-item-cat">${escHtml(b.group)}</div>
+      </div>
+      <button class="bm-item-del" onclick="removeBookmark(${i}, event)">✕</button>
+    </div>
+  `).join("");
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Toast ──────────────────────────
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+}
+window.showToast = showToast;
+
+// ── Page nav ───────────────────────
+window.openPage = function(id) {
+  document.querySelectorAll(".page").forEach(p => {
+    p.classList.toggle("hidden", p.id !== id);
+  });
+  if (id === "page-bookmarks") renderBmList();
+};
+
+// ── Init ───────────────────────────
+updateBmChip();
+renderBmList();
+updateBookmarkBtn();
 </script>
-
 </body>
 </html>
