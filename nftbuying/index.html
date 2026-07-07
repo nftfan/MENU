@@ -1,0 +1,556 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>NFTFAN Balance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --card:#111114;
+    --card-2:#141419;
+    --line:#1e1e23;
+    --ink:#e8e8ec;
+    --muted:#6f6f7a;
+    --dim:#4a4a54;
+    --accent:#7c6cff;
+    --accent-soft:rgba(124,108,255,.1);
+    --ok:#3ddc84;
+    --err:#ff5c5c;
+    --gold:#ffc861;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:var(--mono);
+    background:var(--bg);
+    color:var(--ink);
+    font-size:9px;
+    min-height:100dvh;
+    padding:16px 14px calc(24px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{width:100%;max-width:400px;margin:0 auto}
+
+  /* Header */
+  .head{
+    display:flex;align-items:center;gap:8px;
+    padding-bottom:14px;margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+    animation:slideDown .45s cubic-bezier(.22,1,.36,1) both;
+  }
+  .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--accent);
+    animation:breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:1}50%{opacity:.35}}
+  .head h1{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
+  .head span{margin-left:auto;font-size:8px;color:var(--dim);letter-spacing:.5px}
+
+  /* Input */
+  .field-wrap{animation:slideDown .45s .06s cubic-bezier(.22,1,.36,1) both}
+  label{
+    display:block;font-size:8px;color:var(--muted);
+    letter-spacing:1.8px;text-transform:uppercase;margin-bottom:6px;
+  }
+  .field{position:relative}
+  input[type="text"]{
+    width:100%;
+    padding:11px 30px 11px 11px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--card);
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:.4px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .3s ease, box-shadow .3s ease;
+  }
+  input[type="text"]:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  input::placeholder{color:var(--dim)}
+
+  .check{
+    position:absolute;right:10px;top:50%;
+    width:12px;height:12px;
+    transform:translateY(-50%) scale(0);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .check.on{transform:translateY(-50%) scale(1)}
+  .check svg{width:12px;height:12px;stroke:var(--ok);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  .hint{
+    font-size:8px;color:var(--dim);margin-top:7px;letter-spacing:.3px;
+    transition:color .3s ease;min-height:11px;
+  }
+
+  /* Result panel — smooth height */
+  .result{
+    display:grid;grid-template-rows:0fr;
+    transition:grid-template-rows .5s cubic-bezier(.22,1,.36,1);
+    margin-top:14px;
+  }
+  .result.open{grid-template-rows:1fr}
+  .result-inner{overflow:hidden}
+
+  .panel{
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--card);
+    padding:16px 14px;
+  }
+
+  /* Loading */
+  .loading{display:none;align-items:center;gap:10px}
+  .loading.on{display:flex}
+  .bars{display:flex;gap:3px;align-items:flex-end;height:12px}
+  .bars i{width:2.5px;background:var(--accent);border-radius:2px;animation:eq 1s ease-in-out infinite}
+  .bars i:nth-child(1){height:5px}
+  .bars i:nth-child(2){height:9px;animation-delay:.15s}
+  .bars i:nth-child(3){height:7px;animation-delay:.3s}
+  .bars i:nth-child(4){height:11px;animation-delay:.45s}
+  @keyframes eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+  .loading p{font-size:9px;color:var(--muted);letter-spacing:.4px}
+
+  /* Balance */
+  .balance{display:none}
+  .balance.on{display:block}
+  .balance.on .row{animation:rise .4s cubic-bezier(.22,1,.36,1) both}
+  .balance.on .row:nth-child(2){animation-delay:.06s}
+  .balance.on .row:nth-child(3){animation-delay:.12s}
+  .balance.on .row:nth-child(4){animation-delay:.18s}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .row + .row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .k{font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;flex:0 0 auto}
+  .v{font-size:10px;font-weight:600;text-align:right;word-break:break-all;letter-spacing:.3px}
+  .v.accent{color:var(--accent)}
+  .v.dim{color:var(--muted);font-weight:400;font-size:8px}
+
+  .refresh{
+    margin-top:14px;width:100%;
+    padding:10px;border:1px solid var(--line);border-radius:7px;
+    background:transparent;color:var(--muted);
+    font-family:var(--mono);font-size:8px;font-weight:600;
+    letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+    transition:color .25s ease, border-color .25s ease, transform .1s ease;
+    min-height:38px;
+  }
+  .refresh:hover{color:var(--ink);border-color:var(--dim)}
+  .refresh:active{transform:scale(.98)}
+  .refresh:disabled{opacity:.4;pointer-events:none}
+
+  /* Error */
+  .error{display:none;text-align:center}
+  .error.on{display:block;animation:rise .35s ease both}
+  .error p{font-size:9px;color:var(--err);letter-spacing:.3px}
+  .error .refresh{margin-top:12px}
+
+  /* ============ HOW TO BUY SECTION ============ */
+  .buy{
+    margin-top:22px;
+    animation:slideDown .45s .12s cubic-bezier(.22,1,.36,1) both;
+  }
+  .section-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:12px;
+  }
+  .section-head::after{content:"";flex:1;height:1px;background:var(--line)}
+  .section-head h2{
+    font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+    color:var(--ink);
+  }
+  .section-head .tag{
+    font-size:7px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--gold);border:1px solid rgba(255,200,97,.3);
+    padding:2px 6px;border-radius:99px;background:rgba(255,200,97,.06);
+  }
+
+  .steps{display:flex;flex-direction:column;gap:8px}
+  .step{
+    display:flex;gap:11px;
+    border:1px solid var(--line);border-radius:8px;
+    background:var(--card);
+    padding:12px;
+    transition:border-color .3s ease, background .3s ease;
+  }
+  .step:hover{border-color:#2a2a32;background:var(--card-2)}
+  .num{
+    width:18px;height:18px;flex:0 0 18px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:8px;font-weight:600;color:var(--accent);
+    border:1px solid rgba(124,108,255,.35);background:var(--accent-soft);
+  }
+  .step-body h3{font-size:9px;font-weight:600;letter-spacing:.4px;line-height:1.4}
+  .step-body p{font-size:8px;color:var(--muted);margin-top:4px;line-height:1.65;letter-spacing:.2px}
+  .step-body b{color:var(--ink);font-weight:600}
+  .step-body .warn{color:var(--gold)}
+
+  /* sale contract box */
+  .sale-box{
+    margin-top:10px;
+    border:1px dashed rgba(124,108,255,.4);
+    border-radius:8px;
+    background:var(--card);
+    padding:12px;
+  }
+  .sale-box .k{margin-bottom:6px;display:block}
+  .sale-addr{
+    font-size:8.5px;color:var(--accent);word-break:break-all;
+    line-height:1.6;letter-spacing:.3px;
+  }
+  .copy-btn{
+    margin-top:10px;width:100%;
+    padding:10px;border:1px solid rgba(124,108,255,.35);border-radius:7px;
+    background:var(--accent-soft);color:var(--accent);
+    font-family:var(--mono);font-size:8px;font-weight:600;
+    letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+    transition:background .25s ease, transform .1s ease;
+    min-height:38px;
+  }
+  .copy-btn:active{transform:scale(.98);background:rgba(124,108,255,.22)}
+  .copy-btn.copied{color:var(--ok);border-color:rgba(61,220,132,.4);background:rgba(61,220,132,.08)}
+
+  /* tokens remaining strip */
+  .remaining{
+    margin-top:10px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    border:1px solid var(--line);border-radius:8px;
+    background:var(--card);padding:12px;
+  }
+  .remaining .v{color:var(--gold)}
+  .remaining .v .mini-bars{display:inline-flex;gap:2px;align-items:flex-end;height:8px}
+  .remaining .v .mini-bars i{width:2px;background:var(--gold);border-radius:2px;animation:eq 1s ease-in-out infinite}
+  .remaining .v .mini-bars i:nth-child(1){height:4px}
+  .remaining .v .mini-bars i:nth-child(2){height:7px;animation-delay:.15s}
+  .remaining .v .mini-bars i:nth-child(3){height:5px;animation-delay:.3s}
+
+  .note{
+    margin-top:12px;
+    font-size:8px;color:var(--dim);line-height:1.7;letter-spacing:.3px;
+    padding:10px 12px;border-left:2px solid var(--line);
+  }
+  .note b{color:var(--muted)}
+
+  footer{
+    margin-top:20px;
+    font-size:8px;color:var(--dim);line-height:1.7;letter-spacing:.3px;
+    animation:slideDown .45s .18s cubic-bezier(.22,1,.36,1) both;
+  }
+  footer .ca{word-break:break-all;color:var(--muted)}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="dot"></div>
+      <h1>NFTFAN / Balance</h1>
+      <span>Polygon</span>
+    </div>
+
+    <!-- Balance checker -->
+    <div class="field-wrap">
+      <label for="wallet-input">Wallet address</label>
+      <div class="field">
+        <input id="wallet-input" type="text" placeholder="0x…" autocomplete="off" spellcheck="false" aria-label="Wallet address">
+        <div class="check" id="check">
+          <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>
+        </div>
+      </div>
+      <div class="hint" id="hint">Paste an address — balance loads automatically</div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="result-inner">
+        <div class="panel">
+          <div class="loading" id="loading">
+            <div class="bars"><i></i><i></i><i></i><i></i></div>
+            <p>Reading Polygon…</p>
+          </div>
+
+          <div class="balance" id="balance" aria-live="polite">
+            <div class="row">
+              <div class="k">Balance</div>
+              <div class="v accent" id="bal-value">—</div>
+            </div>
+            <div class="row">
+              <div class="k">Raw</div>
+              <div class="v dim" id="bal-raw">—</div>
+            </div>
+            <div class="row">
+              <div class="k">Wallet</div>
+              <div class="v dim" id="bal-wallet">—</div>
+            </div>
+            <div class="row">
+              <div class="k">Checked</div>
+              <div class="v dim" id="bal-time">—</div>
+            </div>
+            <button class="refresh" id="refresh-btn">Refresh</button>
+          </div>
+
+          <div class="error" id="error">
+            <p>Failed to fetch balance</p>
+            <button class="refresh" id="retry-btn">Retry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ HOW TO BUY ============ -->
+    <div class="buy">
+      <div class="section-head">
+        <h2>How to buy $NFTFAN</h2>
+        <span class="tag">Sale live</span>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="step-body">
+            <h3>Get POL in your wallet</h3>
+            <p>You need <b>POL</b> (the native token of Polygon) to buy. Buy POL on any exchange — Binance, Coinbase, Kraken — and withdraw it to your wallet on the <b>Polygon network</b>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">2</div>
+          <div class="step-body">
+            <h3>Send POL to the sale contract</h3>
+            <p>From your own wallet (MetaMask, Trust Wallet, Rabby…), send the amount of POL you want to spend to the sale contract address below. <span class="warn">Never send from an exchange account</span> — tokens would go to the exchange's wallet, not yours.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">3</div>
+          <div class="step-body">
+            <h3>Receive $NFTFAN automatically</h3>
+            <p>The sale contract sends <b>$NFTFAN</b> back to the same wallet in the same transaction. No claiming, no extra steps.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">4</div>
+          <div class="step-body">
+            <h3>Verify your new balance</h3>
+            <p>Wait ~30 seconds for the transaction to confirm, then paste your address above (or hit <b>Refresh</b>) to see your updated balance.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sale contract -->
+      <div class="sale-box">
+        <span class="k">Sale contract — send POL here</span>
+        <div class="sale-addr" id="sale-addr">0xaf2d132C8773bca3821C24EcF64e844E202A12e8</div>
+        <button class="copy-btn" id="copy-btn">Copy address</button>
+      </div>
+
+      <!-- Tokens remaining -->
+      <div class="remaining">
+        <div class="k">Tokens left in sale</div>
+        <div class="v" id="tokens-left"><span class="mini-bars"><i></i><i></i><i></i></span></div>
+      </div>
+
+      <div class="note">
+        <b>Safety:</b> this page is read-only and never asks you to connect a wallet or sign anything. Always double-check the sale address on Polygonscan before sending funds. Don't add $NFTFAN? Import the token contract below into your wallet to see it.
+      </div>
+    </div>
+
+    <footer>
+      Read-only · no wallet connection · no signatures<br>
+      Token: <span class="ca">0x2017fcaea540d2925430586dc92818035bfc2f50</span>
+    </footer>
+  </div>
+
+<script>
+/* Config */
+const TOKEN_CA = "0x2017fcaea540d2925430586dc92818035bfc2f50";
+const SALE_CA  = "0xaf2d132C8773bca3821C24EcF64e844E202A12e8";
+const RPC = "https://polygon-bor.publicnode.com";
+const BALANCE_OF_SIG = "0x70a08231";
+const DECIMALS = 18n;
+
+/* Elements */
+const input = document.getElementById('wallet-input');
+const check = document.getElementById('check');
+const hint = document.getElementById('hint');
+const result = document.getElementById('result');
+const loading = document.getElementById('loading');
+const balance = document.getElementById('balance');
+const errorEl = document.getElementById('error');
+const balValue = document.getElementById('bal-value');
+const balRaw = document.getElementById('bal-raw');
+const balWallet = document.getElementById('bal-wallet');
+const balTime = document.getElementById('bal-time');
+const refreshBtn = document.getElementById('refresh-btn');
+const retryBtn = document.getElementById('retry-btn');
+const copyBtn = document.getElementById('copy-btn');
+const tokensLeft = document.getElementById('tokens-left');
+
+/* State */
+let currentWallet = "";
+let requestId = 0;
+
+/* Utils */
+function isAddress(a){ return /^0x[a-fA-F0-9]{40}$/.test(a); }
+function pad(addr){ return addr.replace(/^0x/,"").padStart(64,"0"); }
+function short(addr){ return addr.slice(0,6) + "…" + addr.slice(-4); }
+function formatToken(raw){
+  const whole = raw / (10n ** DECIMALS);
+  const frac = raw % (10n ** DECIMALS);
+  let f = "";
+  if (frac !== 0n){
+    const s = (frac * 100000n) / (10n ** DECIMALS);
+    f = "." + s.toString().padStart(5,"0").replace(/0+$/,"");
+  }
+  return whole.toLocaleString() + f;
+}
+async function ethCall(to, data){
+  const res = await fetch(RPC, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_call",params:[{to,data},"latest"]})
+  });
+  const j = await res.json();
+  if (!j || !j.result) throw new Error("no-result");
+  return j.result;
+}
+
+/* UI state */
+function setState(state){
+  result.classList.toggle('open', state !== 'idle');
+  loading.classList.toggle('on', state === 'loading');
+  balance.classList.toggle('on', state === 'balance');
+  errorEl.classList.toggle('on', state === 'error');
+}
+
+/* Balance fetch */
+async function checkBalance(wallet){
+  const myId = ++requestId;
+  currentWallet = wallet;
+  setState('loading');
+  refreshBtn.disabled = true;
+
+  const [res] = await Promise.allSettled([
+    ethCall(TOKEN_CA, BALANCE_OF_SIG + pad(wallet)),
+    new Promise(r => setTimeout(r, 550))
+  ]);
+
+  if (myId !== requestId) return;
+  refreshBtn.disabled = false;
+
+  if (res.status === 'fulfilled'){
+    try {
+      const raw = BigInt(res.value);
+      balValue.textContent = formatToken(raw) + " NFTFAN";
+      balRaw.textContent = raw.toString();
+      balWallet.textContent = short(wallet);
+      balTime.textContent = new Date().toLocaleTimeString();
+      setState('balance');
+      localStorage.setItem('NFTFAN_WALLET', wallet);
+      return;
+    } catch(e){}
+  }
+  setState('error');
+}
+
+/* Tokens remaining in sale */
+async function loadTokensLeft(){
+  try {
+    const result = await ethCall(TOKEN_CA, BALANCE_OF_SIG + pad(SALE_CA));
+    const raw = BigInt(result);
+    tokensLeft.textContent = formatToken(raw) + " NFTFAN";
+  } catch {
+    tokensLeft.textContent = "—";
+  }
+}
+
+/* Input handling */
+let t;
+input.addEventListener('input', ()=>{
+  const v = input.value.trim();
+  const valid = isAddress(v);
+  check.classList.toggle('on', valid);
+  hint.textContent = valid ? "Valid address" :
+    v.length === 0 ? "Paste an address — balance loads automatically" :
+    "42 characters, starts with 0x";
+  hint.style.color = valid ? "var(--ok)" : "";
+
+  clearTimeout(t);
+  if (valid){
+    t = setTimeout(()=> checkBalance(v), 150);
+  } else {
+    requestId++;
+    setState('idle');
+  }
+});
+
+input.addEventListener('paste', ()=>{
+  setTimeout(()=>{
+    const v = input.value.trim();
+    if (isAddress(v)){
+      check.classList.add('on');
+      hint.textContent = "Valid address";
+      hint.style.color = "var(--ok)";
+      checkBalance(v);
+    }
+  }, 0);
+});
+
+refreshBtn.addEventListener('click', ()=> currentWallet && checkBalance(currentWallet));
+retryBtn.addEventListener('click', ()=> currentWallet && checkBalance(currentWallet));
+
+/* Copy sale address */
+copyBtn.addEventListener('click', async ()=>{
+  const done = ()=>{
+    copyBtn.textContent = "✓ Copied";
+    copyBtn.classList.add('copied');
+    setTimeout(()=>{
+      copyBtn.textContent = "Copy address";
+      copyBtn.classList.remove('copied');
+    }, 1800);
+  };
+  try {
+    await navigator.clipboard.writeText(SALE_CA);
+    done();
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = SALE_CA;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    done();
+  }
+});
+
+/* Init */
+(function(){
+  const saved = localStorage.getItem('NFTFAN_WALLET');
+  if (saved && isAddress(saved)){
+    input.value = saved;
+    check.classList.add('on');
+    hint.textContent = "Valid address";
+    hint.style.color = "var(--ok)";
+    checkBalance(saved);
+  }
+  loadTokensLeft();
+  setInterval(loadTokensLeft, 30000); // refresh sale supply every 30s
+})();
+</script>
+</body>
+</html>
