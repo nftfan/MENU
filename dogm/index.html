@@ -182,11 +182,21 @@ let shownCount=0;
 
 /* ---- Web Audio typing sound ---- */
 let audioCtx=null;
+let audioUnlocked=false;
 function ensureAudio(){
   if(!audioCtx){
-    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; }
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; return; }
   }
-  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  /* iOS unlock: play a silent buffer inside a user gesture */
+  if(!audioUnlocked&&audioCtx.state!=='closed'){
+    try{
+      const buf=audioCtx.createBuffer(1,1,22050);
+      const src=audioCtx.createBufferSource();
+      src.buffer=buf;src.connect(audioCtx.destination);src.start(0);
+      audioUnlocked=(audioCtx.state==='running');
+    }catch(e){}
+  }
 }
 function clickSound(){
   if(!soundOn||!audioCtx) return;
@@ -196,7 +206,7 @@ function clickSound(){
   osc.type='square';
   osc.frequency.setValueAtTime(620+Math.random()*420,t);
   gain.gain.setValueAtTime(0.0001,t);
-  gain.gain.exponentialRampToValueAtTime(0.05,t+0.004);
+  gain.gain.exponentialRampToValueAtTime(0.12,t+0.004);
   gain.gain.exponentialRampToValueAtTime(0.0001,t+0.045);
   osc.connect(gain);gain.connect(audioCtx.destination);
   osc.start(t);osc.stop(t+0.05);
@@ -220,7 +230,14 @@ snd.addEventListener('click',(e)=>{
   snd.textContent='[snd:'+(soundOn?'on':'off')+']';
   if(soundOn) ensureAudio();
 });
-['touchstart','click','keydown'].forEach(ev=>document.addEventListener(ev,ensureAudio,{once:true,passive:true}));
+/* keep trying to unlock on every gesture until the context is actually running */
+function unlockHandler(){
+  ensureAudio();
+  if(audioCtx&&audioCtx.state==='running'&&audioUnlocked){
+    ['touchend','click','keydown'].forEach(ev=>document.removeEventListener(ev,unlockHandler));
+  }
+}
+['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockHandler));
 
 function cleanTitle(t){return String(t||'').replace(/\s+-\s+[^-]+$/,'').trim();}
 function extractSrc(it){
