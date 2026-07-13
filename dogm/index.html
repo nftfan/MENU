@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>newswire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020a02;
+    --green:#33ff66;
+    --green-dim:#1f9c3f;
+    --green-dark:#0c3d18;
+    --amber:#ffb454;
+    --scan:rgba(51,255,102,0.03);
+    --glow:0 0 4px rgba(51,255,102,0.55);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:#000;
+    color:var(--green);
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px;
+    overflow:hidden;
+    text-shadow:var(--glow);
+    touch-action:manipulation;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+
+  /* ===== screen fills viewport, no bezel, no header ===== */
+  .crt{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;
+    background:var(--bg);
+    overflow:hidden;
+  }
+  /* scanlines */
+  .crt::before{
+    content:'';position:absolute;inset:0;z-index:50;pointer-events:none;
+    background:repeating-linear-gradient(0deg,var(--scan) 0px,var(--scan) 1px,transparent 1px,transparent 2px);
+  }
+  /* vignette + flicker */
+  .crt::after{
+    content:'';position:absolute;inset:0;z-index:51;pointer-events:none;
+    background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.55) 100%);
+    animation:flicker 6s infinite;
+  }
+  @keyframes flicker{
+    0%,100%{opacity:1}
+    97%{opacity:1}
+    97.5%{opacity:0.82}
+    98%{opacity:1}
+    99.2%{opacity:0.9}
+  }
+
+  /* power-on sweep */
+  .sweep{position:absolute;inset:0;z-index:60;pointer-events:none;opacity:0;}
+  .sweep.go{animation:sweep .55s ease-out;}
+  @keyframes sweep{
+    0%{opacity:1;background:linear-gradient(180deg,transparent 0%,rgba(51,255,102,.55) 49%,rgba(255,255,255,.85) 50%,rgba(51,255,102,.55) 51%,transparent 100%);background-size:100% 10px;background-repeat:no-repeat;background-position:0 -10px;}
+    100%{opacity:0;background-position:0 100%;}
+  }
+
+  /* thin status strip (only srv + snd toggles, nothing else) */
+  .strip{
+    flex-shrink:0;display:flex;justify-content:flex-end;gap:10px;
+    padding:calc(env(safe-area-inset-top,0px) + 4px) 10px 4px;
+    font-size:8px;color:var(--green-dark);letter-spacing:.08em;text-transform:uppercase;
+    position:relative;z-index:5;
+  }
+  .strip span{cursor:pointer;}
+  .strip span:active{color:var(--green);}
+
+  /* feed */
+  .feed{
+    flex:1;overflow-y:auto;padding:8px 10px 6px;
+    font-size:10px;line-height:1.55;
+    scrollbar-width:none;
+    position:relative;z-index:5;
+    -webkit-overflow-scrolling:touch;
+  }
+  .feed::-webkit-scrollbar{display:none;}
+
+  .line{margin-bottom:8px;white-space:pre-wrap;word-break:break-word;}
+  .line.user{color:var(--amber);}
+  .line.sys{color:var(--green-dim);font-size:9px;letter-spacing:.05em;}
+  .line.err{color:#ff5a5a;text-shadow:0 0 4px rgba(255,90,90,.5);}
+
+  .headline{margin-bottom:7px;display:flex;gap:6px;align-items:flex-start;font-size:10px;}
+  .headline .idx{color:var(--green-dim);flex-shrink:0;}
+  .headline a{color:var(--green);text-decoration:none;border-bottom:1px dashed var(--green-dark);}
+  .headline .src{color:var(--green-dim);font-size:8px;letter-spacing:.04em;}
+
+  /* blinking cursor */
+  .cursor{
+    display:inline-block;width:.6em;height:1.05em;
+    background:var(--green);margin-left:2px;vertical-align:text-bottom;
+    box-shadow:var(--glow);animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}
+
+  /* input prompt */
+  .prompt-row{
+    flex-shrink:0;border-top:1px solid var(--green-dark);
+    padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);
+    display:flex;align-items:center;gap:8px;
+    background:linear-gradient(0deg,rgba(51,255,102,0.04),transparent);
+    position:relative;z-index:5;
+  }
+  .prompt-sign{font-size:10px;color:var(--amber);flex-shrink:0;}
+  #input{
+    flex:1;background:transparent;border:none;outline:none;
+    color:var(--green);font-family:'Share Tech Mono',monospace;
+    font-size:10px;text-shadow:var(--glow);
+    letter-spacing:.02em;caret-color:var(--green);
+    min-width:0;
+  }
+  #input::placeholder{color:var(--green-dark);}
+  #send{
+    background:transparent;border:1px solid var(--green-dark);color:var(--green);
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.08em;
+    padding:5px 10px;cursor:pointer;text-transform:uppercase;text-shadow:var(--glow);
+    flex-shrink:0;
+  }
+  #send:active{background:var(--green-dark);color:var(--amber);}
+  #send:disabled{opacity:.35;}
+
+  .suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+  .chip{
+    background:transparent;border:1px solid var(--green-dark);color:var(--green-dim);
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.06em;
+    padding:4px 9px;cursor:pointer;text-transform:uppercase;
+  }
+  .chip:active{border-color:var(--green);color:var(--green);}
+</style>
+</head>
+<body>
+<div class="crt" id="crt">
+  <div class="sweep" id="sweep"></div>
+
+  <div class="strip">
+    <span id="snd" title="Toggle typing sound">[snd:on]</span>
+    <span id="srv" title="Set server URL">[srv]</span>
+  </div>
+
+  <div class="feed" id="feed"></div>
+
+  <div class="prompt-row">
+    <span class="prompt-sign">&gt;</span>
+    <input id="input" type="text" autocomplete="off"
+           placeholder="topic… (tap screen for more)">
+    <button id="send">GO</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_SERVER_URL='https://newviwe-production.up.railway.app';
+const SERVER_KEY='newswire_server_url_v1';
+let SERVER_URL=(localStorage.getItem(SERVER_KEY)||DEFAULT_SERVER_URL).replace(/\/+$/,'');
+
+const MAX_HEADLINES=30;   // hard cap per topic
+const BATCH_SIZE=5;       // headlines loaded per tap
+
+const feed=document.getElementById('feed');
+const input=document.getElementById('input');
+const send=document.getElementById('send');
+const srv=document.getElementById('srv');
+const snd=document.getElementById('snd');
+const sweep=document.getElementById('sweep');
+
+let busy=false;
+let soundOn=true;
+
+/* ---- pagination state ---- */
+let currentTopic=null;
+let fullNews=[];
+let shownCount=0;
+
+/* ---- Web Audio typing sound ---- */
+let audioCtx=null;
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; }
+  }
+  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+}
+function clickSound(){
+  if(!soundOn||!audioCtx) return;
+  const t=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type='square';
+  osc.frequency.setValueAtTime(620+Math.random()*420,t);
+  gain.gain.setValueAtTime(0.0001,t);
+  gain.gain.exponentialRampToValueAtTime(0.05,t+0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001,t+0.045);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start(t);osc.stop(t+0.05);
+}
+function beep(freq,dur){
+  if(!soundOn||!audioCtx) return;
+  const t=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type='sine';osc.frequency.setValueAtTime(freq,t);
+  gain.gain.setValueAtTime(0.0001,t);
+  gain.gain.exponentialRampToValueAtTime(0.08,t+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start(t);osc.stop(t+dur);
+}
+
+snd.addEventListener('click',(e)=>{
+  e.stopPropagation();
+  soundOn=!soundOn;
+  snd.textContent='[snd:'+(soundOn?'on':'off')+']';
+  if(soundOn) ensureAudio();
+});
+['touchstart','click','keydown'].forEach(ev=>document.addEventListener(ev,ensureAudio,{once:true,passive:true}));
+
+function cleanTitle(t){return String(t||'').replace(/\s+-\s+[^-]+$/,'').trim();}
+function extractSrc(it){
+  if(it.source) return it.source;
+  if(it.author) return it.author;
+  const m=String(it.title||'').match(/\s-\s([^-]+)$/);
+  return m?m[1].trim():'wire';
+}
+function scrollDown(){feed.scrollTop=feed.scrollHeight;}
+
+/* ---- clear the screen + power-on sweep ---- */
+function clearScreen(){
+  feed.innerHTML='';
+  feed.scrollTop=0;
+  sweep.classList.remove('go');
+  void sweep.offsetWidth;
+  sweep.classList.add('go');
+  beep(420,0.06);
+}
+
+/* persistent idle cursor */
+let idleEl=null;
+function showIdleCursor(){
+  hideIdleCursor();
+  idleEl=document.createElement('div');
+  idleEl.className='line';
+  idleEl.innerHTML='<span style="color:var(--amber)">&gt; </span><span class="cursor"></span>';
+  feed.appendChild(idleEl);scrollDown();
+}
+function hideIdleCursor(){ if(idleEl){idleEl.remove();idleEl=null;} }
+
+/* "tap for more" hint */
+let hintEl=null;
+function clearHint(){ if(hintEl){hintEl.remove();hintEl=null;} }
+function hasMore(){
+  return currentTopic && shownCount>0 &&
+         shownCount<fullNews.length && shownCount<MAX_HEADLINES;
+}
+
+function addLine(text,cls=''){
+  const d=document.createElement('div');
+  d.className='line '+cls;
+  d.textContent=text;
+  feed.appendChild(d);scrollDown();
+  return d;
+}
+
+/* typewriter */
+function typeInto(el,text,speed=14){
+  return new Promise(res=>{
+    el.textContent='';
+    const cur=document.createElement('span');cur.className='cursor';
+    el.appendChild(cur);
+    let i=0;
+    (function step(){
+      if(i<text.length){
+        const ch=text[i];
+        cur.insertAdjacentText('beforebegin',ch);
+        if(ch!==' ') clickSound();
+        i++;scrollDown();
+        let d=speed+Math.random()*14;
+        if('.,!?;:'.includes(ch)) d+=100;
+        setTimeout(step,d);
+      }else{ cur.remove(); res(); }
+    })();
+  });
+}
+
+function thinkingLine(label){
+  const d=addLine('','sys');
+  let dots=0;
+  d.textContent=label;
+  const cur=document.createElement('span');cur.className='cursor';d.appendChild(cur);
+  const t=setInterval(()=>{
+    dots=(dots+1)%4;
+    d.firstChild.textContent=label+'.'.repeat(dots);
+  },280);
+  return {el:d,stop:()=>{clearInterval(t);d.remove();}};
+}
+
+const TOPIC_FEEDS={
+  world:'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en',
+  business:'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en',
+  tech:'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en',
+  technology:'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en',
+  science:'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-US&gl=US&ceid=US:en',
+  sport:'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-US&gl=US&ceid=US:en',
+  sports:'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-US&gl=US&ceid=US:en',
+  health:'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-US&gl=US&ceid=US:en',
+  top:'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en'
+};
+
+function feedUrlFor(topic){
+  const key=topic.toLowerCase().trim();
+  if(TOPIC_FEEDS[key]) return TOPIC_FEEDS[key];
+  return 'https://news.google.com/rss/search?q='+encodeURIComponent(topic)+'&hl=en-US&gl=US&ceid=US:en';
+}
+
+async function getNews(topic){
+  const rss=feedUrlFor(topic);
+  let items=null;
+  if(SERVER_URL){
+    try{
+      const r=await fetch(SERVER_URL+'/feed?url='+encodeURIComponent(rss));
+      if(r.ok){
+        const d=await r.json();
+        if(Array.isArray(d.items)&&d.items.length){
+          items=d.items.map(it=>({title:cleanTitle(it.title),link:it.link,src:extractSrc(it)}));
+        }
+      }
+    }catch(e){}
+  }
+  if(!items){
+    try{
+      const r=await fetch('https://api.rss2json.com/v1/api.json?count=30&rss_url='+encodeURIComponent(rss));
+      const d=await r.json();
+      if(d.status==='ok'&&Array.isArray(d.items)&&d.items.length){
+        items=d.items.map(it=>({title:cleanTitle(it.title),link:it.link,src:extractSrc(it)}));
+      }
+    }catch(e){}
+  }
+  return items?items.filter(a=>a.title).slice(0,MAX_HEADLINES):null;
+}
+
+/* type the next batch of up to BATCH_SIZE headlines */
+async function renderBatch(){
+  const start=shownCount;
+  const end=Math.min(start+BATCH_SIZE, fullNews.length, MAX_HEADLINES);
+  for(let i=start;i<end;i++){
+    const a=fullNews[i];
+    const row=document.createElement('div');row.className='headline';
+    const idx=document.createElement('span');idx.className='idx';
+    idx.textContent=String(i+1).padStart(2,'0')+'.';
+    const body=document.createElement('div');
+    const titleSpan=document.createElement('span');
+    row.appendChild(idx);body.appendChild(titleSpan);row.appendChild(body);
+    feed.appendChild(row);scrollDown();
+    await typeInto(titleSpan,a.title,8);
+    const link=document.createElement('a');
+    link.href=a.link;link.target='_blank';link.rel='noopener';
+    link.textContent=a.title;
+    titleSpan.replaceWith(link);
+    const src=document.createElement('span');src.className='src';
+    src.textContent='  ['+a.src+']';
+    body.appendChild(src);
+    scrollDown();
+    await new Promise(r=>setTimeout(r,70));
+  }
+  shownCount=end;
+}
+
+/* NEW TOPIC: clear screen, fetch up to 30, type the first 5 */
+async function handle(topic){
+  if(busy) return;
+  busy=true;input.disabled=true;send.disabled=true;
+  ensureAudio();beep(880,0.08);
+
+  clearScreen();
+
+  addLine('> '+topic,'user');
+  const think=thinkingLine('accessing wire — "'+topic+'"');
+
+  let news;
+  try{ news=await getNews(topic); }catch(e){ news=null; }
+  think.stop();
+
+  if(!news||!news.length){
+    currentTopic=null;fullNews=[];shownCount=0;
+    const l=addLine('','err');
+    await typeInto(l,'>> SIGNAL LOST. Nothing found for "'+topic+'". Tap [srv] to set server, or try another topic.',10);
+    finish();return;
+  }
+
+  currentTopic=topic;
+  fullNews=news;
+  shownCount=0;
+
+  const head=addLine('','sys');
+  await typeInto(head,'>> '+fullNews.length+' transmissions // '+topic.toUpperCase(),12);
+
+  await renderBatch();
+  finish();
+}
+
+/* SAME TOPIC: append the next 5 (triggered by tapping the screen) */
+async function loadMore(){
+  if(busy) return;
+  if(!hasMore()) return;
+  busy=true;input.disabled=true;send.disabled=true;
+  ensureAudio();beep(880,0.08);
+
+  hideIdleCursor();
+  clearHint();
+
+  await renderBatch();
+  finish();
+}
+
+function finish(){
+  busy=false;input.disabled=false;send.disabled=false;
+  beep(660,0.1);
+  clearHint();
+  if(hasMore()){
+    hintEl=addLine('','sys');
+    hintEl.textContent='>> tap screen for '+BATCH_SIZE+' more ▌';
+  }
+  showIdleCursor();
+}
+
+function submit(){
+  if(busy) return;
+  const v=input.value.trim();
+  if(v){
+    input.value='';
+    input.blur();   // dismiss keyboard on mobile
+    handle(v);
+  }else{
+    loadMore();
+  }
+}
+send.addEventListener('click',(e)=>{ e.stopPropagation(); submit(); });
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ submit(); return; }
+  if(e.key.length===1||e.key==='Backspace') clickSound();
+});
+/* taps inside the input shouldn't trigger load-more */
+input.addEventListener('click',e=>e.stopPropagation());
+
+/* tap anywhere on the feed to load more headlines */
+feed.addEventListener('click',(e)=>{
+  if(e.target.closest('a')) return;      // links open normally
+  if(e.target.closest('.chip')) return;  // chips run their own handler
+  if(busy) return;
+  if(hasMore()) loadMore();
+});
+
+srv.addEventListener('click',(e)=>{
+  e.stopPropagation();
+  const v=prompt('News server base URL (blank = public fallback).',SERVER_URL);
+  if(v===null) return;
+  const c=v.trim().replace(/\/+$/,'');
+  if(c) localStorage.setItem(SERVER_KEY,c); else localStorage.removeItem(SERVER_KEY);
+  location.reload();
+});
+
+/* boot sequence */
+(async function boot(){
+  sweep.classList.add('go');
+  const l1=addLine('','sys');
+  await typeInto(l1,'newswire v2.4 — uplink ready',9);
+  const l2=addLine('','sys');
+  await typeInto(l2,'>> enter a topic below',9);
+
+  const wrap=document.createElement('div');wrap.className='suggest';
+  ['world','tech','business','science','sport','bitcoin'].forEach(t=>{
+    const c=document.createElement('button');c.className='chip';c.textContent=t;
+    c.addEventListener('click',(e)=>{ e.stopPropagation(); if(!busy) handle(t); });
+    wrap.appendChild(c);
+  });
+  feed.appendChild(wrap);scrollDown();
+  showIdleCursor();
+})();
+</script>
+</body>
+</html>
