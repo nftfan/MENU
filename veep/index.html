@@ -1,0 +1,363 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Vee Bluia — Upload</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0c0b0a;
+  --surface:#141312;
+  --line:#26231f;
+  --ink:#e8e4de;
+  --ink2:#8b857c;
+  --ink3:#57524b;
+  --accent:#c8440e;
+  --ok:#2e9e5b;
+}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+}
+
+.card{
+  width:100%;
+  max-width:440px;
+  min-height:100vh;
+  min-height:100dvh;
+  background:var(--surface);
+  border-left:1px solid var(--line);
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  padding:32px 24px;
+}
+
+.brand{
+  font-family:'Instrument Serif',serif;
+  font-size:26px;
+  letter-spacing:.01em;
+  margin-bottom:4px;
+}
+.brand span{color:var(--accent);font-style:italic}
+
+.sub{
+  font-size:11px;
+  color:var(--ink3);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  margin-bottom:36px;
+}
+
+label{
+  display:block;
+  font-size:10px;
+  font-weight:600;
+  color:var(--ink2);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  margin-bottom:8px;
+}
+
+input[type="text"]{
+  width:100%;
+  padding:13px 14px;
+  background:var(--bg);
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;
+  outline:none;
+  transition:.2s;
+  -webkit-appearance:none;
+  appearance:none;
+  margin-bottom:24px;
+}
+input[type="text"]:focus{border-color:var(--accent)}
+input::placeholder{color:var(--ink3)}
+
+.dropzone{
+  border:1px dashed var(--line);
+  border-radius:10px;
+  padding:0;
+  min-height:220px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  cursor:pointer;
+  transition:.2s;
+  background:var(--bg);
+  margin-bottom:24px;
+  overflow:hidden;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+.dropzone:hover,.dropzone:active{border-color:var(--accent)}
+.dropzone.has-file{border-style:solid;border-color:var(--ok)}
+
+.dz-inner{padding:32px 20px}
+.dz-icon{font-size:30px;color:var(--ink3);margin-bottom:10px}
+.dz-label{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.dz-hint{font-size:11px;color:var(--ink3)}
+
+.dz-preview{
+  width:100%;
+  display:none;
+}
+.dz-preview img{width:100%;display:block}
+.dz-preview-bar{
+  padding:10px 14px;
+  font-size:11px;
+  color:var(--ok);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border-top:1px solid var(--line);
+  word-break:break-all;
+  text-align:left;
+}
+
+.btn-submit{
+  width:100%;
+  padding:15px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:600;
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  cursor:pointer;
+  transition:.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:auto;
+}
+.btn-submit:hover:not(:disabled){background:#a8370a}
+.btn-submit:disabled{background:var(--line);color:var(--ink3);cursor:not-allowed}
+
+@keyframes spin{100%{transform:rotate(360deg)}}
+.ti-loader-2{display:inline-block;animation:spin 1s linear infinite}
+
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}80%{transform:translateX(4px)}
+}
+.shake{animation:shake .35s ease}
+
+/* Success */
+.success{
+  flex:1;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:40px 20px;
+}
+.success-icon{
+  width:72px;height:72px;border-radius:50%;
+  border:1px solid var(--ok);color:var(--ok);
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;margin-bottom:22px;
+}
+.success h2{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;margin-bottom:10px}
+.success p{font-size:12px;color:var(--ink2);line-height:1.7;max-width:260px;margin-bottom:28px}
+.btn-again{
+  padding:12px 26px;background:transparent;border:1px solid var(--line);
+  border-radius:8px;color:var(--ink);font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:600;cursor:pointer;transition:.2s;
+  text-transform:uppercase;letter-spacing:.1em;
+}
+.btn-again:hover{border-color:var(--accent);color:var(--accent)}
+
+@media(min-width:481px){
+  body{padding:40px 20px;align-items:flex-start}
+  .card{
+    min-height:auto;
+    border:1px solid var(--line);
+    border-radius:16px;
+  }
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="card">
+
+  <div id="formView" style="display:flex;flex-direction:column;flex:1;">
+    <div class="brand">Vee <span>Bluia</span></div>
+    <div class="sub">Portfolio Upload</div>
+
+    <label>Title</label>
+    <input type="text" id="f-title" placeholder="e.g. Editorial — Antwerp SS26" maxlength="120" autocomplete="off">
+
+    <label>Image</label>
+    <input type="file" id="f-file" accept="image/*" style="display:none" onchange="onFileSelected(event)">
+    <div class="dropzone" id="dz" onclick="document.getElementById('f-file').click()" role="button" tabindex="0">
+      <div class="dz-inner" id="dzInner">
+        <div class="dz-icon"><i class="ti ti-photo-up"></i></div>
+        <div class="dz-label">Tap to select image</div>
+        <div class="dz-hint">JPG, PNG or WEBP &middot; max 10 MB</div>
+      </div>
+      <div class="dz-preview" id="dzPreview">
+        <img id="dzPreviewImg" alt="Preview">
+        <div class="dz-preview-bar"><i class="ti ti-check"></i><span id="dzFileName"></span></div>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit" onclick="submitPhoto()">
+      <i class="ti ti-upload"></i> Submit
+    </button>
+  </div>
+
+  <div class="success" id="successView">
+    <div class="success-icon"><i class="ti ti-circle-check"></i></div>
+    <h2>Uploaded</h2>
+    <p>The photo has been added to the Vee Bluia portfolio.</p>
+    <button class="btn-again" onclick="resetForm()">Upload another</button>
+  </div>
+
+</div>
+
+<script>
+  // ---- Firebase ----
+  const firebaseConfig = {
+    apiKey: "AIzaSyBWPCkYNw7gT_T7kcwbp5laZgIHac18bvE",
+    authDomain: "expandlf.firebaseapp.com",
+    databaseURL: "https://expandlf-default-rtdb.firebaseio.com",
+    projectId: "expandlf",
+    storageBucket: "expandlf.firebasestorage.app",
+    messagingSenderId: "890066961009",
+    appId: "1:890066961009:web:3a2ed1e7c2cf797f3751d0",
+    measurementId: "G-QPRSX7ZVZ5"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // NEW Firebase folder for this portfolio
+  const refPortfolio = db.ref('veebluia/portfolio');
+
+  let uploadedFile = null;
+
+  // ---- File select + preview ----
+  function onFileSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File is larger than 10 MB. Please choose a smaller image.');
+      e.target.value = '';
+      return;
+    }
+
+    uploadedFile = file;
+
+    document.getElementById('dz').classList.add('has-file');
+    document.getElementById('dzInner').style.display = 'none';
+    document.getElementById('dzPreview').style.display = 'block';
+    document.getElementById('dzPreviewImg').src = URL.createObjectURL(file);
+    document.getElementById('dzFileName').textContent = file.name;
+  }
+
+  // ---- Cloudflare R2 upload (same proxy as flyer studio) ----
+  async function uploadToCloudflare(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const proxyUrl = 'https://upload-proxy.gotshotu.workers.dev';
+    const r2PublicUrl = 'https://pub-09d49e1729be4c218a60f330ac3b61b2.r2.dev/';
+
+    const res = await fetch(proxyUrl, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) return r2PublicUrl + data.fileName;
+    throw new Error(data.error || 'Cloudflare upload failed');
+  }
+
+  // ---- Submit ----
+  async function submitPhoto() {
+    const titleField = document.getElementById('f-title');
+    const title = titleField.value.trim();
+
+    if (!title) {
+      titleField.style.borderColor = 'var(--accent)';
+      titleField.classList.add('shake');
+      titleField.focus();
+      setTimeout(() => { titleField.classList.remove('shake'); titleField.style.borderColor = ''; }, 500);
+      return;
+    }
+
+    if (!uploadedFile) {
+      const dz = document.getElementById('dz');
+      dz.style.borderColor = 'var(--accent)';
+      dz.classList.add('shake');
+      setTimeout(() => { dz.style.borderColor = ''; dz.classList.remove('shake'); }, 500);
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmit');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i> Uploading…';
+    btn.disabled = true;
+
+    try {
+      const imageUrl = await uploadToCloudflare(uploadedFile);
+
+      await refPortfolio.push({
+        title: title,
+        image_url: imageUrl,
+        filename: uploadedFile.name,
+        timestamp: new Date().toISOString()
+      });
+
+      document.getElementById('formView').style.display = 'none';
+      document.getElementById('successView').style.display = 'flex';
+    } catch (err) {
+      console.error('Submission failed:', err);
+      alert('Upload failed. Please check your connection and try again.');
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    }
+  }
+
+  function resetForm() {
+    uploadedFile = null;
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-file').value = '';
+    document.getElementById('dz').classList.remove('has-file');
+    document.getElementById('dzInner').style.display = 'block';
+    document.getElementById('dzPreview').style.display = 'none';
+    document.getElementById('dzPreviewImg').src = '';
+    const btn = document.getElementById('btnSubmit');
+    btn.innerHTML = '<i class="ti ti-upload"></i> Submit';
+    btn.disabled = false;
+    document.getElementById('successView').style.display = 'none';
+    document.getElementById('formView').style.display = 'flex';
+  }
+</script>
+
+</body>
+</html>
