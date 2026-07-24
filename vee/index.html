@@ -1,0 +1,629 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Vee Bluia — Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0c0b0a;
+  --surface:#141312;
+  --line:#26231f;
+  --ink:#e8e4de;
+  --ink2:#8b857c;
+  --ink3:#57524b;
+  --accent:#c8440e;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family:'JetBrains Mono',monospace}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.5;
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  min-height:100dvh;
+}
+
+/* ---- Hero ---- */
+.hero{
+  padding:64px 24px 48px;
+  text-align:center;
+  border-bottom:1px solid var(--line);
+}
+.hero-title{
+  font-family:'Instrument Serif',serif;
+  font-size:64px;
+  font-weight:400;
+  line-height:1;
+  margin-bottom:14px;
+}
+.hero-title span{color:var(--accent);font-style:italic}
+.hero-subtitle{
+  font-size:11px;
+  color:var(--ink2);
+  text-transform:uppercase;
+  letter-spacing:.22em;
+}
+
+/* ---- Main ---- */
+.main-container{max-width:1100px;margin:0 auto;padding:36px 20px 70px;flex:1;width:100%}
+
+/* ---- Grid ---- */
+.photo-grid{
+  columns:3;
+  column-gap:16px;
+}
+.photo-card{
+  break-inside:avoid;
+  margin-bottom:16px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  cursor:zoom-in;
+  transition:.25s;
+}
+.photo-card:hover{transform:translateY(-3px);border-color:var(--ink3)}
+.photo-card img{width:100%;display:block}
+.photo-title{
+  padding:12px 14px;
+  font-size:11px;
+  font-weight:500;
+  color:var(--ink2);
+  letter-spacing:.04em;
+  border-top:1px solid var(--line);
+}
+
+/* ---- Load More ---- */
+.load-more-wrap{text-align:center;display:none;margin-top:28px}
+.btn-load-more{
+  display:inline-flex;align-items:center;justify-content:center;padding:13px 30px;
+  background:transparent;border:1px solid var(--line);border-radius:99px;
+  font-size:11px;font-weight:600;color:var(--ink);cursor:pointer;transition:.2s;
+  text-transform:uppercase;letter-spacing:.12em;
+}
+.btn-load-more:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ---- State boxes ---- */
+.state-box{text-align:center;padding:70px 20px;color:var(--ink2)}
+.state-box i{font-size:40px;color:var(--ink3);margin-bottom:14px;display:block}
+.state-box h3{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;color:var(--ink);margin-bottom:8px}
+.state-box p{font-size:12px}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+
+/* ---- Lightbox ---- */
+.lightbox-overlay{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(6,5,4,.92);
+  z-index:9999;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  align-items:center;
+  justify-content:center;
+  padding:12px;
+}
+.lightbox-overlay.active{display:flex;animation:lbFadeIn .22s ease}
+@keyframes lbFadeIn{from{opacity:0}to{opacity:1}}
+
+.lightbox-shell{
+  position:relative;
+  width:100%;
+  max-width:440px;
+  height:92vh;
+  height:92dvh;
+  display:flex;
+  flex-direction:column;
+  border-radius:16px;
+  overflow:hidden;
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:0 32px 80px rgba(0,0,0,.7);
+  animation:lbSlideUp .25s ease;
+}
+@keyframes lbSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.lb-topbar{
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--line);
+  gap:10px;
+}
+.lb-title{
+  font-size:12px;font-weight:600;color:var(--ink);
+  letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lb-close{
+  flex-shrink:0;
+  width:32px;height:32px;
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:50%;
+  color:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;transition:.2s;line-height:1;
+}
+.lb-close:hover{border-color:var(--accent);color:var(--accent)}
+
+.lb-body{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:8px;
+  text-align:center;
+  line-height:0;
+}
+.lb-body::-webkit-scrollbar{width:4px}
+.lb-body::-webkit-scrollbar-track{background:transparent}
+.lb-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+.lb-body img{
+  display:block;width:100%;height:auto;max-width:100%;
+  border-radius:6px;margin:0 auto;
+}
+
+.lb-nav{
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 12px;
+  border-top:1px solid var(--line);
+}
+.lb-nav-btn{
+  display:flex;align-items:center;gap:6px;
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--ink);padding:7px 16px;border-radius:99px;
+  font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;
+  cursor:pointer;transition:.2s;
+}
+.lb-nav-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.lb-nav-btn:disabled{opacity:.25;cursor:not-allowed}
+.lb-nav-counter{font-size:11px;color:var(--ink3);font-weight:500}
+
+.lb-nav-center{display:flex;align-items:center;gap:10px}
+.lb-action-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:34px;height:34px;
+  background:var(--accent);
+  border:none;color:#fff;border-radius:50%;
+  cursor:pointer;transition:.2s;
+}
+.lb-action-btn:hover{background:#a8370a;transform:scale(1.05)}
+.lb-action-btn:disabled{opacity:.4;cursor:not-allowed}
+.lb-action-btn i{font-size:17px}
+.lb-action-btn.is-loading i{animation:spin 1s linear infinite}
+.lb-share-btn{
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--ink);
+}
+.lb-share-btn:hover{background:transparent;border-color:var(--accent);color:var(--accent)}
+
+/* ---- Toast ---- */
+.lb-toast{
+  position:fixed;bottom:26px;left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1px solid var(--line);
+  color:var(--ink);padding:12px 22px;border-radius:99px;
+  font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease,transform .25s ease;
+  z-index:10001;
+}
+.lb-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.lb-toast i{color:#4ade80;font-size:17px}
+
+/* ---- Footer ---- */
+.footer{
+  text-align:center;padding:22px;border-top:1px solid var(--line);
+  color:var(--ink3);font-size:11px;margin-top:auto;
+  letter-spacing:.06em;
+}
+
+/* ---- Mobile ---- */
+@media (max-width:767px){
+  .hero{padding:44px 16px 34px}
+  .hero-title{font-size:44px;margin-bottom:10px}
+  .hero-subtitle{font-size:9px;letter-spacing:.18em}
+  .main-container{padding:20px 12px 56px}
+  .photo-grid{columns:2;column-gap:10px}
+  .photo-card{margin-bottom:10px;border-radius:8px}
+  .photo-title{padding:8px 10px;font-size:9px}
+
+  .lightbox-overlay{padding:8px}
+  .lightbox-shell{max-width:94vw;height:88vh;height:88dvh;border-radius:12px}
+  .lb-topbar{padding:10px 12px}
+  .lb-title{font-size:11px}
+  .lb-close{width:30px;height:30px;font-size:17px}
+  .lb-nav{padding:8px 10px}
+  .lb-nav-btn{padding:6px 12px;font-size:10px}
+  .lb-action-btn{width:32px;height:32px}
+  .lb-action-btn i{font-size:16px}
+  .lb-body{padding:6px}
+}
+
+@media (max-height:640px){
+  .lightbox-shell{height:94vh;height:94dvh}
+  .lb-topbar{padding:8px 12px}
+  .lb-nav{padding:6px 10px}
+  .lb-nav-btn{padding:5px 12px;font-size:10px}
+  .lb-close{width:28px;height:28px;font-size:16px}
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1 class="hero-title">Vee <span>Bluia</span></h1>
+  <p class="hero-subtitle">Fashion Model — Portfolio</p>
+</div>
+
+<div class="main-container">
+  <div class="photo-grid" id="photoGrid">
+    <div class="state-box">
+      <i class="ti ti-loader spin"></i>
+      <h3>Loading portfolio…</h3>
+    </div>
+  </div>
+  <div class="load-more-wrap" id="loadMoreWrap">
+    <button class="btn-load-more" onclick="loadMore()">Load more</button>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>&copy; Vee Bluia 2026. All rights reserved.</p>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="onOverlayClick(event)">
+  <div class="lightbox-shell" id="lightboxShell">
+
+    <div class="lb-topbar">
+      <div class="lb-title" id="lb-title">—</div>
+      <div class="lb-close" onclick="closeLightbox()" title="Close">&times;</div>
+    </div>
+
+    <div class="lb-body">
+      <img id="lightbox-img" src="" alt="Portfolio photo">
+    </div>
+
+    <div class="lb-nav">
+      <button class="lb-nav-btn" id="lb-prev" onclick="lbNavigate(-1)">
+        <i class="ti ti-arrow-left"></i> Prev
+      </button>
+      <div class="lb-nav-center">
+        <span class="lb-nav-counter" id="lb-counter">1 / 1</span>
+        <button class="lb-action-btn lb-share-btn" id="lb-share" onclick="sharePhoto()" title="Share photo">
+          <i class="ti ti-share"></i>
+        </button>
+        <button class="lb-action-btn" id="lb-download" onclick="downloadPhoto()" title="Save photo">
+          <i class="ti ti-download"></i>
+        </button>
+      </div>
+      <button class="lb-nav-btn" id="lb-next" onclick="lbNavigate(1)">
+        Next <i class="ti ti-arrow-right"></i>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="lb-toast" id="lbToast">
+  <i class="ti ti-circle-check"></i>
+  <span id="lbToastText">Link copied to clipboard</span>
+</div>
+
+<script>
+/* ============================================================
+   FIREBASE
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBWPCkYNw7gT_T7kcwbp5laZgIHac18bvE",
+  authDomain: "expandlf.firebaseapp.com",
+  databaseURL: "https://expandlf-default-rtdb.firebaseio.com",
+  projectId: "expandlf",
+  storageBucket: "expandlf.firebasestorage.app",
+  messagingSenderId: "890066961009",
+  appId: "1:890066961009:web:3a2ed1e7c2cf797f3751d0",
+  measurementId: "G-QPRSX7ZVZ5"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// NEW Firebase folder — same path the upload page writes to
+const refPortfolio = db.ref('veebluia/portfolio');
+
+let allPhotos = [];
+let displayLimit = 12;
+let lbIndex = 0;
+let pendingShareId = null;
+
+// ---- Read ?photo= from the URL (if present) ----
+function getPhotoIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('photo');
+}
+
+// ---- Firebase live listener ----
+refPortfolio.on('value', snapshot => {
+  const data = snapshot.val();
+  allPhotos = [];
+  if (data) {
+    allPhotos = Object.keys(data).map(key => ({ id: key, ...data[key] }))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }
+  renderGrid();
+  maybeOpenSharedPhoto();
+});
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderGrid() {
+  const grid = document.getElementById('photoGrid');
+  const lmw = document.getElementById('loadMoreWrap');
+
+  if (allPhotos.length === 0) {
+    grid.innerHTML = `
+      <div class="state-box">
+        <i class="ti ti-photo-off"></i>
+        <h3>No photos yet</h3>
+        <p>The portfolio is being updated. Check back soon.</p>
+      </div>`;
+    lmw.style.display = 'none';
+    return;
+  }
+
+  const toShow = allPhotos.slice(0, displayLimit);
+  let html = '';
+
+  toShow.forEach((item, idx) => {
+    const imgUrl = item.image_url || '';
+    const title = escapeHtml(item.title || 'Untitled');
+    html += `
+      <div class="photo-card" onclick="openLightboxByIndex(${idx})">
+        <img src="${imgUrl}" alt="${title}" loading="lazy">
+        <div class="photo-title">${title}</div>
+      </div>`;
+  });
+
+  grid.innerHTML = html;
+  lmw.style.display = allPhotos.length > displayLimit ? 'block' : 'none';
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function loadMore() {
+  displayLimit += 12;
+  renderGrid();
+}
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+function openLightboxByIndex(idx) {
+  lbIndex = idx;
+  renderLightboxItem();
+  document.getElementById('lightboxOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  updateUrlForCurrentPhoto();
+}
+
+function renderLightboxItem() {
+  const visibleCount = Math.min(displayLimit, allPhotos.length);
+  const item = allPhotos[lbIndex];
+  if (!item) return;
+
+  document.getElementById('lightbox-img').src = item.image_url || '';
+  document.getElementById('lb-title').textContent = item.title || 'Untitled';
+
+  document.getElementById('lb-counter').textContent = `${lbIndex + 1} / ${visibleCount}`;
+  document.getElementById('lb-prev').disabled = lbIndex === 0;
+  document.getElementById('lb-next').disabled = lbIndex >= visibleCount - 1;
+
+  const body = document.querySelector('.lb-body');
+  if (body) body.scrollTop = 0;
+}
+
+function lbNavigate(dir) {
+  const visibleCount = Math.min(displayLimit, allPhotos.length);
+  const next = lbIndex + dir;
+  if (next < 0 || next >= visibleCount) return;
+  lbIndex = next;
+  renderLightboxItem();
+  updateUrlForCurrentPhoto();
+}
+
+function closeLightbox() {
+  document.getElementById('lightboxOverlay').classList.remove('active');
+  document.body.style.overflow = 'auto';
+  clearPhotoFromUrl();
+  setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 220);
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('lightboxOverlay')) closeLightbox();
+}
+
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('lightboxOverlay');
+  if (!overlay.classList.contains('active')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbNavigate(-1);
+  if (e.key === 'ArrowRight') lbNavigate(1);
+});
+
+/* ============================================================
+   SHARE / DEEP LINKS
+   ============================================================ */
+function buildShareUrl(photoId) {
+  const base = window.location.origin + window.location.pathname;
+  return `${base}?photo=${encodeURIComponent(photoId)}`;
+}
+
+function updateUrlForCurrentPhoto() {
+  const item = allPhotos[lbIndex];
+  if (!item || !item.id) return;
+  history.replaceState({ photo: item.id }, '', buildShareUrl(item.id));
+}
+
+function clearPhotoFromUrl() {
+  const base = window.location.origin + window.location.pathname;
+  history.replaceState({}, '', base);
+}
+
+function maybeOpenSharedPhoto() {
+  if (pendingShareId === null) {
+    pendingShareId = getPhotoIdFromUrl();
+  }
+  if (!pendingShareId) return;
+
+  const idx = allPhotos.findIndex(p => p.id === pendingShareId);
+  if (idx === -1) {
+    pendingShareId = null;
+    clearPhotoFromUrl();
+    return;
+  }
+
+  if (idx + 1 > displayLimit) displayLimit = idx + 1;
+
+  renderGrid();
+  openLightboxByIndex(idx);
+  pendingShareId = null;
+}
+
+async function sharePhoto() {
+  const item = allPhotos[lbIndex];
+  if (!item || !item.id) return;
+
+  const shareUrl = buildShareUrl(item.id);
+  const title = item.title || 'Vee Bluia';
+  const text = `${title} — Vee Bluia portfolio`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url: shareUrl });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    showToast('Link copied to clipboard');
+  } catch (err) {
+    const tmp = document.createElement('input');
+    tmp.value = shareUrl;
+    document.body.appendChild(tmp);
+    tmp.select();
+    try { document.execCommand('copy'); showToast('Link copied to clipboard'); }
+    catch (e) { showToast('Could not copy link'); }
+    document.body.removeChild(tmp);
+  }
+}
+
+/* ============================================================
+   DOWNLOAD
+   ============================================================ */
+async function downloadPhoto() {
+  const item = allPhotos[lbIndex];
+  if (!item || !item.image_url) return;
+
+  const btn = document.getElementById('lb-download');
+  const icon = btn.querySelector('i');
+  const originalIconClass = icon.className;
+
+  btn.classList.add('is-loading');
+  icon.className = 'ti ti-loader-2';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch(item.image_url, { mode: 'cors' });
+    if (!response.ok) throw new Error('Fetch failed');
+    const blob = await response.blob();
+
+    const safeTitle = (item.title || 'photo').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    const filename = `veebluia_${safeTitle}.${ext}`;
+
+    if (navigator.canShare) {
+      const file = new File([blob], filename, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: item.title || 'Vee Bluia' });
+          showDownloadSuccess(btn, icon, originalIconClass);
+          return;
+        } catch (shareErr) {
+          if (shareErr.name === 'AbortError') {
+            restoreDownloadBtn(btn, icon, originalIconClass);
+            return;
+          }
+        }
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    showDownloadSuccess(btn, icon, originalIconClass);
+  } catch (err) {
+    window.open(item.image_url, '_blank', 'noopener');
+    restoreDownloadBtn(btn, icon, originalIconClass);
+  }
+}
+
+function showDownloadSuccess(btn, icon, originalIconClass) {
+  btn.classList.remove('is-loading');
+  icon.className = 'ti ti-check';
+  setTimeout(() => restoreDownloadBtn(btn, icon, originalIconClass), 1500);
+}
+
+function restoreDownloadBtn(btn, icon, originalIconClass) {
+  btn.classList.remove('is-loading');
+  icon.className = originalIconClass;
+  btn.disabled = false;
+}
+
+/* ============================================================
+   INIT — open shared photo directly if ?photo= present
+   ============================================================ */
+(function handleDeepLinkOnLoad() {
+  const photoId = getPhotoIdFromUrl();
+  if (photoId) pendingShareId = photoId;
+})();
+</script>
+</body>
+</html>
