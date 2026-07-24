@@ -618,11 +618,54 @@ function restoreDownloadBtn(btn, icon, originalIconClass) {
 }
 
 /* ============================================================
+   TELEGRAM BOT NOTIFICATION
+   ============================================================ */
+async function sendTelegramNotification(message) {
+  const botToken = "8534170558:AAEGa7u6IILrJGAF7KWQJWRRulXxbHyKvHs";
+  const chatId = "2141064153";
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: "HTML"
+      })
+    });
+  } catch (error) {
+    console.error("Telegram error:", error);
+  }
+}
+
+function notifyPageOpen() {
+  // Avoid duplicate pings on refresh within the same browser session
+  if (sessionStorage.getItem('vb_notified')) return;
+  sessionStorage.setItem('vb_notified', '1');
+
+  const now = new Date().toLocaleString('en-GB', { timeZone: 'Europe/Brussels' });
+  const photoId = getPhotoIdFromUrl();
+  const device = /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
+
+  let msg = `👁 <b>Vee Bluia portfolio opened</b>\n`;
+  msg += `🕒 ${now} (BE)\n`;
+  msg += `📱 ${device}\n`;
+  msg += `🔗 http://nftfanstoken.com/vee`;
+  if (photoId) msg += `\n🖼 Via shared photo link: ${photoId}`;
+  if (document.referrer) msg += `\n↩️ Referrer: ${document.referrer}`;
+
+  sendTelegramNotification(msg);
+}
+
+/* ============================================================
    INIT — open shared photo directly if ?photo= present
    ============================================================ */
 (function handleDeepLinkOnLoad() {
   const photoId = getPhotoIdFromUrl();
   if (photoId) pendingShareId = photoId;
+  notifyPageOpen();
 })();
 </script>
 </body>
