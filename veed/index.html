@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vee Bluia — Photo Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#0c0b0a;--surface:#141312;--line:#26231f;--ink:#e8e4de;--ink2:#8b857c;--accent:#c8440e;--danger:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'JetBrains Mono',monospace}
+body{background:var(--bg);color:var(--ink);min-height:100vh}
+header{padding:44px 20px 28px;text-align:center;border-bottom:1px solid var(--line)}
+h1{font-family:'Instrument Serif',serif;font-size:48px;font-weight:400}
+h1 span{color:var(--accent);font-style:italic}
+.sub{margin-top:8px;color:var(--ink2);font-size:10px;text-transform:uppercase;letter-spacing:.18em}
+.wrap{max-width:1100px;margin:auto;padding:28px 20px 60px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}
+.count{font-size:12px;color:var(--ink2)}
+.refresh{border:1px solid var(--line);background:transparent;color:var(--ink);padding:10px 16px;border-radius:999px;cursor:pointer}
+.refresh:hover{border-color:var(--accent);color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#090807}
+.info{padding:12px}
+.title{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);margin-bottom:10px}
+.delete{width:100%;padding:10px;border:1px solid #4a1b1b;background:transparent;color:#f87171;border-radius:7px;cursor:pointer;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.delete:hover{background:#3a1111;border-color:var(--danger);color:#fff}
+.state{text-align:center;padding:70px 20px;color:var(--ink2);grid-column:1/-1}
+.state i{font-size:40px;color:var(--ink3);display:block;margin-bottom:14px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.show{display:flex}
+.box{max-width:420px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px}
+.box h2{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;margin-bottom:8px}
+.box p{font-size:11px;color:var(--ink2);line-height:1.7;margin-bottom:20px}
+.actions{display:flex;gap:10px}
+.actions button{flex:1;padding:11px;border-radius:8px;cursor:pointer;font-weight:600}
+.cancel{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.confirm{background:var(--danger);color:white;border:1px solid var(--danger)}
+.toast{position:fixed;bottom:25px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--surface);border:1px solid var(--line);padding:12px 20px;border-radius:999px;font-size:11px;transition:.25s;z-index:20}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:800px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:40px}.wrap{padding:20px 12px 45px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Vee <span>Bluia</span></h1>
+  <div class="sub">Photo Manager — Delete Photos</div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar">
+    <div class="count" id="count">Loading photos…</div>
+    <button class="refresh" onclick="loadPhotos()"><i class="ti ti-refresh"></i> Refresh</button>
+  </div>
+  <div class="grid" id="grid">
+    <div class="state">Loading…</div>
+  </div>
+</main>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h2>Delete this photo?</h2>
+    <p id="modalText">This removes the photo record from the portfolio database. The action cannot be undone from this page.</p>
+    <div class="actions">
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="confirm" id="confirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBWPCkYNw7gT_T7kcwbp5laZgIHac18bvE",
+  authDomain: "expandlf.firebaseapp.com",
+  databaseURL: "https://expandlf-default-rtdb.firebaseio.com",
+  projectId: "expandlf",
+  storageBucket: "expandlf.firebasestorage.app",
+  messagingSenderId: "890066961009",
+  appId: "1:890066961009:web:3a2ed1e7c2cf797f3751d0",
+  measurementId: "G-QPRSX7ZVZ5"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const refPortfolio = db.ref('veebluia/portfolio');
+
+let photos = [];
+let pendingId = null;
+
+function escapeHtml(str){
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function loadPhotos(){
+  refPortfolio.once('value').then(snapshot=>{
+    const data = snapshot.val() || {};
+    photos = Object.keys(data).map(id=>({id,...data[id]}))
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
+    render();
+  }).catch(err=>{
+    document.getElementById('grid').innerHTML =
+      '<div class="state">Could not load photos.<br><small>'+escapeHtml(err.message)+'</small></div>';
+  });
+}
+
+function render(){
+  document.getElementById('count').textContent =
+    photos.length + (photos.length === 1 ? ' photo' : ' photos');
+
+  const grid = document.getElementById('grid');
+  if(!photos.length){
+    grid.innerHTML = '<div class="state"><i class="ti ti-photo-off"></i>No photos found.</div>';
+    return;
+  }
+
+  grid.innerHTML = photos.map(p=>`
+    <article class="card">
+      <img src="${escapeHtml(p.image_url || '')}" alt="${escapeHtml(p.title || 'Photo')}" loading="lazy">
+      <div class="info">
+        <div class="title">${escapeHtml(p.title || 'Untitled')}</div>
+        <button class="delete" onclick="askDelete('${escapeHtml(p.id)}')">
+          <i class="ti ti-trash"></i> Delete
+        </button>
+      </div>
+    </article>
+  `).join('');
+}
+
+function askDelete(id){
+  const p = photos.find(x=>x.id===id);
+  if(!p) return;
+  pendingId = id;
+  document.getElementById('modalText').textContent =
+    'Delete "' + (p.title || 'Untitled') + '" from the portfolio? This removes its Firebase database record.';
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+  pendingId = null;
+  document.getElementById('modal').classList.remove('show');
+}
+
+document.getElementById('confirmDelete').onclick = async ()=>{
+  if(!pendingId) return;
+  const id = pendingId;
+  const p = photos.find(x=>x.id===id);
+  closeModal();
+
+  try{
+    await refPortfolio.child(id).remove();
+    showToast('Photo deleted');
+    loadPhotos();
+  }catch(err){
+    showToast('Delete failed: ' + err.message);
+  }
+};
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+document.getElementById('modal').addEventListener('click', e=>{
+  if(e.target.id === 'modal') closeModal();
+});
+
+loadPhotos();
+</script>
+</body>
+</html>
