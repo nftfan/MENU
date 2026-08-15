@@ -1,3336 +1,3360 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8">
-
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
->
-
-<title>Vee Bluia — Portfolio</title>
-
-<link
-  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
-  rel="stylesheet"
->
-
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
->
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-<style>
-
-:root{
-  --bg:#0c0b0a;
-  --surface:#141312;
-  --surface2:#191816;
-  --line:#26231f;
-  --ink:#e8e4de;
-  --ink2:#8b857c;
-  --ink3:#57524b;
-  --accent:#c8440e;
-}
-
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'JetBrains Mono',monospace;
-}
-
-body{
-  background:var(--bg);
-  color:var(--ink);
-  line-height:1.5;
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
-  min-height:100dvh;
-}
-
-/* =========================================================
-   HERO
-   ========================================================= */
-
-.hero{
-  padding:64px 24px 48px;
-  text-align:center;
-  border-bottom:1px solid var(--line);
-}
-
-.hero-title{
-  font-family:'Instrument Serif',serif;
-  font-size:64px;
-  font-weight:400;
-  line-height:1;
-  margin-bottom:14px;
-}
-
-.hero-title span{
-  color:var(--accent);
-  font-style:italic;
-}
-
-.hero-subtitle{
-  font-size:11px;
-  color:var(--ink2);
-  text-transform:uppercase;
-  letter-spacing:.22em;
-}
-
-/* =========================================================
-   MAIN
-   ========================================================= */
-
-.main-container{
-  max-width:1100px;
-  margin:0 auto;
-  padding:36px 20px 70px;
-  flex:1;
-  width:100%;
-}
-
-.photo-grid{
-  columns:3;
-  column-gap:16px;
-}
-
-.photo-card{
-  break-inside:avoid;
-  margin-bottom:16px;
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:10px;
-  overflow:hidden;
-  cursor:zoom-in;
-  transition:.25s;
-}
-
-.photo-card:hover{
-  transform:translateY(-3px);
-  border-color:var(--ink3);
-}
-
-.photo-card img{
-  width:100%;
-  display:block;
-}
-
-.photo-title{
-  padding:12px 14px;
-  font-size:11px;
-  font-weight:500;
-  color:var(--ink2);
-  letter-spacing:.04em;
-  border-top:1px solid var(--line);
-}
-
-.magazine-card{
-  cursor:pointer;
-}
-
-.magazine-title-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-}
-
-.magazine-badge{
-  color:var(--accent);
-  font-size:9px;
-  text-transform:uppercase;
-  white-space:nowrap;
-}
-
-/* =========================================================
-   LOAD MORE
-   ========================================================= */
-
-.load-more-wrap{
-  text-align:center;
-  display:none;
-  margin-top:28px;
-}
-
-.btn-load-more{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:13px 30px;
-  background:transparent;
-  border:1px solid var(--line);
-  border-radius:99px;
-  font-size:11px;
-  font-weight:600;
-  color:var(--ink);
-  cursor:pointer;
-  transition:.2s;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-}
-
-.btn-load-more:hover{
-  border-color:var(--accent);
-  color:var(--accent);
-}
-
-/* =========================================================
-   STATE
-   ========================================================= */
-
-.state-box{
-  text-align:center;
-  padding:70px 20px;
-  color:var(--ink2);
-  column-span:all;
-}
-
-.state-box i{
-  font-size:40px;
-  color:var(--ink3);
-  margin-bottom:14px;
-  display:block;
-}
-
-.state-box h3{
-  font-family:'Instrument Serif',serif;
-  font-size:26px;
-  font-weight:400;
-  color:var(--ink);
-  margin-bottom:8px;
-}
-
-.state-box p{
-  font-size:12px;
-}
-
-@keyframes spin{
-  100%{
-    transform:rotate(360deg);
-  }
-}
-
-.spin{
-  animation:spin 1s linear infinite;
-  display:inline-block;
-}
-
-/* =========================================================
-   LIGHTBOX
-   ========================================================= */
-
-.lightbox-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(6,5,4,.94);
-  z-index:9999;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-  align-items:center;
-  justify-content:center;
-  padding:12px;
-}
-
-.lightbox-overlay.active{
-  display:flex;
-}
-
-.lightbox-shell{
-  position:relative;
-  width:100%;
-  max-width:560px;
-  height:92vh;
-  height:92dvh;
-  display:flex;
-  flex-direction:column;
-  border-radius:16px;
-  overflow:hidden;
-  background:var(--surface);
-  border:1px solid var(--line);
-  box-shadow:0 32px 80px rgba(0,0,0,.7);
-}
-
-/* =========================================================
-   TOP BAR
-   ========================================================= */
-
-.lb-topbar{
-  flex-shrink:0;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:12px 16px;
-  border-bottom:1px solid var(--line);
-  gap:10px;
-}
-
-.lb-title{
-  font-size:12px;
-  font-weight:600;
-  color:var(--ink);
-  letter-spacing:.04em;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.lb-close{
-  flex-shrink:0;
-  width:32px;
-  height:32px;
-  background:transparent;
-  border:1px solid var(--line);
-  border-radius:50%;
-  color:var(--ink);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:18px;
-  cursor:pointer;
-}
-
-.lb-close:hover{
-  border-color:var(--accent);
-  color:var(--accent);
-}
-
-/* =========================================================
-   LIGHTBOX BODY
-   ========================================================= */
-
-.lb-body{
-  flex:1;
-  min-height:0;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
-  padding:8px;
-}
-
-.lb-body::-webkit-scrollbar{
-  width:4px;
-}
-
-.lb-body::-webkit-scrollbar-thumb{
-  background:var(--line);
-}
-
-.normal-photo-view{
-  text-align:center;
-}
-
-.normal-photo-view img{
-  display:block;
-  width:100%;
-  height:auto;
-  border-radius:6px;
-}
-
-/* =========================================================
-   NORMAL PHOTO NAVIGATION
-   ========================================================= */
-
-.lb-nav{
-  flex-shrink:0;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:10px 12px;
-  border-top:1px solid var(--line);
-}
-
-.lb-nav-btn{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--ink);
-  padding:7px 16px;
-  border-radius:99px;
-  font-size:11px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  cursor:pointer;
-}
-
-.lb-nav-btn:hover:not(:disabled){
-  border-color:var(--accent);
-  color:var(--accent);
-}
-
-.lb-nav-btn:disabled{
-  opacity:.25;
-  cursor:not-allowed;
-}
-
-.lb-nav-center{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.lb-nav-counter{
-  font-size:11px;
-  color:var(--ink3);
-  font-weight:500;
-}
-
-.lb-action-btn{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:34px;
-  height:34px;
-  background:var(--accent);
-  border:none;
-  color:#fff;
-  border-radius:50%;
-  cursor:pointer;
-}
-
-.lb-action-btn:hover{
-  background:#a8370a;
-}
-
-.lb-action-btn:disabled{
-  opacity:.4;
-  cursor:not-allowed;
-}
-
-.lb-share-btn{
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--ink);
-}
-
-.lb-share-btn:hover{
-  background:transparent;
-  border-color:var(--accent);
-  color:var(--accent);
-}
-
-/* =========================================================
-   MAGAZINE PREVIEW
-   ========================================================= */
-
-.magazine-view{
-  display:none;
-}
-
-.magazine-view.active{
-  display:block;
-}
-
-.magazine-cover-wrap{
-  padding:8px 4px 16px;
-}
-
-.magazine-cover{
-  display:block;
-  width:100%;
-  height:auto;
-  border-radius:7px;
-}
-
-.magazine-heading{
-  padding:0 4px 14px;
-}
-
-.magazine-heading h2{
-  font-family:'Instrument Serif',serif;
-  font-size:30px;
-  font-weight:400;
-  line-height:1.1;
-  margin-bottom:6px;
-}
-
-.magazine-heading p{
-  font-size:10px;
-  color:var(--ink2);
-}
-
-/* =========================================================
-   MAGAZINE PAGE GRID
-   ========================================================= */
-
-.magazine-pages-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:8px;
-  padding:0 4px;
-}
-
-.magazine-page-card{
-  background:var(--surface2);
-  border:1px solid var(--line);
-  border-radius:7px;
-  overflow:hidden;
-  cursor:zoom-in;
-  transition:.2s;
-}
-
-.magazine-page-card:hover{
-  border-color:var(--accent);
-  transform:translateY(-2px);
-}
-
-.magazine-page-card img{
-  width:100%;
-  display:block;
-}
-
-.magazine-page-name{
-  padding:7px 8px;
-  color:var(--ink3);
-  font-size:8px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-/* =========================================================
-   MAGAZINE SHOW MORE
-   ========================================================= */
-
-.magazine-more{
-  text-align:center;
-  padding:16px 4px 4px;
-}
-
-.magazine-more button{
-  padding:9px 18px;
-  border:1px solid var(--line);
-  border-radius:99px;
-  background:transparent;
-  color:var(--ink);
-  font-size:9px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  cursor:pointer;
-}
-
-.magazine-more button:hover{
-  color:var(--accent);
-  border-color:var(--accent);
-}
-
-/* =========================================================
-   BUY MAGAZINE
-   ========================================================= */
-
-.magazine-buy-box{
-  margin:18px 4px 10px;
-  padding:20px;
-  text-align:center;
-  border:1px solid var(--line);
-  border-radius:10px;
-  background:var(--surface2);
-}
-
-.magazine-buy-title{
-  font-family:'Instrument Serif',serif;
-  font-size:27px;
-  margin-bottom:8px;
-}
-
-.magazine-buy-text{
-  color:var(--ink2);
-  font-size:10px;
-  line-height:1.7;
-  margin-bottom:16px;
-}
-
-.magazine-buy-text strong{
-  color:var(--ink);
-}
-
-.buy-magazine-btn{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  width:100%;
-  padding:14px 18px;
-  border-radius:99px;
-  background:var(--accent);
-  color:#fff;
-  text-decoration:none;
-  font-size:10px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.1em;
-}
-
-.buy-magazine-btn:hover{
-  background:#a8370a;
-}
-
-.magazine-payment-note{
-  text-align:center;
-  color:var(--ink3);
-  font-size:9px;
-  line-height:1.7;
-  padding:8px 4px 18px;
-}
-
-/* =========================================================
-   MAGAZINE PAGE FULL VIEW
-   ========================================================= */
-
-.magazine-single-page{
-  display:none;
-}
-
-.magazine-single-page.active{
-  display:block;
-}
-
-.magazine-single-page img{
-  display:block;
-  width:100%;
-  height:auto;
-  border-radius:6px;
-}
-
-/* =========================================================
-   TOAST
-   ========================================================= */
-
-.lb-toast{
-  position:fixed;
-  bottom:26px;
-  left:50%;
-  transform:translateX(-50%) translateY(20px);
-  background:var(--surface);
-  border:1px solid var(--line);
-  color:var(--ink);
-  padding:12px 22px;
-  border-radius:99px;
-  font-size:12px;
-  font-weight:600;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  box-shadow:0 12px 30px rgba(0,0,0,.5);
-  opacity:0;
-  pointer-events:none;
-  transition:.25s;
-  z-index:10001;
-}
-
-.lb-toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-
-.lb-toast i{
-  color:#4ade80;
-  font-size:17px;
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.footer{
-  text-align:center;
-  padding:22px;
-  border-top:1px solid var(--line);
-  color:var(--ink3);
-  font-size:11px;
-  margin-top:auto;
-  letter-spacing:.06em;
-}
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media(max-width:767px){
-
-  .hero{
-    padding:44px 16px 34px;
-  }
-
-  .hero-title{
-    font-size:44px;
-  }
-
-  .hero-subtitle{
-    font-size:9px;
-  }
-
-  .main-container{
-    padding:20px 12px 56px;
-  }
-
-  .photo-grid{
-    columns:2;
-    column-gap:10px;
-  }
-
-  .photo-card{
-    margin-bottom:10px;
-    border-radius:8px;
-  }
-
-  .photo-title{
-    padding:8px 10px;
-    font-size:9px;
-  }
-
-  .lightbox-overlay{
-    padding:8px;
-  }
-
-  .lightbox-shell{
-    max-width:94vw;
-    height:90vh;
-    height:90dvh;
-    border-radius:12px;
-  }
-
-  .lb-topbar{
-    padding:10px 12px;
-  }
-
-  .lb-title{
-    font-size:11px;
-  }
-
-  .lb-nav{
-    padding:8px 10px;
-  }
-
-  .lb-nav-btn{
-    padding:6px 12px;
-    font-size:10px;
-  }
-
-  .lb-action-btn{
-    width:32px;
-    height:32px;
-  }
-
-  .lb-body{
-    padding:6px;
-  }
-
-  .magazine-pages-grid{
-    gap:6px;
-  }
-
-}
-
-/* =========================================================
-   SMALL HEIGHT
-   ========================================================= */
-
-@media(max-height:640px){
-
-  .lightbox-shell{
-    height:94vh;
-    height:94dvh;
-  }
-
-}
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fff7fb" />
+  <meta name="description" content="Vee Bluia digital fashion magazines. Preview selected pages and collect the full edition." />
+  <title>Vee Bluia — Digital Magazines</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --pink-50: #fff7fb;
+      --pink-75: #fff1f8;
+      --pink-100: #ffe6f2;
+      --pink-200: #ffc9e2;
+      --pink-300: #ff9fca;
+      --pink-400: #f56aab;
+      --pink-500: #e94091;
+      --pink-600: #cc2778;
+      --pink-700: #a91f63;
+      --rose-deep: #4c1633;
+      --ink: #24151d;
+      --muted: #7d6672;
+      --muted-2: #aa8f9c;
+      --surface: #ffffff;
+      --surface-soft: #fffafd;
+      --line: #f2dce7;
+      --success: #16845d;
+      --shadow-sm: 0 8px 28px rgba(111, 35, 73, 0.08);
+      --shadow-md: 0 20px 55px rgba(111, 35, 73, 0.14);
+      --shadow-lg: 0 32px 90px rgba(71, 22, 48, 0.2);
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
+      --radius-xl: 36px;
+      --container: 1180px;
+      --header-h: 72px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--pink-50);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255, 191, 219, .34), transparent 26rem),
+        radial-gradient(circle at 90% 10%, rgba(255, 231, 243, .75), transparent 28rem),
+        linear-gradient(180deg, #fffafd 0%, #fff7fb 38%, #ffffff 100%);
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    button,
+    a,
+    input {
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .container {
+      width: min(100% - 40px, var(--container));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--header-h);
+      border-bottom: 1px solid rgba(226, 184, 204, .64);
+      background: rgba(255, 250, 253, .86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .header-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+      box-shadow: 0 8px 22px rgba(233, 64, 145, .25);
+      font-family: "Playfair Display", serif;
+      font-size: 18px;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+
+    .brand-copy {
+      min-width: 0;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: "Playfair Display", serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+    }
+
+    .brand-label {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-link {
+      padding: 10px 12px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 999px;
+      transition: .2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--pink-700);
+      background: var(--pink-75);
+    }
+
+    .header-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 0 17px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .header-cta:hover {
+      transform: translateY(-1px);
+      background: var(--pink-600);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 76px 0 56px;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      filter: blur(2px);
+    }
+
+    .hero::before {
+      width: 280px;
+      height: 280px;
+      right: -110px;
+      top: 20px;
+      background: radial-gradient(circle, rgba(255, 175, 211, .35), transparent 70%);
+    }
+
+    .hero::after {
+      width: 200px;
+      height: 200px;
+      left: -100px;
+      bottom: -40px;
+      background: radial-gradient(circle, rgba(244, 105, 171, .18), transparent 70%);
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, .75fr);
+      gap: 68px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--pink-200);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .72);
+      color: var(--pink-700);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      box-shadow: 0 8px 20px rgba(111, 35, 73, .05);
+    }
+
+    .eyebrow i {
+      font-size: 15px;
+    }
+
+    .hero-title {
+      max-width: 740px;
+      margin-top: 21px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(48px, 7vw, 88px);
+      line-height: .98;
+      letter-spacing: -.045em;
+      font-weight: 700;
+    }
+
+    .hero-title em {
+      color: var(--pink-500);
+      font-weight: 600;
+    }
+
+    .hero-copy {
+      max-width: 600px;
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.75;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      min-height: 50px;
+      padding: 0 21px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--pink-500), var(--pink-600));
+      color: #fff;
+      box-shadow: 0 14px 34px rgba(220, 48, 132, .28);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 18px 40px rgba(220, 48, 132, .34);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--pink-200);
+      background: rgba(255, 255, 255, .78);
+      color: var(--ink);
+    }
+
+    .hero-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 22px;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .trust-item i {
+      color: var(--pink-500);
+      font-size: 16px;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 530px;
+      display: grid;
+      place-items: center;
+    }
+
+    .hero-card {
+      position: relative;
+      width: min(100%, 380px);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      background: rgba(255, 255, 255, .82);
+      border: 1px solid rgba(242, 203, 222, .86);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 18px -18px -18px 18px;
+      z-index: -1;
+      border-radius: inherit;
+      background: linear-gradient(145deg, #ffd3e8, #f7acd0);
+      opacity: .65;
+      transform: rotate(3deg);
+    }
+
+    .featured-cover-wrap {
+      position: relative;
+      aspect-ratio: 3 / 4.15;
+      overflow: hidden;
+      border-radius: 23px;
+      background: linear-gradient(145deg, var(--pink-100), #f8c5de);
+    }
+
+    .featured-cover {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .featured-placeholder {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      text-align: center;
+      color: var(--pink-700);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.3), transparent),
+        linear-gradient(145deg, #ffdceb, #f6b6d5);
+    }
+
+    .featured-placeholder i {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 44px;
+    }
+
+    .featured-cover[hidden],
+    .featured-placeholder[hidden],
+    .card-image-placeholder[hidden] {
+      display: none !important;
+    }
+
+    .card-image-placeholder {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+      color: var(--pink-700);
+      background: linear-gradient(145deg, #ffdceb, #f6b6d5);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .card-image-placeholder i {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .featured-badge {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      min-height: 29px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .92);
+      color: var(--pink-700);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      box-shadow: 0 8px 20px rgba(78, 22, 49, .1);
+    }
+
+    .hero-card-meta {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 4px 3px;
+    }
+
+    .featured-kicker {
+      color: var(--pink-600);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .featured-title {
+      margin-top: 4px;
+      font-family: "Playfair Display", serif;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+    }
+
+    .mini-round-btn {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      cursor: pointer;
+      font-size: 20px;
+      transition: .2s ease;
+    }
+
+    .mini-round-btn:hover {
+      background: var(--pink-600);
+      transform: translateY(-2px);
+    }
+
+    .benefits {
+      padding: 0 0 24px;
+    }
+
+    .benefit-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,.72);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .benefit {
+      min-height: 116px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .benefit + .benefit {
+      border-left: 1px solid var(--line);
+    }
+
+    .benefit-icon {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: var(--pink-600);
+      background: var(--pink-75);
+      font-size: 21px;
+    }
+
+    .benefit h3 {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .benefit p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .shop-section {
+      padding: 76px 0 92px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 32px;
+    }
+
+    .section-kicker {
+      color: var(--pink-600);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      margin-top: 8px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(36px, 5vw, 54px);
+      line-height: 1.03;
+      letter-spacing: -.035em;
+    }
+
+    .section-copy {
+      max-width: 470px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .catalog-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+    }
+
+    .catalog-count {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .catalog-count strong {
+      color: var(--ink);
+    }
+
+    .sort-select {
+      min-height: 40px;
+      padding: 0 34px 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      color: var(--ink);
+      background: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .magazine-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .magazine-card {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 10px 30px rgba(93, 27, 61, .07);
+      transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease;
+    }
+
+    .magazine-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--pink-200);
+      box-shadow: var(--shadow-md);
+    }
+
+    .cover-button {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4.05;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--pink-75);
+      border: 0;
+    }
+
+    .cover-button img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      transition: transform .45s ease;
+    }
+
+    .magazine-card:hover .cover-button img {
+      transform: scale(1.025);
+    }
+
+    .cover-gradient {
+      position: absolute;
+      inset: auto 0 0;
+      height: 30%;
+      background: linear-gradient(transparent, rgba(34, 17, 26, .45));
+      pointer-events: none;
+    }
+
+    .issue-pill {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      min-height: 30px;
+      padding: 0 11px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      color: var(--pink-700);
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 8px 18px rgba(65, 19, 42, .1);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .preview-fab {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      min-height: 37px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.94);
+      color: var(--ink);
+      box-shadow: 0 8px 24px rgba(40, 16, 29, .16);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .card-body {
+      padding: 18px 18px 19px;
+    }
+
+    .card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "Playfair Display", serif;
+      font-size: 23px;
+      line-height: 1.2;
+      letter-spacing: -.02em;
+    }
+
+    .card-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .card-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+      margin-top: 17px;
+    }
+
+    .card-btn {
+      min-height: 43px;
+      padding: 0 15px;
+      border-radius: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 800;
+      transition: .2s ease;
+    }
+
+    .card-btn-preview {
+      color: var(--pink-700);
+      background: var(--pink-75);
+      border: 1px solid var(--pink-100);
+    }
+
+    .card-btn-preview:hover {
+      background: var(--pink-100);
+    }
+
+    .card-btn-buy {
+      min-width: 104px;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .card-btn-buy:hover {
+      background: var(--pink-600);
+    }
+
+    .state-card {
+      grid-column: 1 / -1;
+      padding: 64px 24px;
+      border: 1px dashed var(--pink-200);
+      border-radius: var(--radius-lg);
+      text-align: center;
+      background: rgba(255,255,255,.6);
+      color: var(--muted);
+    }
+
+    .state-card i {
+      display: inline-grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 13px;
+      border-radius: 16px;
+      background: var(--pink-75);
+      color: var(--pink-500);
+      font-size: 25px;
+    }
+
+    .state-card h3 {
+      color: var(--ink);
+      font-family: "Playfair Display", serif;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .state-card p {
+      max-width: 470px;
+      margin: 8px auto 0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .spin {
+      animation: spin .9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .how-it-works {
+      padding: 0 0 90px;
+    }
+
+    .steps-card {
+      padding: 34px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255, 231, 243, .88), rgba(255,255,255,.92)),
+        #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .steps-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .steps-title {
+      font-family: "Playfair Display", serif;
+      font-size: 38px;
+      letter-spacing: -.03em;
+    }
+
+    .steps-note {
+      max-width: 430px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .step {
+      min-height: 175px;
+      padding: 22px;
+      border-radius: 21px;
+      border: 1px solid rgba(239, 206, 222, .85);
+      background: rgba(255,255,255,.74);
+    }
+
+    .step-number {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--pink-500);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .step h3 {
+      margin-top: 17px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .step p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .social-section {
+      padding: 0 0 72px;
+    }
+
+    .social-card {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+      gap: 36px;
+      align-items: center;
+      padding: 34px;
+      border: 1px solid var(--pink-200);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(255, 155, 200, .23), transparent 24rem),
+        linear-gradient(135deg, #fffafd, #fff0f8);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .social-card::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      right: -70px;
+      bottom: -100px;
+      border-radius: 50%;
+      background: rgba(233, 64, 145, .10);
+      pointer-events: none;
+    }
+
+    .social-kicker {
+      color: var(--pink-600);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .social-title {
+      margin-top: 8px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(32px, 4vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -.035em;
+    }
+
+    .social-copy {
+      margin-top: 12px;
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .social-links-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .social-link-card {
+      min-width: 0;
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 14px;
+      border: 1px solid rgba(236, 192, 213, .9);
+      border-radius: 19px;
+      background: rgba(255,255,255,.82);
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(111, 35, 73, .05);
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .social-link-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--pink-300);
+      box-shadow: 0 12px 30px rgba(111, 35, 73, .10);
+    }
+
+    .social-icon {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+      font-size: 21px;
+    }
+
+    .social-link-label {
+      min-width: 0;
+    }
+
+    .social-link-label strong {
+      display: block;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .social-link-label span {
+      display: block;
+      margin-top: 4px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .site-footer {
+      padding: 38px 0 max(38px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      background: rgba(255,255,255,.74);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .footer-copy {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .footer-links a:hover {
+      color: var(--pink-600);
+    }
+
+    /* =========================
+       PREVIEW MODAL
+       ========================= */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(49, 19, 35, .58);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-shell {
+      width: min(100%, 1040px);
+      max-height: min(900px, calc(100dvh - 40px));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 30px;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.8);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-topbar {
+      min-height: 68px;
+      padding: 12px 16px 12px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.96);
+    }
+
+    .modal-title-wrap {
+      min-width: 0;
+    }
+
+    .modal-kicker {
+      color: var(--pink-600);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .modal-title {
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "Playfair Display", serif;
+      font-size: 20px;
+      line-height: 1.15;
+    }
+
+    .modal-close {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--pink-75);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 19px;
+      transition: .2s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--pink-100);
+      color: var(--pink-700);
+    }
+
+    .modal-scroll {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-content {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 34px;
+      padding: 28px;
+    }
+
+    .modal-cover-column {
+      align-self: start;
+      position: sticky;
+      top: 28px;
+    }
+
+    .modal-cover-frame {
+      overflow: hidden;
+      aspect-ratio: 3 / 4.1;
+      border-radius: 22px;
+      background: var(--pink-75);
+      box-shadow: var(--shadow-md);
+    }
+
+    .modal-cover-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-summary {
+      margin-top: 19px;
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--pink-50);
+      border: 1px solid var(--pink-100);
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .summary-row + .summary-row {
+      margin-top: 10px;
+    }
+
+    .summary-row strong {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .modal-buy-btn {
+      width: 100%;
+      min-height: 51px;
+      margin-top: 12px;
+      border-radius: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--pink-500), var(--pink-600));
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 12px 26px rgba(223, 54, 134, .24);
+      transition: .2s ease;
+    }
+
+    .modal-buy-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 15px 30px rgba(223, 54, 134, .3);
+    }
+
+    .delivery-note {
+      margin-top: 10px;
+      padding: 11px 12px;
+      border: 1px solid rgba(223, 54, 134, .14);
+      border-radius: 13px;
+      background: rgba(255, 240, 247, .72);
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.55;
+      text-align: left;
+    }
+
+    .delivery-note strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .delivery-note i {
+      margin-right: 4px;
+      color: var(--pink-600);
+    }
+
+    .preview-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .preview-heading h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: -.03em;
+    }
+
+    .preview-heading p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .preview-count {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: var(--pink-700);
+      background: var(--pink-75);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .page-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .page-card {
+      overflow: hidden;
+      border-radius: 16px;
+      background: var(--pink-50);
+      border: 1px solid var(--line);
+      cursor: zoom-in;
+      transition: .2s ease;
+    }
+
+    .page-card:hover {
+      border-color: var(--pink-200);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .page-card img {
+      width: 100%;
+      aspect-ratio: 3 / 4.1;
+      object-fit: cover;
+    }
+
+    .page-name {
+      padding: 9px 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .show-more-wrap {
+      display: none;
+      margin-top: 18px;
+      text-align: center;
+    }
+
+    .show-more-btn {
+      min-height: 42px;
+      padding: 0 17px;
+      border-radius: 999px;
+      border: 1px solid var(--pink-200);
+      background: #fff;
+      color: var(--pink-700);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .show-more-btn:hover {
+      background: var(--pink-75);
+    }
+
+    .empty-preview {
+      grid-column: 1 / -1;
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--pink-200);
+      border-radius: 16px;
+      background: var(--pink-50);
+      font-size: 10px;
+      line-height: 1.65;
+    }
+
+    /* =========================
+       PAGE ZOOM
+       ========================= */
+
+    .page-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(36, 17, 27, .92);
+    }
+
+    .page-viewer.active {
+      display: flex;
+    }
+
+    .page-viewer img {
+      max-width: min(760px, 95vw);
+      max-height: calc(100dvh - 32px);
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 25px 70px rgba(0,0,0,.45);
+    }
+
+    .viewer-close {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top));
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.22);
+      cursor: pointer;
+      font-size: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* =========================
+       TOAST
+       ========================= */
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 1400;
+      max-width: calc(100vw - 30px);
+      padding: 11px 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--ink);
+      box-shadow: 0 14px 34px rgba(41, 17, 29, .25);
+      font-size: 10px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 16px);
+      transition: .25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .toast i {
+      color: #ff9fca;
+      font-size: 16px;
+    }
+
+    /* =========================
+       MOBILE
+       ========================= */
+
+    @media (max-width: 980px) {
+      .hero-grid {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 40px;
+      }
+
+      .hero-visual {
+        min-height: 460px;
+      }
+
+      .magazine-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .modal-content {
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 24px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      :root {
+        --header-h: 64px;
+      }
+
+      .container {
+        width: min(100% - 28px, var(--container));
+      }
+
+      .site-header {
+        padding-top: env(safe-area-inset-top);
+        height: calc(var(--header-h) + env(safe-area-inset-top));
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+      }
+
+      .brand-name {
+        font-size: 19px;
+      }
+
+      .brand-label {
+        display: none;
+      }
+
+      .nav-link {
+        display: none;
+      }
+
+      .header-cta {
+        min-height: 38px;
+        padding: 0 13px;
+        font-size: 10px;
+      }
+
+      .hero {
+        padding: 46px 0 35px;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 34px;
+      }
+
+      .eyebrow {
+        min-height: 30px;
+        font-size: 8px;
+      }
+
+      .hero-title {
+        margin-top: 17px;
+        font-size: clamp(45px, 14.8vw, 66px);
+      }
+
+      .hero-copy {
+        margin-top: 18px;
+        font-size: 14px;
+        line-height: 1.68;
+      }
+
+      .hero-actions {
+        margin-top: 23px;
+      }
+
+      .btn {
+        min-height: 48px;
+        padding: 0 18px;
+        font-size: 11px;
+      }
+
+      .hero-trust {
+        margin-top: 22px;
+        gap: 11px 16px;
+        font-size: 9px;
+      }
+
+      .hero-visual {
+        min-height: 0;
+        padding: 5px 0 20px;
+      }
+
+      .hero-card {
+        width: min(88vw, 355px);
+        padding: 15px;
+        border-radius: 28px;
+      }
+
+      .hero-card::before {
+        inset: 13px -10px -12px 13px;
+      }
+
+      .featured-cover-wrap {
+        border-radius: 18px;
+      }
+
+      .hero-card-meta {
+        padding: 15px 4px 2px;
+      }
+
+      .featured-title {
+        font-size: 21px;
+      }
+
+      .mini-round-btn {
+        width: 42px;
+        height: 42px;
+      }
+
+      .benefit-strip {
+        grid-template-columns: 1fr;
+        border-radius: 22px;
+      }
+
+      .benefit {
+        min-height: 0;
+        padding: 18px;
+      }
+
+      .benefit + .benefit {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .shop-section {
+        padding: 58px 0 70px;
+      }
+
+      .section-head,
+      .steps-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .section-title {
+        font-size: 40px;
+      }
+
+      .section-copy {
+        font-size: 12px;
+      }
+
+      .catalog-toolbar {
+        padding: 11px;
+      }
+
+      .catalog-count {
+        font-size: 10px;
+      }
+
+      .sort-select {
+        max-width: 145px;
+      }
+
+      .magazine-grid {
+        grid-template-columns: 1fr;
+        gap: 19px;
+      }
+
+      .magazine-card {
+        border-radius: 23px;
+      }
+
+      .cover-button {
+        aspect-ratio: 3 / 3.9;
+      }
+
+      .card-body {
+        padding: 16px;
+      }
+
+      .card-title {
+        font-size: 24px;
+      }
+
+      .how-it-works {
+        padding-bottom: 68px;
+      }
+
+      .steps-card {
+        padding: 24px 18px;
+        border-radius: 26px;
+      }
+
+      .steps-title {
+        font-size: 33px;
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        min-height: 0;
+      }
+
+      .social-section {
+        padding-bottom: 52px;
+      }
+
+      .social-card {
+        grid-template-columns: 1fr;
+        gap: 23px;
+        padding: 24px 18px;
+        border-radius: 26px;
+      }
+
+      .social-title {
+        font-size: 36px;
+      }
+
+      .social-links-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .social-link-card {
+        min-height: 68px;
+      }
+
+      .footer-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .modal-shell {
+        width: 100%;
+        height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+        max-height: none;
+        border-radius: 26px 26px 0 0;
+        border-bottom: 0;
+      }
+
+      .modal-topbar {
+        min-height: 62px;
+        padding: 10px 12px 10px 17px;
+      }
+
+      .modal-title {
+        font-size: 18px;
+      }
+
+      .modal-content {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        padding: 18px 14px calc(30px + env(safe-area-inset-bottom));
+      }
+
+      .modal-cover-column {
+        position: static;
+      }
+
+      .modal-cover-frame {
+        width: min(76vw, 330px);
+        margin-inline: auto;
+        border-radius: 18px;
+      }
+
+      .product-summary {
+        margin-top: 16px;
+      }
+
+      .preview-heading h2 {
+        font-size: 29px;
+      }
+
+      .page-grid {
+        gap: 9px;
+      }
+
+      .page-card {
+        border-radius: 12px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .container {
+        width: min(100% - 22px, var(--container));
+      }
+
+      .header-cta span {
+        display: none;
+      }
+
+      .header-cta {
+        width: 38px;
+        padding: 0;
+      }
+
+      .hero-title {
+        font-size: 44px;
+      }
+
+      .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .catalog-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .sort-select {
+        width: 100%;
+        max-width: none;
+      }
+
+      .page-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+
+    /* =========================================================
+       MOBILE-FIRST SIMPLIFIED STOREFRONT OVERRIDES
+       The phone layout is the primary experience.
+       ========================================================= */
+
+    :root {
+      --container: 960px;
+      --header-h: 64px;
+    }
+
+    body {
+      background: #fff9fc;
+    }
+
+    .container {
+      width: min(100% - 28px, var(--container));
+    }
+
+    .site-header {
+      height: var(--header-h);
+      background: rgba(255, 249, 252, .92);
+      box-shadow: none;
+    }
+
+    .header-inner {
+      min-height: var(--header-h);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    .brand-name { font-size: 20px; }
+    .brand-label { font-size: 8px; }
+
+    .header-actions { gap: 18px; }
+    .nav-link { font-size: 11px; }
+
+    .header-cta {
+      min-height: 38px;
+      padding: 0 14px;
+      background: var(--pink-500);
+      font-size: 10px;
+      box-shadow: none;
+    }
+
+    .hero {
+      padding: 48px 0 34px;
+    }
+
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 46px;
+      max-width: 900px;
+      margin-inline: auto;
+    }
+
+    .hero-title {
+      margin-top: 14px;
+      max-width: 560px;
+      font-size: clamp(48px, 6vw, 72px);
+      line-height: .98;
+    }
+
+    .hero-copy {
+      max-width: 500px;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+
+    .hero-actions {
+      margin-top: 22px;
+    }
+
+    .hero-visual {
+      min-height: 0;
+    }
+
+    .hero-card {
+      width: 100%;
+      max-width: 300px;
+      padding: 12px;
+      border-radius: 24px;
+      box-shadow: 0 16px 40px rgba(90, 34, 61, .12);
+    }
+
+    .hero-card::before { display: none; }
+    .featured-cover-wrap { border-radius: 15px; }
+    .hero-card-meta { padding: 13px 3px 2px; }
+    .featured-title { font-size: 19px; }
+
+    .shop-section {
+      padding: 42px 0 64px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      margin-bottom: 17px;
+    }
+
+    .section-title {
+      font-size: 40px;
+    }
+
+    .section-copy {
+      max-width: 260px;
+      font-size: 11px;
+    }
+
+    .catalog-toolbar {
+      margin-bottom: 18px;
+      padding: 9px 10px;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .sort-select {
+      min-height: 36px;
+      border-radius: 10px;
+    }
+
+    .magazine-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .magazine-card {
+      border-radius: 18px;
+      box-shadow: none;
+      background: #fff;
+    }
+
+    .magazine-card:hover {
+      transform: none;
+      box-shadow: 0 10px 30px rgba(93, 27, 61, .07);
+    }
+
+    .cover-button {
+      aspect-ratio: 3 / 4.1;
+    }
+
+    .issue-pill {
+      top: 10px;
+      left: 10px;
+      min-height: 25px;
+      padding: 0 8px;
+      font-size: 7px;
+    }
+
+    .preview-fab {
+      right: 10px;
+      bottom: 10px;
+      min-height: 31px;
+      padding: 0 10px;
+      font-size: 8px;
+    }
+
+    .card-body {
+      padding: 13px;
+    }
+
+    .card-title {
+      font-size: 19px;
+    }
+
+    .card-meta {
+      margin-top: 5px;
+      font-size: 9px;
+    }
+
+    .card-actions {
+      grid-template-columns: 1fr;
+      margin-top: 11px;
+    }
+
+    .card-btn-buy {
+      width: 100%;
+      min-width: 0;
+      min-height: 39px;
+      border-radius: 11px;
+      background: var(--pink-500);
+    }
+
+    .social-section {
+      padding: 0 0 44px;
+    }
+
+    .social-card {
+      display: block;
+      padding: 25px;
+      border-radius: 22px;
+      box-shadow: none;
+      background: #fff0f7;
+    }
+
+    .social-title {
+      margin-top: 5px;
+      font-size: 34px;
+    }
+
+    .social-copy {
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .social-links-grid {
+      margin-top: 20px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .social-link-card {
+      min-height: 74px;
+      padding: 10px;
+      border-radius: 14px;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .social-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 17px;
+    }
+
+    .social-link-label span {
+      display: none;
+    }
+
+    .site-footer {
+      padding: 22px 0 calc(22px + env(safe-area-inset-bottom));
+    }
+
+    .footer-inner {
+      gap: 12px;
+    }
+
+    .footer-copy,
+    .footer-links {
+      font-size: 9px;
+    }
+
+    .modal-shell {
+      max-width: 860px;
+    }
+
+    .modal-content {
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 760px) {
+      :root { --header-h: 58px; }
+
+      .container {
+        width: min(100% - 20px, var(--container));
+      }
+
+      .site-header {
+        height: calc(var(--header-h) + env(safe-area-inset-top));
+      }
+
+      .header-inner {
+        min-height: var(--header-h);
+      }
+
+      .brand-mark {
+        width: 31px;
+        height: 31px;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+
+      .brand-name { font-size: 17px; }
+      .brand-label { display: none; }
+      .nav-link { display: none; }
+
+      .header-cta {
+        min-height: 34px;
+        padding: 0 11px;
+        border-radius: 999px;
+      }
+
+      .hero {
+        padding: 25px 0 27px;
+      }
+
+      .hero::before,
+      .hero::after {
+        display: none;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .hero-grid > div:first-child {
+        text-align: center;
+      }
+
+      .eyebrow {
+        min-height: 27px;
+        padding: 0 10px;
+        font-size: 7px;
+      }
+
+      .hero-title {
+        margin-top: 11px;
+        font-size: clamp(36px, 11.5vw, 48px);
+        line-height: 1;
+      }
+
+      .hero-copy {
+        max-width: 350px;
+        margin: 12px auto 0;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .btn {
+        min-height: 43px;
+        padding: 0 10px;
+        font-size: 9px;
+      }
+
+      .hero-visual {
+        order: -1;
+        padding: 0;
+      }
+
+      .hero-card {
+        width: min(64vw, 245px);
+        margin-inline: auto;
+        padding: 9px;
+        border-radius: 20px;
+      }
+
+      .featured-cover-wrap {
+        border-radius: 13px;
+      }
+
+      .featured-badge {
+        top: 8px;
+        left: 8px;
+        min-height: 24px;
+        padding: 0 8px;
+        font-size: 7px;
+      }
+
+      .hero-card-meta {
+        padding: 10px 2px 0;
+      }
+
+      .featured-kicker { font-size: 7px; }
+      .featured-title { font-size: 16px; }
+      .mini-round-btn { width: 34px; height: 34px; }
+
+      .shop-section {
+        padding: 32px 0 46px;
+      }
+
+      .section-head {
+        display: block;
+        margin-bottom: 13px;
+      }
+
+      .section-kicker { font-size: 7px; }
+      .section-title { margin-top: 3px; font-size: 31px; }
+      .section-copy { margin-top: 5px; font-size: 10px; }
+
+      .catalog-toolbar {
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 7px 8px;
+      }
+
+      .catalog-count {
+        gap: 5px;
+        font-size: 8px;
+      }
+
+      .sort-select {
+        width: 116px;
+        min-height: 32px;
+        padding-left: 8px;
+        font-size: 8px;
+      }
+
+      .magazine-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .magazine-card {
+        border-radius: 13px;
+      }
+
+      .issue-pill {
+        top: 7px;
+        left: 7px;
+        min-height: 21px;
+        padding: 0 6px;
+        font-size: 6px;
+        letter-spacing: .05em;
+      }
+
+      .preview-fab {
+        right: 7px;
+        bottom: 7px;
+        min-height: 26px;
+        padding: 0 7px;
+        gap: 4px;
+        font-size: 7px;
+      }
+
+      .card-body {
+        padding: 9px;
+      }
+
+      .card-title {
+        font-size: 14px;
+      }
+
+      .card-meta {
+        margin-top: 3px;
+        font-size: 7px;
+      }
+
+      .card-actions {
+        margin-top: 7px;
+      }
+
+      .card-btn-buy {
+        min-height: 34px;
+        padding: 0 8px;
+        border-radius: 9px;
+        font-size: 8px;
+      }
+
+      .state-card {
+        padding: 38px 14px;
+        border-radius: 16px;
+      }
+
+      .social-section {
+        padding-bottom: 31px;
+      }
+
+      .social-card {
+        padding: 18px 13px;
+        border-radius: 18px;
+        text-align: center;
+      }
+
+      .social-title {
+        font-size: 28px;
+      }
+
+      .social-copy {
+        font-size: 9px;
+      }
+
+      .social-links-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 14px;
+      }
+
+      .social-link-card {
+        min-height: 58px;
+        padding: 7px;
+        flex-direction: row;
+        text-align: left;
+        justify-content: flex-start;
+      }
+
+      .social-icon {
+        width: 29px;
+        height: 29px;
+        flex: 0 0 29px;
+        font-size: 15px;
+      }
+
+      .social-link-label strong { font-size: 8px; }
+      .social-link-label span { display: block; font-size: 7px; }
+
+      .footer-inner {
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .modal-shell {
+        width: 100%;
+        height: calc(100dvh - max(8px, env(safe-area-inset-top)));
+        border-radius: 20px 20px 0 0;
+      }
+
+      .modal-topbar {
+        min-height: 55px;
+        padding: 8px 10px 8px 13px;
+      }
+
+      .modal-title { font-size: 16px; }
+      .modal-kicker { font-size: 7px; }
+
+      .modal-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 12px 10px calc(22px + env(safe-area-inset-bottom));
+      }
+
+      .modal-cover-column { position: static; }
+
+      .modal-cover-frame {
+        width: min(48vw, 190px);
+        margin-inline: auto;
+        border-radius: 13px;
+      }
+
+      .product-summary {
+        margin: 10px auto 0;
+        max-width: 330px;
+      }
+
+      .summary-row { padding: 8px 10px; font-size: 8px; }
+
+      .modal-buy-btn {
+        width: min(100%, 330px);
+        min-height: 43px;
+        margin-inline: auto;
+      }
+
+      .delivery-note {
+        width: min(100%, 330px);
+        margin: 7px auto 0;
+        padding: 9px 10px;
+        font-size: 8px;
+      }
+
+      .delivery-note strong {
+        font-size: 8px;
+      }
+
+      .preview-heading {
+        align-items: center;
+        padding-bottom: 10px;
+      }
+
+      .preview-heading h2 { font-size: 23px; }
+      .preview-heading p { margin-top: 3px; font-size: 8px; }
+      .preview-count { padding: 6px 8px; font-size: 7px; }
+
+      .page-grid {
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .page-card { border-radius: 9px; }
+      .page-name { display: none; }
+    }
+
+    @media (max-width: 360px) {
+      .container { width: min(100% - 16px, var(--container)); }
+      .header-cta span { display: none; }
+      .header-cta { width: 34px; padding: 0; }
+      .hero-card { width: min(60vw, 220px); }
+      .hero-actions { grid-template-columns: 1fr; }
+      .magazine-grid { gap: 8px; }
+      .card-title { font-size: 13px; }
+      .social-link-label span { display: none; }
+    }
+
+  </style>
 </head>
-
-
 <body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="Vee Bluia home">
+        <span class="brand-mark">V</span>
+        <span class="brand-copy">
+          <span class="brand-name">Vee Bluia</span>
+          <span class="brand-label">Magazines</span>
+        </span>
+      </a>
 
-<!-- =========================================================
-     HERO
-     ========================================================= -->
-
-<div class="hero">
-
-  <h1 class="hero-title">
-    Vee <span>Bluia</span>
-  </h1>
-
-  <p class="hero-subtitle">
-    Fashion Model — Portfolio
-  </p>
-
-</div>
-
-
-<!-- =========================================================
-     MAIN
-     ========================================================= -->
-
-<div class="main-container">
-
-  <div class="photo-grid" id="photoGrid">
-
-    <div class="state-box">
-
-      <i class="ti ti-loader spin"></i>
-
-      <h3>Loading portfolio…</h3>
-
-      <p>Please wait.</p>
-
+      <nav class="header-actions" aria-label="Main navigation">
+        <a class="nav-link" href="#magazines">Magazines</a>
+        <a class="nav-link" href="#download">Download</a>
+        <a class="nav-link" href="#contact">Social</a>
+        <a class="header-cta" href="#magazines">
+          <i class="ti ti-shopping-bag"></i>
+          <span>Magazines</span>
+        </a>
+      </nav>
     </div>
+  </header>
 
-  </div>
+  <main id="top">
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">
+            <i class="ti ti-sparkles"></i>
+            Vee Bluia · Digital magazines
+          </div>
 
+          <h1 class="hero-title" id="heroTitle">
+            Vee Bluia <em>Magazines</em>
+          </h1>
 
-  <div class="load-more-wrap" id="loadMoreWrap">
-
-    <button
-      class="btn-load-more"
-      onclick="loadMore()"
-    >
-      Load more
-    </button>
-
-  </div>
-
-</div>
-
-
-<!-- =========================================================
-     FOOTER
-     ========================================================= -->
-
-<footer class="footer">
-
-  © Vee Bluia 2026. All rights reserved.
-
-</footer>
-
-
-<!-- =========================================================
-     LIGHTBOX
-     ========================================================= -->
-
-<div
-  class="lightbox-overlay"
-  id="lightboxOverlay"
-  onclick="onOverlayClick(event)"
->
-
-  <div
-    class="lightbox-shell"
-    onclick="event.stopPropagation()"
-  >
-
-    <div class="lb-topbar">
-
-      <div
-        class="lb-title"
-        id="lb-title"
-      >
-        —
-      </div>
-
-      <button
-        class="lb-close"
-        onclick="closeLightbox()"
-      >
-        ×
-      </button>
-
-    </div>
-
-
-    <div class="lb-body">
-
-
-      <!-- NORMAL PHOTO -->
-
-      <div
-        class="normal-photo-view"
-        id="normalPhotoView"
-      >
-
-        <img
-          id="lightbox-img"
-          src=""
-          alt="Portfolio photo"
-        >
-
-      </div>
-
-
-      <!-- MAGAZINE -->
-
-      <div
-        class="magazine-view"
-        id="magazineView"
-      >
-
-        <div class="magazine-cover-wrap">
-
-          <img
-            class="magazine-cover"
-            id="magazineCover"
-            src=""
-            alt="Magazine cover"
-          >
-
-        </div>
-
-
-        <div class="magazine-heading">
-
-          <h2 id="magazineHeading">
-            Vee Magazine
-          </h2>
-
-          <p>
-            Preview selected pages from this magazine.
+          <p class="hero-copy">
+            Fashion editorials made for your screen. Preview each edition and get the full digital magazine.
           </p>
 
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#magazines">
+              <i class="ti ti-book-2"></i>
+              View magazines
+            </a>
+            <button class="btn btn-secondary" id="heroPreviewButton" type="button" onclick="openFeaturedMagazine()" disabled>
+              <i class="ti ti-eye"></i>
+              Preview latest issue
+            </button>
+          </div>
         </div>
 
+        <div class="hero-visual" aria-live="polite">
+          <div class="hero-card">
+            <div class="featured-cover-wrap">
+              <div class="featured-placeholder" id="featuredPlaceholder">
+                <div>
+                  <i class="ti ti-loader-2 spin"></i>
+                  Loading latest edition…
+                </div>
+              </div>
+              <img class="featured-cover" id="featuredCover" alt="Latest Vee Bluia magazine cover" hidden />
+              <span class="featured-badge">Latest edition</span>
+            </div>
 
-        <div
-          class="magazine-pages-grid"
-          id="magazinePagesGrid"
-        >
+            <div class="hero-card-meta">
+              <div>
+                <div class="featured-kicker" id="featuredKicker">Digital magazine</div>
+                <div class="featured-title" id="featuredTitle">Vee Magazine</div>
+              </div>
+              <button class="mini-round-btn" id="featuredRoundButton" type="button" aria-label="Preview latest magazine" onclick="openFeaturedMagazine()" disabled>
+                <i class="ti ti-arrow-up-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shop-section" id="magazines" aria-labelledby="shopTitle">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Vee Bluia</div>
+            <h2 class="section-title" id="shopTitle">Magazines</h2>
+          </div>
+          <p class="section-copy">
+            Tap a cover to preview the issue.
+          </p>
         </div>
 
-
-        <div
-          class="magazine-more"
-          id="magazineMore"
-        >
-
-          <button
-            id="magazineMoreButton"
-            onclick="showMoreMagazinePages()"
-          >
-            Show 5 more
-          </button>
-
-        </div>
-
-
-        <div class="magazine-buy-box">
-
-          <div class="magazine-buy-title">
-            Get the Full Magazine
+        <div class="catalog-toolbar">
+          <div class="catalog-count">
+            <i class="ti ti-books"></i>
+            <span><strong id="magazineCount">0</strong> editions available</span>
           </div>
 
+          <label>
+            <span class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Sort magazines</span>
+            <select class="sort-select" id="sortSelect" onchange="renderMagazineGrid()">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+        </div>
 
-          <div class="magazine-buy-text">
+        <div class="magazine-grid" id="magazineGrid">
+          <div class="state-card">
+            <i class="ti ti-loader-2 spin"></i>
+            <h3>Loading magazines…</h3>
+            <p>Loading the latest editions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            Get your copy of the full magazine.
-
-            <br>
-
-            After payment, send us your payment screenshot to
-
-            <strong>
-              vbluia@outlook.com
-            </strong>.
-
+    <section class="how-it-works" id="download" aria-labelledby="downloadTitle">
+      <div class="container">
+        <div class="steps-card">
+          <div class="steps-head">
+            <div>
+              <div class="section-kicker">Instant access</div>
+              <h2 class="steps-title" id="downloadTitle">Download your magazine</h2>
+            </div>
+            <p class="steps-note">
+              Your PDF download link appears after successful payment. No email or payment screenshot is required.
+            </p>
           </div>
 
+          <div class="steps-grid">
+            <article class="step">
+              <div class="step-number">1</div>
+              <h3>Choose your issue</h3>
+              <p>Open the magazine you want and tap <strong>Buy PDF</strong> to continue to secure checkout.</p>
+            </article>
 
-          <a
-            class="buy-magazine-btn"
-            href="https://buy.stripe.com/aFadR1dIc8PI4KRcbBbAs00"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+            <article class="step">
+              <div class="step-number">2</div>
+              <h3>Complete payment</h3>
+              <p>Finish your payment. Once it is successful, you will be taken to the confirmation page.</p>
+            </article>
 
-            <i class="ti ti-shopping-bag"></i>
-
-            Buy Full Magazine
-
-          </a>
-
+            <article class="step">
+              <div class="step-number">3</div>
+              <h3>Download the PDF</h3>
+              <p>Tap the PDF download link on the confirmation page and save the magazine to your phone, tablet or computer.</p>
+            </article>
+          </div>
         </div>
+      </div>
+    </section>
 
+    <section class="social-section" id="contact" aria-labelledby="socialTitle">
+      <div class="container">
+        <div class="social-card">
+          <div>
+            <div class="social-kicker">Follow Vee Bluia</div>
+            <h2 class="social-title" id="socialTitle">Follow Vee Bluia</h2>
+            <p class="social-copy">
+              New editorials, magazine drops and updates.
+            </p>
+          </div>
 
-        <div class="magazine-payment-note">
+          <div class="social-links-grid">
+            <a class="social-link-card" href="https://www.instagram.com/vbluia/" target="_blank" rel="noopener noreferrer" aria-label="Vee Bluia on Instagram">
+              <span class="social-icon"><i class="ti ti-brand-instagram"></i></span>
+              <span class="social-link-label"><strong>Instagram</strong><span>@vbluia</span></span>
+            </a>
 
-          To get your copy of the magazine,
-          send us a payment screenshot to
-          <strong>vbluia@outlook.com</strong>.
+            <a class="social-link-card" href="https://www.facebook.com/vbluia/" target="_blank" rel="noopener noreferrer" aria-label="Vee Bluia on Facebook">
+              <span class="social-icon"><i class="ti ti-brand-facebook"></i></span>
+              <span class="social-link-label"><strong>Facebook</strong><span>Vee Bluia</span></span>
+            </a>
 
+            <a class="social-link-card" href="https://www.tiktok.com/@vbluia" target="_blank" rel="noopener noreferrer" aria-label="Vee Bluia on TikTok">
+              <span class="social-icon"><i class="ti ti-brand-tiktok"></i></span>
+              <span class="social-link-label"><strong>TikTok</strong><span>@vbluia</span></span>
+            </a>
+
+            <a class="social-link-card" href="mailto:vbluia@outlook.com" aria-label="Email Vee Bluia">
+              <span class="social-icon"><i class="ti ti-mail"></i></span>
+              <span class="social-link-label"><strong>Email</strong><span>vbluia@outlook.com</span></span>
+            </a>
+          </div>
         </div>
-
       </div>
+    </section>
+  </main>
 
-
-      <!-- SINGLE MAGAZINE PAGE -->
-
-      <div
-        class="magazine-single-page"
-        id="magazineSinglePage"
-      >
-
-        <img
-          id="magazineSinglePageImage"
-          src=""
-          alt="Magazine page"
-        >
-
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-copy">
+        © <span id="year"></span> Vee Bluia. All rights reserved.
       </div>
-
-
+      <div class="footer-links">
+        <a href="#magazines">Magazines</a>
+        <a href="#download">Download instructions</a>
+        <a href="https://www.instagram.com/vbluia/" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="https://www.facebook.com/vbluia/" target="_blank" rel="noopener noreferrer">Facebook</a>
+        <a href="https://www.tiktok.com/@vbluia" target="_blank" rel="noopener noreferrer">TikTok</a>
+        <a href="mailto:vbluia@outlook.com">Email</a>
+      </div>
     </div>
+  </footer>
 
-
-    <!-- NORMAL PHOTO NAV -->
-
-    <div
-      class="lb-nav"
-      id="normalPhotoNav"
-    >
-
-      <button
-        class="lb-nav-btn"
-        id="lb-prev"
-        onclick="lbNavigate(-1)"
-      >
-
-        <i class="ti ti-arrow-left"></i>
-
-        Prev
-
-      </button>
-
-
-      <div class="lb-nav-center">
-
-        <span
-          class="lb-nav-counter"
-          id="lb-counter"
-        >
-          1 / 1
-        </span>
-
-
-        <button
-          class="lb-action-btn lb-share-btn"
-          id="lb-share"
-          onclick="sharePhoto()"
-          title="Share photo"
-        >
-
-          <i class="ti ti-share"></i>
-
+  <!-- Magazine preview modal -->
+  <div class="modal-overlay" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="handleModalOverlayClick(event)">
+    <div class="modal-shell" onclick="event.stopPropagation()">
+      <div class="modal-topbar">
+        <div class="modal-title-wrap">
+          <div class="modal-kicker">Magazine preview</div>
+          <div class="modal-title" id="modalTitle">Vee Magazine</div>
+        </div>
+        <button class="modal-close" type="button" aria-label="Close preview" onclick="closeMagazineModal()">
+          <i class="ti ti-x"></i>
         </button>
-
-
-        <button
-          class="lb-action-btn"
-          id="lb-download"
-          onclick="downloadPhoto()"
-          title="Save photo"
-        >
-
-          <i class="ti ti-download"></i>
-
-        </button>
-
       </div>
 
+      <div class="modal-scroll" id="modalScroll">
+        <div class="modal-content">
+          <aside class="modal-cover-column">
+            <div class="modal-cover-frame">
+              <img id="modalCover" src="" alt="Magazine cover" />
+            </div>
 
-      <button
-        class="lb-nav-btn"
-        id="lb-next"
-        onclick="lbNavigate(1)"
-      >
+            <div class="product-summary">
+              <div class="summary-row">
+                <span>Format</span>
+                <strong>Digital PDF</strong>
+              </div>
+              <div class="summary-row">
+                <span>Preview pages</span>
+                <strong id="summaryPageCount">0</strong>
+              </div>
+            </div>
 
-        Next
+            <a class="modal-buy-btn" id="modalBuyButton" href="https://buy.stripe.com/aFadR1dIc8PI4KRcbBbAs00" target="_blank" rel="noopener noreferrer">
+              <i class="ti ti-shopping-bag"></i>
+              Buy full magazine
+            </a>
 
-        <i class="ti ti-arrow-right"></i>
+            <div class="delivery-note">
+              <strong><i class="ti ti-download"></i> Instant PDF download</strong>
+              Complete your payment and the PDF download link will be available immediately after successful payment.
+              No email or payment screenshot is required.
+            </div>
+          </aside>
 
-      </button>
+          <section>
+            <div class="preview-heading">
+              <div>
+                <h2>Inside this edition</h2>
+                <p>Tap a page to view it larger.</p>
+              </div>
+              <span class="preview-count" id="previewCount">0 pages</span>
+            </div>
 
+            <div class="page-grid" id="pageGrid"></div>
+
+            <div class="show-more-wrap" id="showMoreWrap">
+              <button class="show-more-btn" id="showMoreButton" type="button" onclick="showMorePages()">Show more</button>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
-
-
   </div>
 
-</div>
-
-
-<!-- =========================================================
-     TOAST
-     ========================================================= -->
-
-<div
-  class="lb-toast"
-  id="lbToast"
->
-
-  <i class="ti ti-circle-check"></i>
-
-  <span id="lbToastText">
-    Link copied to clipboard
-  </span>
-
-</div>
-
-
-<script>
-
-/* =========================================================
-   FIREBASE
-   ========================================================= */
-
-const firebaseConfig = {
-
-  apiKey:
-    "AIzaSyBWPCkYNw7gT_T7kcwbp5laZgIHac18bvE",
-
-  authDomain:
-    "expandlf.firebaseapp.com",
-
-  databaseURL:
-    "https://expandlf-default-rtdb.firebaseio.com",
-
-  projectId:
-    "expandlf",
-
-  storageBucket:
-    "expandlf.firebasestorage.app",
-
-  messagingSenderId:
-    "890066961009",
-
-  appId:
-    "1:890066961009:web:3a2ed1e7c2cf797f3751d0",
-
-  measurementId:
-    "G-QPRSX7ZVZ5"
-
-};
-
-
-firebase.initializeApp(
-  firebaseConfig
-);
-
-
-const db =
-  firebase.database();
-
-
-const refPortfolio =
-  db.ref("veebluia/portfolio");
-
-
-/* =========================================================
-   TELEGRAM
-   =========================================================
-
-   Put your existing Telegram bot token here.
-
-   Do NOT publish the token if this is a public website.
-   Ideally move Telegram calls to a backend.
-
-   ========================================================= */
-
-const TELEGRAM_BOT_TOKEN =
-  "PASTE_YOUR_EXISTING_BOT_TOKEN_HERE";
-
-
-const TELEGRAM_CHAT_ID =
-  "PASTE_YOUR_EXISTING_CHAT_ID_HERE";
-
-
-/* =========================================================
-   STRIPE
-   ========================================================= */
-
-const STRIPE_URL =
-  "https://buy.stripe.com/aFadR1dIc8PI4KRcbBbAs00";
-
-
-/* =========================================================
-   VARIABLES
-   ========================================================= */
-
-let allPhotos = [];
-
-let normalPhotos = [];
-
-let magazineCovers = [];
-
-let displayLimit = 12;
-
-let lbIndex = 0;
-
-let pendingShareId = null;
-
-let currentMagazineNumber = null;
-
-let currentMagazinePages = [];
-
-let magazinePageLimit = 5;
-
-
-/* =========================================================
-   GET PHOTO ID FROM URL
-   ========================================================= */
-
-function getPhotoIdFromUrl(){
-
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
-
-  return params.get("photo");
-
-}
-
-
-/* =========================================================
-   GET ACTUAL FILENAME
-   =========================================================
-
-   We check several Firebase fields.
-
-   This is important because your uploader
-   may save the original name under different
-   field names.
-
-   ========================================================= */
-
-function getFileName(item){
-
-  const candidates = [
-
-    item.title,
-
-    item.filename,
-
-    item.file_name,
-
-    item.name,
-
-    item.original_filename,
-
-    item.originalFilename,
-
-    item.originalName,
-
-    item.fileName,
-
-    item.image_name,
-
-    item.imageName,
-
-    item.uploaded_filename,
-
-    item.uploadedFilename
-
-  ];
-
-
-  for(
-    const value of candidates
-  ){
-
-    if(
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() !== ""
-    ){
-
-      return String(value).trim();
-
-    }
-
-  }
-
-
-  return "";
-
-}
-
-
-/* =========================================================
-   CLEAN FILENAME
-   ========================================================= */
-
-function cleanFileName(item){
-
-  return getFileName(item)
-
-    .replace(
-      /\.[^/.]+$/,
-      ""
-    )
-
-    .trim();
-
-}
-
-
-/* =========================================================
-   NORMALIZED FILENAME
-   ========================================================= */
-
-function normalizedFileName(item){
-
-  return cleanFileName(item)
-
-    .replace(
-      /\s+/g,
-      " "
-    )
-
-    .toLowerCase();
-
-}
-
-
-/* =========================================================
-   MAGAZINE COVER DETECTION
-   =========================================================
-
-   Examples:
-
-   Vee Magazine 01
-   Vee Magazine 01.jpg
-
-   Vee Magazine 02
-   Vee Magazine 02.png
-
-   Vee Magazine 03.webp
-
-   ========================================================= */
-
-function getMagazineCoverNumber(item){
-
-  const name =
-    cleanFileName(item);
-
-
-  const match =
-    name.match(
-      /^Vee\s+Magazine\s+(\d+)$/i
-    );
-
-
-  if(!match){
-
-    return null;
-
-  }
-
-
-  return parseInt(
-    match[1],
-    10
-  );
-
-}
-
-
-/* =========================================================
-   MAGAZINE PAGE DETECTION
-   =========================================================
-
-   IMPORTANT:
-
-   imgv101 = Magazine 01, page 01
-   imgv102 = Magazine 01, page 02
-   imgv103 = Magazine 01, page 03
-
-   imgv201 = Magazine 02, page 01
-   imgv202 = Magazine 02, page 02
-
-   imgv301 = Magazine 03, page 01
-
-   ========================================================= */
-
-function getMagazinePageInfo(item){
-
-  const name =
-    normalizedFileName(item);
-
-
-  const match =
-    name.match(
-      /^imgv(\d{2})(\d+)$/i
-    );
-
-
-  if(!match){
-
-    return null;
-
-  }
-
-
-  return {
-
-    magazineNumber:
-      parseInt(
-        match[1],
-        10
-      ),
-
-    pageNumber:
-      parseInt(
-        match[2],
-        10
-      )
-
-  };
-
-}
-
-
-/* =========================================================
-   FIREBASE LIVE LISTENER
-   ========================================================= */
-
-refPortfolio.on(
-  "value",
-  snapshot => {
-
-    const data =
-      snapshot.val();
-
-
-    allPhotos = [];
-
-
-    if(data){
-
-      allPhotos =
-        Object.keys(data)
-
-          .map(
-            key => ({
-              id:key,
-              ...data[key]
-            })
-          )
-
-          .sort(
-            (a,b) =>
-              new Date(
-                b.timestamp || 0
-              ) -
-              new Date(
-                a.timestamp || 0
-              )
-          );
-
-    }
-
-
-    buildCollections();
-
-    renderGrid();
-
-    maybeOpenSharedPhoto();
-
-  },
-
-  error => {
-
-    console.error(
-      "Firebase error:",
-      error
-    );
-
-
-    document.getElementById(
-      "photoGrid"
-    ).innerHTML = `
-
-      <div class="state-box">
-
-        <i class="ti ti-alert-circle"></i>
-
-        <h3>
-          Could not load portfolio
-        </h3>
-
-        <p>
-          Please refresh the page.
-        </p>
-
-      </div>
-
-    `;
-
-  }
-
-);
-
-
-/* =========================================================
-   BUILD COLLECTIONS
-   ========================================================= */
-
-function buildCollections(){
-
-  normalPhotos = [];
-
-  magazineCovers = [];
-
-
-  allPhotos.forEach(
-    item => {
-
-      const coverNumber =
-        getMagazineCoverNumber(item);
-
-
-      if(
-        coverNumber !== null
-      ){
-
-        magazineCovers.push({
-
-          ...item,
-
-          magazineNumber:
-            coverNumber
-
-        });
-
-        return;
-
+  <!-- Full page viewer -->
+  <div class="page-viewer" id="pageViewer" role="dialog" aria-modal="true" aria-label="Magazine page preview" onclick="closePageViewer()">
+    <button class="viewer-close" type="button" aria-label="Close page preview" onclick="closePageViewer()">
+      <i class="ti ti-x"></i>
+    </button>
+    <img id="pageViewerImage" src="" alt="Magazine preview page" onclick="event.stopPropagation()" />
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <i class="ti ti-sparkles"></i>
+    <span id="toastText">Done</span>
+  </div>
+
+  <script>
+    /* =========================================================
+       CONFIG
+       ========================================================= */
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBWPCkYNw7gT_T7kcwbp5laZgIHac18bvE",
+      authDomain: "expandlf.firebaseapp.com",
+      databaseURL: "https://expandlf-default-rtdb.firebaseio.com",
+      projectId: "expandlf",
+      storageBucket: "expandlf.firebasestorage.app",
+      messagingSenderId: "890066961009",
+      appId: "1:890066961009:web:3a2ed1e7c2cf797f3751d0",
+      measurementId: "G-QPRSX7ZVZ5"
+    };
+
+    const STRIPE_URL = "https://buy.stripe.com/aFadR1dIc8PI4KRcbBbAs00";
+    const INITIAL_PREVIEW_LIMIT = 6;
+    const PREVIEW_INCREMENT = 6;
+
+    firebase.initializeApp(firebaseConfig);
+
+    const db = firebase.database();
+    const refPortfolio = db.ref("veebluia/portfolio");
+
+    /* =========================================================
+       STATE
+       ========================================================= */
+
+    let allItems = [];
+    let magazineCovers = [];
+    let currentMagazine = null;
+    let currentMagazinePages = [];
+    let pageDisplayLimit = INITIAL_PREVIEW_LIMIT;
+    let featuredMagazineNumber = null;
+    let toastTimer = null;
+
+    /* =========================================================
+       DATA HELPERS
+       ========================================================= */
+
+    function getFileName(item) {
+      if (!item || typeof item !== "object") return "";
+
+      const candidates = [
+        item.title,
+        item.filename,
+        item.file_name,
+        item.name,
+        item.original_filename,
+        item.originalFilename,
+        item.originalName,
+        item.fileName,
+        item.image_name,
+        item.imageName,
+        item.uploaded_filename,
+        item.uploadedFilename
+      ];
+
+      for (const value of candidates) {
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          return String(value).trim();
+        }
       }
 
+      return "";
+    }
 
-      const pageInfo =
-        getMagazinePageInfo(item);
+    function cleanFileName(item) {
+      return getFileName(item).replace(/\.[^/.]+$/, "").trim();
+    }
 
+    function normalizedFileName(item) {
+      return cleanFileName(item).replace(/\s+/g, " ").toLowerCase();
+    }
 
-      /*
-        Magazine pages must NOT
-        appear in the main portfolio grid.
-      */
+    // Compatible with your existing naming convention: "Vee Magazine 01"
+    function getMagazineCoverNumber(item) {
+      const match = cleanFileName(item).match(/^Vee\s+Magazine\s+(\d+)$/i);
+      return match ? parseInt(match[1], 10) : null;
+    }
 
-      if(pageInfo){
+    // Compatible with your existing naming convention:
+    // imgv101 = Magazine 01 / page 01
+    // imgv202 = Magazine 02 / page 02
+    function getMagazinePageInfo(item) {
+      const match = normalizedFileName(item).match(/^imgv(\d{2})(\d+)$/i);
+      if (!match) return null;
 
-        return;
+      return {
+        magazineNumber: parseInt(match[1], 10),
+        pageNumber: parseInt(match[2], 10)
+      };
+    }
 
+    function normalizeImageUrl(value) {
+      let url = String(value || "").trim();
+      if (!url) return "";
+
+      // Accept plain URLs plus common values that may have been saved from Markdown/text exports.
+      const markdownMatch = url.match(/^\[[^\]]*\]\((https?:\/\/[^)]+)\)$/i);
+      if (markdownMatch) url = markdownMatch[1];
+
+      url = url
+        .replace(/^['"]|['"]$/g, "")
+        .replace(/\\:\/\//g, "://")
+        .replace(/&amp;/g, "&");
+
+      return /^https?:\/\//i.test(url) ? url : "";
+    }
+
+    function getImageUrl(item) {
+      if (!item || typeof item !== "object") return "";
+
+      const candidates = [
+        item.image_url,
+        item.imageUrl,
+        item.url,
+        item.downloadURL,
+        item.download_url,
+        item.src,
+        item.image,
+        item.photo_url,
+        item.photoUrl
+      ];
+
+      for (const value of candidates) {
+        const url = normalizeImageUrl(value);
+        if (url) return url;
       }
 
-
-      normalPhotos.push(item);
-
+      return "";
     }
-  );
 
+    function getMagazinePages(magazineNumber) {
+      return allItems
+        .map(item => {
+          const info = getMagazinePageInfo(item);
+          if (!info || info.magazineNumber !== magazineNumber) return null;
+          return { ...item, pageNumber: info.pageNumber };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.pageNumber - b.pageNumber);
+    }
 
-  magazineCovers.sort(
-    (a,b) =>
-      a.magazineNumber -
-      b.magazineNumber
-  );
+    function getCheckoutUrl(cover) {
+      if (!cover || typeof cover !== "object") return STRIPE_URL;
+      return cover.stripe_url || cover.stripeUrl || cover.buy_url || cover.buyUrl || cover.payment_url || cover.paymentUrl || STRIPE_URL;
+    }
 
-}
+    function getMagazineDescription(cover) {
+      if (!cover || typeof cover !== "object") return "Premium digital fashion magazine in PDF format.";
+      return cover.description || cover.subtitle || cover.caption || "Premium digital fashion magazine in PDF format.";
+    }
 
+    function formatIssueNumber(number) {
+      return String(number).padStart(2, "0");
+    }
 
-/* =========================================================
-   GET PAGES FOR MAGAZINE
-   ========================================================= */
+    function getMagazineVisualCandidates(cover) {
+      if (!cover) return [];
 
-function getMagazinePages(
-  magazineNumber
-){
+      const urls = [
+        getImageUrl(cover),
+        ...getMagazinePages(cover.magazineNumber).map(page => getImageUrl(page))
+      ].filter(Boolean);
 
-  return allPhotos
+      return [...new Set(urls)];
+    }
 
-    .map(
-      item => {
+    function loadImageWithFallback(imageElement, candidates, onSuccess, onFailure, index = 0) {
+      if (!imageElement) return;
 
-        const info =
-          getMagazinePageInfo(item);
+      const cleanCandidates = (candidates || [])
+        .map(url => String(url || "").trim())
+        .filter(Boolean);
 
+      if (index >= cleanCandidates.length) {
+        imageElement.onload = null;
+        imageElement.onerror = null;
+        imageElement.removeAttribute("src");
+        if (cleanCandidates.length) {
+          console.warn("[Vee Bluia] Could not load image candidates:", cleanCandidates);
+        }
+        onFailure?.();
+        return;
+      }
 
-        if(
-          info &&
-          info.magazineNumber ===
-          magazineNumber
-        ){
+      const url = cleanCandidates[index];
+      let settled = false;
+      let timer = null;
+
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        imageElement.onload = null;
+        imageElement.onerror = null;
+      };
+
+      const tryNext = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        loadImageWithFallback(imageElement, cleanCandidates, onSuccess, onFailure, index + 1);
+      };
+
+      imageElement.onload = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        onSuccess?.(url);
+      };
+
+      imageElement.onerror = tryNext;
+
+      // Some remote image hosts can leave a request pending forever.
+      // Move to the next available image instead of leaving the UI on “Loading…”.
+      timer = setTimeout(tryNext, 7000);
+
+      imageElement.src = url;
+
+      // Cached images can already be complete before onload is attached by the browser.
+      if (imageElement.complete && imageElement.naturalWidth > 0) {
+        settled = true;
+        cleanup();
+        onSuccess?.(url);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+
+    /* =========================================================
+       FIREBASE
+       ========================================================= */
+
+    refPortfolio.on(
+      "value",
+      snapshot => {
+        const data = snapshot.val();
+
+        allItems = data
+          ? Object.keys(data)
+              .map(key => ({ id: key, ...data[key] }))
+              .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+          : [];
+
+        buildMagazineCollection();
+        renderMagazineGrid();
+        renderFeaturedMagazine();
+        maybeOpenIssueFromUrl();
+      },
+      error => {
+        console.error("Firebase error:", error);
+        renderLoadError();
+        renderFeaturedError();
+      }
+    );
+
+    function buildMagazineCollection() {
+      magazineCovers = allItems
+        .map(item => {
+          const magazineNumber = getMagazineCoverNumber(item);
+          if (magazineNumber === null) return null;
 
           return {
-
             ...item,
-
-            pageNumber:
-              info.pageNumber
-
+            magazineNumber,
+            pageCount: getMagazinePages(magazineNumber).length
           };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.magazineNumber - a.magazineNumber);
 
-        }
+      document.getElementById("magazineCount").textContent = magazineCovers.length;
+      featuredMagazineNumber = magazineCovers.length ? magazineCovers[0].magazineNumber : null;
+    }
 
+    /* =========================================================
+       FEATURED ISSUE
+       ========================================================= */
 
-        return null;
+    function renderFeaturedMagazine() {
+      const coverImage = document.getElementById("featuredCover");
+      const placeholder = document.getElementById("featuredPlaceholder");
+      const previewButton = document.getElementById("heroPreviewButton");
+      const roundButton = document.getElementById("featuredRoundButton");
+      const kicker = document.getElementById("featuredKicker");
+      const title = document.getElementById("featuredTitle");
 
-      }
-    )
-
-    .filter(Boolean)
-
-    .sort(
-      (a,b) =>
-        a.pageNumber -
-        b.pageNumber
-    );
-
-}
-
-
-/* =========================================================
-   RENDER MAIN GRID
-   ========================================================= */
-
-function renderGrid(){
-
-  const grid =
-    document.getElementById(
-      "photoGrid"
-    );
-
-
-  const loadMoreWrap =
-    document.getElementById(
-      "loadMoreWrap"
-    );
-
-
-  const combined = [
-
-    ...magazineCovers,
-
-    ...normalPhotos
-
-  ];
-
-
-  if(
-    combined.length === 0
-  ){
-
-    grid.innerHTML = `
-
-      <div class="state-box">
-
-        <i class="ti ti-photo-off"></i>
-
-        <h3>
-          No photos yet
-        </h3>
-
-        <p>
-          The portfolio is being updated.
-        </p>
-
-      </div>
-
-    `;
-
-
-    loadMoreWrap.style.display =
-      "none";
-
-
-    return;
-
-  }
-
-
-  const toShow =
-    combined.slice(
-      0,
-      displayLimit
-    );
-
-
-  let html = "";
-
-
-  toShow.forEach(
-    item => {
-
-      const imageUrl =
-        item.image_url || "";
-
-
-      const title =
-        escapeHtml(
-          getFileName(item) ||
-          "Untitled"
-        );
-
-
-      const magazineNumber =
-        getMagazineCoverNumber(item);
-
-
-      /*
-        MAGAZINE COVER
-      */
-
-      if(
-        magazineNumber !== null
-      ){
-
-        html += `
-
-          <div
-            class="photo-card magazine-card"
-            onclick="openMagazine(${magazineNumber})"
-          >
-
-            <img
-              src="${escapeAttribute(imageUrl)}"
-              alt="${title}"
-              loading="lazy"
-            >
-
-            <div class="photo-title">
-
-              <div class="magazine-title-row">
-
-                <span>
-                  ${title}
-                </span>
-
-                <span class="magazine-badge">
-                  Preview
-                </span>
-
-              </div>
-
-            </div>
-
+      if (!magazineCovers.length) {
+        coverImage.hidden = true;
+        placeholder.hidden = false;
+        placeholder.innerHTML = `
+          <div>
+            <i class="ti ti-books"></i>
+            No magazine covers found yet.
           </div>
-
         `;
-
+        previewButton.disabled = true;
+        roundButton.disabled = true;
+        kicker.textContent = "Digital magazine";
+        title.textContent = "Vee Magazine";
         return;
-
       }
 
+      const latest = magazineCovers[0];
+      const latestTitle = getFileName(latest) || `Vee Magazine ${formatIssueNumber(latest.magazineNumber)}`;
+      const visualCandidates = getMagazineVisualCandidates(latest);
 
-      /*
-        NORMAL PHOTO
-      */
-
-      const index =
-        normalPhotos.indexOf(
-          item
-        );
-
-
-      html += `
-
-        <div
-          class="photo-card"
-          onclick="openLightboxByIndex(${index})"
-        >
-
-          <img
-            src="${escapeAttribute(imageUrl)}"
-            alt="${title}"
-            loading="lazy"
-          >
-
-          <div class="photo-title">
-            ${title}
-          </div>
-
+      coverImage.hidden = true;
+      coverImage.alt = latestTitle;
+      placeholder.hidden = false;
+      placeholder.innerHTML = `
+        <div>
+          <i class="ti ti-loader-2 spin"></i>
+          Loading latest edition…
         </div>
-
       `;
 
-    }
-  );
-
-
-  grid.innerHTML =
-    html;
-
-
-  loadMoreWrap.style.display =
-    combined.length >
-    displayLimit
-      ? "block"
-      : "none";
-
-}
-
-
-/* =========================================================
-   ESCAPE
-   ========================================================= */
-
-function escapeHtml(str){
-
-  return String(str)
-
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-
-    .replace(
-      /</g,
-      "&lt;"
-    )
-
-    .replace(
-      />/g,
-      "&gt;"
-    )
-
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-
-    .replace(
-      /'/g,
-      "&#039;"
-    );
-
-}
-
-
-function escapeAttribute(str){
-
-  return escapeHtml(str);
-
-}
-
-
-/* =========================================================
-   LOAD MORE
-   ========================================================= */
-
-function loadMore(){
-
-  displayLimit += 12;
-
-  renderGrid();
-
-}
-
-
-/* =========================================================
-   OPEN NORMAL PHOTO
-   ========================================================= */
-
-function openLightboxByIndex(
-  idx
-){
-
-  lbIndex = idx;
-
-  currentMagazineNumber =
-    null;
-
-
-  showNormalPhotoView();
-
-  renderLightboxItem();
-
-
-  document.getElementById(
-    "lightboxOverlay"
-  ).classList.add(
-    "active"
-  );
-
-
-  document.body.style.overflow =
-    "hidden";
-
-
-  updateUrlForCurrentPhoto();
-
-}
-
-
-/* =========================================================
-   SHOW NORMAL PHOTO VIEW
-   ========================================================= */
-
-function showNormalPhotoView(){
-
-  document.getElementById(
-    "normalPhotoView"
-  ).style.display =
-    "block";
-
-
-  document.getElementById(
-    "magazineView"
-  ).classList.remove(
-    "active"
-  );
-
-
-  document.getElementById(
-    "magazineSinglePage"
-  ).classList.remove(
-    "active"
-  );
-
-
-  document.getElementById(
-    "normalPhotoNav"
-  ).style.display =
-    "flex";
-
-}
-
-
-/* =========================================================
-   RENDER NORMAL PHOTO
-   ========================================================= */
-
-function renderLightboxItem(){
-
-  const visibleCount =
-    Math.min(
-      displayLimit,
-      normalPhotos.length
-    );
-
-
-  const item =
-    normalPhotos[
-      lbIndex
-    ];
-
-
-  if(!item){
-
-    return;
-
-  }
-
-
-  document.getElementById(
-    "lightbox-img"
-  ).src =
-    item.image_url || "";
-
-
-  document.getElementById(
-    "lb-title"
-  ).textContent =
-    getFileName(item) ||
-    "Untitled";
-
-
-  document.getElementById(
-    "lb-counter"
-  ).textContent =
-    `${lbIndex + 1} / ${visibleCount}`;
-
-
-  document.getElementById(
-    "lb-prev"
-  ).disabled =
-    lbIndex === 0;
-
-
-  document.getElementById(
-    "lb-next"
-  ).disabled =
-    lbIndex >=
-    visibleCount - 1;
-
-
-  document.querySelector(
-    ".lb-body"
-  ).scrollTop = 0;
-
-}
-
-
-/* =========================================================
-   NORMAL PHOTO NAVIGATION
-   ========================================================= */
-
-function lbNavigate(dir){
-
-  if(
-    currentMagazineNumber !==
-    null
-  ){
-
-    return;
-
-  }
-
-
-  const visibleCount =
-    Math.min(
-      displayLimit,
-      normalPhotos.length
-    );
-
-
-  const next =
-    lbIndex + dir;
-
-
-  if(
-    next < 0 ||
-    next >= visibleCount
-  ){
-
-    return;
-
-  }
-
-
-  lbIndex =
-    next;
-
-
-  renderLightboxItem();
-
-  updateUrlForCurrentPhoto();
-
-}
-
-
-/* =========================================================
-   OPEN MAGAZINE
-   ========================================================= */
-
-function openMagazine(
-  magazineNumber
-){
-
-  const cover =
-    magazineCovers.find(
-      item =>
-        item.magazineNumber ===
-        magazineNumber
-    );
-
-
-  if(!cover){
-
-    console.error(
-      "Magazine cover not found:",
-      magazineNumber
-    );
-
-    return;
-
-  }
-
-
-  currentMagazineNumber =
-    magazineNumber;
-
-
-  currentMagazinePages =
-    getMagazinePages(
-      magazineNumber
-    );
-
-
-  magazinePageLimit = 5;
-
-
-  document.getElementById(
-    "normalPhotoView"
-  ).style.display =
-    "none";
-
-
-  document.getElementById(
-    "normalPhotoNav"
-  ).style.display =
-    "none";
-
-
-  document.getElementById(
-    "magazineSinglePage"
-  ).classList.remove(
-    "active"
-  );
-
-
-  document.getElementById(
-    "magazineView"
-  ).classList.add(
-    "active"
-  );
-
-
-  document.getElementById(
-    "lb-title"
-  ).textContent =
-    getFileName(cover) ||
-    `Vee Magazine ${String(
-      magazineNumber
-    ).padStart(2,"0")}`;
-
-
-  document.getElementById(
-    "magazineHeading"
-  ).textContent =
-    getFileName(cover) ||
-    `Vee Magazine ${String(
-      magazineNumber
-    ).padStart(2,"0")}`;
-
-
-  document.getElementById(
-    "magazineCover"
-  ).src =
-    cover.image_url || "";
-
-
-  renderMagazinePages();
-
-
-  document.getElementById(
-    "lightboxOverlay"
-  ).classList.add(
-    "active"
-  );
-
-
-  document.body.style.overflow =
-    "hidden";
-
-
-  document.querySelector(
-    ".lb-body"
-  ).scrollTop = 0;
-
-}
-
-
-/* =========================================================
-   RENDER MAGAZINE PAGES
-   ========================================================= */
-
-function renderMagazinePages(){
-
-  const grid =
-    document.getElementById(
-      "magazinePagesGrid"
-    );
-
-
-  const more =
-    document.getElementById(
-      "magazineMore"
-    );
-
-
-  const moreButton =
-    document.getElementById(
-      "magazineMoreButton"
-    );
-
-
-  const pages =
-    currentMagazinePages;
-
-
-  /*
-    No pages found
-  */
-
-  if(
-    pages.length === 0
-  ){
-
-    grid.innerHTML = `
-
-      <div
-        style="
-          grid-column:1/-1;
-          text-align:center;
-          padding:30px 10px;
-          color:var(--ink3);
-          font-size:10px;
-          line-height:1.7;
-        "
-      >
-
-        No preview pages found.
-
-        <br><br>
-
-        For Magazine 01 use:
-
-        <br>
-
-        imgv101, imgv102, imgv103...
-
-        <br><br>
-
-        For Magazine 02 use:
-
-        <br>
-
-        imgv201, imgv202, imgv203...
-
-      </div>
-
-    `;
-
-
-    more.style.display =
-      "none";
-
-
-    return;
-
-  }
-
-
-  /*
-    First 5 pages
-  */
-
-  const visible =
-    pages.slice(
-      0,
-      magazinePageLimit
-    );
-
-
-  grid.innerHTML =
-    visible.map(
-      page => {
-
-        const imageUrl =
-          page.image_url || "";
-
-
-        const name =
-          escapeHtml(
-            getFileName(page) ||
-            `Page ${page.pageNumber}`
-          );
-
-
-        return `
-
-          <div
-            class="magazine-page-card"
-            onclick="openMagazinePage(${page.pageNumber})"
-          >
-
-            <img
-              src="${escapeAttribute(imageUrl)}"
-              alt="${name}"
-              loading="lazy"
-            >
-
-            <div class="magazine-page-name">
-              ${name}
+      if (!visualCandidates.length) {
+        coverImage.hidden = true;
+        placeholder.hidden = false;
+        placeholder.innerHTML = `<div><i class="ti ti-photo-off"></i>Preview image unavailable.</div>`;
+      } else {
+      loadImageWithFallback(
+        coverImage,
+        visualCandidates,
+        () => {
+          coverImage.hidden = false;
+          placeholder.hidden = true;
+        },
+        () => {
+          coverImage.hidden = true;
+          placeholder.hidden = false;
+          placeholder.innerHTML = `
+            <div>
+              <i class="ti ti-photo-off"></i>
+              Preview image unavailable.
             </div>
-
-          </div>
-
-        `;
-
-      }
-    ).join("");
-
-
-  /*
-    More button
-  */
-
-  if(
-    pages.length >
-    magazinePageLimit
-  ){
-
-    more.style.display =
-      "block";
-
-
-    const remaining =
-      pages.length -
-      magazinePageLimit;
-
-
-    moreButton.textContent =
-      `Show ${Math.min(
-        5,
-        remaining
-      )} more`;
-
-  }else{
-
-    more.style.display =
-      "none";
-
-  }
-
-}
-
-
-/* =========================================================
-   SHOW MORE MAGAZINE PAGES
-   ========================================================= */
-
-function showMoreMagazinePages(){
-
-  magazinePageLimit += 5;
-
-  renderMagazinePages();
-
-}
-
-
-/* =========================================================
-   OPEN ONE MAGAZINE PAGE
-   ========================================================= */
-
-function openMagazinePage(
-  pageNumber
-){
-
-  const page =
-    currentMagazinePages.find(
-      item =>
-        item.pageNumber ===
-        pageNumber
-    );
-
-
-  if(!page){
-
-    return;
-
-  }
-
-
-  document.getElementById(
-    "magazineView"
-  ).classList.remove(
-    "active"
-  );
-
-
-  document.getElementById(
-    "normalPhotoView"
-  ).style.display =
-    "none";
-
-
-  document.getElementById(
-    "normalPhotoNav"
-  ).style.display =
-    "none";
-
-
-  document.getElementById(
-    "magazineSinglePage"
-  ).classList.add(
-    "active"
-  );
-
-
-  document.getElementById(
-    "magazineSinglePageImage"
-  ).src =
-    page.image_url || "";
-
-
-  document.getElementById(
-    "lb-title"
-  ).textContent =
-    getFileName(page) ||
-    `Magazine page ${pageNumber}`;
-
-
-  document.querySelector(
-    ".lb-body"
-  ).scrollTop = 0;
-
-}
-
-
-/* =========================================================
-   CLOSE LIGHTBOX
-   ========================================================= */
-
-function closeLightbox(){
-
-  document.getElementById(
-    "lightboxOverlay"
-  ).classList.remove(
-    "active"
-  );
-
-
-  document.body.style.overflow =
-    "auto";
-
-
-  currentMagazineNumber =
-    null;
-
-
-  currentMagazinePages =
-    [];
-
-
-  document.getElementById(
-    "lightbox-img"
-  ).src =
-    "";
-
-
-  document.getElementById(
-    "magazineCover"
-  ).src =
-    "";
-
-
-  document.getElementById(
-    "magazineSinglePageImage"
-  ).src =
-    "";
-
-
-  clearPhotoFromUrl();
-
-}
-
-
-/* =========================================================
-   OVERLAY
-   ========================================================= */
-
-function onOverlayClick(e){
-
-  if(
-    e.target ===
-    document.getElementById(
-      "lightboxOverlay"
-    )
-  ){
-
-    closeLightbox();
-
-  }
-
-}
-
-
-/* =========================================================
-   KEYBOARD
-   ========================================================= */
-
-document.addEventListener(
-  "keydown",
-  e => {
-
-    const overlay =
-      document.getElementById(
-        "lightboxOverlay"
+          `;
+        }
       );
-
-
-    if(
-      !overlay.classList.contains(
-        "active"
-      )
-    ){
-
-      return;
-
-    }
-
-
-    if(
-      e.key ===
-      "Escape"
-    ){
-
-      closeLightbox();
-
-    }
-
-
-    if(
-      currentMagazineNumber ===
-      null
-    ){
-
-      if(
-        e.key ===
-        "ArrowLeft"
-      ){
-
-        lbNavigate(-1);
-
       }
 
-
-      if(
-        e.key ===
-        "ArrowRight"
-      ){
-
-        lbNavigate(1);
-
-      }
-
+      kicker.textContent = `Issue ${formatIssueNumber(latest.magazineNumber)} · ${latest.pageCount} preview page${latest.pageCount === 1 ? "" : "s"}`;
+      title.textContent = latestTitle;
+      previewButton.disabled = false;
+      roundButton.disabled = false;
     }
 
-  }
-);
-
-
-/* =========================================================
-   SHARE / DEEP LINKS
-   ========================================================= */
-
-function buildShareUrl(
-  photoId
-){
-
-  const base =
-    window.location.origin +
-    window.location.pathname;
-
-
-  return `${base}?photo=${encodeURIComponent(
-    photoId
-  )}`;
-
-}
-
-
-function updateUrlForCurrentPhoto(){
-
-  const item =
-    normalPhotos[
-      lbIndex
-    ];
-
-
-  if(
-    !item ||
-    !item.id
-  ){
-
-    return;
-
-  }
-
-
-  history.replaceState(
-    {
-      photo:item.id
-    },
-    "",
-    buildShareUrl(
-      item.id
-    )
-  );
-
-}
-
-
-function clearPhotoFromUrl(){
-
-  const base =
-    window.location.origin +
-    window.location.pathname;
-
-
-  history.replaceState(
-    {},
-    "",
-    base
-  );
-
-}
-
-
-/* =========================================================
-   OPEN SHARED PHOTO
-   ========================================================= */
-
-function maybeOpenSharedPhoto(){
-
-  if(
-    pendingShareId ===
-    null
-  ){
-
-    pendingShareId =
-      getPhotoIdFromUrl();
-
-  }
-
-
-  if(
-    !pendingShareId
-  ){
-
-    return;
-
-  }
-
-
-  const idx =
-    normalPhotos.findIndex(
-      p =>
-        p.id ===
-        pendingShareId
-    );
-
-
-  if(
-    idx === -1
-  ){
-
-    pendingShareId =
-      null;
-
-    clearPhotoFromUrl();
-
-    return;
-
-  }
-
-
-  if(
-    idx + 1 >
-    displayLimit
-  ){
-
-    displayLimit =
-      idx + 1;
-
-  }
-
-
-  renderGrid();
-
-  openLightboxByIndex(
-    idx
-  );
-
-
-  pendingShareId =
-    null;
-
-}
-
-
-/* =========================================================
-   SHARE
-   ========================================================= */
-
-async function sharePhoto(){
-
-  const item =
-    normalPhotos[
-      lbIndex
-    ];
-
-
-  if(
-    !item ||
-    !item.id
-  ){
-
-    return;
-
-  }
-
-
-  const shareUrl =
-    buildShareUrl(
-      item.id
-    );
-
-
-  const title =
-    getFileName(item) ||
-    "Vee Bluia";
-
-
-  const text =
-    `${title} — Vee Bluia portfolio`;
-
-
-  if(
-    navigator.share
-  ){
-
-    try{
-
-      await navigator.share({
-
-        title,
-        text,
-        url:shareUrl
-
+    function renderFeaturedError() {
+      const placeholder = document.getElementById("featuredPlaceholder");
+      document.getElementById("featuredCover").hidden = true;
+      placeholder.hidden = false;
+      placeholder.innerHTML = `
+        <div>
+          <i class="ti ti-alert-circle"></i>
+          Could not load the latest edition.
+        </div>
+      `;
+    }
+
+    function openFeaturedMagazine() {
+      if (featuredMagazineNumber === null) return;
+      openMagazine(featuredMagazineNumber);
+    }
+
+    /* =========================================================
+       MAGAZINE GRID
+       ========================================================= */
+
+    function renderMagazineGrid() {
+      const grid = document.getElementById("magazineGrid");
+      const sortValue = document.getElementById("sortSelect").value;
+
+      if (!magazineCovers.length) {
+        grid.innerHTML = `
+          <div class="state-card">
+            <i class="ti ti-books-off"></i>
+            <h3>No magazines published yet</h3>
+            <p>
+              New editions will appear here.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      const sorted = [...magazineCovers].sort((a, b) => {
+        return sortValue === "oldest"
+          ? a.magazineNumber - b.magazineNumber
+          : b.magazineNumber - a.magazineNumber;
       });
 
+      grid.innerHTML = sorted.map((cover, index) => {
+        const title = getFileName(cover) || `Vee Magazine ${formatIssueNumber(cover.magazineNumber)}`;
+        const imageUrl = getImageUrl(cover);
+        const description = getMagazineDescription(cover);
+        const checkoutUrl = getCheckoutUrl(cover);
+        const latestBadge = cover.magazineNumber === featuredMagazineNumber ? " · Latest" : "";
 
-      return;
+        return `
+          <article class="magazine-card">
+            <button class="cover-button" type="button" onclick="openMagazine(${cover.magazineNumber})" aria-label="Preview ${escapeAttribute(title)}">
+              <div class="card-image-placeholder" data-card-placeholder="${cover.magazineNumber}">
+                <div><i class="ti ti-loader-2 spin"></i>Loading cover…</div>
+              </div>
+              <img
+                data-card-cover="${cover.magazineNumber}"
+                alt="${escapeAttribute(title)}"
+                loading="${index < 2 ? "eager" : "lazy"}"
+                hidden
+              />
+              <span class="cover-gradient"></span>
+              <span class="issue-pill">Issue ${formatIssueNumber(cover.magazineNumber)}${latestBadge}</span>
+              <span class="preview-fab"><i class="ti ti-eye"></i> Preview</span>
+            </button>
 
-    }catch(err){
+            <div class="card-body">
+              <h3 class="card-title" title="${escapeAttribute(title)}">${escapeHtml(title)}</h3>
+              <p class="card-meta">${cover.pageCount} preview page${cover.pageCount === 1 ? "" : "s"}</p>
 
-      if(
-        err.name ===
-        "AbortError"
-      ){
+              <div class="card-actions">
+                <a class="card-btn card-btn-buy" href="${escapeAttribute(checkoutUrl)}" target="_blank" rel="noopener noreferrer" onclick="rememberPurchase(${cover.magazineNumber})">
+                  <i class="ti ti-shopping-bag"></i>
+                  Buy PDF
+                </a>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
 
-        return;
-
-      }
-
+      hydrateMagazineCardImages(sorted);
     }
 
-  }
-
-
-  try{
-
-    await navigator.clipboard.writeText(
-      shareUrl
-    );
-
-
-    showToast(
-      "Link copied to clipboard"
-    );
-
-  }catch(err){
-
-    const tmp =
-      document.createElement(
-        "input"
-      );
-
-
-    tmp.value =
-      shareUrl;
-
-
-    document.body.appendChild(
-      tmp
-    );
-
-
-    tmp.select();
-
-
-    try{
-
-      document.execCommand(
-        "copy"
-      );
-
-
-      showToast(
-        "Link copied to clipboard"
-      );
-
-    }catch(e){
-
-      showToast(
-        "Could not copy link"
-      );
-
-    }
-
-
-    document.body.removeChild(
-      tmp
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   DOWNLOAD
-   ========================================================= */
-
-async function downloadPhoto(){
-
-  const item =
-    normalPhotos[
-      lbIndex
-    ];
-
-
-  if(
-    !item ||
-    !item.image_url
-  ){
-
-    return;
-
-  }
-
-
-  const btn =
-    document.getElementById(
-      "lb-download"
-    );
-
-
-  const icon =
-    btn.querySelector("i");
-
-
-  const originalIconClass =
-    icon.className;
-
-
-  btn.disabled =
-    true;
-
-
-  icon.className =
-    "ti ti-loader-2";
-
-
-  icon.style.animation =
-    "spin 1s linear infinite";
-
-
-  try{
-
-    const response =
-      await fetch(
-        item.image_url,
-        {
-          mode:"cors"
-        }
-      );
-
-
-    if(
-      !response.ok
-    ){
-
-      throw new Error(
-        "Fetch failed"
-      );
-
-    }
-
-
-    const blob =
-      await response.blob();
-
-
-    const safeTitle =
-      (
-        getFileName(item) ||
-        "photo"
-      )
-      .replace(
-        /[^a-z0-9]+/gi,
-        "_"
-      )
-      .toLowerCase();
-
-
-    const ext =
-      (
-        blob.type.split("/")[1] ||
-        "jpg"
-      )
-      .replace(
-        "jpeg",
-        "jpg"
-      );
-
-
-    const filename =
-      `veebluia_${safeTitle}.${ext}`;
-
-
-    /*
-      Mobile share
-    */
-
-    if(
-      navigator.canShare
-    ){
-
-      const file =
-        new File(
-          [blob],
-          filename,
-          {
-            type:blob.type
+    function hydrateMagazineCardImages(covers) {
+      covers.forEach(cover => {
+        const image = document.querySelector(`[data-card-cover="${cover.magazineNumber}"]`);
+        const placeholder = document.querySelector(`[data-card-placeholder="${cover.magazineNumber}"]`);
+        if (!image || !placeholder) return;
+
+        loadImageWithFallback(
+          image,
+          getMagazineVisualCandidates(cover),
+          () => {
+            image.hidden = false;
+            placeholder.hidden = true;
+          },
+          () => {
+            image.hidden = true;
+            placeholder.hidden = false;
+            placeholder.innerHTML = `<div><i class="ti ti-photo-off"></i>Preview unavailable</div>`;
           }
         );
-
-
-      if(
-        navigator.canShare({
-          files:[file]
-        })
-      ){
-
-        try{
-
-          await navigator.share({
-
-            files:[file],
-
-            title:
-              getFileName(item) ||
-              "Vee Bluia"
-
-          });
-
-
-          showDownloadSuccess(
-            btn,
-            icon,
-            originalIconClass
-          );
-
-
-          return;
-
-        }catch(
-          shareErr
-        ){
-
-          if(
-            shareErr.name ===
-            "AbortError"
-          ){
-
-            restoreDownloadBtn(
-              btn,
-              icon,
-              originalIconClass
-            );
-
-
-            return;
-
-          }
-
-        }
-
-      }
-
+      });
     }
 
+    function renderLoadError() {
+      document.getElementById("magazineCount").textContent = "0";
+      document.getElementById("magazineGrid").innerHTML = `
+        <div class="state-card">
+          <i class="ti ti-alert-circle"></i>
+          <h3>Could not load the magazine store</h3>
+          <p>Please refresh the page and try again.</p>
+        </div>
+      `;
+    }
 
-    /*
-      Desktop download
-    */
+    /* =========================================================
+       MAGAZINE MODAL
+       ========================================================= */
 
-    const url =
-      URL.createObjectURL(
-        blob
+    function openMagazine(magazineNumber, updateUrl = true) {
+      const cover = magazineCovers.find(item => item.magazineNumber === magazineNumber);
+      if (!cover) return;
+
+      currentMagazine = cover;
+      currentMagazinePages = getMagazinePages(magazineNumber);
+      pageDisplayLimit = INITIAL_PREVIEW_LIMIT;
+
+      const title = getFileName(cover) || `Vee Magazine ${formatIssueNumber(magazineNumber)}`;
+      const modalCover = document.getElementById("modalCover");
+
+      document.getElementById("modalTitle").textContent = title;
+      modalCover.alt = title;
+      loadImageWithFallback(
+        modalCover,
+        getMagazineVisualCandidates(cover),
+        () => {},
+        () => { modalCover.removeAttribute("src"); }
       );
-
-
-    const a =
-      document.createElement(
-        "a"
-      );
-
-
-    a.href =
-      url;
-
-
-    a.download =
-      filename;
-
-
-    document.body.appendChild(
-      a
-    );
-
-
-    a.click();
-
-
-    document.body.removeChild(
-      a
-    );
-
-
-    setTimeout(
-      () =>
-        URL.revokeObjectURL(
-          url
-        ),
-      1000
-    );
-
-
-    showDownloadSuccess(
-      btn,
-      icon,
-      originalIconClass
-    );
-
-
-  }catch(err){
-
-    /*
-      Fallback
-    */
-
-    window.open(
-      item.image_url,
-      "_blank",
-      "noopener"
-    );
-
-
-    restoreDownloadBtn(
-      btn,
-      icon,
-      originalIconClass
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   DOWNLOAD BUTTON
-   ========================================================= */
-
-function showDownloadSuccess(
-  btn,
-  icon,
-  originalIconClass
-){
-
-  btn.disabled =
-    false;
-
-
-  icon.style.animation =
-    "";
-
-
-  icon.className =
-    "ti ti-check";
-
-
-  setTimeout(
-    () =>
-      restoreDownloadBtn(
-        btn,
-        icon,
-        originalIconClass
-      ),
-    1500
-  );
-
-}
-
-
-function restoreDownloadBtn(
-  btn,
-  icon,
-  originalIconClass
-){
-
-  btn.disabled =
-    false;
-
-
-  icon.style.animation =
-    "";
-
-
-  icon.className =
-    originalIconClass;
-
-}
-
-
-/* =========================================================
-   TOAST
-   ========================================================= */
-
-function showToast(
-  message
-){
-
-  const toast =
-    document.getElementById(
-      "lbToast"
-    );
-
-
-  document.getElementById(
-    "lbToastText"
-  ).textContent =
-    message;
-
-
-  toast.classList.add(
-    "show"
-  );
-
-
-  setTimeout(
-    () => {
-
-      toast.classList.remove(
-        "show"
-      );
-
-    },
-    2200
-  );
-
-}
-
-
-/* =========================================================
-   TELEGRAM BOT
-   ========================================================= */
-
-async function sendTelegramNotification(
-  message
-){
-
-  /*
-    Do not forget to put your existing
-    bot token and chat ID above.
-  */
-
-  if(
-    !TELEGRAM_BOT_TOKEN ||
-    TELEGRAM_BOT_TOKEN.includes(
-      "PASTE_"
-    )
-  ){
-
-    console.warn(
-      "Telegram bot token has not been configured."
-    );
-
-    return;
-
-  }
-
-
-  if(
-    !TELEGRAM_CHAT_ID ||
-    TELEGRAM_CHAT_ID.includes(
-      "PASTE_"
-    )
-  ){
-
-    console.warn(
-      "Telegram chat ID has not been configured."
-    );
-
-    return;
-
-  }
-
-
-  const url =
-    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-
-  try{
-
-    await fetch(
-      url,
-      {
-
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:JSON.stringify({
-
-          chat_id:
-            TELEGRAM_CHAT_ID,
-
-          text:
-            message,
-
-          parse_mode:
-            "HTML"
-
-        })
-
+      document.getElementById("summaryPageCount").textContent = currentMagazinePages.length;
+      document.getElementById("previewCount").textContent = `${currentMagazinePages.length} page${currentMagazinePages.length === 1 ? "" : "s"}`;
+      document.getElementById("modalBuyButton").href = getCheckoutUrl(cover);
+
+      renderPreviewPages();
+
+      const modal = document.getElementById("previewModal");
+      modal.classList.add("active");
+      document.body.classList.add("modal-open");
+      document.getElementById("modalScroll").scrollTop = 0;
+
+      if (updateUrl) setIssueInUrl(magazineNumber);
+
+      setTimeout(() => document.querySelector(".modal-close")?.focus(), 0);
+    }
+
+    function renderPreviewPages() {
+      const grid = document.getElementById("pageGrid");
+      const showMoreWrap = document.getElementById("showMoreWrap");
+      const showMoreButton = document.getElementById("showMoreButton");
+
+      if (!currentMagazinePages.length) {
+        grid.innerHTML = `
+          <div class="empty-preview">
+            Preview pages for this edition are coming soon.
+          </div>
+        `;
+        showMoreWrap.style.display = "none";
+        return;
       }
-    );
 
-  }catch(error){
+      const visiblePages = currentMagazinePages.slice(0, pageDisplayLimit);
 
-    console.error(
-      "Telegram error:",
-      error
-    );
+      grid.innerHTML = visiblePages.map(page => {
+        const imageUrl = getImageUrl(page);
+        const name = getFileName(page) || `Page ${page.pageNumber}`;
 
-  }
+        return `
+          <button class="page-card" type="button" onclick="openPageViewer(${page.pageNumber})" aria-label="Open ${escapeAttribute(name)}" ${imageUrl ? "" : "disabled"}>
+            ${
+              imageUrl
+                ? `<img src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(name)}" loading="lazy" onerror="this.closest('.page-card').classList.add('image-error'); this.style.display='none';" />`
+                : `<div class="featured-placeholder"><div><i class="ti ti-photo-off"></i>Preview unavailable</div></div>`
+            }
+            <div class="page-name">${escapeHtml(name)}</div>
+          </button>
+        `;
+      }).join("");
 
-}
-
-
-/* =========================================================
-   TELEGRAM PAGE OPEN NOTIFICATION
-   ========================================================= */
-
-function notifyPageOpen(){
-
-  /*
-    Avoid duplicate notification
-    on refresh during same session.
-  */
-
-  if(
-    sessionStorage.getItem(
-      "vb_notified"
-    )
-  ){
-
-    return;
-
-  }
-
-
-  sessionStorage.setItem(
-    "vb_notified",
-    "1"
-  );
-
-
-  const now =
-    new Date().toLocaleString(
-      "en-GB",
-      {
-        timeZone:
-          "Europe/Brussels"
+      const remaining = currentMagazinePages.length - pageDisplayLimit;
+      if (remaining > 0) {
+        showMoreWrap.style.display = "block";
+        showMoreButton.textContent = `Show ${Math.min(PREVIEW_INCREMENT, remaining)} more`;
+      } else {
+        showMoreWrap.style.display = "none";
       }
-    );
+    }
 
+    function showMorePages() {
+      pageDisplayLimit += PREVIEW_INCREMENT;
+      renderPreviewPages();
+    }
 
-  const photoId =
-    getPhotoIdFromUrl();
+    function closeMagazineModal(updateUrl = true) {
+      document.getElementById("previewModal").classList.remove("active");
+      document.body.classList.remove("modal-open");
+      currentMagazine = null;
+      currentMagazinePages = [];
 
+      if (updateUrl) clearIssueFromUrl();
+    }
 
-  const device =
-    /Mobi|Android/i.test(
-      navigator.userAgent
-    )
-      ? "Mobile"
-      : "Desktop";
+    function handleModalOverlayClick(event) {
+      if (event.target === document.getElementById("previewModal")) {
+        closeMagazineModal();
+      }
+    }
 
+    /* =========================================================
+       PAGE VIEWER
+       ========================================================= */
 
-  let msg =
-    `👁 <b>Vee Bluia portfolio opened</b>\n`;
+    function openPageViewer(pageNumber) {
+      const page = currentMagazinePages.find(item => item.pageNumber === pageNumber);
+      if (!page) return;
 
+      const viewer = document.getElementById("pageViewer");
+      const image = document.getElementById("pageViewerImage");
 
-  msg +=
-    `🕒 ${now} (BE)\n`;
+      image.src = getImageUrl(page);
+      image.alt = getFileName(page) || `Magazine page ${pageNumber}`;
+      viewer.classList.add("active");
+    }
 
+    function closePageViewer() {
+      document.getElementById("pageViewer").classList.remove("active");
+      document.getElementById("pageViewerImage").src = "";
+    }
 
-  msg +=
-    `📱 ${device}\n`;
+    /* =========================================================
+       URL / DEEP LINK
+       ========================================================= */
 
+    function getIssueFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("issue");
+      if (!raw) return null;
 
-  msg +=
-    `🔗 http://nftfanstoken.com/vee`;
+      const number = parseInt(raw, 10);
+      return Number.isFinite(number) ? number : null;
+    }
 
+    function setIssueInUrl(magazineNumber) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("issue", magazineNumber);
+      history.replaceState({ issue: magazineNumber }, "", url);
+    }
 
-  if(photoId){
+    function clearIssueFromUrl() {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("issue");
+      history.replaceState({}, "", url);
+    }
 
-    msg +=
-      `\n🖼 Via shared photo link: ${photoId}`;
+    function maybeOpenIssueFromUrl() {
+      const issue = getIssueFromUrl();
+      if (issue === null) return;
 
-  }
+      const exists = magazineCovers.some(item => item.magazineNumber === issue);
+      if (exists) openMagazine(issue, false);
+    }
 
+    /* =========================================================
+       PURCHASE SUPPORT
+       ========================================================= */
 
-  if(
-    document.referrer
-  ){
+    function rememberPurchase(magazineNumber) {
+      try {
+        sessionStorage.setItem("vee_pending_issue", String(magazineNumber));
+      } catch (error) {
+        // Storage can be unavailable in strict privacy modes; checkout still works.
+      }
+    }
 
-    msg +=
-      `\n↩️ Referrer: ${document.referrer}`;
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastText").textContent = message;
 
-  }
+      clearTimeout(toastTimer);
+      toast.classList.add("show");
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+    }
 
+    /* =========================================================
+       KEYBOARD + INIT
+       ========================================================= */
 
-  sendTelegramNotification(
-    msg
-  );
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        if (document.getElementById("pageViewer").classList.contains("active")) {
+          closePageViewer();
+          return;
+        }
 
-}
+        if (document.getElementById("previewModal").classList.contains("active")) {
+          closeMagazineModal();
+        }
+      }
+    });
 
+    document.getElementById("modalBuyButton").addEventListener("click", () => {
+      if (currentMagazine) rememberPurchase(currentMagazine.magazineNumber);
+    });
 
-/* =========================================================
-   INITIALIZATION
-   ========================================================= */
-
-(function(){
-
-  const photoId =
-    getPhotoIdFromUrl();
-
-
-  if(photoId){
-
-    pendingShareId =
-      photoId;
-
-  }
-
-
-  /*
-    Keep the original Telegram
-    page-open notification.
-  */
-
-  notifyPageOpen();
-
-})();
-
-</script>
-
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
